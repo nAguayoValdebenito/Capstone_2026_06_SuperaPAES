@@ -334,9 +334,9 @@ Proyecto del 03/09/2026 al 05/11/2026.
 
 | Rol | Personas |
 |---|---|
-| Cliente | Sebastián Pérez, representante de Aprueba |
-| Product Owner | Docentes guía Juan Pablo Mellado y Mabel Herrera |
-| Scrum Master | Rota cada sprint entre los integrantes del equipo |
+| Cliente | Aprueba |
+| Product Owner | Sebastián Pérez, representante de Aprueba |
+| Scrum Master | Nicolas Aguayo |
 | Equipo de desarrollo | Nicolas Aguayo, Catalina Lagos y Sebastian Medina |
 
 Proyecto APT, Duoc UC, 2026.
