@@ -1,0 +1,77 @@
+# ── Material crítico del proyecto: solo en el equipo, nunca en GitHub ──
+# Documentación interna (DAS, modelo de datos, reglas de negocio), guía de Claude Code y el SQL de la
+# base. El SQL se entrega por un canal privado y se copia en api/db/migraciones/ y api/db/semillas/.
+docs/
+CLAUDE.md
+.claude/
+api/db/migraciones/*.sql
+api/db/semillas/*.sql
+api/db/semillas/README.md
+
+# ── Secretos: nunca se versionan (solo los *.example con valores de ejemplo) ──
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+key.properties
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+cuenta-servicio*.json
+service-account*.json
+credenciales*.json
+
+# ── Datos y bases de datos con contenido (los .sql del esquema y las semillas sí se versionan) ──
+*.dump
+*.backup
+*.bak
+pg_dump*.sql
+*_datos.sql
+*.sqlite
+*.sqlite3
+*.db
+datos-reales/
+
+# ── Respaldos y archivos locales ──
+*.bundle
+*.zip
+respaldo*/
+backup*/
+scratchpad/
+tmp/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# ── Generado: dependencias, compilados y reportes ──
+node_modules/
+dist/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+*.apk
+*.aab
+*.ipa
+Pods/
+
+# ── App Flutter: configuración local y generados ──
+app/config/desarrollo.json
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/android/local.properties
+app/android/app/upload-keystore*
+
+# ── Configuración personal de editores ──
+.vscode/*
+!.vscode/extensions.json
+.idea/

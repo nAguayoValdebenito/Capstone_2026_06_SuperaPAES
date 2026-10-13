@@ -1,0 +1,40 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "tags": ["-esqueleto"],
+  "workspaces": {
+    "api": {
+      "ignore": [
+        "modulos/administracion/administracion.controlador.ts",
+        "modulos/generador/generador.controlador.ts",
+        "modulos/practica/practica.controlador.ts",
+        "modulos/preguntas/preguntas.controlador.ts",
+        "modulos/privacidad/privacidad.controlador.ts",
+        "modulos/revision/revision.controlador.ts",
+        "modulos/temario/temario.controlador.ts",
+        "modulos/administracion/administracion.validadores.ts",
+        "modulos/generador/generador.validadores.ts",
+        "modulos/practica/practica.validadores.ts",
+        "modulos/preguntas/preguntas.validadores.ts",
+        "modulos/privacidad/privacidad.validadores.ts",
+        "modulos/revision/revision.validadores.ts",
+        "modulos/suscripciones/suscripciones.validadores.ts",
+        "modulos/temario/temario.validadores.ts",
+        "eslint.reglas-arquitectura.d.ts"
+      ]
+    },
+    "consola": {
+      "ignore": [
+        "src/servicios/administracion.ts",
+        "src/servicios/cuentas.ts",
+        "src/servicios/generador.ts",
+        "src/servicios/preguntas.ts",
+        "src/servicios/privacidad.ts",
+        "src/servicios/revision.ts",
+        "src/servicios/suscripciones.ts",
+        "src/servicios/temario.ts"
+      ]
+    }
+  },
+  "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"]
+}

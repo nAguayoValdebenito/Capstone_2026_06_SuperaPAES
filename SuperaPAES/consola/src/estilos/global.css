@@ -1,0 +1,232 @@
+/* Tema base de la consola, tomado del prototipo en Figma (referencia de escritorio: 1440 × 900).
+   Todos los pares de texto y fondo cumplen contraste AA (RNF-12). */
+
+:root {
+  /* Marca */
+  --primario: #1d4ed8;
+  --primario-oscuro: #1e3a8a;
+  --texto: #14213d;
+  --texto-secundario: #4a5568;
+  --fondo: #f4f6fa;
+  --superficie: #ffffff;
+  --borde: #d5dbe6;
+
+  /* Estados (≥ 4,5:1 sobre --fondo y --superficie) */
+  --exito: #15803d;
+  --error: #b91c1c;
+  --aviso: #b45309;
+
+  /* Menú lateral */
+  --menu-fondo: var(--texto);
+  --menu-texto: #ffffff;
+  --menu-tenue: #b8c2d9;
+
+  --foco: #f59e0b;
+
+  --fuente-interfaz: 'Figtree', system-ui, sans-serif;
+  /* Fórmulas y texto matemático (las fórmulas se escriben en LaTeX). */
+  --fuente-formulas: 'STIX Two Text', 'Cambria Math', serif;
+
+  --texto-sm: 0.875rem;
+  --texto-base: 1rem;
+  --texto-md: 1.25rem;
+  --texto-lg: 1.75rem;
+
+  font-family: var(--fuente-interfaz);
+  font-size: 100%;
+  line-height: 1.5;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+}
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--primario);
+}
+
+.formula {
+  font-family: var(--fuente-formulas);
+}
+
+/* Diseño general */
+.diseno {
+  display: grid;
+  grid-template-columns: 15.5rem minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.contenido {
+  padding: 2.5rem 3rem;
+}
+
+/* Menú lateral */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.75rem 1rem;
+  background: var(--menu-fondo);
+  color: var(--menu-texto);
+}
+
+.menu__marca {
+  margin: 0 0.75rem;
+  font-size: var(--texto-md);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu__grupo + .menu__grupo {
+  margin-top: 1rem;
+}
+
+.menu__titulo-grupo {
+  margin: 0 0.75rem 0.375rem;
+  font-size: var(--texto-sm);
+  color: var(--menu-tenue);
+}
+
+.menu__enlace {
+  display: block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  color: var(--menu-texto);
+  text-decoration: none;
+}
+
+.menu__enlace:hover {
+  background: var(--primario-oscuro);
+}
+
+.menu__enlace[aria-current='page'] {
+  background: var(--primario);
+  font-weight: 600;
+}
+
+.menu__sesion {
+  margin: auto 0.75rem 0;
+  font-size: var(--texto-sm);
+}
+
+.menu__sesion p {
+  margin: 0;
+}
+
+.menu__nombre {
+  font-weight: 600;
+}
+
+.menu__rol {
+  color: var(--menu-tenue);
+}
+
+.menu__cambio-rol {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  color: var(--menu-tenue);
+}
+
+.menu__cambio-rol select {
+  font: inherit;
+  padding: 0.25rem 0.375rem;
+  border-radius: 0.375rem;
+}
+
+/* Páginas */
+.pagina {
+  max-width: 72ch;
+}
+
+.pagina h1 {
+  margin: 0 0 0.5rem;
+  font-size: var(--texto-lg);
+  line-height: 1.2;
+}
+
+.pagina h2 {
+  margin: 2rem 0 0.75rem;
+  font-size: var(--texto-md);
+}
+
+.pagina__aviso {
+  margin: 0 0 1rem;
+  color: var(--texto-secundario);
+}
+
+.ingreso {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+/* Estado del sistema */
+.estado {
+  display: grid;
+  background: var(--superficie);
+  grid-template-columns: max-content max-content;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+  width: fit-content;
+}
+
+.estado dt {
+  color: var(--texto-secundario);
+}
+
+.estado dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.estado__ok {
+  color: var(--exito);
+}
+
+.estado__error {
+  color: var(--error);
+}
+
+.estado__codigo {
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+@media (max-width: 48rem) {
+  .diseno {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .menu {
+    gap: 1rem;
+  }
+
+  .contenido {
+    padding: 1.5rem 1rem;
+  }
+}

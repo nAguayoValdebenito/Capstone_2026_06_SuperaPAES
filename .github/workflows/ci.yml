@@ -1,0 +1,112 @@
+name: CI
+
+# El sistema vive en SuperaPAES/. Los cambios en Fase 1 o Fase 2 no disparan la integración continua.
+on:
+  pull_request:
+    paths: ["SuperaPAES/**", ".github/**"]
+  push:
+    branches: [main]
+    paths: ["SuperaPAES/**", ".github/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: SuperaPAES
+
+jobs:
+  api:
+    name: API
+    runs-on: ubuntu-latest
+    # El SQL del esquema no se publica (se entrega por un canal privado), así que la CI no migra una
+    # base. PostgreSQL se usa para la prueba de la unidad de trabajo, que crea su propia tabla.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: supera
+          POSTGRES_PASSWORD: supera_ci
+          POSTGRES_DB: supera_paes
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U supera -d supera_paes"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Clave del contenedor desechable de la CI, no es un secreto. secretlint-disable-next-line
+      DATABASE_URL: postgres://supera:supera_ci@localhost:5432/supera_paes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: SuperaPAES/.nvmrc
+          cache: npm
+          cache-dependency-path: SuperaPAES/package-lock.json
+      # Solo el workspace de la API y la raíz del proyecto (Prettier y reglas compartidas).
+      - run: npm ci -w api --include-workspace-root
+      - name: Formato (Prettier)
+        run: npx prettier --check .
+      - run: npm run lint -w api
+      - run: npm run test -w api
+      - run: npm run build -w api
+
+  consola:
+    name: Consola
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: SuperaPAES/.nvmrc
+          cache: npm
+          cache-dependency-path: SuperaPAES/package-lock.json
+      # La raíz del proyecto trae las reglas de calidad compartidas (eslint-plugin-sonarjs).
+      - run: npm ci -w consola --include-workspace-root
+      - run: npm run lint -w consola
+      - run: npm run test -w consola
+      - run: npm run build -w consola
+
+  calidad:
+    name: Calidad (código muerto, ciclos, duplicación y secretos)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: SuperaPAES/.nvmrc
+          cache: npm
+          cache-dependency-path: SuperaPAES/package-lock.json
+      - run: npm ci
+      - name: Código muerto (knip)
+        run: npm run codigo-muerto
+      - name: Imports circulares (madge)
+        run: npm run circulares
+      - name: Duplicación (jscpd)
+        run: npm run duplicacion
+      - name: Secretos (secretlint)
+        run: npm run revisar-secretos
+
+  app:
+    name: App Flutter (Android e iOS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SuperaPAES/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Formato (dart format)
+        run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test

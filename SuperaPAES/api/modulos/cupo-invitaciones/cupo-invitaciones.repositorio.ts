@@ -1,0 +1,14 @@
+// Único lugar con SQL del módulo cupo-invitaciones. Consultas siempre parametrizadas ($1, $2...).
+// Tablas que pertenecen a este módulo (ningún otro módulo las escribe):
+//   - app.cupo_diario
+//   - app.invitacion
+//   - app.movimiento_bono
+// Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
+import type { Ejecutor } from '../../db/transaccion.js';
+
+export type CupoInvitacionesRepositorio = Record<string, never>;
+
+/** @esqueleto Lo usará el servicio del módulo cuando implemente su primera consulta. */
+export function crearCupoInvitacionesRepositorio(_bd: Ejecutor): CupoInvitacionesRepositorio {
+  return {};
+}

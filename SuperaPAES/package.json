@@ -1,0 +1,34 @@
+{
+  "name": "supera-paes",
+  "private": true,
+  "description": "Plataforma de práctica para la PAES: API, consola web y app de estudiantes.",
+  "type": "module",
+  "workspaces": [
+    "api",
+    "consola"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "npm run lint --workspaces && prettier --check .",
+    "test": "npm run test --workspaces",
+    "build": "npm run build --workspaces",
+    "formatear": "prettier --write .",
+    "codigo-muerto": "knip",
+    "circulares": "madge --circular --extensions ts --ts-config api/tsconfig.json api/servidor.ts api/app.ts api/db/scripts && madge --circular --extensions ts,tsx --ts-config consola/tsconfig.json consola/src/main.tsx",
+    "duplicacion": "jscpd",
+    "cobertura": "npm run cobertura --workspaces",
+    "revisar-secretos": "secretlint \"**/*\""
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "jscpd": "^5.4.1",
+    "knip": "^6.41.0",
+    "madge": "^8.0.0",
+    "prettier": "^3.9.9",
+    "secretlint": "^13.0.7"
+  }
+}

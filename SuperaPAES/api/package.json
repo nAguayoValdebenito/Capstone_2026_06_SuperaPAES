@@ -1,0 +1,45 @@
+{
+  "name": "@supera-paes/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API de Supera PAES: monolito modular en capas, único punto de acceso a la base de datos.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env servidor.ts",
+    "migrar": "tsx --env-file-if-exists=.env db/scripts/migrar.ts",
+    "semillas": "tsx --env-file-if-exists=.env db/scripts/semillas.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/servidor.js",
+    "migrar:produccion": "node dist/db/scripts/migrar.js && node dist/db/scripts/semillas.js",
+    "lint": "tsc --noEmit && eslint .",
+    "test": "vitest run",
+    "cobertura": "vitest run --coverage"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "jose": "^6.2.12",
+    "pg": "^8.23.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.1",
+    "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
+    "eslint": "^10.11.0",
+    "globals": "^17.13.0",
+    "supertest": "^7.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
+  }
+}
