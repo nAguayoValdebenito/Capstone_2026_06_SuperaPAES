@@ -2,8 +2,6 @@
 
 Plataforma para practicar la **PAES** (Prueba de Acceso a la Educación Superior) de Chile. Tiene una **app móvil** para estudiantes, para Android e iOS, y una **consola web** para administradores y docentes. En la consola se crean preguntas con apoyo de inteligencia artificial, y dos docentes especialistas revisan cada pregunta antes de que llegue a un estudiante.
 
-Proyecto APT de Duoc UC, desarrollado para **Aprueba**, representada por Sebastián Pérez.
-
 ---
 
 ## Contenido
