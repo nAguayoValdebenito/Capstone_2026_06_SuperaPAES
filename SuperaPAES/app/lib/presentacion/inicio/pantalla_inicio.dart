@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -18,13 +17,6 @@ class PantallaInicio extends ConsumerWidget {
     return EnConstruccion(
       descripcion:
           'Aquí verás tu resumen de práctica, tu racha y tu cupo del día.',
-      accionesBarra: [
-        IconButton(
-          tooltip: Textos.miCuenta,
-          icon: const Icon(Icons.account_circle_outlined),
-          onPressed: () => context.push(Rutas.cuenta),
-        ),
-      ],
       acciones: const [
         AccionNavegacion('Invitaciones', Rutas.invitaciones),
         AccionNavegacion('Cupo agotado', Rutas.cupoAgotado),

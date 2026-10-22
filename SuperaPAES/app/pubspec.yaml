@@ -21,6 +21,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Logo oficial (Figura 63 del DAS), en el inicio de sesión.
+  assets:
+    - assets/imagenes/logo_supera_paes.png
   # Fuentes empaquetadas (licencia OFL, ver assets/fuentes): no se descargan al usar la app.
   fonts:
     - family: Figtree

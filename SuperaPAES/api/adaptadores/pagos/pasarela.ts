@@ -1,6 +1,6 @@
 // Interfaz común de las pasarelas de pago. Las suscripciones se compran dentro de la app con la
 // facturación de las tiendas (Google Play Billing y StoreKit); la API solo verifica compras y avisos.
-// Los estados coinciden con app.suscripcion.estado.
+// Los estados son los códigos de contenido.estado_suscripcion y las tiendas, los de contenido.canal_venta.
 
 export type Tienda = 'google_play' | 'app_store';
 
@@ -9,7 +9,7 @@ export type EstadoSuscripcion =
 
 export interface SolicitudVerificacionCompra {
   tienda: Tienda;
-  /** Identificador del producto en la tienda (contenido.plan.id_producto_google o id_producto_apple). */
+  /** Identificador del producto en la tienda (contenido.plan_producto_tienda.id_producto). */
   idProducto: string;
   /** Token de compra de Google Play o transacción original de la App Store (app.suscripcion.id_compra_tienda). */
   idCompraTienda: string;

@@ -4,6 +4,7 @@ import {
   ErrorMigracion,
   esArchivoDeMigracion,
   planificarMigraciones,
+  quitarControlDeTransaccion,
 } from '../db/migrador.js';
 
 const archivo = (nombre: string, contenido = nombre) => ({
@@ -77,5 +78,21 @@ describe('calcularSuma', () => {
 
   it('no cambia con los fines de línea de Windows', () => {
     expect(calcularSuma('SELECT 1;\r\nSELECT 2;\r\n')).toBe(calcularSuma('SELECT 1;\nSELECT 2;\n'));
+  });
+});
+
+describe('quitarControlDeTransaccion', () => {
+  it('quita las líneas BEGIN; y COMMIT; del archivo, también con fines de línea de Windows', () => {
+    const sql = 'CREATE TABLE t (id INT);\r\nBEGIN;\r\nINSERT INTO t VALUES (1);\r\ncommit;\r\n';
+
+    expect(quitarControlDeTransaccion(sql)).toBe(
+      'CREATE TABLE t (id INT);\r\n\nINSERT INTO t VALUES (1);\r\n\n',
+    );
+  });
+
+  it('conserva los BEGIN de las funciones PL/pgSQL', () => {
+    const funcion = 'CREATE FUNCTION f() RETURNS void AS $$\nBEGIN\n  RETURN;\nEND $$;\n';
+
+    expect(quitarControlDeTransaccion(funcion)).toBe(funcion);
   });
 });

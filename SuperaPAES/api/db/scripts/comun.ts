@@ -1,4 +1,4 @@
-// Utilidades compartidas por los scripts de base de datos (migrar y semillas).
+// Utilidades compartidas por los scripts de base de datos (migrar, semillas y probar:bd).
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
@@ -9,7 +9,7 @@ import { opcionesConexion } from '../conexion.js';
  * Busca db/<carpeta> subiendo desde este archivo. Sirve desde db/scripts/ (desarrollo, con tsx)
  * y desde dist/db/scripts/ (compilado), porque tsc no copia los .sql a dist.
  */
-export function encontrarCarpeta(carpeta: 'migraciones' | 'semillas'): string {
+export function encontrarCarpeta(carpeta: 'migraciones' | 'semillas' | 'pruebas'): string {
   let actual = import.meta.dirname;
   while (true) {
     const candidato = path.join(actual, 'db', carpeta);

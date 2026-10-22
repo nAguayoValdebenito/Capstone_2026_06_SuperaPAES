@@ -1,6 +1,7 @@
 // Único lugar con SQL del módulo suscripciones. Consultas siempre parametrizadas ($1, $2...).
 // Tablas que pertenecen a este módulo (ningún otro módulo las escribe):
 //   - contenido.plan
+//   - contenido.plan_producto_tienda
 //   - app.suscripcion
 //   - app.suscripcion_prueba
 //   - app.pago

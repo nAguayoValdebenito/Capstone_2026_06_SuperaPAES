@@ -33,7 +33,7 @@ describe('separación de tokens de la app y de la consola', () => {
 
   it('un token de la consola recibe 401 en /api/v1/app', async () => {
     const respuesta = await request(app)
-      .get('/api/v1/app/practica')
+      .get('/api/v1/app/evaluaciones')
       .set(conToken(await tokenAdmin()));
 
     expect(respuesta.status).toBe(401);
@@ -54,13 +54,13 @@ describe('separación de tokens de la app y de la consola', () => {
 
   it('sin token, ambas interfaces responden 401', async () => {
     expect((await request(app).get('/api/v1/admin/temario')).status).toBe(401);
-    expect((await request(app).get('/api/v1/app/practica')).status).toBe(401);
+    expect((await request(app).get('/api/v1/app/evaluaciones')).status).toBe(401);
   });
 
   it('un token vencido responde 401', async () => {
     const vencido = await firmarToken('app', { sub: '10' }, SECRETO_APP_DE_PRUEBA, '-1s');
 
-    const respuesta = await request(app).get('/api/v1/app/practica').set(conToken(vencido));
+    const respuesta = await request(app).get('/api/v1/app/evaluaciones').set(conToken(vencido));
 
     expect(respuesta.status).toBe(401);
   });
@@ -70,7 +70,7 @@ describe('separación de tokens de la app y de la consola', () => {
       .get('/api/v1/admin/temario')
       .set(conToken(await tokenAdmin()));
     const estudiante = await request(app)
-      .get('/api/v1/app/practica')
+      .get('/api/v1/app/evaluaciones')
       .set(conToken(await tokenApp()));
 
     expect(admin.status).toBe(404);
@@ -110,12 +110,16 @@ describe('módulos montados', () => {
     expect((await request(app).get(`/api/v1/admin/${modulo}`)).status).toBe(401);
   });
 
-  it.each(['temario', 'preguntas', 'practica', 'cupo-invitaciones', 'suscripciones', 'privacidad'])(
-    '/api/v1/app/%s está detrás de la autenticación de la app',
-    async (modulo) => {
-      expect((await request(app).get(`/api/v1/app/${modulo}`)).status).toBe(401);
-    },
-  );
+  it.each([
+    'temario',
+    'preguntas',
+    'evaluaciones',
+    'cupo-invitaciones',
+    'suscripciones',
+    'privacidad',
+  ])('/api/v1/app/%s está detrás de la autenticación de la app', async (modulo) => {
+    expect((await request(app).get(`/api/v1/app/${modulo}`)).status).toBe(401);
+  });
 
   it.each([
     [RUTA_REGISTRO, cuerpoRegistro()],
@@ -145,6 +149,36 @@ describe('módulos montados', () => {
 
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.error.codigo).toBe('VALIDACION');
+  });
+
+  it('el registro exige aceptar la política de privacidad, que es obligatoria', async () => {
+    const respuesta = await request(app)
+      .post(RUTA_REGISTRO)
+      .send(cuerpoRegistro({ aceptaPrivacidad: undefined }));
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.error.codigo).toBe('VALIDACION');
+  });
+
+  it.each(['ABC23', 'ABC2345', 'ABCDE0', 'ABCDEO', 'ABCDE1', 'ABCDEI', 'ABC-23'])(
+    'rechaza el código de invitación %s (RN-33)',
+    async (codigo) => {
+      const respuesta = await request(app)
+        .post(RUTA_REGISTRO)
+        .send(cuerpoRegistro({ codigoInvitacion: codigo }));
+
+      expect(respuesta.status).toBe(400);
+      expect(respuesta.body.error.codigo).toBe('VALIDACION');
+    },
+  );
+
+  it('acepta el código de invitación en minúsculas y con espacios', async () => {
+    const respuesta = await request(app)
+      .post(RUTA_INVITACIONES)
+      .set(conToken(await tokenApp()))
+      .send({ codigo: ' abc234 ' });
+
+    expect(respuesta.status).toBe(501);
   });
 });
 
@@ -194,13 +228,13 @@ describe('límite de intentos', () => {
     const limitada = appLimitada();
     const token = conToken(await tokenApp());
     for (let i = 0; i < 2; i++) {
-      await request(limitada).post(RUTA_INVITACIONES).set(token).send({ codigo: 'ABC123' });
+      await request(limitada).post(RUTA_INVITACIONES).set(token).send({ codigo: 'ABC234' });
     }
 
     const respuesta = await request(limitada)
       .post(RUTA_INVITACIONES)
       .set(token)
-      .send({ codigo: 'ABC123' });
+      .send({ codigo: 'ABC234' });
 
     expect(respuesta.status).toBe(429);
   });

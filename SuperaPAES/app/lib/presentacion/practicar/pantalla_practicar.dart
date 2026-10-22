@@ -13,7 +13,6 @@ class PantallaElegirPractica extends StatelessWidget {
       descripcion: 'Elige qué practicar: una prueba, un eje o un contenido.',
       acciones: [
         AccionNavegacion('Empezar (provisional)', Rutas.pregunta),
-        AccionNavegacion('Mini-ensayos y ensayo', Rutas.ensayos),
         AccionNavegacion('Repaso de errores', Rutas.repaso),
       ],
     );

@@ -44,10 +44,11 @@ llegar a la API local; las versiones de prueba cerrada y producción usan HTTPS.
 - `datos/`: fuentes remotas, modelos con `fromJson`/`toJson` y repositorios concretos.
 - `presentacion/`: una carpeta por pantalla, con su estado (Riverpod). Las pantallas se declaran una
   sola vez en `comunes/secciones.dart`; de ahí salen las rutas (`enrutador.dart`), los títulos y la
-  barra inferior (Inicio, Practicar, Progreso y Planes).
+  barra inferior (Inicio, Practicar, Evaluaciones, Progreso y Perfil; Planes se abre desde Perfil).
 
 Tema: mismos colores y tipografías que la consola (Figtree para la interfaz y STIX Two Text para
-fórmulas, empaquetadas en `assets/fuentes/` con licencia OFL). Diseño de referencia: 390 × 844.
+fórmulas, empaquetadas en `assets/fuentes/` con licencia OFL). Diseño de referencia: 390 × 844. El
+logo oficial (Figura 63 del DAS) está en `assets/imagenes/` y se muestra al iniciar sesión.
 
 La compra de suscripciones (`in_app_purchase` y el archivo de StoreKit Testing) se agrega en el
 sprint de suscripciones.

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type pg from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ErrorSemilla, ejecutarSemillas } from '../db/semillas.js';
+import { ErrorSemilla, ejecutarSemillas, leerSemillasOmitidas } from '../db/semillas.js';
 
 function crearClienteFalso(fallarCon?: string) {
   const consultas: string[] = [];
@@ -50,6 +50,40 @@ describe('ejecutarSemillas', () => {
     ]);
   });
 
+  it('ignora el BEGIN; y el COMMIT; del archivo para no cerrar antes la transacción', async () => {
+    await writeFile(path.join(carpeta, '001_a.sql'), 'BEGIN;\nSELECT 1;\nCOMMIT;\n');
+    const { cliente, consultas } = crearClienteFalso();
+
+    await ejecutarSemillas(cliente, carpeta);
+
+    expect(consultas.filter((c) => !c.includes('advisory'))).toEqual([
+      'BEGIN',
+      '\nSELECT 1;\n\n',
+      'COMMIT',
+    ]);
+  });
+
+  it('no carga las semillas omitidas', async () => {
+    await writeFile(path.join(carpeta, '001_a.sql'), 'SELECT 1;');
+    await writeFile(path.join(carpeta, '003_legales.sql'), 'SELECT 3;');
+    const { cliente, consultas } = crearClienteFalso();
+
+    const ejecutadas = await ejecutarSemillas(cliente, carpeta, ['003_legales.sql']);
+
+    expect(ejecutadas).toEqual(['001_a.sql']);
+    expect(consultas).not.toContain('SELECT 3;');
+  });
+
+  it('se detiene sin cargar nada si una semilla omitida no existe (nombre mal escrito)', async () => {
+    await writeFile(path.join(carpeta, '003_legales.sql'), 'SELECT 3;');
+    const { cliente, consultas } = crearClienteFalso();
+
+    await expect(ejecutarSemillas(cliente, carpeta, ['003_legal.sql'])).rejects.toThrow(
+      'SEMILLAS_OMITIDAS nombra semillas que no existen: 003_legal.sql',
+    );
+    expect(consultas).toEqual([]);
+  });
+
   it('revierte la semilla que falla e indica cuál fue', async () => {
     await writeFile(path.join(carpeta, '001_a.sql'), 'SELECT malo;');
     const { cliente, consultas } = crearClienteFalso('malo');
@@ -66,5 +100,18 @@ describe('ejecutarSemillas', () => {
 
     await expect(ejecutarSemillas(cliente, carpeta)).resolves.toEqual(['001_a.sql']);
     expect(error).toHaveBeenCalledWith(expect.stringContaining('No se pudo liberar el bloqueo'));
+  });
+});
+
+describe('leerSemillasOmitidas', () => {
+  it('separa los nombres por comas y descarta espacios y vacíos', () => {
+    expect(leerSemillasOmitidas({ SEMILLAS_OMITIDAS: ' 003_legales.sql, ,004_x.sql ' })).toEqual([
+      '003_legales.sql',
+      '004_x.sql',
+    ]);
+  });
+
+  it('sin la variable no omite nada', () => {
+    expect(leerSemillasOmitidas({})).toEqual([]);
   });
 });

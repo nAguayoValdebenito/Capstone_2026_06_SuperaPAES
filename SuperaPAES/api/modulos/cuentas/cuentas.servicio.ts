@@ -1,6 +1,6 @@
 // Reglas de negocio del módulo cuentas: registro, ingreso, verificación de correo y recuperación de
-// contraseña de estudiantes, consentimientos, pruebas elegidas, puntajes PAES declarados e ingreso
-// del personal interno.
+// contraseña de estudiantes, consentimientos, pruebas elegidas, áreas de carrera de interés,
+// puntajes PAES declarados e ingreso del personal interno.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
 import { ErrorNoImplementado } from '../../comun/errores.js';

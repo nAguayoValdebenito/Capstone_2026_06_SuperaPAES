@@ -24,9 +24,13 @@ class EnConstruccion extends StatelessWidget {
     this.hijos = const [],
     this.acciones = const [],
     this.accionesBarra = const [],
+    this.encabezado,
   });
 
   final String descripcion;
+
+  /// Contenido sobre el aviso, por ejemplo el logo en el inicio de sesión.
+  final Widget? encabezado;
 
   /// Contenido adicional bajo la descripción.
   final List<Widget> hijos;
@@ -42,6 +46,10 @@ class EnConstruccion extends StatelessWidget {
     return PantallaBase(
       acciones: accionesBarra,
       hijos: [
+        if (encabezado case final encabezado?) ...[
+          encabezado,
+          const SizedBox(height: 24),
+        ],
         Text('En construcción', style: textos.titleMedium),
         const SizedBox(height: 8),
         Text(descripcion, style: textos.bodyLarge),

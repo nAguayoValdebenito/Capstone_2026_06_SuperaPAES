@@ -1,6 +1,7 @@
 // Único lugar con SQL del módulo cupo-invitaciones. Consultas siempre parametrizadas ($1, $2...).
 // Tablas que pertenecen a este módulo (ningún otro módulo las escribe):
 //   - app.cupo_diario
+//   - app.uso_gratis
 //   - app.invitacion
 //   - app.movimiento_bono
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.

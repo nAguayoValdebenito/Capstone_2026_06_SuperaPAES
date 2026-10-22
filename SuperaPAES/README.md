@@ -35,15 +35,18 @@ npm install
 createdb -U postgres supera_paes             # en Windows: "C:\Program Files\PostgreSQL\18\bin\createdb.exe"
 cp api/.env.example api/.env                 # completa DATABASE_URL y los dos JWT_SECRETO_*
 # Copia el SQL recibido por el canal privado: 001_esquema_inicial.sql en api/db/migraciones/
-# y las semillas (por ejemplo 001_temario_paes_2027.sql) en api/db/semillas/.
-npm run migrar -w api                        # 40 tablas, 69 claves foráneas, 6 vistas y datos iniciales
-npm run semillas -w api                      # temario PAES 2027 (idempotente)
+# y las semillas en api/db/semillas/: 001_temario_paes_2027.sql, 002_evaluaciones.sql y
+# 003_documentos_legales.sql (se ejecutan en ese orden; las evaluaciones necesitan el temario),
+# y las pruebas del modelo como api/db/pruebas/modelo_bd.sql.
+npm run migrar -w api                        # 85 tablas, 154 claves foráneas, 11 vistas y datos iniciales
+npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
+npm run probar:bd -w api                     # 226 casos del modelo en una base temporal (necesita psql 18)
 npm run dev -w api                           # http://localhost:3000/api/v1/salud
 npm run dev -w consola                       # http://localhost:5173
 ```
 
 > **Si ya tenías la base de una versión anterior del modelo**, recréala una vez: la migración
-> `001` ahora es el modelo 8.0 y su suma de verificación cambió (`dropdb` y `createdb`, luego
+> `001` ahora es el modelo 11.0 y su suma de verificación cambió (`dropdb` y `createdb`, luego
 > `npm run migrar` y `npm run semillas`).
 
 Con todos los proveedores en `simulado`/`consola`, la API solo necesita `DATABASE_URL`, los dos
@@ -90,5 +93,6 @@ npm run test      # Vitest (no necesita base de datos)
 npm run build
 npm run codigo-muerto && npm run circulares && npm run duplicacion
 npm run revisar-secretos   # ningún secreto puede llegar a GitHub
+npm run probar:bd -w api   # pruebas del modelo de datos (con el SQL del canal privado)
 cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
 ```

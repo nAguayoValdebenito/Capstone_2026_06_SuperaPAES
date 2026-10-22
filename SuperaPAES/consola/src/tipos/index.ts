@@ -1,6 +1,6 @@
 // Tipos del dominio que usa la consola. Los roles salen del modelo de datos.
 
-/** Roles de cuenta interna (contenido.usuario_interno.rol). */
+/** Roles de cuenta interna (códigos de contenido.rol). */
 export const ROLES_CUENTA_INTERNA = ['admin', 'docente'] as const;
 export type RolCuentaInterna = (typeof ROLES_CUENTA_INTERNA)[number];
 

@@ -30,7 +30,7 @@ describe('crearUnidadDeTrabajo', () => {
     const { pool, consultas, fueLiberado } = crearPoolFalso();
 
     const resultado = await crearUnidadDeTrabajo(pool).enTransaccion(async (tx) => {
-      await tx.query('INSERT INTO app.respuesta ...');
+      await tx.query('INSERT INTO app.evaluacion_item ...');
       await tx.query('UPDATE app.cupo_diario ...');
       return 'listo';
     });
@@ -38,7 +38,7 @@ describe('crearUnidadDeTrabajo', () => {
     expect(resultado).toBe('listo');
     expect(consultas).toEqual([
       'BEGIN',
-      'INSERT INTO app.respuesta ...',
+      'INSERT INTO app.evaluacion_item ...',
       'UPDATE app.cupo_diario ...',
       'COMMIT',
     ]);
@@ -51,12 +51,12 @@ describe('crearUnidadDeTrabajo', () => {
 
     await expect(
       crearUnidadDeTrabajo(pool).enTransaccion(async (tx) => {
-        await tx.query('INSERT INTO app.respuesta ...');
+        await tx.query('INSERT INTO app.evaluacion_item ...');
         throw falla;
       }),
     ).rejects.toBe(falla);
 
-    expect(consultas).toEqual(['BEGIN', 'INSERT INTO app.respuesta ...', 'ROLLBACK']);
+    expect(consultas).toEqual(['BEGIN', 'INSERT INTO app.evaluacion_item ...', 'ROLLBACK']);
     expect(consultas).not.toContain('COMMIT');
     expect(fueLiberado()).toBe(true);
   });

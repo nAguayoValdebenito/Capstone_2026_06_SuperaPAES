@@ -1,5 +1,5 @@
 // Rutas de /api/v1/app/cupo-invitaciones (estudiante autenticado con el JWT de la app): cupo diario de
-// preguntas, invitaciones y saldo de bonos. La autenticación la aplica app.ts antes de montar este router.
+// preguntas, usos gratis del mes, invitaciones y saldo de bonos. La autenticación la aplica app.ts antes de montar este router.
 import { Router } from 'express';
 import type { MiddlewareRutas } from '../../comun/middleware/index.js';
 import { validar } from '../../comun/middleware/validacion.js';

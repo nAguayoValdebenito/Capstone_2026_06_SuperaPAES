@@ -1,6 +1,6 @@
 // Reglas de negocio del módulo administracion: gestión de usuarios internos y especialidades,
-// parámetros del sistema (contenido.configuracion), auditoría, panel de métricas y consulta de
-// estudiantes.
+// parámetros del sistema (contenido.configuracion), documentos legales, auditoría, panel de
+// métricas y consulta de estudiantes.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionRepositorio } from './administracion.repositorio.js';

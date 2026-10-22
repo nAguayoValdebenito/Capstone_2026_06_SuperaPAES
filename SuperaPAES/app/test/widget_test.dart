@@ -10,6 +10,7 @@ import 'package:supera_paes/nucleo/respuesta_api.dart';
 import 'package:supera_paes/presentacion/aplicacion.dart';
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
+import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 
 void main() {
@@ -49,18 +50,23 @@ void main() {
   test('las 16 pantallas del prototipo están declaradas una sola vez', () {
     expect(secciones, hasLength(16));
     expect(secciones.map((s) => s.ruta).toSet(), hasLength(16));
+    // Barra inferior del DAS 7.4: Planes pasa a Perfil.
     expect(pestanas.map((s) => s.etiquetaPestana ?? s.titulo), [
       'Inicio',
       'Practicar',
+      'Evaluaciones',
       'Progreso',
-      'Planes',
+      'Perfil',
     ]);
   });
 
-  testWidgets('abre en Iniciar sesión, sin barra inferior', (tester) async {
+  testWidgets('abre en Iniciar sesión, con el logo y sin barra inferior', (
+    tester,
+  ) async {
     await iniciarApp(tester);
 
     expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOneWidget);
+    expect(find.image(const AssetImage(PantallaIngreso.logo)), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
   });
 
@@ -92,26 +98,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Elegir práctica'), findsOneWidget);
 
-    await tester.tap(find.text('Planes').last);
+    await tester.tap(find.text('Evaluaciones').last);
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Planes'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Evaluaciones'), findsOneWidget);
   });
 
-  testWidgets('desde Inicio se abre Mi cuenta y se vuelve atrás', (
+  testWidgets('desde Perfil se abren los Planes y se vuelve atrás', (
     tester,
   ) async {
     await iniciarApp(tester);
     await ir(tester, Rutas.inicio);
 
-    await tester.tap(find.byTooltip('Mi cuenta'));
+    await tester.tap(find.text('Perfil').last);
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Mi cuenta'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Perfil'), findsOneWidget);
     expect(find.text('Puntajes PAES'), findsOneWidget);
-    expect(find.text('Borrar mi cuenta'), findsOneWidget);
+
+    final botonPlanes = find.widgetWithText(OutlinedButton, 'Planes');
+    await tester.scrollUntilVisible(botonPlanes, 200);
+    await tester.tap(botonPlanes);
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Planes'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Inicio'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Perfil'), findsOneWidget);
   });
 
   testWidgets('Inicio muestra el estado de la API', (tester) async {

@@ -56,6 +56,13 @@ jobs:
       - run: npm run lint -w api
       - run: npm run test -w api
       - run: npm run build -w api
+      # Pruebas del modelo (226 casos): necesitan el SQL, que no se publica. Corren en los equipos
+      # (npm run probar:bd -w api) y aquí solo si los archivos llegan al checkout.
+      - name: Pruebas del modelo de datos
+        if: >-
+          hashFiles('SuperaPAES/api/db/pruebas/modelo_bd.sql') != '' &&
+          hashFiles('SuperaPAES/api/db/migraciones/001_esquema_inicial.sql') != ''
+        run: npm run probar:bd -w api
 
   consola:
     name: Consola

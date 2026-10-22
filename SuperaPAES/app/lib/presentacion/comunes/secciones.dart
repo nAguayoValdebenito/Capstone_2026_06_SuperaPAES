@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/presentacion/correccion/pantalla_correccion.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/pantalla_crear_cuenta.dart';
-import 'package:supera_paes/presentacion/cuenta/pantalla_cuenta.dart';
 import 'package:supera_paes/presentacion/cupo_agotado/pantalla_cupo_agotado.dart';
-import 'package:supera_paes/presentacion/ensayos/pantalla_ensayos.dart';
+import 'package:supera_paes/presentacion/evaluaciones/pantalla_evaluaciones.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 import 'package:supera_paes/presentacion/inicio/pantalla_inicio.dart';
 import 'package:supera_paes/presentacion/invitaciones/pantalla_invitaciones.dart';
+import 'package:supera_paes/presentacion/perfil/pantalla_perfil.dart';
 import 'package:supera_paes/presentacion/planes/pantalla_planes.dart';
 import 'package:supera_paes/presentacion/practicar/pantalla_practicar.dart';
 import 'package:supera_paes/presentacion/pregunta/pantalla_pregunta.dart';
@@ -36,7 +36,8 @@ class Seccion {
   final IconData icono;
   final Widget Function() pantalla;
 
-  /// Si aparece en la barra inferior (Inicio, Practicar, Progreso y Planes).
+  /// Si aparece en la barra inferior (DAS 7.4): Inicio, Practicar,
+  /// Evaluaciones, Progreso y Perfil.
   final bool esPestana;
 
   /// Texto de la pestaña cuando es distinto del título de la pantalla.
@@ -87,6 +88,13 @@ const List<Seccion> secciones = [
     etiquetaPestana: 'Practicar',
   ),
   Seccion(
+    'Evaluaciones',
+    Rutas.evaluaciones,
+    Icons.timer_outlined,
+    PantallaEvaluaciones.new,
+    esPestana: true,
+  ),
+  Seccion(
     'Progreso',
     Rutas.progreso,
     Icons.insights_outlined,
@@ -94,10 +102,10 @@ const List<Seccion> secciones = [
     esPestana: true,
   ),
   Seccion(
-    'Planes',
-    Rutas.planes,
-    Icons.workspace_premium_outlined,
-    PantallaPlanes.new,
+    'Perfil',
+    Rutas.perfil,
+    Icons.account_circle_outlined,
+    PantallaPerfil.new,
     esPestana: true,
   ),
   // Práctica
@@ -119,25 +127,19 @@ const List<Seccion> secciones = [
     Icons.hourglass_empty,
     PantallaCupoAgotado.new,
   ),
-  Seccion(
-    'Mini-ensayos y ensayo',
-    Rutas.ensayos,
-    Icons.timer_outlined,
-    PantallaEnsayos.new,
-  ),
   Seccion('Repaso de errores', Rutas.repaso, Icons.replay, PantallaRepaso.new),
-  // Cuenta
+  // Desde Perfil
+  Seccion(
+    'Planes',
+    Rutas.planes,
+    Icons.workspace_premium_outlined,
+    PantallaPlanes.new,
+  ),
   Seccion(
     'Invitaciones',
     Rutas.invitaciones,
     Icons.group_add_outlined,
     PantallaInvitaciones.new,
-  ),
-  Seccion(
-    Textos.miCuenta,
-    Rutas.cuenta,
-    Icons.manage_accounts_outlined,
-    PantallaCuenta.new,
   ),
 ];
 

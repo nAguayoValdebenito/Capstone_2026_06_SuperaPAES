@@ -14,6 +14,10 @@ abstract final class TemaSuperaPaes {
   static const Color error = Color(0xFFB91C1C);
   static const Color aviso = Color(0xFFB45309);
 
+  /// Colores del logo (DAS 7.5): «Supera» en azul oscuro y «PAES» en celeste.
+  static const Color logoOscuro = Color(0xFF0B2653);
+  static const Color logoCeleste = Color(0xFF009CD2);
+
   /// Tipografía de la interfaz.
   static const String fuenteInterfaz = 'Figtree';
 

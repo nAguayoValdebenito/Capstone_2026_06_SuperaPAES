@@ -1,6 +1,7 @@
-// Reglas de negocio del módulo cupo-invitaciones: cupo diario de preguntas, invitaciones y saldo de bonos.
+// Reglas de negocio del módulo cupo-invitaciones: cupo diario de preguntas, usos gratis del mes,
+// invitaciones y saldo de bonos.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
-// Por ejemplo, practica pide aquí descontar el cupo (RN-01) dentro de su propia transacción.
+// Por ejemplo, evaluaciones pide aquí descontar el cupo (RN-01) dentro de su propia transacción.
 import { ErrorNoImplementado } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';

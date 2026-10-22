@@ -16,7 +16,7 @@ class PantallaCupoAgotado extends StatelessWidget {
           'seguir practicando.',
       acciones: [
         AccionNavegacion('Invitar a alguien', Rutas.invitaciones),
-        AccionNavegacion('Ver planes', Rutas.planes, reemplazar: true),
+        AccionNavegacion('Ver planes', Rutas.planes),
       ],
     );
   }

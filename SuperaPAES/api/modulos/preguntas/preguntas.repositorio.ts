@@ -5,7 +5,10 @@
 //   - contenido.pregunta_version
 //   - contenido.texto_estimulo
 //   - contenido.importacion
+//   - contenido.historial_estado_pregunta (lo registra la base)
+//   - contenido.transicion_estado_pregunta (solo lectura: la carga la migración)
 //   - app.reporte_pregunta
+//   - función app.anular_pregunta
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
 import type { Ejecutor } from '../../db/transaccion.js';
 

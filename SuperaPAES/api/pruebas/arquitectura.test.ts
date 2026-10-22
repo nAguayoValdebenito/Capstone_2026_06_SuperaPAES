@@ -30,17 +30,17 @@ describe('reglas de dependencia', () => {
   it.each([
     [
       'un módulo importa el repositorio de otro',
-      'modulos/practica/practica.servicio.ts',
+      'modulos/evaluaciones/evaluaciones.servicio.ts',
       '../cupo-invitaciones/cupo-invitaciones.repositorio.js',
     ],
     [
       'un módulo importa el servicio de otro sin pasar por su index',
-      'modulos/practica/practica.servicio.ts',
+      'modulos/evaluaciones/evaluaciones.servicio.ts',
       '../cupo-invitaciones/cupo-invitaciones.servicio.js',
     ],
     [
       'un módulo llega a otro por una ruta larga',
-      'modulos/practica/practica.servicio.ts',
+      'modulos/evaluaciones/evaluaciones.servicio.ts',
       '../../modulos/cuentas/cuentas.repositorio.js',
     ],
     ['comun importa un módulo', 'comun/respuesta.ts', '../modulos/cuentas/index.js'],
@@ -49,7 +49,7 @@ describe('reglas de dependencia', () => {
       'adaptadores/fabrica.ts',
       '../modulos/suscripciones/index.js',
     ],
-    ['db importa un módulo', 'db/transaccion.ts', '../modulos/practica/index.js'],
+    ['db importa un módulo', 'db/transaccion.ts', '../modulos/evaluaciones/index.js'],
     [
       'un controlador importa su repositorio',
       'modulos/temario/temario.controlador.ts',
@@ -92,7 +92,7 @@ describe('reglas de dependencia', () => {
   it.each([
     [
       'un módulo usa el servicio de otro por su index',
-      'modulos/practica/practica.servicio.ts',
+      'modulos/evaluaciones/evaluaciones.servicio.ts',
       '../cupo-invitaciones/index.js',
     ],
     [

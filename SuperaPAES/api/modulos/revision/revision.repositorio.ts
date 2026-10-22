@@ -4,6 +4,8 @@
 //   - contenido.revision
 //   - contenido.criterio_pauta
 //   - contenido.revision_criterio
+//   - vista contenido.v_calidad_criterio (calidad por criterio de la pauta; administracion la lee
+//     por este servicio para el panel)
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
 import type { Ejecutor } from '../../db/transaccion.js';
 

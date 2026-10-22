@@ -4,7 +4,7 @@
 //   - contenido.docente_especialidad
 //   - contenido.configuracion
 //   - contenido.auditoria
-//   - vista contenido.v_calidad_criterio
+//   - contenido.documento_legal (versiones que publica el administrador)
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
 import type { Ejecutor } from '../../db/transaccion.js';
 

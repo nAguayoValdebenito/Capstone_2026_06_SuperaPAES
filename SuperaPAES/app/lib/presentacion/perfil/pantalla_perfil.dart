@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/presentacion/comunes/en_construccion.dart';
 
-/// Pantalla Mi cuenta (provisional): datos, puntajes PAES, solicitudes sobre
-/// datos personales y borrado de la cuenta.
-class PantallaCuenta extends StatelessWidget {
-  const PantallaCuenta({super.key});
+/// Pestaña Perfil (A37, provisional): cuenta, perfil de estudio, planes,
+/// invitaciones, datos personales y documentos legales.
+class PantallaPerfil extends StatelessWidget {
+  const PantallaPerfil({super.key});
 
   static const _apartados = [
     (
-      'Mis datos',
-      'Nombre, correo, año en que rindes la PAES y pruebas elegidas.',
+      'Perfil de estudio',
+      'Tu curso, las pruebas que rendirás, la prueba que quieres reforzar y '
+          'tus áreas de carrera de interés.',
     ),
     (
       'Puntajes PAES',
@@ -30,7 +31,7 @@ class PantallaCuenta extends StatelessWidget {
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
     return EnConstruccion(
-      descripcion: 'Administra tu cuenta y tus datos personales.',
+      descripcion: 'Administra tu cuenta, tu plan y tus datos personales.',
       hijos: [
         for (final (titulo, detalle) in _apartados) ...[
           const SizedBox(height: 20),
@@ -40,6 +41,8 @@ class PantallaCuenta extends StatelessWidget {
         ],
       ],
       acciones: const [
+        AccionNavegacion('Planes', Rutas.planes),
+        AccionNavegacion('Invitar', Rutas.invitaciones),
         AccionNavegacion('Términos y condiciones', Rutas.terminos),
         AccionNavegacion('Política de privacidad', Rutas.privacidad),
         AccionNavegacion(

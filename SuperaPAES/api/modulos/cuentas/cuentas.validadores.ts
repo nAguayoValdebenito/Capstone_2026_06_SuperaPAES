@@ -1,5 +1,6 @@
 // Esquemas zod de entrada del módulo cuentas. Se usan con validar() en las rutas.
 import { z } from 'zod';
+import { codigoInvitacion } from '../../comun/codigo-invitacion.js';
 
 const correo = z
   .email('Ingresa un correo válido.')
@@ -23,11 +24,16 @@ export const esquemaRegistro = z.strictObject({
   nombre: z.string().trim().min(1).max(100),
   correo,
   contrasena: contrasenaNueva,
-  /** Aceptación de los términos y condiciones vigentes (app.consentimiento tipo terminos). */
+  /**
+   * Aceptación de las versiones vigentes de los documentos obligatorios (contenido.tipo_documento_legal
+   * con obligatorio = true): términos y condiciones, y política de privacidad. Cada aceptación queda
+   * en app.consentimiento con su contenido.documento_legal.
+   */
   aceptaTerminos: z.literal(true),
+  aceptaPrivacidad: z.literal(true),
   /** RN-18: la app es para personas de 14 años o más. */
   declaraTenerCatorceAnios: z.literal(true),
-  codigoInvitacion: z.string().trim().min(1).max(12).optional(),
+  codigoInvitacion: codigoInvitacion.optional(),
 });
 
 export const esquemaIngreso = z.strictObject({ correo, contrasena });

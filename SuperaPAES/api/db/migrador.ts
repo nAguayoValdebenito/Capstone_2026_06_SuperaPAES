@@ -28,6 +28,15 @@ export function esArchivoDeMigracion(nombre: string): boolean {
   return /^\d{3}_[\w-]+\.sql$/.test(nombre);
 }
 
+/**
+ * Quita las líneas `BEGIN;` y `COMMIT;` que traen los archivos del modelo y de las semillas. Cada
+ * archivo ya se ejecuta en su propia transacción: con un COMMIT propio, una migración quedaría
+ * confirmada antes de registrarse. Los `BEGIN` de las funciones PL/pgSQL no llevan punto y coma.
+ */
+export function quitarControlDeTransaccion(contenido: string): string {
+  return contenido.replaceAll(/^[ \t]*(?:BEGIN|COMMIT)[ \t]*;[ \t]*\r?$/gim, '');
+}
+
 /** SHA-256 del archivo con fines de línea LF, para que Windows y Linux calculen la misma suma. */
 export function calcularSuma(contenido: string): string {
   return createHash('sha256').update(contenido.replaceAll('\r\n', '\n'), 'utf8').digest('hex');
@@ -107,7 +116,7 @@ export async function migrar(cliente: pg.ClientBase, directorio: string): Promis
     for (const migracion of pendientes) {
       try {
         await ejecutarEnTransaccion(cliente, async (transaccion) => {
-          await transaccion.query(migracion.contenido);
+          await transaccion.query(quitarControlDeTransaccion(migracion.contenido));
           await transaccion.query(
             'INSERT INTO public.migracion_aplicada (nombre, suma_sha256) VALUES ($1, $2)',
             [migracion.nombre, migracion.suma],

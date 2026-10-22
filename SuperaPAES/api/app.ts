@@ -38,10 +38,10 @@ import {
   type GeneradorServicio,
 } from './modulos/generador/index.js';
 import {
-  crearPracticaServicio,
-  crearRutasAppPractica,
-  type PracticaServicio,
-} from './modulos/practica/index.js';
+  crearEvaluacionesServicio,
+  crearRutasAppEvaluaciones,
+  type EvaluacionesServicio,
+} from './modulos/evaluaciones/index.js';
 import {
   crearPreguntasServicio,
   crearRutasAdminPreguntas,
@@ -97,7 +97,7 @@ export interface Servicios {
   revision: RevisionServicio;
   cupoInvitaciones: CupoInvitacionesServicio;
   suscripciones: SuscripcionesServicio;
-  practica: PracticaServicio;
+  evaluaciones: EvaluacionesServicio;
   privacidad: PrivacidadServicio;
 }
 
@@ -114,7 +114,12 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const revision = crearRevisionServicio({ ...base, administracion, preguntas });
   const cupoInvitaciones = crearCupoInvitacionesServicio({ ...base, administracion });
   const suscripciones = crearSuscripcionesServicio({ ...base, pagos });
-  const practica = crearPracticaServicio({ ...base, cupoInvitaciones, preguntas, suscripciones });
+  const evaluaciones = crearEvaluacionesServicio({
+    ...base,
+    cupoInvitaciones,
+    preguntas,
+    suscripciones,
+  });
   const privacidad = crearPrivacidadServicio({ ...base, cuentas });
 
   return {
@@ -126,7 +131,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     revision,
     cupoInvitaciones,
     suscripciones,
-    practica,
+    evaluaciones,
     privacidad,
   };
 }
@@ -138,7 +143,7 @@ function crearRouterApp(s: Servicios, mw: MiddlewareRutas): Router {
   router.use(mw.autenticarApp);
   router.use('/temario', crearRutasAppTemario(s.temario));
   router.use('/preguntas', crearRutasAppPreguntas(s.preguntas));
-  router.use('/practica', crearRutasAppPractica(s.practica));
+  router.use('/evaluaciones', crearRutasAppEvaluaciones(s.evaluaciones));
   router.use('/cupo-invitaciones', crearRutasAppCupoInvitaciones(s.cupoInvitaciones, mw));
   router.use('/suscripciones', crearRutasAppSuscripciones(s.suscripciones));
   router.use('/privacidad', crearRutasAppPrivacidad(s.privacidad));

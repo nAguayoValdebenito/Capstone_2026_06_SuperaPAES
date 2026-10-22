@@ -2,7 +2,7 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
-import { SECCIONES, seccionesDelRol } from './rutas/secciones';
+import { INICIO_POR_ROL, SECCIONES, seccionesDelRol } from './rutas/secciones';
 import type { RolCuentaInterna, UsuarioInterno } from './tipos';
 
 const sesiones: Record<RolCuentaInterna, UsuarioInterno> = {
@@ -10,12 +10,15 @@ const sesiones: Record<RolCuentaInterna, UsuarioInterno> = {
   docente: { id: '2', nombre: 'Diego Docente', rol: 'docente' },
 };
 
+// Menús del DAS 7.4, en su orden.
 const MENU_ADMIN = [
   'Panel',
   'Banco de preguntas',
-  'Generador IA',
   'Revisiones',
+  'Generador IA',
   'Temario',
+  'Evaluaciones',
+  'Listas de opciones',
   'Usuarios internos',
   'Planes',
   'Configuración',
@@ -23,9 +26,8 @@ const MENU_ADMIN = [
   'Solicitudes de datos',
   'Estudiantes',
   'Suscripciones',
-  'Auditoría',
 ];
-const MENU_DOCENTE = ['Revisión', 'Desempates', 'Clasificar dificultad'];
+const MENU_DOCENTE = ['Mis revisiones', 'Desempates', 'Clasificar dificultad', 'Calibración'];
 
 function renderizar(ruta: string, sesion: UsuarioInterno | null) {
   return renderToString(
@@ -48,12 +50,8 @@ describe('consola (prueba de humo)', () => {
   it.each([
     ['admin', MENU_ADMIN],
     ['docente', MENU_DOCENTE],
-  ] as const)('el menú del %s tiene exactamente sus secciones', (rol, titulos) => {
-    expect(
-      seccionesDelRol(rol)
-        .map((s) => s.titulo)
-        .sort(),
-    ).toEqual([...titulos].sort());
+  ] as const)('el menú del %s tiene exactamente sus secciones, en orden', (rol, titulos) => {
+    expect(seccionesDelRol(rol).map((s) => s.titulo)).toEqual(titulos);
 
     const html = renderizar(seccionesDelRol(rol)[0]?.ruta ?? '/', sesiones[rol]);
     for (const seccion of SECCIONES) {
@@ -82,9 +80,14 @@ describe('consola (prueba de humo)', () => {
     expect(html).not.toContain('>Panel</h1>');
   });
 
-  it('la página de ingreso se muestra sin sesión', () => {
+  it('la página de ingreso se muestra sin sesión, con el logo', () => {
     const html = renderizar('/ingreso', null);
 
     expect(html).toContain('>Ingreso</h1>');
+    expect(html).toContain('src="/logo_supera_paes.png"');
+  });
+
+  it('el administrador entra al banco mientras el panel está pendiente y el docente a su bandeja', () => {
+    expect(INICIO_POR_ROL).toEqual({ admin: '/banco', docente: '/revision' });
   });
 });

@@ -17,7 +17,7 @@ class PantallaBase extends StatelessWidget {
 
   final List<Widget> hijos;
 
-  /// Acciones de la barra superior (por ejemplo, ir a Mi cuenta).
+  /// Acciones de la barra superior de la pantalla.
   final List<Widget> acciones;
 
   @override
