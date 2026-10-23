@@ -24,7 +24,8 @@ const NOMBRE_TIENDA: Record<Tienda, string> = {
 export interface SuscripcionesServicio {
   /**
    * Verifica y procesa un aviso de una tienda (RN-17): se registra una sola vez en
-   * app.evento_pasarela y cada cambio de estado queda en app.suscripcion_evento.
+   * app.evento_pasarela y cada cambio de estado o de plan queda en app.suscripcion_evento, con el
+   * plan anterior y el nuevo, partiendo del último registro.
    */
   recibirAviso(tienda: Tienda, aviso: AvisoEntrante): Promise<void>;
 }

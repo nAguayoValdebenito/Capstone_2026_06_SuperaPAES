@@ -8,6 +8,8 @@
 //   - contenido.tabla_conversion y contenido.tabla_conversion_fila (tablas del DEMRE, RN-23)
 //   - funciones app.cerrar_evaluacion, app.cerrar_vencidas y app.calcular_resultado
 //   - vista contenido.v_preguntas_publicadas
+//   - vista app.v_item_evaluacion: lo único que la app recibe de cada pregunta (RN-06), sin la clave ni
+//     las explicaciones hasta que el ítem se corrige
 //   - vistas app.v_historial, app.v_revision_evaluacion y app.v_respuesta_valida
 //   - vistas app.v_progreso_eje, app.v_progreso_habilidad, app.v_evolucion_semanal y app.v_preguntas_falladas
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.

@@ -1,13 +1,10 @@
-# ── Material crítico del proyecto: solo en el equipo, nunca en GitHub ──
-# Documentación interna (DAS, modelo de datos, reglas de negocio), guía de Claude Code y el SQL de la
-# base. El SQL se entrega por un canal privado y se copia en api/db/migraciones/ y api/db/semillas/.
+# ── Material interno del proyecto: solo en el equipo, nunca en GitHub ──
+# Documentación interna (DAS, modelo de datos, reglas de negocio) y guía de Claude Code.
+# El SQL de api/db (migraciones, semillas y pruebas del modelo) sí se publica: Render y la CI lo
+# necesitan (DAS 4.3.5, RNF-13). No lleva datos reales ni claves.
 docs/
 CLAUDE.md
 .claude/
-api/db/migraciones/*.sql
-api/db/semillas/*.sql
-api/db/semillas/README.md
-api/db/pruebas/*.sql
 
 # ── Secretos: nunca se versionan (solo los *.example con valores de ejemplo) ──
 .env
