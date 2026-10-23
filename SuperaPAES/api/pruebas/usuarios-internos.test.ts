@@ -69,6 +69,8 @@ function crearRepositorioFalso() {
       auditoria.push(entrada);
       return Promise.resolve();
     },
+    hayAdministrador: () =>
+      Promise.resolve([...usuarios.values()].some((usuario) => usuario.rol === 'admin')),
   };
   return { repositorio, usuarios, auditoria };
 }
@@ -90,7 +92,7 @@ function crearEscenario() {
     repositorio: falso.repositorio,
   });
   const app = crearApp(dependencias, { ...crearServicios(dependencias), administracion });
-  return { ...falso, app, transacciones: () => transacciones };
+  return { ...falso, app, administracion, transacciones: () => transacciones };
 }
 
 const docente = (cambios: Record<string, unknown> = {}) => ({
@@ -279,5 +281,58 @@ describe('editar, activar y desactivar un usuario interno', () => {
     expect((await request(app).post(`${RUTA}/99/activar`).set(admin)).status).toBe(404);
     expect((await request(app).post(`${RUTA}/abc/activar`).set(admin)).status).toBe(400);
     expect((await request(app).patch(`${RUTA}/1`).set(admin).send({})).status).toBe(400);
+  });
+});
+
+describe('primer administrador (npm run crear-admin)', () => {
+  const datos = { nombre: 'Nicolás', correo: 'Admin@Ejemplo.cl', contrasena: 'clave-del-admin' };
+
+  it('crea la cuenta de administrador y audita la creación con la misma cuenta como autor', async () => {
+    const { administracion, usuarios, auditoria, transacciones } = crearEscenario();
+
+    const creado = await administracion.crearPrimerAdministrador(datos);
+
+    expect(creado).toMatchObject({
+      correo: 'admin@ejemplo.cl',
+      rol: 'admin',
+      activo: true,
+      areas: [],
+    });
+    expect(await compararContrasena('clave-del-admin', usuarios.get(creado.id)?.hash ?? '')).toBe(
+      true,
+    );
+    expect(auditoria).toEqual([
+      expect.objectContaining({
+        usuarioId: creado.id,
+        accion: 'crear_usuario',
+        entidadId: creado.id,
+      }),
+    ]);
+    expect(JSON.stringify(auditoria)).not.toMatch(/clave-del-admin|\$2/);
+    expect(transacciones()).toBe(1);
+  });
+
+  it('se niega si ya existe un administrador', async () => {
+    const { administracion, auditoria } = crearEscenario();
+    await administracion.crearPrimerAdministrador(datos);
+
+    await expect(
+      administracion.crearPrimerAdministrador({ ...datos, correo: 'otro@ejemplo.cl' }),
+    ).rejects.toMatchObject({ codigo: 'CONFLICTO' });
+    expect(auditoria).toHaveLength(1);
+  });
+
+  it.each([
+    ['una contraseña corta', { contrasena: 'corta' }],
+    ['una contraseña igual al correo', { contrasena: 'admin@ejemplo.cl' }],
+    ['un correo inválido', { correo: 'no-es-correo' }],
+    ['sin nombre', { nombre: '  ' }],
+  ])('rechaza %s (RN-31) sin crear nada', async (_caso, cambios) => {
+    const { administracion, usuarios } = crearEscenario();
+
+    await expect(
+      administracion.crearPrimerAdministrador({ ...datos, ...cambios }),
+    ).rejects.toMatchObject({ codigo: 'VALIDACION' });
+    expect(usuarios.size).toBe(0);
   });
 });

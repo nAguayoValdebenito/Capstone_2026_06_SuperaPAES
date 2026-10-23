@@ -64,6 +64,11 @@ export interface AdministracionRepositorio {
   cambiarActivoUsuarioInterno(id: string, activo: boolean, tx?: Ejecutor): Promise<void>;
   reemplazarEspecialidades(id: string, areas: readonly number[], tx?: Ejecutor): Promise<void>;
   registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
+  /**
+   * Si ya existe una cuenta con rol admin (activa o no). Toma antes un bloqueo de la transacción,
+   * para que dos ejecuciones simultáneas del alta del primer administrador no creen dos.
+   */
+  hayAdministrador(tx?: Ejecutor): Promise<boolean>;
 }
 
 interface FilaUsuarioInterno extends Omit<UsuarioInterno, 'rol'> {
@@ -102,9 +107,16 @@ const INSERTAR_AUDITORIA = `
                                    despues, creado_en)
   VALUES ($1, (SELECT id FROM contenido.accion_auditoria WHERE codigo = $2), $3, $4, $5, $6, now())`;
 
+// Clave fija del bloqueo de PostgreSQL que evita dos altas simultáneas del primer administrador.
+const CLAVE_BLOQUEO_PRIMER_ADMINISTRADOR = 20270103;
+
+const HAY_ADMINISTRADOR = `
+  SELECT EXISTS (SELECT 1 FROM contenido.usuario_interno u JOIN contenido.rol r ON r.id = u.rol_id
+                  WHERE r.codigo = 'admin') AS hay`;
+
 type ConsultasUsuarios = Pick<
   AdministracionRepositorio,
-  'listarUsuariosInternos' | 'buscarUsuarioInterno' | 'crearUsuarioInterno'
+  'listarUsuariosInternos' | 'buscarUsuarioInterno' | 'crearUsuarioInterno' | 'hayAdministrador'
 >;
 
 function consultasUsuarios(bd: Ejecutor): ConsultasUsuarios {
@@ -138,6 +150,12 @@ function consultasUsuarios(bd: Ejecutor): ConsultasUsuarios {
       const fila = rows[0];
       if (!fila) throw new Error('El INSERT de usuario_interno no devolvió el id.');
       return fila.id;
+    },
+
+    async hayAdministrador(tx = bd) {
+      await tx.query('SELECT pg_advisory_xact_lock($1)', [CLAVE_BLOQUEO_PRIMER_ADMINISTRADOR]);
+      const { rows } = await tx.query<{ hay: boolean }>(HAY_ADMINISTRADOR);
+      return rows[0]?.hay ?? false;
     },
   };
 }

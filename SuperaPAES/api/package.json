@@ -12,6 +12,7 @@
     "migrar": "tsx --env-file-if-exists=.env db/scripts/migrar.ts",
     "semillas": "tsx --env-file-if-exists=.env db/scripts/semillas.ts",
     "probar:bd": "tsx --env-file-if-exists=.env db/scripts/probar-bd.ts",
+    "crear-admin": "tsx --env-file-if-exists=.env scripts/crear-admin.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/servidor.js",
     "migrar:produccion": "node dist/db/scripts/migrar.js && node dist/db/scripts/semillas.js",

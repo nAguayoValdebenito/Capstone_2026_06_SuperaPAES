@@ -16,7 +16,7 @@
     "build": "npm run build --workspaces",
     "formatear": "prettier --write .",
     "codigo-muerto": "knip",
-    "circulares": "madge --circular --extensions ts --ts-config api/tsconfig.json api/servidor.ts api/app.ts api/db/scripts && madge --circular --extensions ts,tsx --ts-config consola/tsconfig.json consola/src/main.tsx",
+    "circulares": "madge --circular --extensions ts --ts-config api/tsconfig.json api/servidor.ts api/app.ts api/db/scripts api/scripts && madge --circular --extensions ts,tsx --ts-config consola/tsconfig.json consola/src/main.tsx",
     "duplicacion": "jscpd",
     "cobertura": "npm run cobertura --workspaces",
     "revisar-secretos": "secretlint \"**/*\""

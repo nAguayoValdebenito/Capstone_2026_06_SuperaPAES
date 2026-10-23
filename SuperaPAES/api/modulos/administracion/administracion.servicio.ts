@@ -9,12 +9,17 @@ import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type AdministracionRepositorio,
   crearAdministracionRepositorio,
+  type NuevoUsuarioInterno,
   type UsuarioInterno,
 } from './administracion.repositorio.js';
-import type {
-  DatosCrearUsuarioInterno,
-  DatosEditarUsuarioInterno,
+import {
+  type DatosCrearUsuarioInterno,
+  type DatosEditarUsuarioInterno,
+  type DatosPrimerAdministrador,
+  esquemaPrimerAdministrador,
 } from './administracion.validadores.js';
+
+export type { DatosPrimerAdministrador } from './administracion.validadores.js';
 
 export type { UsuarioInterno } from './administracion.repositorio.js';
 
@@ -44,6 +49,11 @@ export interface AdministracionServicio {
     id: string,
     activo: boolean,
   ): Promise<UsuarioInterno>;
+  /**
+   * Primer administrador (TEC-02.2), para `npm run crear-admin -w api`: valida los datos (RN-31), se
+   * niega si ya existe un administrador y audita la creación con la misma cuenta como autor.
+   */
+  crearPrimerAdministrador(datos: DatosPrimerAdministrador): Promise<UsuarioInterno>;
 }
 
 interface Contexto {
@@ -110,28 +120,66 @@ async function obtener(
   return usuario;
 }
 
+/** Inserta la cuenta con sus áreas y audita la creación. Sin autor, la cuenta se audita a sí misma. */
+async function insertarYAuditar(
+  contexto: Contexto,
+  tx: Ejecutor,
+  autorId: string | null,
+  datos: NuevoUsuarioInterno & { areas: readonly number[] },
+): Promise<UsuarioInterno> {
+  const { repositorio } = contexto;
+  const { areas, ...cuenta } = datos;
+  const id = await repositorio.crearUsuarioInterno(cuenta, tx);
+  await repositorio.reemplazarEspecialidades(id, areas, tx);
+  const creado = await obtener(contexto, id, tx);
+  await repositorio.registrarAuditoria(
+    {
+      usuarioId: autorId ?? id,
+      accion: 'crear_usuario',
+      entidad: ENTIDAD_USUARIO_INTERNO,
+      entidadId: id,
+      antes: null,
+      despues: fotografia(creado),
+    },
+    tx,
+  );
+  return creado;
+}
+
 async function crearUsuario(contexto: Contexto, autorId: string, datos: DatosCrearUsuarioInterno) {
-  const { repositorio, unidadDeTrabajo } = contexto;
   comprobarAreas(datos.rol, datos.areas);
   return traducirErrores(async () => {
-    const hashContrasena = await cifrarContrasena(datos.contrasena);
-    return unidadDeTrabajo.enTransaccion(async (tx) => {
-      const { nombre, correo, rol, areas } = datos;
-      const id = await repositorio.crearUsuarioInterno({ nombre, correo, rol, hashContrasena }, tx);
-      await repositorio.reemplazarEspecialidades(id, areas, tx);
-      const creado = await obtener(contexto, id, tx);
-      await repositorio.registrarAuditoria(
-        {
-          usuarioId: autorId,
-          accion: 'crear_usuario',
-          entidad: ENTIDAD_USUARIO_INTERNO,
-          entidadId: id,
-          antes: null,
-          despues: fotografia(creado),
-        },
-        tx,
-      );
-      return creado;
+    const { contrasena, ...resto } = datos;
+    const hashContrasena = await cifrarContrasena(contrasena);
+    return contexto.unidadDeTrabajo.enTransaccion((tx) =>
+      insertarYAuditar(contexto, tx, autorId, { ...resto, hashContrasena }),
+    );
+  });
+}
+
+function validarPrimerAdministrador(entrada: DatosPrimerAdministrador) {
+  const resultado = esquemaPrimerAdministrador.safeParse(entrada);
+  if (resultado.success) return resultado.data;
+  const problemas = resultado.error.issues.map((problema) => ({
+    lugar: 'entrada',
+    ruta: problema.path.join('.'),
+    mensaje: problema.message,
+  }));
+  throw new ErrorValidacion(problemas, problemas[0]?.mensaje);
+}
+
+async function crearPrimerAdministrador(contexto: Contexto, entrada: DatosPrimerAdministrador) {
+  const { contrasena, ...datos } = validarPrimerAdministrador(entrada);
+  return traducirErrores(async () => {
+    const hashContrasena = await cifrarContrasena(contrasena);
+    return contexto.unidadDeTrabajo.enTransaccion(async (tx) => {
+      if (await contexto.repositorio.hayAdministrador(tx)) {
+        throw new ErrorConflicto(
+          'Ya existe un administrador: las demás cuentas se crean desde Usuarios internos (C10).',
+        );
+      }
+      const cuenta = { ...datos, rol: 'admin' as const, areas: [], hashContrasena };
+      return insertarYAuditar(contexto, tx, null, cuenta);
     });
   });
 }
@@ -218,5 +266,6 @@ export function crearAdministracionServicio(
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
       cambiarEstado(contexto, autorId, id, activo),
+    crearPrimerAdministrador: (datos) => crearPrimerAdministrador(contexto, datos),
   };
 }

@@ -37,6 +37,7 @@ cp api/.env.example api/.env                 # completa DATABASE_URL y los dos J
 npm run migrar -w api                        # modelo 12.0: 85 tablas, 156 claves foráneas, 12 vistas y datos iniciales
 npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
 npm run probar:bd -w api                     # 249 casos del modelo en una base temporal (necesita psql 18)
+npm run crear-admin -w api                   # una sola vez: primer administrador de la consola
 npm run dev -w api                           # http://localhost:3000/api/v1/salud
 npm run dev -w consola                       # http://localhost:5173
 ```
@@ -106,6 +107,6 @@ npm run test      # Vitest (no necesita base de datos)
 npm run build
 npm run codigo-muerto && npm run circulares && npm run duplicacion
 npm run revisar-secretos   # ningún secreto puede llegar a GitHub
-npm run probar:bd -w api   # pruebas del modelo de datos (con el SQL del canal privado)
+npm run probar:bd -w api   # 249 casos del modelo de datos (también en la CI)
 cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
 ```
