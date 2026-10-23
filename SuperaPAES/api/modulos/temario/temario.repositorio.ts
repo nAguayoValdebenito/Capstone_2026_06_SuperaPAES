@@ -10,9 +10,23 @@
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
 import type { Ejecutor } from '../../db/transaccion.js';
 
-export type TemarioRepositorio = Record<string, never>;
+/** Área de especialidad de los docentes (contenido.area). */
+export interface Area {
+  id: number;
+  nombre: string;
+}
 
-/** @esqueleto Lo usará el servicio del módulo cuando implemente su primera consulta. */
-export function crearTemarioRepositorio(_bd: Ejecutor): TemarioRepositorio {
-  return {};
+export interface TemarioRepositorio {
+  listarAreas(tx?: Ejecutor): Promise<Area[]>;
+}
+
+export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
+  return {
+    async listarAreas(tx = bd) {
+      const { rows } = await tx.query<Area>(
+        'SELECT id, nombre FROM contenido.area ORDER BY nombre',
+      );
+      return rows;
+    },
+  };
 }
