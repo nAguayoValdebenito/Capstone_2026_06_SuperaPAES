@@ -20,6 +20,37 @@ export interface UsuarioInterno {
   rol: RolCuentaInterna;
 }
 
+/** Área de especialidad de los docentes (contenido.area). */
+export interface Area {
+  id: number;
+  nombre: string;
+}
+
+/** Cuenta interna en la gestión de usuarios internos (C10, CU-23). Nunca trae la contraseña. */
+export interface CuentaInterna {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: RolCuentaInterna;
+  activo: boolean;
+  /** Ids de las áreas que puede revisar (solo docentes). */
+  areas: number[];
+  creadoEn: string;
+  ultimoAcceso: string | null;
+}
+
+/** Al crear, el administrador escribe la contraseña inicial (RF-C02, RN-31). */
+export interface DatosCuentaNueva {
+  nombre: string;
+  correo: string;
+  rol: RolCuentaInterna;
+  areas: number[];
+  contrasena: string;
+}
+
+/** Al editar no se cambia el correo; la contraseña se envía solo si se asigna una nueva. */
+export type CambiosCuenta = Partial<Omit<DatosCuentaNueva, 'correo'>>;
+
 export interface EstadoSalud {
   estado: 'ok';
   baseDeDatos: 'ok';

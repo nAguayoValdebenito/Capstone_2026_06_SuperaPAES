@@ -30,8 +30,8 @@ export default tseslint.config(
   ...reglasCalidad,
   {
     // Excepciones de no-console: registro.ts es el propio registro de eventos, y los scripts de
-    // db/scripts son de línea de comandos y escriben su resultado para quien los ejecuta.
-    files: ['comun/registro.ts', 'db/scripts/**/*.ts'],
+    // db/scripts y scripts/ son de línea de comandos y escriben su resultado para quien los ejecuta.
+    files: ['comun/registro.ts', 'db/scripts/**/*.ts', 'scripts/**/*.ts'],
     rules: { 'no-console': 'off' },
   },
   ...reglasArquitectura,

@@ -3,10 +3,14 @@
 // Cada endpoint: router.<metodo>(ruta, validar(...), controlador.<accion>), con crearTemarioControlador(servicio).
 import { Router } from 'express';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
+import { crearTemarioControlador } from './temario.controlador.js';
 import type { TemarioServicio } from './temario.servicio.js';
 
-export function crearRutasAdminTemario(_servicio: TemarioServicio): Router {
+export function crearRutasAdminTemario(servicio: TemarioServicio): Router {
   const router = Router();
+  const controlador = crearTemarioControlador(servicio);
   router.use(exigirRol('admin'));
+
+  router.get('/areas', controlador.listarAreas);
   return router;
 }

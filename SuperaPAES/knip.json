@@ -5,14 +5,10 @@
   "workspaces": {
     "api": {
       "ignore": [
-        "modulos/administracion/administracion.controlador.ts",
         "modulos/generador/generador.controlador.ts",
         "modulos/evaluaciones/evaluaciones.controlador.ts",
         "modulos/preguntas/preguntas.controlador.ts",
         "modulos/privacidad/privacidad.controlador.ts",
-        "modulos/revision/revision.controlador.ts",
-        "modulos/temario/temario.controlador.ts",
-        "modulos/administracion/administracion.validadores.ts",
         "modulos/generador/generador.validadores.ts",
         "modulos/evaluaciones/evaluaciones.validadores.ts",
         "modulos/preguntas/preguntas.validadores.ts",
@@ -25,14 +21,12 @@
     },
     "consola": {
       "ignore": [
-        "src/servicios/administracion.ts",
         "src/servicios/cuentas.ts",
         "src/servicios/generador.ts",
         "src/servicios/preguntas.ts",
         "src/servicios/privacidad.ts",
         "src/servicios/revision.ts",
-        "src/servicios/suscripciones.ts",
-        "src/servicios/temario.ts"
+        "src/servicios/suscripciones.ts"
       ]
     }
   },

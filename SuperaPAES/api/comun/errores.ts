@@ -50,7 +50,7 @@ export class ErrorNoEncontrado extends ErrorAplicacion {
   }
 }
 
-/** @esqueleto Código 409 CONFLICTO del catálogo de errores; lo usarán los servicios. */
+/** Código 409 CONFLICTO del catálogo de errores. */
 export class ErrorConflicto extends ErrorAplicacion {
   constructor(mensaje: string) {
     super(409, 'CONFLICTO', mensaje);

@@ -217,6 +217,121 @@ a {
   font-size: var(--texto-sm);
 }
 
+/* Tablas, botones y formularios */
+.pagina--ancha {
+  max-width: 76rem;
+}
+
+.tabla {
+  width: 100%;
+  margin-top: 1.5rem;
+  border-collapse: collapse;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--borde);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tabla th {
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+  font-weight: 600;
+}
+
+.tabla__acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.boton {
+  font: inherit;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.375rem;
+  background: var(--superficie);
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.boton--primario {
+  border-color: var(--primario);
+  background: var(--primario);
+  color: #ffffff;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.panel {
+  display: grid;
+  gap: 1rem;
+  max-width: 36rem;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.panel h2 {
+  margin: 0;
+}
+
+.panel__acciones {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-weight: 600;
+}
+
+.campo input,
+.campo select {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.375rem;
+}
+
+.campo input[readonly] {
+  background: var(--fondo);
+}
+
+.campo__opcion {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 400;
+}
+
+.campo__ayuda {
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+  font-weight: 400;
+}
+
+.campo__error {
+  margin: 0;
+  color: var(--error);
+  font-size: var(--texto-sm);
+  font-weight: 400;
+}
+
 @media (max-width: 48rem) {
   .diseno {
     grid-template-columns: minmax(0, 1fr);
