@@ -23,8 +23,8 @@ jobs:
   api:
     name: API
     runs-on: ubuntu-latest
-    # El SQL del esquema no se publica (se entrega por un canal privado), así que la CI no migra una
-    # base. PostgreSQL se usa para la prueba de la unidad de trabajo, que crea su propia tabla.
+    # PostgreSQL 18 para la prueba de la unidad de trabajo y para las pruebas del modelo de datos, que
+    # crean su propia base temporal con las migraciones y las semillas de api/db.
     services:
       postgres:
         image: postgres:18
@@ -56,12 +56,17 @@ jobs:
       - run: npm run lint -w api
       - run: npm run test -w api
       - run: npm run build -w api
-      # Pruebas del modelo de datos: necesitan el SQL, que no se publica. Corren en los equipos
-      # (npm run probar:bd -w api) y aquí solo si los archivos llegan al checkout.
+      # Pruebas del modelo de datos: siempre, con psql 18 del repositorio oficial de PostgreSQL. Si falta
+      # api/db/pruebas/modelo_bd.sql o falla un caso, probar:bd termina con error y el flujo falla.
+      - name: psql 18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-18
       - name: Pruebas del modelo de datos
-        if: >-
-          hashFiles('SuperaPAES/api/db/pruebas/modelo_bd.sql') != '' &&
-          hashFiles('SuperaPAES/api/db/migraciones/001_esquema_inicial.sql') != ''
+        env:
+          PSQL: /usr/lib/postgresql/18/bin/psql
         run: npm run probar:bd -w api
 
   consola:
