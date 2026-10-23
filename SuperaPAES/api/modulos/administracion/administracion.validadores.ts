@@ -38,19 +38,10 @@ export const esquemaEditarUsuarioInterno = z
     message: 'Indica al menos un cambio.',
   });
 
-/**
- * Primer administrador (TEC-02.2): lo crea una sola vez el comando `npm run crear-admin -w api`. La
- * contraseña cumple RN-31 y se guarda con el componente común.
- */
-export const esquemaPrimerAdministrador = z
-  .strictObject({ nombre, correo, contrasena: z.string() })
-  .superRefine(refinarContrasena);
-
 export const esquemaIdUsuarioInterno = z.strictObject({
   id: z.string().regex(/^[1-9]\d{0,17}$/, 'El identificador no es válido.'),
 });
 
 export type DatosCrearUsuarioInterno = z.output<typeof esquemaCrearUsuarioInterno>;
 export type DatosEditarUsuarioInterno = z.output<typeof esquemaEditarUsuarioInterno>;
-export type DatosPrimerAdministrador = z.input<typeof esquemaPrimerAdministrador>;
 export type ParametrosUsuarioInterno = z.output<typeof esquemaIdUsuarioInterno>;
