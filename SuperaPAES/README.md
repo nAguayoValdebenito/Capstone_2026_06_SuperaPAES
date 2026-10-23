@@ -37,7 +37,7 @@ cp api/.env.example api/.env                 # completa DATABASE_URL y los dos J
 npm run migrar -w api                        # modelo 12.0: 85 tablas, 156 claves foráneas, 12 vistas y datos iniciales
 npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
 npm run probar:bd -w api                     # 249 casos del modelo en una base temporal (necesita psql 18)
-npm run crear-admin -w api                   # una sola vez: primer administrador de la consola
+npm run crear-admin -w api                   # una sola vez: tu administrador para entrar a la consola
 npm run dev -w api                           # http://localhost:3000/api/v1/salud
 npm run dev -w consola                       # http://localhost:5173
 ```
@@ -45,6 +45,15 @@ npm run dev -w consola                       # http://localhost:5173
 El SQL vive en `api/db`: migraciones `001` a `003` (modelo de datos 12.0), semillas `001` a `003`
 (temario PAES 2027, evaluaciones y documentos legales 1.0, en ese orden) y las pruebas del modelo. La
 migración `003` y la semilla `003` comparten el número, pero están en carpetas distintas y no chocan.
+
+**Primer administrador.** La consola no permite registrarse: en tu base local creas tu propia cuenta
+de administrador con `npm run crear-admin -w api`, en una terminal interactiva (PowerShell o la de VS
+Code). Muestra el servidor y la base a los que se conecta y pide confirmar con `s`; después pide
+nombre, correo y contraseña, que se escribe dos veces sin que se vea y cumple RN-31. Si ya hay un
+administrador activo, no crea nada: las demás cuentas se crean desde Usuarios internos (C10). Si
+olvidaste la contraseña, `npm run crear-admin -w api -- --restablecer` asigna una nueva y activa la
+cuenta. Las dos acciones quedan en la auditoría; la contraseña nunca se pasa como argumento ni en
+`.env`.
 
 > **Poner al día una base local.** Si tu base tiene el modelo 11.0 o los textos legales anteriores
 > (la semilla no reemplaza una versión ya cargada), lo más simple es recrearla:

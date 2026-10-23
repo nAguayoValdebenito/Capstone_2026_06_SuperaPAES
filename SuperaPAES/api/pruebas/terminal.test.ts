@@ -1,7 +1,7 @@
 // Lectura en la terminal de los comandos de una sola vez: la contraseña no se muestra.
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { type EntradaTerminal, preguntar } from '../scripts/terminal.js';
+import { type EntradaTerminal, preguntar } from '../db/terminal.js';
 
 function crearTerminal(isTTY = true) {
   const emisor = new EventEmitter();
