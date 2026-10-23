@@ -26,6 +26,7 @@
     "adaptadores",
     "trabajos",
     "db",
+    "scripts",
     "pruebas",
     "vitest.config.ts",
     "eslint.config.js",

@@ -2,8 +2,9 @@
 // límite de intentos y webhooks de las tiendas.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { crearApp } from '../app.js';
+import { crearApp, crearServicios } from '../app.js';
 import { firmarToken } from '../comun/jwt.js';
+import { crearTemarioServicio } from '../modulos/temario/index.js';
 import {
   crearDependenciasDePrueba,
   cuerpoIngreso,
@@ -88,12 +89,68 @@ describe('autorización por rol en la consola', () => {
     expect(respuesta.body.error.codigo).toBe('SIN_PERMISO');
   });
 
-  it('un docente puede entrar a revisión', async () => {
+  // DAS 4.3.3: cada ruta de revisión declara su rol (casos CP-04 y CP-05 del C2).
+  it.each(['/mis-revisiones', '/desempates'])(
+    'un administrador recibe 403 en la ruta del docente %s',
+    async (ruta) => {
+      const respuesta = await request(app)
+        .get(`/api/v1/admin/revision${ruta}`)
+        .set(conToken(await tokenAdmin('admin')));
+
+      expect(respuesta.status).toBe(403);
+      expect(respuesta.body).toEqual(errorConFormato('SIN_PERMISO'));
+    },
+  );
+
+  it('un docente recibe 403 en el seguimiento de revisiones del administrador (C06)', async () => {
     const respuesta = await request(app)
-      .get('/api/v1/admin/revision')
+      .get('/api/v1/admin/revision/seguimiento')
       .set(conToken(await tokenAdmin('docente')));
 
-    expect(respuesta.status).toBe(404);
+    expect(respuesta.status).toBe(403);
+    expect(respuesta.body).toEqual(errorConFormato('SIN_PERMISO'));
+  });
+
+  it.each([
+    ['docente', '/mis-revisiones'],
+    ['docente', '/desempates'],
+    ['admin', '/seguimiento'],
+  ] as const)('el %s pasa la autorización de %s (todavía 501)', async (rol, ruta) => {
+    const respuesta = await request(app)
+      .get(`/api/v1/admin/revision${ruta}`)
+      .set(conToken(await tokenAdmin(rol)));
+
+    expect(respuesta.status).toBe(501);
+  });
+
+  it('un docente recibe 403 en las áreas del temario', async () => {
+    const respuesta = await request(app)
+      .get('/api/v1/admin/temario/areas')
+      .set(conToken(await tokenAdmin('docente')));
+
+    expect(respuesta.status).toBe(403);
+  });
+});
+
+describe('áreas de especialidad del temario', () => {
+  it('el administrador recibe id y nombre de cada área', async () => {
+    const areas = [
+      { id: 4, nombre: 'Biología' },
+      { id: 1, nombre: 'Lenguaje' },
+    ];
+    const dependencias = crearDependenciasDePrueba();
+    const temario = crearTemarioServicio({
+      ...dependencias,
+      repositorio: { listarAreas: () => Promise.resolve(areas) },
+    });
+    const conAreas = crearApp(dependencias, { ...crearServicios(dependencias), temario });
+
+    const respuesta = await request(conAreas)
+      .get('/api/v1/admin/temario/areas')
+      .set(conToken(await tokenAdmin()));
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual({ data: areas, error: null, meta: null });
   });
 });
 
@@ -140,6 +197,15 @@ describe('módulos montados', () => {
 
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.error.codigo).toBe('VALIDACION');
+  });
+
+  it('el registro rechaza una contraseña igual al correo (RN-31, componente común)', async () => {
+    const respuesta = await request(app)
+      .post(RUTA_REGISTRO)
+      .send(cuerpoRegistro({ contrasena: 'ANA@ejemplo.cl' }));
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.error.detalles[0].ruta).toBe('contrasena');
   });
 
   it('el registro exige declarar 14 años o más (RN-18)', async () => {
