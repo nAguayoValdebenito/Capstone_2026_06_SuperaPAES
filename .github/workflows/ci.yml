@@ -56,7 +56,7 @@ jobs:
       - run: npm run lint -w api
       - run: npm run test -w api
       - run: npm run build -w api
-      # Pruebas del modelo (226 casos): necesitan el SQL, que no se publica. Corren en los equipos
+      # Pruebas del modelo de datos: necesitan el SQL, que no se publica. Corren en los equipos
       # (npm run probar:bd -w api) y aquí solo si los archivos llegan al checkout.
       - name: Pruebas del modelo de datos
         if: >-

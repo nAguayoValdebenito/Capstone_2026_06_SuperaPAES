@@ -5,7 +5,7 @@
 //   - app.suscripcion
 //   - app.suscripcion_prueba
 //   - app.pago
-//   - app.suscripcion_evento
+//   - app.suscripcion_evento (historial con estado y plan anterior y nuevo, sin saltos: RN-17)
 //   - app.evento_pasarela
 //   - vista app.v_resumen_suscripciones
 //   - vista app.v_pagos_mes

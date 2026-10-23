@@ -34,20 +34,22 @@ cd Capstone_2026_06_SuperaPAES/SuperaPAES
 npm install
 createdb -U postgres supera_paes             # en Windows: "C:\Program Files\PostgreSQL\18\bin\createdb.exe"
 cp api/.env.example api/.env                 # completa DATABASE_URL y los dos JWT_SECRETO_*
-# Copia el SQL recibido por el canal privado: 001_esquema_inicial.sql en api/db/migraciones/
+# Copia el SQL recibido por el canal privado: 001_esquema_inicial.sql,
+# 002_historial_plan_y_item_evaluacion.sql y 003_acciones_usuario_interno.sql en api/db/migraciones/
 # y las semillas en api/db/semillas/: 001_temario_paes_2027.sql, 002_evaluaciones.sql y
 # 003_documentos_legales.sql (se ejecutan en ese orden; las evaluaciones necesitan el temario),
 # y las pruebas del modelo como api/db/pruebas/modelo_bd.sql.
-npm run migrar -w api                        # 85 tablas, 154 claves foráneas, 11 vistas y datos iniciales
+npm run migrar -w api                        # modelo 12.0: 85 tablas, 156 claves foráneas, 12 vistas y datos iniciales
 npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
-npm run probar:bd -w api                     # 226 casos del modelo en una base temporal (necesita psql 18)
+npm run probar:bd -w api                     # casos del modelo en una base temporal (necesita psql 18)
 npm run dev -w api                           # http://localhost:3000/api/v1/salud
 npm run dev -w consola                       # http://localhost:5173
 ```
 
-> **Si ya tenías la base de una versión anterior del modelo**, recréala una vez: la migración
-> `001` ahora es el modelo 11.0 y su suma de verificación cambió (`dropdb` y `createdb`, luego
-> `npm run migrar` y `npm run semillas`).
+> **Si ya tenías la base del modelo 11.0**, basta con `npm run migrar -w api`: aplica solo la 002 y
+> la 003 (la 002 exige que `app.suscripcion_evento` esté vacía, como en toda base local). Si tu base
+> es anterior a la 11.0, recréala una vez (`dropdb` y `createdb`, luego `npm run migrar` y
+> `npm run semillas`).
 
 Con todos los proveedores en `simulado`/`consola`, la API solo necesita `DATABASE_URL`, los dos
 secretos JWT y `PORT`.
