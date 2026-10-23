@@ -34,22 +34,33 @@ cd Capstone_2026_06_SuperaPAES/SuperaPAES
 npm install
 createdb -U postgres supera_paes             # en Windows: "C:\Program Files\PostgreSQL\18\bin\createdb.exe"
 cp api/.env.example api/.env                 # completa DATABASE_URL y los dos JWT_SECRETO_*
-# Copia el SQL recibido por el canal privado: 001_esquema_inicial.sql,
-# 002_historial_plan_y_item_evaluacion.sql y 003_acciones_usuario_interno.sql en api/db/migraciones/
-# y las semillas en api/db/semillas/: 001_temario_paes_2027.sql, 002_evaluaciones.sql y
-# 003_documentos_legales.sql (se ejecutan en ese orden; las evaluaciones necesitan el temario),
-# y las pruebas del modelo como api/db/pruebas/modelo_bd.sql.
 npm run migrar -w api                        # modelo 12.0: 85 tablas, 156 claves foráneas, 12 vistas y datos iniciales
 npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
-npm run probar:bd -w api                     # casos del modelo en una base temporal (necesita psql 18)
+npm run probar:bd -w api                     # 249 casos del modelo en una base temporal (necesita psql 18)
 npm run dev -w api                           # http://localhost:3000/api/v1/salud
 npm run dev -w consola                       # http://localhost:5173
 ```
 
-> **Si ya tenías la base del modelo 11.0**, basta con `npm run migrar -w api`: aplica solo la 002 y
-> la 003 (la 002 exige que `app.suscripcion_evento` esté vacía, como en toda base local). Si tu base
-> es anterior a la 11.0, recréala una vez (`dropdb` y `createdb`, luego `npm run migrar` y
-> `npm run semillas`).
+El SQL vive en `api/db`: migraciones `001` a `003` (modelo de datos 12.0), semillas `001` a `003`
+(temario PAES 2027, evaluaciones y documentos legales 1.0, en ese orden) y las pruebas del modelo. La
+migración `003` y la semilla `003` comparten el número, pero están en carpetas distintas y no chocan.
+
+> **Poner al día una base local.** Si tu base tiene el modelo 11.0 o los textos legales anteriores
+> (la semilla no reemplaza una versión ya cargada), lo más simple es recrearla:
+>
+> ```bash
+> dropdb -U postgres supera_paes
+> createdb -U postgres supera_paes
+> npm run migrar -w api
+> npm run semillas -w api
+> ```
+>
+> Si solo te falta el modelo 12.0 y no te importa el texto legal, basta con `npm run migrar -w api`,
+> que aplica la 002 y la 003.
+
+Contacto del proyecto: superapaes@gmail.com. Los documentos legales 1.0 rigen desde el 19/10/2026;
+falta completar «dirección de la consola» y la revisión de un docente o del cliente (RN-30), así que
+en producción se omiten con `SEMILLAS_OMITIDAS=003_documentos_legales.sql`.
 
 Con todos los proveedores en `simulado`/`consola`, la API solo necesita `DATABASE_URL`, los dos
 secretos JWT y `PORT`.
