@@ -7,6 +7,8 @@ interface Propiedades {
   areas: readonly Area[];
   alEditar: (cuenta: CuentaInterna) => void;
   alAlternarEstado: (cuenta: CuentaInterna) => void;
+  /** Cuenta de la sesión: no se ofrece desactivarla (CU-23 3.c). */
+  idPropio: string | undefined;
 }
 
 function nombresDeAreas(ids: readonly number[], areas: readonly Area[]): string {
@@ -14,7 +16,13 @@ function nombresDeAreas(ids: readonly number[], areas: readonly Area[]): string 
   return nombres.length > 0 ? nombres.join(', ') : '—';
 }
 
-export function TablaCuentas({ cuentas, areas, alEditar, alAlternarEstado }: Propiedades) {
+export function TablaCuentas({
+  cuentas,
+  areas,
+  alEditar,
+  alAlternarEstado,
+  idPropio,
+}: Propiedades) {
   if (cuentas.length === 0) return <p>Todavía no hay usuarios internos.</p>;
   return (
     <table className="tabla">
@@ -42,9 +50,11 @@ export function TablaCuentas({ cuentas, areas, alEditar, alAlternarEstado }: Pro
               <button type="button" className="boton" onClick={() => alEditar(cuenta)}>
                 Editar
               </button>
-              <button type="button" className="boton" onClick={() => alAlternarEstado(cuenta)}>
-                {cuenta.activo ? 'Desactivar' : 'Activar'}
-              </button>
+              {(cuenta.id !== idPropio || !cuenta.activo) && (
+                <button type="button" className="boton" onClick={() => alAlternarEstado(cuenta)}>
+                  {cuenta.activo ? 'Desactivar' : 'Activar'}
+                </button>
+              )}
             </td>
           </tr>
         ))}

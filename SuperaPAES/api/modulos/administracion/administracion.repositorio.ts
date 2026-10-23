@@ -64,6 +64,11 @@ export interface AdministracionRepositorio {
   cambiarActivoUsuarioInterno(id: string, activo: boolean, tx?: Ejecutor): Promise<void>;
   reemplazarEspecialidades(id: string, areas: readonly number[], tx?: Ejecutor): Promise<void>;
   registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
+  /**
+   * Ids de los administradores activos, bloqueados (FOR UPDATE, en orden de id) hasta el fin de la
+   * transacción: dos cambios a la vez no pueden dejar la consola sin administradores (CU-23 3.c).
+   */
+  bloquearAdministradoresActivos(tx?: Ejecutor): Promise<string[]>;
 }
 
 interface FilaUsuarioInterno extends Omit<UsuarioInterno, 'rol'> {
@@ -142,6 +147,12 @@ function consultasUsuarios(bd: Ejecutor): ConsultasUsuarios {
   };
 }
 
+const ADMINISTRADORES_ACTIVOS = `
+  SELECT u.id::text AS id FROM contenido.usuario_interno u JOIN contenido.rol r ON r.id = u.rol_id
+   WHERE r.codigo = 'admin' AND u.activo
+   ORDER BY u.id
+     FOR UPDATE OF u`;
+
 type CambiosYAuditoria = Omit<AdministracionRepositorio, keyof ConsultasUsuarios>;
 
 function cambiosYAuditoria(bd: Ejecutor): CambiosYAuditoria {
@@ -167,6 +178,11 @@ function cambiosYAuditoria(bd: Ejecutor): CambiosYAuditoria {
          SELECT $1, unnest($2::smallint[])`,
         [id, areas],
       );
+    },
+
+    async bloquearAdministradoresActivos(tx = bd) {
+      const { rows } = await tx.query<{ id: string }>(ADMINISTRADORES_ACTIVOS);
+      return rows.map((fila) => fila.id);
     },
 
     async registrarAuditoria(entrada, tx = bd) {

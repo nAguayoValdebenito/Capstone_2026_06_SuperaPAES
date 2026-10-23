@@ -1,5 +1,6 @@
 // Sección Usuarios internos (C10, HU-04, CU-23): administradores y docentes con su rol y sus áreas de
 // especialidad; crear, editar, activar y desactivar. Cada cambio queda en la auditoría de la API.
+import { useSesion } from '../../estado/contexto-sesion';
 import { useUsuariosInternos } from '../../estado/usuarios-internos';
 import { FormularioCuenta } from './FormularioCuenta';
 import { TablaCuentas } from './TablaCuentas';
@@ -14,6 +15,7 @@ function Alerta({ texto, codigo }: { texto: string; codigo?: string }) {
 
 export function PaginaUsuariosInternos() {
   const { carga, panel, abrirPanel, alGuardar, alternarEstado, aviso } = useUsuariosInternos();
+  const { usuario } = useSesion();
 
   return (
     <section className="pagina pagina--ancha">
@@ -47,6 +49,7 @@ export function PaginaUsuariosInternos() {
             areas={carga.areas}
             alEditar={(cuenta) => abrirPanel({ modo: 'editar', cuenta })}
             alAlternarEstado={alternarEstado}
+            idPropio={usuario?.id}
           />
         </>
       )}

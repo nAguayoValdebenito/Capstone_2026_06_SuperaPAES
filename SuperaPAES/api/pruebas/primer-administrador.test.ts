@@ -1,11 +1,8 @@
 // Comando crear-admin (DAS 4.5.3, TEC-02.2): la lógica de api/db/primer-administrador.ts contra
-// PostgreSQL real, en una base temporal con las migraciones, que se borra al terminar. Se activa con
-// DATABASE_URL (en la CI siempre está; en la CI, si falta, la prueba falla en vez de omitirse).
-import path from 'node:path';
-import pg from 'pg';
+// PostgreSQL real, en una base temporal con las migraciones (ver base-temporal.ts).
+import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { compararContrasena } from '../comun/contrasenas.js';
-import { migrar } from '../db/migrador.js';
 import {
   crearPrimerAdministrador,
   describirConexion,
@@ -14,10 +11,14 @@ import {
   problemaNombre,
   restablecerAdministrador,
 } from '../db/primer-administrador.js';
-
-const urlBase = process.env['DATABASE_URL'];
-const enCi = Boolean(process.env['CI']);
-const MINUTO = 60_000;
+import {
+  type BaseTemporal,
+  crearBaseTemporal,
+  exigirBaseEnCi,
+  MINUTO,
+  urlBase,
+  vaciarCuentasInternas,
+} from './base-temporal.js';
 
 describe('crear-admin sin base de datos', () => {
   it('describe la conexión solo con el servidor y el nombre de la base', () => {
@@ -39,17 +40,11 @@ describe('crear-admin sin base de datos', () => {
     expect(problemaContrasena('clave-larga-1', 'clave-larga-1', 'a@b.cl')).toBeNull();
   });
 
-  it.runIf(enCi)(
-    'la CI define DATABASE_URL, así que las pruebas con PostgreSQL no se omiten',
-    () => {
-      expect(urlBase).toBeTruthy();
-    },
-  );
+  exigirBaseEnCi();
 });
 
 describe.skipIf(!urlBase)('crear-admin con PostgreSQL', () => {
-  const nombre = `supera_paes_prueba_admin_${Date.now()}`;
-  const admin = new pg.Client({ connectionString: urlBase });
+  let base: BaseTemporal;
   let bd: pg.Client;
 
   const consulta = async <T extends pg.QueryResultRow>(sql: string, valores: unknown[] = []) =>
@@ -87,25 +82,13 @@ describe.skipIf(!urlBase)('crear-admin con PostgreSQL', () => {
   };
 
   beforeAll(async () => {
-    await admin.connect();
-    await admin.query(`CREATE DATABASE ${nombre}`);
-    const url = new URL(urlBase ?? '');
-    url.pathname = `/${nombre}`;
-    bd = new pg.Client({ connectionString: url.toString() });
-    await bd.connect();
-    await migrar(bd, path.join(import.meta.dirname, '../db/migraciones'));
+    base = await crearBaseTemporal('admin');
+    bd = base.bd;
   }, MINUTO);
 
-  afterAll(async () => {
-    await bd.end();
-    await admin.query(`DROP DATABASE IF EXISTS ${nombre} WITH (FORCE)`);
-    await admin.end();
-  }, MINUTO);
+  afterAll(() => base.cerrar(), MINUTO);
 
-  // La auditoría no admite DELETE (disparador): TRUNCATE no lo dispara y deja las tablas vacías.
-  beforeEach(async () => {
-    await bd.query('TRUNCATE contenido.auditoria, contenido.usuario_interno CASCADE');
-  });
+  beforeEach(() => vaciarCuentasInternas(bd));
 
   it('crea la cuenta cuando no hay administrador activo: hash bcrypt y auditoría sin la contraseña', async () => {
     const cuenta = await crearPrimerAdministrador(bd, datos);
@@ -201,10 +184,7 @@ describe.skipIf(!urlBase)('crear-admin con PostgreSQL', () => {
   });
 
   it('dos ejecuciones al mismo tiempo crean un solo administrador (pg_advisory_xact_lock)', async () => {
-    const url = new URL(urlBase ?? '');
-    url.pathname = `/${nombre}`;
-    const otra = new pg.Client({ connectionString: url.toString() });
-    await otra.connect();
+    const otra = await base.conectarOtra();
     try {
       const resultados = await Promise.allSettled([
         crearPrimerAdministrador(bd, datos),

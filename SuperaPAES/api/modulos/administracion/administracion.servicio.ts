@@ -38,7 +38,10 @@ export interface AdministracionServicio {
     id: string,
     cambios: DatosEditarUsuarioInterno,
   ): Promise<UsuarioInterno>;
-  /** CU-23 3.b: una cuenta desactivada no puede iniciar sesión. Repetir el estado no cambia nada. */
+  /**
+   * CU-23 3.b: una cuenta desactivada no puede iniciar sesión. Repetir el estado no cambia nada.
+   * CU-23 3.c: no se desactiva la propia cuenta ni al último administrador activo (409).
+   */
   cambiarEstadoUsuarioInterno(
     autorId: string,
     id: string,
@@ -99,6 +102,31 @@ async function traducirErrores<T>(trabajo: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Continuidad del administrador (CU-23 3.c, HU-04 escenario 6): la propia cuenta no se desactiva ni
+ * pierde el rol de administrador, y el último administrador activo tampoco. Se llama con los
+ * administradores activos ya bloqueados en la transacción. Al rechazar no se escribe la auditoría.
+ */
+function protegerContinuidad(
+  autorId: string,
+  cuenta: UsuarioInterno,
+  administradoresActivos: readonly string[],
+  cambio: 'desactivar' | 'quitar_rol',
+): void {
+  if (cuenta.id === autorId) {
+    throw new ErrorConflicto(
+      cambio === 'desactivar'
+        ? 'No puedes desactivar tu propia cuenta.'
+        : 'No puedes quitarte el rol de administrador.',
+    );
+  }
+  if (cuenta.rol === 'admin' && cuenta.activo && administradoresActivos.length <= 1) {
+    throw new ErrorConflicto(
+      'Es el último administrador activo: la consola quedaría sin administradores. Activa o crea otro antes.',
+    );
+  }
+}
+
 async function obtener(
   { repositorio }: Contexto,
   id: string,
@@ -153,7 +181,12 @@ async function editarUsuario(
   const { repositorio, unidadDeTrabajo } = contexto;
   return traducirErrores(() =>
     unidadDeTrabajo.enTransaccion(async (tx) => {
+      // Primero los administradores y después la cuenta, siempre en el mismo orden (sin bloqueos cruzados).
+      const quitaRol = cambios.rol === 'docente';
+      const activos = quitaRol ? await repositorio.bloquearAdministradoresActivos(tx) : [];
       const actual = await obtener(contexto, id, tx, true);
+      if (quitaRol && actual.rol === 'admin')
+        protegerContinuidad(autorId, actual, activos, 'quitar_rol');
       const rol = cambios.rol ?? actual.rol;
       // Al pasar a administrador, las áreas se quitan si no se indican otras.
       const areas = cambios.areas ?? (rol === 'admin' ? [] : actual.areas);
@@ -186,7 +219,9 @@ async function editarUsuario(
 async function cambiarEstado(contexto: Contexto, autorId: string, id: string, activo: boolean) {
   const { repositorio, unidadDeTrabajo } = contexto;
   return unidadDeTrabajo.enTransaccion(async (tx) => {
+    const activos = activo ? [] : await repositorio.bloquearAdministradoresActivos(tx);
     const actual = await obtener(contexto, id, tx, true);
+    if (!activo) protegerContinuidad(autorId, actual, activos, 'desactivar');
     if (actual.activo === activo) return actual;
     await repositorio.cambiarActivoUsuarioInterno(id, activo, tx);
     const cambiado = { ...actual, activo };
