@@ -16,8 +16,20 @@ export type RolAsignacion = 'revisor' | 'desempate';
 
 export interface UsuarioInterno {
   id: string;
-  nombre: string;
+  /** El token de la consola no trae el nombre: falta mientras el ingreso no lo devuelva (HU-03.1). */
+  nombre?: string;
   rol: RolCuentaInterna;
+}
+
+/** Respuesta de POST /api/v1/admin/cuentas/ingreso (SesionIniciada del módulo cuentas). */
+export interface SesionIniciada {
+  tokenAcceso: string;
+  tokenRenovacion: string;
+}
+
+export interface Credenciales {
+  correo: string;
+  contrasena: string;
 }
 
 /** Área de especialidad de los docentes (contenido.area). */

@@ -182,7 +182,6 @@ describe('módulos montados', () => {
     [RUTA_REGISTRO, cuerpoRegistro()],
     [RUTA_INGRESO_APP, cuerpoIngreso()],
     ['/api/v1/app/cuentas/recuperar-contrasena', { correo: cuerpoIngreso().correo }],
-    [RUTA_INGRESO_ADMIN, cuerpoIngreso({ correo: 'admin@ejemplo.cl' })],
   ])('%s es pública y todavía responde 501', async (ruta, cuerpo) => {
     const respuesta = await request(crearApp(crearDependenciasDePrueba())).post(ruta).send(cuerpo);
 
@@ -287,7 +286,8 @@ describe('límite de intentos', () => {
 
     const respuesta = await request(limitada).post(RUTA_INGRESO_ADMIN).send(ingreso);
 
-    expect(respuesta.status).toBe(501);
+    // Sin base en esta prueba el ingreso de la consola no termina, pero no lo frena el contador de la app.
+    expect(respuesta.status).not.toBe(429);
   });
 
   it('las invitaciones también están limitadas, después de autenticar y validar', async () => {

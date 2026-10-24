@@ -21,7 +21,6 @@
     },
     "consola": {
       "ignore": [
-        "src/servicios/cuentas.ts",
         "src/servicios/generador.ts",
         "src/servicios/preguntas.ts",
         "src/servicios/privacidad.ts",

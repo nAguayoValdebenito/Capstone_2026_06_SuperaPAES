@@ -5,7 +5,11 @@ import cors from 'cors';
 import express, { Router, type Express } from 'express';
 import helmet from 'helmet';
 import type { Proveedores } from './adaptadores/fabrica.js';
-import { crearAutenticacion, type SecretosJwt } from './comun/middleware/autenticacion.js';
+import {
+  crearAutenticacion,
+  type SecretosJwt,
+  type VerificarCuentaInterna,
+} from './comun/middleware/autenticacion.js';
 import type { MiddlewareRutas } from './comun/middleware/index.js';
 import {
   crearFabricaLimiteIntentos,
@@ -86,6 +90,11 @@ export interface Dependencias {
   corsOrigenes: string[];
   registrarPeticiones: boolean;
   limiteIntentos?: OpcionesLimiteIntentos;
+  /**
+   * Solo para pruebas: reemplaza la comprobación de la cuenta interna en cada petición de la consola,
+   * que por defecto consulta la base por el servicio de administracion.
+   */
+  verificarCuentaInterna?: VerificarCuentaInterna;
 }
 
 export interface Servicios {
@@ -107,7 +116,12 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const { ia, correo, pagos } = dependencias.proveedores;
 
   const administracion = crearAdministracionServicio(base);
-  const cuentas = crearCuentasServicio({ ...base, correo, administracion });
+  const cuentas = crearCuentasServicio({
+    ...base,
+    correo,
+    administracion,
+    secretoConsola: dependencias.jwt.secretoConsola,
+  });
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario });
   const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
@@ -191,8 +205,12 @@ export function crearApp(
     }),
   );
 
+  // La cuenta de cada token de la consola se vuelve a comprobar con su dueño, el módulo administracion.
+  const verificarCuentaInterna: VerificarCuentaInterna =
+    dependencias.verificarCuentaInterna ??
+    (({ sub, rol }) => servicios.administracion.cuentaInternaVigente(sub, rol));
   const mw: MiddlewareRutas = {
-    ...crearAutenticacion(dependencias.jwt),
+    ...crearAutenticacion(dependencias.jwt, verificarCuentaInterna),
     crearLimiteIntentos: crearFabricaLimiteIntentos(
       dependencias.limiteIntentos ?? LIMITE_INTENTOS_POR_DEFECTO,
     ),
