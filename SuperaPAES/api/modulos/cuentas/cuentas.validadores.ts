@@ -32,6 +32,21 @@ export const esquemaRegistro = z
 
 export const esquemaIngreso = z.strictObject({ correo, contrasena });
 
+/** Descripción del dispositivo que guarda la sesión (app.token_sesion.dispositivo, hasta 100 caracteres). */
+const MAXIMO_DISPOSITIVO = 100;
+
+/** Ingreso de la app: además, un nombre de dispositivo opcional (vacío cuenta como no enviado). */
+export const esquemaIngresoApp = z.strictObject({
+  correo,
+  contrasena,
+  dispositivo: z
+    .string()
+    .trim()
+    .max(MAXIMO_DISPOSITIVO, 'El nombre del dispositivo es demasiado largo.')
+    .optional()
+    .transform((valor) => valor || undefined),
+});
+
 export const esquemaRecuperacion = z.strictObject({ correo });
 
 /** Renovar y cerrar la sesión: el token de renovación que entregó el ingreso (o la última renovación). */
@@ -41,5 +56,6 @@ export const esquemaTokenRenovacion = z.strictObject({
 
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;
+export type CredencialesApp = z.output<typeof esquemaIngresoApp>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
 export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;

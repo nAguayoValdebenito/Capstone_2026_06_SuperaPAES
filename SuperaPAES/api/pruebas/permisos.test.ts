@@ -6,8 +6,6 @@
 import { SignJWT } from 'jose';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { firmarToken } from '../comun/jwt.js';
-import { DURACION_TOKEN_ACCESO_SEGUNDOS } from '../modulos/cuentas/cuentas.servicio.js';
 import {
   crearAppDePrueba,
   errorConFormato,
@@ -21,28 +19,23 @@ import {
   conToken,
   crearEscenarioSesiones,
   DOCENTE,
+  RUTA_APP_PROTEGIDA,
+  RUTA_CERRAR_APP,
   RUTA_RENOVAR,
+  RUTA_RENOVAR_APP,
   RUTA_YO,
-  sha256,
 } from './escenario-sesiones.js';
 
 const ADMIN_API = '/api/v1/admin';
 
-/** Abre en el escenario una sesión de estudiante (la que creará el ingreso de la app, prompt 09). */
+const ESTUDIANTE = { correo: 'eva@ejemplo.cl', contrasena: 'clave-de-eva-1' };
+
+/** El estudiante ingresa por la app (HU-02.1) y entrega sus tokens. */
 async function sesionDeEstudiante(escenario: ReturnType<typeof crearEscenarioSesiones>) {
-  const tokenRenovacion = 'token-de-renovacion-del-estudiante';
-  const sid = String(escenario.sesiones.size + 100);
-  escenario.sesiones.set(sid, {
-    id: sid,
-    tipo: 'app',
-    cuentaId: '10',
-    hashToken: sha256(tokenRenovacion),
-    expiraEn: new Date(escenario.ahora().getTime() + 60 * 60 * 1000),
-    revocadoEn: null,
-  });
-  const vigencia = { desde: escenario.ahora(), segundos: DURACION_TOKEN_ACCESO_SEGUNDOS };
-  const tokenAcceso = await firmarToken('app', { sub: '10', sid }, SECRETO_APP_DE_PRUEBA, vigencia);
-  return { tokenAcceso, tokenRenovacion };
+  await escenario.crearEstudiante(ESTUDIANTE);
+  const respuesta = await escenario.ingresarApp(ESTUDIANTE.correo, ESTUDIANTE.contrasena);
+  expect(respuesta.status).toBe(200);
+  return respuesta.body.data as { tokenAcceso: string; tokenRenovacion: string };
 }
 
 describe('separación de las sesiones de la app y de la consola (CP-04)', () => {
@@ -55,9 +48,7 @@ describe('separación de las sesiones de la app y de la consola (CP-04)', () => 
       .get(`${ADMIN_API}/administracion/usuarios-internos`)
       .set(conToken(tokenAcceso));
     // Pasa la autenticación de la app y llega al módulo, que aún no tiene rutas (404).
-    const enApp = await request(escenario.app)
-      .get('/api/v1/app/evaluaciones')
-      .set(conToken(tokenAcceso));
+    const enApp = await request(escenario.app).get(RUTA_APP_PROTEGIDA).set(conToken(tokenAcceso));
 
     expect(enConsola.status).toBe(401);
     expect(enConsola.body).toEqual(errorConFormato('NO_AUTENTICADO'));
@@ -74,23 +65,49 @@ describe('separación de las sesiones de la app y de la consola (CP-04)', () => 
     expect(respuesta.status).toBe(401);
   });
 
+  it('paso 2: el token de renovación de la consola no renueva en la app', async () => {
+    const escenario = crearEscenarioSesiones();
+    await escenario.crearCuenta(ADMIN);
+    const { tokenRenovacion } = (await escenario.ingresar(ADMIN.correo, ADMIN.contrasena)).body
+      .data as { tokenRenovacion: string };
+
+    const respuesta = await request(escenario.app).post(RUTA_RENOVAR_APP).send({ tokenRenovacion });
+
+    expect(respuesta.status).toBe(401);
+  });
+
+  it('paso 4: la sesión cerrada en la app ya no sirve, ni para renovar', async () => {
+    const escenario = crearEscenarioSesiones();
+    const { tokenAcceso, tokenRenovacion } = await sesionDeEstudiante(escenario);
+
+    const cierre = await request(escenario.app).post(RUTA_CERRAR_APP).send({ tokenRenovacion });
+    const acceso = await request(escenario.app).get(RUTA_APP_PROTEGIDA).set(conToken(tokenAcceso));
+    const renovar = await request(escenario.app).post(RUTA_RENOVAR_APP).send({ tokenRenovacion });
+
+    expect(cierre.status).toBe(200);
+    expect(acceso.status).toBe(401);
+    expect(acceso.body).toEqual(errorConFormato('NO_AUTENTICADO'));
+    expect(renovar.status).toBe(401);
+  });
+
   it('la sesión vigente de la consola recibe 401 en la app', async () => {
     const escenario = crearEscenarioSesiones();
     await escenario.crearCuenta(ADMIN);
     const ingreso = await escenario.ingresar(ADMIN.correo, ADMIN.contrasena);
 
     const respuesta = await request(escenario.app)
-      .get('/api/v1/app/evaluaciones')
+      .get(RUTA_APP_PROTEGIDA)
       .set(conToken(ingreso.body.data.tokenAcceso as string));
 
     expect(respuesta.status).toBe(401);
     expect(respuesta.body.error.codigo).toBe('NO_AUTENTICADO');
   });
 
-  it('paso 3: un estudiante no puede entrar a la consola (su correo no tiene cuenta interna)', async () => {
+  it('paso 3: un estudiante con cuenta no puede entrar a la consola con sus credenciales', async () => {
     const escenario = crearEscenarioSesiones();
+    await escenario.crearEstudiante(ESTUDIANTE);
 
-    const respuesta = await escenario.ingresar('estudiante@ejemplo.cl', 'clave-del-estudiante');
+    const respuesta = await escenario.ingresar(ESTUDIANTE.correo, ESTUDIANTE.contrasena);
 
     expect(respuesta.status).toBe(401);
     expect(escenario.sesiones.size).toBe(0);

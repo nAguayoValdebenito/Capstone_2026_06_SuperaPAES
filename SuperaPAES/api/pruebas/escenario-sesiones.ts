@@ -5,7 +5,6 @@ import { createHash } from 'node:crypto';
 import request from 'supertest';
 import { expect } from 'vitest';
 import { crearApp, crearServicios, type Dependencias } from '../app.js';
-import { cifrarContrasena } from '../comun/contrasenas.js';
 import type { Audiencia } from '../comun/jwt.js';
 import type { RolCuentaInterna } from '../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../db/transaccion.js';
@@ -14,11 +13,17 @@ import type { CuentasRepositorio, NuevaSesion } from '../modulos/cuentas/cuentas
 import { crearCuentasServicio, type CuentasServicio } from '../modulos/cuentas/index.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
 import { crearRepositorioFalso } from './escenario-usuarios-internos.js';
+import { hashDeContrasena } from './estudiantes-de-prueba.js';
 
 export const RUTA_INGRESO = '/api/v1/admin/cuentas/ingreso';
 export const RUTA_RENOVAR = '/api/v1/admin/cuentas/renovar';
 export const RUTA_CERRAR = '/api/v1/admin/cuentas/cerrar';
 export const RUTA_YO = '/api/v1/admin/cuentas/yo';
+export const RUTA_INGRESO_APP = '/api/v1/app/cuentas/ingreso';
+export const RUTA_RENOVAR_APP = '/api/v1/app/cuentas/renovar';
+export const RUTA_CERRAR_APP = '/api/v1/app/cuentas/cerrar';
+/** Ruta de la app que exige sesión: todavía no tiene endpoints, así que autenticada responde 404. */
+export const RUTA_APP_PROTEGIDA = '/api/v1/app/evaluaciones';
 
 export const conToken = (token: string) => ({ Authorization: `Bearer ${token}` });
 export const sha256 = (texto: string) => createHash('sha256').update(texto).digest('hex');
@@ -30,11 +35,25 @@ export interface FilaSesion extends NuevaSesion {
 
 type Usuarios = ReturnType<typeof crearRepositorioFalso>['usuarios'];
 
+/** Estudiante en memoria (app.estudiante); eliminado imita eliminado_en con fecha. */
+export interface EstudianteEnMemoria {
+  id: string;
+  nombre: string;
+  correo: string;
+  correoVerificado: boolean;
+  hash: string;
+  eliminado: boolean;
+}
+
 const abierta = (fila: FilaSesion, ahora: Date) =>
   fila.revocadoEn === null && fila.expiraEn.getTime() > ahora.getTime();
 
 /** app.token_sesion en memoria, con las mismas condiciones que el SQL de cuentas.repositorio.ts. */
-function crearRepositorioCuentas(usuarios: Usuarios, sesiones: Map<string, FilaSesion>) {
+function crearRepositorioCuentas(
+  usuarios: Usuarios,
+  estudiantes: Map<string, EstudianteEnMemoria>,
+  sesiones: Map<string, FilaSesion>,
+) {
   let siguienteId = 1;
   const buscar = (tipo: Audiencia, hashToken: string) =>
     [...sesiones.values()].find((f) => f.tipo === tipo && f.hashToken === hashToken);
@@ -42,6 +61,8 @@ function crearRepositorioCuentas(usuarios: Usuarios, sesiones: Map<string, FilaS
     const fila = sesiones.get(sid);
     return fila?.tipo === tipo && fila.cuentaId === cuentaId && abierta(fila, ahora);
   };
+  const estudianteEliminado = (fila: FilaSesion) =>
+    fila.tipo === 'app' && estudiantes.get(fila.cuentaId)?.eliminado !== false;
   const repositorio: CuentasRepositorio = {
     buscarCredencialesInternas: (correo) => {
       const u = [...usuarios.values()].find((x) => x.correo.toLowerCase() === correo.toLowerCase());
@@ -54,6 +75,20 @@ function crearRepositorioCuentas(usuarios: Usuarios, sesiones: Map<string, FilaS
       if (usuario) usuario.ultimoAcceso = ahora;
       return Promise.resolve();
     },
+    buscarCredencialesEstudiante: (correo) => {
+      const e = [...estudiantes.values()].find(
+        (x) => x.correo.toLowerCase() === correo.toLowerCase() && !x.eliminado,
+      );
+      if (!e) return Promise.resolve(null);
+      const { id, nombre, correoVerificado, hash } = e;
+      return Promise.resolve({
+        id,
+        nombre,
+        correo: e.correo,
+        correoVerificado,
+        hashContrasena: hash,
+      });
+    },
     crearSesion: (sesion) => {
       const id = String(siguienteId++);
       sesiones.set(id, { ...sesion, id, revocadoEn: null });
@@ -61,9 +96,9 @@ function crearRepositorioCuentas(usuarios: Usuarios, sesiones: Map<string, FilaS
     },
     consumirSesion: (tipo, hashToken, ahora) => {
       const fila = buscar(tipo, hashToken);
-      if (!fila || !abierta(fila, ahora)) return Promise.resolve(null);
+      if (!fila || !abierta(fila, ahora) || estudianteEliminado(fila)) return Promise.resolve(null);
       fila.revocadoEn = ahora;
-      return Promise.resolve({ tipo, cuentaId: fila.cuentaId });
+      return Promise.resolve({ tipo, cuentaId: fila.cuentaId, dispositivo: fila.dispositivo });
     },
     revocarSesion: (tipo, hashToken, ahora) => {
       const fila = buscar(tipo, hashToken);
@@ -83,18 +118,12 @@ function crearRepositorioCuentas(usuarios: Usuarios, sesiones: Map<string, FilaS
       const cuentaVigente = usuario?.activo === true && usuario.rol === rol;
       return Promise.resolve(cuentaVigente && vigente('admin', sid, usuarioId, ahora));
     },
-    sesionEstudianteVigente: (sid, estudianteId, ahora) =>
-      Promise.resolve(vigente('app', sid, estudianteId, ahora)),
+    sesionEstudianteVigente: (sid, estudianteId, ahora) => {
+      const sinEliminar = estudiantes.get(estudianteId)?.eliminado === false;
+      return Promise.resolve(sinEliminar && vigente('app', sid, estudianteId, ahora));
+    },
   };
   return repositorio;
-}
-
-/** bcrypt con costo 12 tarda: cada contraseña de prueba se cifra una sola vez por archivo. */
-const hashes = new Map<string, Promise<string>>();
-function hashDe(contrasena: string): Promise<string> {
-  const guardado = hashes.get(contrasena) ?? cifrarContrasena(contrasena);
-  hashes.set(contrasena, guardado);
-  return guardado;
 }
 
 export interface CuentaDePrueba {
@@ -111,6 +140,7 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
   const reloj = () => new Date(ahora);
   const falso = crearRepositorioFalso();
   const sesiones = new Map<string, FilaSesion>();
+  const estudiantes = new Map<string, EstudianteEnMemoria>();
   const tx: Ejecutor = { query: () => Promise.reject(new Error('sin base')) };
   const unidadDeTrabajo: UnidadDeTrabajo = { enTransaccion: (trabajo) => trabajo(tx) };
   const dependencias = crearDependenciasDePrueba({ unidadDeTrabajo, reloj, ...cambios });
@@ -127,30 +157,54 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
     administracion,
     jwt: dependencias.jwt,
     reloj,
-    repositorio: crearRepositorioCuentas(falso.usuarios, sesiones),
+    repositorio: crearRepositorioCuentas(falso.usuarios, estudiantes, sesiones),
   });
   const app = crearApp(dependencias, { ...crearServicios(dependencias), administracion, cuentas });
 
   async function crearCuenta(cuenta: CuentaDePrueba): Promise<string> {
     const { correo, rol, areas = rol === 'docente' ? [1, 2] : [], activo = true } = cuenta;
     const nombre = cuenta.nombre ?? correo.split('@')[0] ?? correo;
-    const hashContrasena = await hashDe(cuenta.contrasena);
+    const hashContrasena = await hashDeContrasena(cuenta.contrasena);
     const id = await falso.repositorio.crearUsuarioInterno({ nombre, correo, rol, hashContrasena });
     await falso.repositorio.reemplazarEspecialidades(id, areas);
     await falso.repositorio.cambiarActivoUsuarioInterno(id, activo);
     return id;
   }
 
+  async function crearEstudiante(datos: {
+    correo: string;
+    contrasena: string;
+    correoVerificado?: boolean;
+  }): Promise<string> {
+    const id = String(estudiantes.size + 1);
+    const { correo, contrasena, correoVerificado = false } = datos;
+    const hash = await hashDeContrasena(contrasena);
+    estudiantes.set(id, {
+      id,
+      nombre: 'Eva Estudiante',
+      correo,
+      correoVerificado,
+      hash,
+      eliminado: false,
+    });
+    return id;
+  }
+
   const ingresar = (correo: string, contrasena: string, ip = '198.51.100.1') =>
     request(app).post(RUTA_INGRESO).set('X-Forwarded-For', ip).send({ correo, contrasena });
+  const ingresarApp = (correo: string, contrasena: string, ip = '198.51.100.1') =>
+    request(app).post(RUTA_INGRESO_APP).set('X-Forwarded-For', ip).send({ correo, contrasena });
 
   return {
     app,
     cuentas,
     sesiones,
     usuarios: falso.usuarios,
+    estudiantes,
     crearCuenta,
+    crearEstudiante,
     ingresar,
+    ingresarApp,
     avanzarSegundos: (segundos: number) => {
       ahora = new Date(ahora.getTime() + segundos * 1000);
     },

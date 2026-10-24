@@ -69,7 +69,6 @@ describe('módulos montados', () => {
 
   it.each([
     [RUTA_REGISTRO, cuerpoRegistro()],
-    [RUTA_INGRESO_APP, cuerpoIngreso()],
     ['/api/v1/app/cuentas/recuperar-contrasena', { correo: cuerpoIngreso().correo }],
   ])('%s es pública y todavía responde 501', async (ruta, cuerpo) => {
     const respuesta = await request(crearAppDePrueba()).post(ruta).send(cuerpo);
@@ -152,8 +151,15 @@ describe('webhooks de las tiendas', () => {
 
 describe('límite de intentos', () => {
   const limite = { limiteIntentos: { ventanaMs: 60_000, maximo: 2 } };
-  const appLimitada = () => crearAppDePrueba(limite);
   const ingreso = cuerpoIngreso();
+  /** Los ingresos de la app y de la consola siempre fallan con 401: así cuentan para el límite. */
+  const appLimitada = () => {
+    const { cuentas } = crearServicios(crearDependenciasDePrueba(limite));
+    const fallar = () => Promise.reject(new ErrorNoAutenticado());
+    return crearAppDePrueba(limite, {
+      cuentas: { ...cuentas, ingresarEstudiante: fallar, ingresarUsuarioInterno: fallar },
+    });
+  };
 
   it('responde 429 con el formato común al superar el máximo', async () => {
     const limitada = appLimitada();
@@ -168,14 +174,7 @@ describe('límite de intentos', () => {
   });
 
   it('cada ruta limitada lleva su propio contador', async () => {
-    const dependencias = crearDependenciasDePrueba(limite);
-    const { cuentas } = crearServicios(dependencias);
-    const limitada = crearAppDePrueba(limite, {
-      cuentas: {
-        ...cuentas,
-        ingresarUsuarioInterno: () => Promise.reject(new ErrorNoAutenticado()),
-      },
-    });
+    const limitada = appLimitada();
     for (let i = 0; i < 3; i++) {
       await request(limitada).post(RUTA_INGRESO_APP).send(ingreso);
     }
@@ -202,10 +201,14 @@ describe('límite de intentos', () => {
 
   it('usa la IP real que informa el proxy (trust proxy)', async () => {
     const limitada = appLimitada();
-    const desde = (ip: string) =>
-      request(limitada).post(RUTA_INGRESO_APP).set('X-Forwarded-For', ip).send(ingreso);
-    for (let i = 0; i < 3; i++) await desde('203.0.113.1');
+    // Correos distintos: el límite por correo es independiente del límite por IP (ver sesion-estudiante-bd).
+    const desde = (ip: string, correo: string) =>
+      request(limitada)
+        .post(RUTA_INGRESO_APP)
+        .set('X-Forwarded-For', ip)
+        .send({ ...ingreso, correo });
+    for (let i = 0; i < 3; i++) await desde('203.0.113.1', `uno${String(i)}@ejemplo.cl`);
 
-    expect((await desde('203.0.113.2')).status).toBe(501);
+    expect((await desde('203.0.113.2', 'otro@ejemplo.cl')).status).toBe(401);
   });
 });

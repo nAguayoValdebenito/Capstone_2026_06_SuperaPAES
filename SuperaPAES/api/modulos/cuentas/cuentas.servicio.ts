@@ -17,7 +17,7 @@ import {
   type CuentasRepositorio,
   type DuenoSesion,
 } from './cuentas.repositorio.js';
-import type { Credenciales, DatosRegistro } from './cuentas.validadores.js';
+import type { Credenciales, CredencialesApp, DatosRegistro } from './cuentas.validadores.js';
 
 /**
  * Duración de las sesiones (RNF-01: JWT de corta duración que se renueva de forma segura). El DAS no
@@ -60,6 +60,18 @@ export interface SesionConsola extends SesionIniciada {
   usuario: UsuarioDeSesion;
 }
 
+/** Datos mínimos del estudiante que entrega el ingreso. Nunca el hash ni datos de otros módulos. */
+export interface EstudianteDeSesion {
+  id: string;
+  nombre: string;
+  correo: string;
+  correoVerificado: boolean;
+}
+
+export interface SesionApp extends SesionIniciada {
+  estudiante: EstudianteDeSesion;
+}
+
 /** Usuario de la sesión para armar el menú de la consola; el docente también trae sus áreas. */
 export interface UsuarioConsola extends UsuarioDeSesion {
   areas?: number[];
@@ -67,7 +79,11 @@ export interface UsuarioConsola extends UsuarioDeSesion {
 
 export interface CuentasServicio {
   registrarEstudiante(datos: DatosRegistro): Promise<SesionIniciada>;
-  ingresarEstudiante(credenciales: Credenciales): Promise<SesionIniciada>;
+  /**
+   * HU-02.1 (app): correo o contraseña incorrectos, o cuenta eliminada, 401 con el mismo mensaje. Un
+   * correo sin verificar sí entra (solo tiene el cupo de RN-01).
+   */
+  ingresarEstudiante(credenciales: CredencialesApp): Promise<SesionApp>;
   solicitarRecuperacion(correo: string): Promise<void>;
   /** HU-02.1 (consola): correo o contraseña incorrectos, 401; cuenta desactivada, 403 (CU-23 3.b). */
   ingresarUsuarioInterno(credenciales: Credenciales): Promise<SesionConsola>;
@@ -90,8 +106,10 @@ interface Contexto {
   reloj: Reloj;
 }
 
-/** Lo que lleva el token de acceso además de la cuenta y la sesión. */
-type DatosToken = { tipo: 'app' } | { tipo: 'admin'; rol: RolCuentaInterna };
+/** Lo que lleva la sesión además de la cuenta: su tipo (con el rol, en la consola) y el dispositivo. */
+type DatosToken = { dispositivo: string | null } & (
+  { tipo: 'app' } | { tipo: 'admin'; rol: RolCuentaInterna }
+);
 
 const hashDe = (token: string) => createHash('sha256').update(token).digest('hex');
 
@@ -109,6 +127,22 @@ function hashDeRelleno(): Promise<string> {
   return rellenoPendiente;
 }
 
+/**
+ * Compara siempre con bcrypt, también cuando no hay cuenta (contra un hash de relleno), y responde lo
+ * mismo para el correo y para la contraseña: el tiempo y el mensaje no delatan qué correos existen.
+ */
+async function comprobarCredenciales<C extends { hashContrasena: string }>(
+  cuenta: C | null,
+  contrasena: string,
+): Promise<C> {
+  const hash = cuenta?.hashContrasena ?? (await hashDeRelleno());
+  const correcta = await compararContrasena(contrasena, hash);
+  if (!cuenta || !correcta) {
+    throw new ErrorNoAutenticado('El correo o la contraseña no son correctos.');
+  }
+  return cuenta;
+}
+
 async function abrirSesion(
   { repositorio, jwt, reloj }: Contexto,
   cuentaId: string,
@@ -121,7 +155,13 @@ async function abrirSesion(
     desde.getTime() + DURACION_TOKEN_RENOVACION_SEGUNDOS[datos.tipo] * 1000,
   );
   const sid = await repositorio.crearSesion(
-    { tipo: datos.tipo, cuentaId, hashToken: hashDe(tokenRenovacion), expiraEn },
+    {
+      tipo: datos.tipo,
+      cuentaId,
+      dispositivo: datos.dispositivo,
+      hashToken: hashDe(tokenRenovacion),
+      expiraEn,
+    },
     tx,
   );
   const vigencia = { desde, segundos: DURACION_TOKEN_ACCESO_SEGUNDOS };
@@ -142,33 +182,45 @@ async function ingresarInterno(
   { correo, contrasena }: Credenciales,
 ): Promise<SesionConsola> {
   const { repositorio, unidadDeTrabajo, reloj } = contexto;
-  const cuenta = await repositorio.buscarCredencialesInternas(correo);
-  const hash = cuenta?.hashContrasena ?? (await hashDeRelleno());
-  const correcta = await compararContrasena(contrasena, hash);
-  // El mismo mensaje para el correo y para la contraseña.
-  if (!cuenta || !correcta) {
-    throw new ErrorNoAutenticado('El correo o la contraseña no son correctos.');
-  }
+  const cuenta = await comprobarCredenciales(
+    await repositorio.buscarCredencialesInternas(correo),
+    contrasena,
+  );
   if (!cuenta.activo) {
     throw new ErrorSinPermiso('Tu cuenta está desactivada. Pide a un administrador que la active.');
   }
   const { id, nombre, rol } = cuenta;
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     await repositorio.registrarAccesoInterno(id, reloj(), tx);
-    const sesion = await abrirSesion(contexto, id, { tipo: 'admin', rol }, tx);
+    const sesion = await abrirSesion(contexto, id, { tipo: 'admin', rol, dispositivo: null }, tx);
     return { ...sesion, usuario: { id, nombre, correo: cuenta.correo, rol } };
   });
+}
+
+async function ingresarDeEstudiante(
+  contexto: Contexto,
+  { correo, contrasena, dispositivo }: CredencialesApp,
+): Promise<SesionApp> {
+  const cuenta = await comprobarCredenciales(
+    await contexto.repositorio.buscarCredencialesEstudiante(correo),
+    contrasena,
+  );
+  const { id, nombre, correoVerificado } = cuenta;
+  const sesion = await contexto.unidadDeTrabajo.enTransaccion((tx) =>
+    abrirSesion(contexto, id, { tipo: 'app', dispositivo: dispositivo ?? null }, tx),
+  );
+  return { ...sesion, estudiante: { id, nombre, correo: cuenta.correo, correoVerificado } };
 }
 
 /** En la consola el rol se lee de nuevo: un cambio de rol rige desde la renovación. */
 async function datosDelToken(
   { administracion }: Contexto,
-  { tipo, cuentaId }: DuenoSesion,
+  { tipo, cuentaId, dispositivo }: DuenoSesion,
 ): Promise<DatosToken> {
-  if (tipo === 'app') return { tipo };
+  if (tipo === 'app') return { tipo, dispositivo };
   const usuario = await administracion.obtenerUsuarioInterno(cuentaId);
   if (!usuario?.activo) throw errorSesion();
-  return { tipo, rol: usuario.rol };
+  return { tipo, rol: usuario.rol, dispositivo };
 }
 
 async function renovar(
@@ -206,9 +258,9 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     // Esqueletos: cada uno se implementa en la historia de usuario correspondiente.
     registrarEstudiante: () =>
       Promise.reject(new ErrorNoImplementado('El registro de estudiantes')),
-    ingresarEstudiante: () => Promise.reject(new ErrorNoImplementado('El ingreso de estudiantes')),
     solicitarRecuperacion: () =>
       Promise.reject(new ErrorNoImplementado('La recuperación de contraseña')),
+    ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales) => ingresarInterno(contexto, credenciales),
     renovarSesion: (tipo, token) => renovar(contexto, tipo, token),
     cerrarSesion: (tipo, token) => repositorio.revocarSesion(tipo, hashDe(token), reloj()),

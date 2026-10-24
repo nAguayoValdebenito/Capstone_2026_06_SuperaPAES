@@ -24,10 +24,23 @@ export interface CredencialesInternas {
   hashContrasena: string;
 }
 
-/** Dueño de una sesión: un estudiante (app) o un usuario interno (consola), nunca los dos. */
+/** Estudiante con lo necesario para el ingreso. El hash nunca sale del módulo. */
+export interface CredencialesEstudiante {
+  id: string;
+  nombre: string;
+  correo: string;
+  correoVerificado: boolean;
+  hashContrasena: string;
+}
+
+/**
+ * Dueño de una sesión: un estudiante (app) o un usuario interno (consola), nunca los dos. El
+ * dispositivo es la descripción que envió la app al ingresar; la renovación lo conserva.
+ */
 export interface DuenoSesion {
   tipo: Audiencia;
   cuentaId: string;
+  dispositivo: string | null;
 }
 
 export interface NuevaSesion extends DuenoSesion {
@@ -39,6 +52,14 @@ export interface CuentasRepositorio {
   /** Busca por correo sin distinguir mayúsculas (índice ux_usuario_interno_correo sobre lower). */
   buscarCredencialesInternas(correo: string, tx?: Ejecutor): Promise<CredencialesInternas | null>;
   registrarAccesoInterno(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
+  /**
+   * Busca por correo sin distinguir mayúsculas. Una cuenta eliminada (eliminado_en con fecha) no se
+   * encuentra: no entra y recibe el mismo rechazo que una contraseña incorrecta.
+   */
+  buscarCredencialesEstudiante(
+    correo: string,
+    tx?: Ejecutor,
+  ): Promise<CredencialesEstudiante | null>;
   /** Devuelve el id de la nueva fila de app.token_sesion. */
   crearSesion(sesion: NuevaSesion, tx?: Ejecutor): Promise<string>;
   /**
@@ -61,7 +82,7 @@ export interface CuentasRepositorio {
     rol: RolCuentaInterna,
     ahora: Date,
   ): Promise<boolean>;
-  /** Sesión abierta, vigente y de ese estudiante. */
+  /** Sesión abierta, vigente y de ese estudiante, cuya cuenta no fue eliminada. */
   sesionEstudianteVigente(sesionId: string, estudianteId: string, ahora: Date): Promise<boolean>;
 }
 
@@ -76,18 +97,28 @@ const CREDENCIALES_INTERNAS = `
     JOIN contenido.rol r ON r.id = u.rol_id
    WHERE lower(u.correo) = lower($1)`;
 
+const CREDENCIALES_ESTUDIANTE = `
+  SELECT id::text AS id, nombre, correo, correo_verificado AS "correoVerificado",
+         hash_contrasena AS "hashContrasena"
+    FROM app.estudiante
+   WHERE lower(correo) = lower($1) AND eliminado_en IS NULL`;
+
 const INSERTAR_SESION = `
-  INSERT INTO app.token_sesion (estudiante_id, usuario_interno_id, hash_token, expira_en)
-  VALUES ($1, $2, $3, $4)
+  INSERT INTO app.token_sesion (estudiante_id, usuario_interno_id, hash_token, dispositivo, expira_en)
+  VALUES ($1, $2, $3, $4, $5)
   RETURNING id::text AS id`;
 
-// $3 indica el tipo: true para la consola (usuario interno), false para la app (estudiante).
+// $3 indica el tipo: true para la consola (usuario interno), false para la app (estudiante, que además
+// no debe haber sido eliminado: su sesión abierta no se renueva).
 const CONSUMIR_SESION = `
   UPDATE app.token_sesion
      SET revocado_en = $2
    WHERE hash_token = $1 AND revocado_en IS NULL AND expira_en > $2
      AND (usuario_interno_id IS NOT NULL) = $3
-  RETURNING COALESCE(usuario_interno_id, estudiante_id)::text AS "cuentaId"`;
+     AND (usuario_interno_id IS NOT NULL OR EXISTS (
+           SELECT 1 FROM app.estudiante e
+            WHERE e.id = token_sesion.estudiante_id AND e.eliminado_en IS NULL))
+  RETURNING COALESCE(usuario_interno_id, estudiante_id)::text AS "cuentaId", dispositivo`;
 
 const REVOCAR_SESION = `
   UPDATE app.token_sesion
@@ -104,13 +135,18 @@ const SESION_INTERNA_VIGENTE = `
 
 const SESION_ESTUDIANTE_VIGENTE = `
   SELECT 1
-    FROM app.token_sesion
-   WHERE id = $1 AND estudiante_id = $2 AND revocado_en IS NULL AND expira_en > $3`;
+    FROM app.token_sesion t
+    JOIN app.estudiante e ON e.id = t.estudiante_id
+   WHERE t.id = $1 AND t.estudiante_id = $2 AND t.revocado_en IS NULL AND t.expira_en > $3
+     AND e.eliminado_en IS NULL`;
 
 /** Los ids que llegan de un token pueden no ser números: así no llegan a PostgreSQL como bigint inválido. */
 const esId = (valor: string) => /^\d{1,18}$/.test(valor);
 
-type Ingreso = Pick<CuentasRepositorio, 'buscarCredencialesInternas' | 'registrarAccesoInterno'>;
+type Ingreso = Pick<
+  CuentasRepositorio,
+  'buscarCredencialesInternas' | 'registrarAccesoInterno' | 'buscarCredencialesEstudiante'
+>;
 
 function consultasIngreso(bd: Ejecutor): Ingreso {
   return {
@@ -130,16 +166,22 @@ function consultasIngreso(bd: Ejecutor): Ingreso {
         ahora,
       ]);
     },
+
+    async buscarCredencialesEstudiante(correo, tx = bd) {
+      const { rows } = await tx.query<CredencialesEstudiante>(CREDENCIALES_ESTUDIANTE, [correo]);
+      return rows[0] ?? null;
+    },
   };
 }
 
 function consultasSesiones(bd: Ejecutor): Omit<CuentasRepositorio, keyof Ingreso> {
   return {
-    async crearSesion({ tipo, cuentaId, hashToken, expiraEn }, tx = bd) {
+    async crearSesion({ tipo, cuentaId, hashToken, dispositivo, expiraEn }, tx = bd) {
       const dueno = tipo === 'admin' ? [null, cuentaId] : [cuentaId, null];
       const { rows } = await tx.query<{ id: string }>(INSERTAR_SESION, [
         ...dueno,
         hashToken,
+        dispositivo,
         expiraEn,
       ]);
       const fila = rows[0];
@@ -148,13 +190,13 @@ function consultasSesiones(bd: Ejecutor): Omit<CuentasRepositorio, keyof Ingreso
     },
 
     async consumirSesion(tipo, hashToken, ahora, tx = bd) {
-      const { rows } = await tx.query<{ cuentaId: string }>(CONSUMIR_SESION, [
+      const { rows } = await tx.query<Omit<DuenoSesion, 'tipo'>>(CONSUMIR_SESION, [
         hashToken,
         ahora,
         tipo === 'admin',
       ]);
       const fila = rows[0];
-      return fila ? { tipo, cuentaId: fila.cuentaId } : null;
+      return fila ? { tipo, cuentaId: fila.cuentaId, dispositivo: fila.dispositivo } : null;
     },
 
     async revocarSesion(tipo, hashToken, ahora, tx = bd) {
