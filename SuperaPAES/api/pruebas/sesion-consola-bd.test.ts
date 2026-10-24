@@ -2,24 +2,13 @@
 // trabajo de la API: app.token_sesion guarda solo el SHA-256 del token, renovar rota la fila (también
 // con dos renovaciones a la vez), cerrar la revoca, desactivar una cuenta cierra sus sesiones
 // (CU-23 3.b), una cuenta desactivada no recibe sesión y un estudiante no entra a la consola (CP-04).
-import type pg from 'pg';
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { crearApp } from '../app.js';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { cifrarContrasena } from '../comun/contrasenas.js';
-import { crearPool } from '../db/conexion.js';
 import { crearPrimerAdministrador } from '../db/primer-administrador.js';
-import { crearUnidadDeTrabajo } from '../db/transaccion.js';
 import { DURACION_TOKEN_RENOVACION_SEGUNDOS } from '../modulos/cuentas/cuentas.servicio.js';
-import { crearDependenciasDePrueba } from './ayudantes.js';
-import {
-  type BaseTemporal,
-  crearBaseTemporal,
-  exigirBaseEnCi,
-  MINUTO,
-  urlBase,
-  vaciarCuentasInternas,
-} from './base-temporal.js';
+import { usarBaseDeSesiones } from './base-sesiones.js';
+import { exigirBaseEnCi, MINUTO, urlBase } from './base-temporal.js';
 import {
   conToken,
   RUTA_CERRAR,
@@ -45,18 +34,14 @@ describe('sesión de la consola sin base de datos', () => {
 });
 
 describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
-  let base: BaseTemporal;
-  let bd: pg.Client;
-  let pool: pg.Pool;
-  let ahora: Date;
-  let app: ReturnType<typeof crearApp>;
+  const entorno = usarBaseDeSesiones('sesiones');
   let adminId: string;
   let docenteId: string;
   let areaId: number | undefined;
 
   const sesionesDe = async (usuarioId: string) =>
     (
-      await bd.query<FilaSesion>(
+      await entorno.bd.query<FilaSesion>(
         `SELECT usuario_interno_id::text, estudiante_id::text, hash_token, expira_en, revocado_en
            FROM app.token_sesion WHERE usuario_interno_id = $1 ORDER BY id`,
         [usuarioId],
@@ -64,38 +49,19 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     ).rows;
 
   const ingresar = (correo: string, contrasena: string) =>
-    request(app).post(RUTA_INGRESO).send({ correo, contrasena });
+    request(entorno.app).post(RUTA_INGRESO).send({ correo, contrasena });
 
   beforeAll(async () => {
-    base = await crearBaseTemporal('sesiones');
-    bd = base.bd;
-    pool = crearPool({ url: base.url, ssl: false });
-    app = crearApp(
-      crearDependenciasDePrueba({
-        bd: pool,
-        unidadDeTrabajo: crearUnidadDeTrabajo(pool),
-        // La base compara con la hora que entrega el reloj, no con now(): se puede adelantar.
-        reloj: () => new Date(ahora),
-      }),
-    );
-    const { rows } = await bd.query<{ id: number }>(
+    const { rows } = await entorno.bd.query<{ id: number }>(
       `INSERT INTO contenido.area (nombre) VALUES ('Área de prueba') RETURNING id`,
     );
     areaId = rows[0]?.id;
-  }, MINUTO);
-
-  afterAll(async () => {
-    await pool.end();
-    await base.cerrar();
-  }, MINUTO);
+  });
 
   beforeEach(async () => {
-    ahora = new Date(Math.floor(Date.now() / 1000) * 1000);
-    await bd.query('TRUNCATE app.token_sesion, app.estudiante CASCADE');
-    await vaciarCuentasInternas(bd);
-    adminId = (await crearPrimerAdministrador(bd, ADMIN)).id;
+    adminId = (await crearPrimerAdministrador(entorno.bd, ADMIN)).id;
     const admin = await ingresar(ADMIN.correo, ADMIN.contrasena);
-    const docente = await request(app)
+    const docente = await request(entorno.app)
       .post('/api/v1/admin/administracion/usuarios-internos')
       .set(conToken(admin.body.data.tokenAcceso as string))
       .send({ nombre: 'Diego Docente', ...DOCENTE, rol: 'docente', areas: [areaId] });
@@ -106,7 +72,7 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     const respuesta = await ingresar(DOCENTE.correo, DOCENTE.contrasena);
 
     const [fila] = await sesionesDe(docenteId);
-    const { rows } = await bd.query<{ ultimo_acceso: Date }>(
+    const { rows } = await entorno.bd.query<{ ultimo_acceso: Date }>(
       'SELECT ultimo_acceso FROM contenido.usuario_interno WHERE id = $1',
       [docenteId],
     );
@@ -114,10 +80,10 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     expect(fila?.hash_token).toBe(sha256(respuesta.body.data.tokenRenovacion as string));
     expect(fila).toMatchObject({ estudiante_id: null, revocado_en: null });
     expect(fila?.expira_en.getTime()).toBe(
-      ahora.getTime() + DURACION_TOKEN_RENOVACION_SEGUNDOS.admin * 1000,
+      entorno.ahora().getTime() + DURACION_TOKEN_RENOVACION_SEGUNDOS.admin * 1000,
     );
-    expect(rows[0]?.ultimo_acceso).toEqual(ahora);
-    const yo = await request(app)
+    expect(rows[0]?.ultimo_acceso).toEqual(entorno.ahora());
+    const yo = await request(entorno.app)
       .get(RUTA_YO)
       .set(conToken(respuesta.body.data.tokenAcceso as string));
     expect(yo.body.data).toMatchObject({
@@ -131,9 +97,9 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     const { body } = await ingresar(DOCENTE.correo, DOCENTE.contrasena);
     const { tokenAcceso, tokenRenovacion } = body.data as Record<string, string>;
 
-    const renovada = await request(app).post(RUTA_RENOVAR).send({ tokenRenovacion });
-    const otraVez = await request(app).post(RUTA_RENOVAR).send({ tokenRenovacion });
-    const accesoViejo = await request(app)
+    const renovada = await request(entorno.app).post(RUTA_RENOVAR).send({ tokenRenovacion });
+    const otraVez = await request(entorno.app).post(RUTA_RENOVAR).send({ tokenRenovacion });
+    const accesoViejo = await request(entorno.app)
       .get(RUTA_YO)
       .set(conToken(tokenAcceso ?? ''));
 
@@ -151,8 +117,8 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
 
     const estados = (
       await Promise.all([
-        request(app).post(RUTA_RENOVAR).send(cuerpo),
-        request(app).post(RUTA_RENOVAR).send(cuerpo),
+        request(entorno.app).post(RUTA_RENOVAR).send(cuerpo),
+        request(entorno.app).post(RUTA_RENOVAR).send(cuerpo),
       ])
     ).map((r) => r.status);
 
@@ -164,26 +130,26 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     const { body } = await ingresar(DOCENTE.correo, DOCENTE.contrasena);
     const { tokenAcceso, tokenRenovacion } = body.data as Record<string, string>;
 
-    const cierre = await request(app).post(RUTA_CERRAR).send({ tokenRenovacion });
-    const repetido = await request(app).post(RUTA_CERRAR).send({ tokenRenovacion });
-    const acceso = await request(app)
+    const cierre = await request(entorno.app).post(RUTA_CERRAR).send({ tokenRenovacion });
+    const repetido = await request(entorno.app).post(RUTA_CERRAR).send({ tokenRenovacion });
+    const acceso = await request(entorno.app)
       .get(RUTA_YO)
       .set(conToken(tokenAcceso ?? ''));
-    const renovar = await request(app).post(RUTA_RENOVAR).send({ tokenRenovacion });
+    const renovar = await request(entorno.app).post(RUTA_RENOVAR).send({ tokenRenovacion });
 
     const [fila] = await sesionesDe(docenteId);
     expect(cierre.status).toBe(200);
     expect(repetido.body).toEqual(cierre.body);
-    expect(fila?.revocado_en).toEqual(ahora);
+    expect(fila?.revocado_en).toEqual(entorno.ahora());
     expect(acceso.status).toBe(401);
     expect(renovar.status).toBe(401);
   });
 
   it('la renovación vencida se rechaza (reloj adelantado 8 horas)', async () => {
     const { body } = await ingresar(DOCENTE.correo, DOCENTE.contrasena);
-    ahora = new Date(ahora.getTime() + DURACION_TOKEN_RENOVACION_SEGUNDOS.admin * 1000);
+    entorno.avanzarSegundos(DURACION_TOKEN_RENOVACION_SEGUNDOS.admin);
 
-    const renovar = await request(app)
+    const renovar = await request(entorno.app)
       .post(RUTA_RENOVAR)
       .send({ tokenRenovacion: body.data.tokenRenovacion as string });
 
@@ -195,22 +161,25 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     const enUnEquipo = await ingresar(DOCENTE.correo, DOCENTE.contrasena);
     await ingresar(DOCENTE.correo, DOCENTE.contrasena);
 
-    const desactivar = await request(app)
+    const desactivar = await request(entorno.app)
       .post(`/api/v1/admin/administracion/usuarios-internos/${docenteId}/desactivar`)
       .set(conToken(admin.body.data.tokenAcceso as string));
-    const acceso = await request(app)
+    const acceso = await request(entorno.app)
       .get(RUTA_YO)
       .set(conToken(enUnEquipo.body.data.tokenAcceso as string));
 
     expect(desactivar.status).toBe(200);
-    expect((await sesionesDe(docenteId)).map((f) => f.revocado_en)).toEqual([ahora, ahora]);
+    expect((await sesionesDe(docenteId)).map((f) => f.revocado_en)).toEqual([
+      entorno.ahora(),
+      entorno.ahora(),
+    ]);
     expect(acceso.status).toBe(401);
     // Las sesiones del administrador siguen abiertas.
     expect((await sesionesDe(adminId)).some((f) => f.revocado_en === null)).toBe(true);
   });
 
   it('una cuenta desactivada recibe 403 con la contraseña correcta y no se crea ninguna sesión', async () => {
-    await bd.query('UPDATE contenido.usuario_interno SET activo = false WHERE id = $1', [
+    await entorno.bd.query('UPDATE contenido.usuario_interno SET activo = false WHERE id = $1', [
       docenteId,
     ]);
 
@@ -222,7 +191,7 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
   });
 
   it('un estudiante no puede entrar a la consola con su correo y contraseña (CP-04 paso 3)', async () => {
-    await bd.query(
+    await entorno.bd.query(
       `INSERT INTO app.estudiante (nombre, correo, hash_contrasena, codigo_invitacion, creado_en)
        VALUES ('Eva', 'eva@ejemplo.cl', $1, 'ABC234', now())`,
       [await cifrarContrasena('clave-de-eva-1')],
@@ -231,7 +200,7 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     const respuesta = await ingresar('eva@ejemplo.cl', 'clave-de-eva-1');
     const sinCuenta = await ingresar('nadie@ejemplo.cl', 'clave-de-eva-1');
 
-    const { rows } = await bd.query(
+    const { rows } = await entorno.bd.query(
       'SELECT 1 FROM app.token_sesion WHERE estudiante_id IS NOT NULL',
     );
     expect(respuesta.status).toBe(401);
