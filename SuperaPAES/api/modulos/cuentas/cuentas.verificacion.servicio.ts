@@ -7,10 +7,12 @@
 // mismo código da un valor distinto en cada correo). La vigencia y los intentos salen de
 // contenido.tipo_token_correo. Al emitir uno nuevo, el trigger tg_token_correo anula el anterior.
 // Orden de bloqueo en todas las transacciones: primero el estudiante y después su correo.
-import { createHash, createHmac, randomBytes, randomInt } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import type { MensajeCorreo, ProveedorCorreo } from '../../adaptadores/fabrica.js';
 import type { ConfiguracionVerificacionCorreo } from '../../comun/configuracion.js';
 import {
+  ErrorCodigoAgotado,
+  ErrorCodigoIncorrecto,
   ErrorNoEncontrado,
   ErrorVerificacionNoVigente,
   ErrorYaVerificado,
@@ -62,12 +64,19 @@ export interface VerificacionCorreo {
   emitirVerificacion(estudianteId: string): Promise<ResultadoEnvio>;
   /** CU-02 paso 3 con el enlace. Usado, anulado, vencido o inexistente: VERIFICACION_NO_VIGENTE. */
   verificarConEnlace(tokenEnlace: string): Promise<ResultadoVerificacion>;
+  /**
+   * CU-02 paso 3 con el código, para el estudiante de la sesión (HU-05.4). Incorrecto:
+   * CODIGO_INCORRECTO con los intentos que quedan; al quinto fallo o después, CODIGO_AGOTADO; sin
+   * correo vigente, VERIFICACION_NO_VIGENTE. El intento fallido queda guardado.
+   */
+  verificarConCodigo(estudianteId: string, codigo: string): Promise<ResultadoVerificacion>;
   buscarEstudiantes(correo: string): Promise<EstudianteConsola[]>;
   /** CU-02b: confirma el correo, anula el correo pendiente y audita. Ya verificado: YA_VERIFICADO. */
   confirmarCorreo(administradorId: string, estudianteId: string): Promise<EstudianteConsola>;
 }
 
-type Resultado = 'verificado' | 'ya_verificado' | 'no_vigente';
+type Resultado =
+  'verificado' | 'ya_verificado' | 'no_vigente' | 'agotado' | { intentosRestantes: number };
 
 const sha256 = (texto: string) => createHash('sha256').update(texto).digest('hex');
 
@@ -79,7 +88,17 @@ export function cifrarCodigo(clave: string, hashToken: string, codigo: string): 
 const estaVigente = (token: TokenVerificacion, ahora: Date) =>
   token.abierto && token.expiraEn.getTime() > ahora.getTime();
 
+/** Compara en tiempo constante el HMAC del código recibido con el guardado. */
+function codigoCorrecto(clave: string, token: TokenVerificacion, codigo: string): boolean {
+  const guardado = Buffer.from(token.hashCodigo, 'hex');
+  const recibido = Buffer.from(cifrarCodigo(clave, token.hashToken, codigo), 'hex');
+  return guardado.length === recibido.length && timingSafeEqual(guardado, recibido);
+}
+
+/** Los errores se lanzan aquí, después de confirmar la transacción (el intento fallido ya quedó). */
 function resultadoDe(resultado: Resultado): ResultadoVerificacion {
+  if (typeof resultado === 'object') throw new ErrorCodigoIncorrecto(resultado.intentosRestantes);
+  if (resultado === 'agotado') throw new ErrorCodigoAgotado();
   if (resultado === 'no_vigente') throw new ErrorVerificacionNoVigente();
   return { verificado: true, yaVerificado: resultado === 'ya_verificado' };
 }
@@ -195,6 +214,34 @@ async function verificarEnlace(
   return resultadoDe(resultado);
 }
 
+async function verificarCodigo(
+  dependencias: DependenciasVerificacion,
+  estudianteId: string,
+  codigo: string,
+): Promise<ResultadoVerificacion> {
+  const { repositorio, unidadDeTrabajo, reloj, configuracion } = dependencias;
+  // La transacción siempre termina con commit: un código incorrecto devuelve un resultado en vez de
+  // lanzar, para que el intento fallido quede guardado aunque la respuesta sea un error.
+  const resultado = await unidadDeTrabajo.enTransaccion(async (tx): Promise<Resultado> => {
+    const estudiante = await repositorio.bloquearEstudiante(estudianteId, tx);
+    if (!estudiante) return 'no_vigente';
+    if (estudiante.correoVerificado) return 'ya_verificado';
+    const token = await repositorio.bloquearTokenActivo(estudianteId, tx);
+    if (!token || !estaVigente(token, reloj())) return 'no_vigente';
+    // Con los intentos agotados (RN-32) el código ya ni se consulta.
+    if (token.intentosFallidos >= token.intentosCodigo) return 'agotado';
+    if (!codigoCorrecto(configuracion.claveCodigo, token, codigo)) {
+      const fallidos = await repositorio.sumarIntentoFallido(token.id, tx);
+      const intentosRestantes = token.intentosCodigo - fallidos;
+      return intentosRestantes > 0 ? { intentosRestantes } : 'agotado';
+    }
+    await repositorio.marcarTokenUsado(token.id, reloj(), tx);
+    await marcarVerificado(dependencias, estudianteId, tx);
+    return 'verificado';
+  });
+  return resultadoDe(resultado);
+}
+
 async function confirmar(
   dependencias: DependenciasVerificacion,
   administradorId: string,
@@ -228,6 +275,8 @@ export function crearVerificacionCorreo(
   return {
     emitirVerificacion: (estudianteId) => emitir(dependencias, estudianteId),
     verificarConEnlace: (tokenEnlace) => verificarEnlace(dependencias, tokenEnlace),
+    verificarConCodigo: (estudianteId, codigo) =>
+      verificarCodigo(dependencias, estudianteId, codigo),
     buscarEstudiantes: (correo) => dependencias.repositorio.buscarEstudiantesPorCorreo(correo),
     confirmarCorreo: (administradorId, estudianteId) =>
       confirmar(dependencias, administradorId, estudianteId),

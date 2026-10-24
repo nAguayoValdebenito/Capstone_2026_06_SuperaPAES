@@ -54,6 +54,10 @@ export interface VerificacionRepositorio {
   estudianteDelEnlace(hashToken: string, tx?: Ejecutor): Promise<string | null>;
   /** Bloquea el correo de verificación del enlace (FOR UPDATE), esté o no vigente. */
   bloquearTokenPorHash(hashToken: string, tx?: Ejecutor): Promise<TokenVerificacion | null>;
+  /** Bloquea el correo de verificación abierto (sin usar ni anular) del estudiante, si lo hay. */
+  bloquearTokenActivo(estudianteId: string, tx?: Ejecutor): Promise<TokenVerificacion | null>;
+  /** Suma un intento fallido del código y devuelve el total (el trigger impide pasar del máximo). */
+  sumarIntentoFallido(id: string, tx?: Ejecutor): Promise<number>;
   marcarTokenUsado(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   /** Anula el correo de verificación pendiente del estudiante, si lo hay (CU-02b). */
   anularVerificacionPendiente(estudianteId: string, ahora: Date, tx?: Ejecutor): Promise<void>;
@@ -122,7 +126,36 @@ function consultasEstudiantes(bd: Ejecutor): Estudiantes {
   };
 }
 
-function consultasTokens(bd: Ejecutor): Omit<VerificacionRepositorio, keyof Estudiantes> {
+/** Intentos con el código de 6 dígitos (HU-05.4). */
+type Codigo = Pick<VerificacionRepositorio, 'bloquearTokenActivo' | 'sumarIntentoFallido'>;
+
+function consultasCodigo(bd: Ejecutor): Codigo {
+  return {
+    async bloquearTokenActivo(estudianteId, tx = bd) {
+      const { rows } = await tx.query<TokenVerificacion>(
+        `${SELECCION_TOKEN} AND t.estudiante_id = $1 AND t.usado_en IS NULL AND t.anulado_en IS NULL
+         FOR UPDATE OF t`,
+        [estudianteId],
+      );
+      return rows[0] ?? null;
+    },
+
+    async sumarIntentoFallido(id, tx = bd) {
+      const { rows } = await tx.query<{ intentos: number }>(
+        `UPDATE app.token_correo SET intentos_fallidos = intentos_fallidos + 1 WHERE id = $1
+         RETURNING intentos_fallidos AS intentos`,
+        [id],
+      );
+      const fila = rows[0];
+      if (!fila) throw new Error('El UPDATE de token_correo no devolvió los intentos.');
+      return fila.intentos;
+    },
+  };
+}
+
+function consultasTokens(
+  bd: Ejecutor,
+): Omit<VerificacionRepositorio, keyof Estudiantes | keyof Codigo> {
   return {
     async tipoVerificacion(tx = bd) {
       const { rows } = await tx.query<TipoVerificacion>(TIPO_VERIFICACION);
@@ -164,5 +197,5 @@ function consultasTokens(bd: Ejecutor): Omit<VerificacionRepositorio, keyof Estu
 }
 
 export function crearVerificacionRepositorio(bd: Ejecutor): VerificacionRepositorio {
-  return { ...consultasEstudiantes(bd), ...consultasTokens(bd) };
+  return { ...consultasEstudiantes(bd), ...consultasCodigo(bd), ...consultasTokens(bd) };
 }

@@ -9,6 +9,7 @@ import { crearEstudianteDePrueba, type EstudianteDePrueba } from './estudiantes-
 
 export const RUTA_ENLACE = '/api/v1/app/cuentas/verificacion/enlace';
 export const RUTA_REENVIAR = '/api/v1/app/cuentas/verificacion/reenviar';
+export const RUTA_CODIGO = '/api/v1/app/cuentas/verificacion/codigo';
 export const HORAS_VERIFICACION = 24;
 
 /** Enlace (token de /verificar-correo?token=) y código de 6 dígitos de un correo de verificación. */
@@ -33,10 +34,13 @@ export async function estudianteConSesion(
     ...datos,
   };
   const id = await crearEstudianteDePrueba(entorno.bd, cuenta);
-  const ingreso = await request(entorno.app).post(RUTA_INGRESO_APP).send(cuenta);
-  expect(ingreso.status).toBe(200);
-  const tokenAcceso = ingreso.body.data.tokenAcceso as string;
-  return { id, correo: cuenta.correo, sesion: conToken(tokenAcceso) };
+  /** Inicia otra sesión, por ejemplo después de adelantar el reloj más de 15 minutos. */
+  const nuevaSesion = async () => {
+    const ingreso = await request(entorno.app).post(RUTA_INGRESO_APP).send(cuenta);
+    expect(ingreso.status).toBe(200);
+    return conToken(ingreso.body.data.tokenAcceso as string);
+  };
+  return { id, correo: cuenta.correo, sesion: await nuevaSesion(), nuevaSesion };
 }
 
 /** Pide (o vuelve a pedir) el correo de verificación y devuelve su enlace y su código. */
@@ -48,6 +52,19 @@ export async function pedirCorreo(
   const respuesta = await request(app).post(RUTA_REENVIAR).set(sesion);
   return { respuesta, ...leerCorreo(entorno.correos.at(-1)) };
 }
+
+/** Verifica con el código de 6 dígitos, con la sesión de la app (pantalla A06). */
+export function verificarConCodigo(
+  entorno: EntornoSesiones,
+  sesion: Record<string, string>,
+  codigo: string,
+) {
+  return request(entorno.app).post(RUTA_CODIGO).set(sesion).send({ codigo });
+}
+
+/** Un código de 6 dígitos distinto del correcto. */
+export const otroCodigo = (codigo: string) =>
+  String((Number(codigo) + 1) % 1_000_000).padStart(6, '0');
 
 /** Verifica con el enlace, sin sesión (como la página /verificar-correo de la consola). */
 export function verificarConEnlace(entorno: EntornoSesiones, token: string) {

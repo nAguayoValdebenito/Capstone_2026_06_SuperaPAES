@@ -8,6 +8,7 @@ import type {
   Credenciales,
   CredencialesApp,
   DatosBusquedaEstudiante,
+  DatosCodigoVerificacion,
   DatosEnlaceVerificacion,
   DatosRecuperacion,
   DatosRegistro,
@@ -17,6 +18,16 @@ import type {
 
 /** Manejador cuyo cuerpo ya fue validado y tipado por validar() en la ruta. */
 type ConCuerpo<C> = RequestHandler<Record<string, string>, unknown, C>;
+
+/** Verificación del correo (HU-05) y confirmación del administrador (C15). */
+type ControladorVerificacion = Pick<
+  CuentasControlador,
+  | 'verificarEnlace'
+  | 'verificarCodigo'
+  | 'reenviarVerificacion'
+  | 'buscarEstudiantes'
+  | 'confirmarCorreo'
+>;
 
 export interface CuentasControlador {
   registrar: ConCuerpo<DatosRegistro>;
@@ -29,6 +40,7 @@ export interface CuentasControlador {
   cerrarConsola: ConCuerpo<DatosTokenRenovacion>;
   usuarioConsola: RequestHandler;
   verificarEnlace: ConCuerpo<DatosEnlaceVerificacion>;
+  verificarCodigo: ConCuerpo<DatosCodigoVerificacion>;
   reenviarVerificacion: RequestHandler;
   buscarEstudiantes: RequestHandler;
   confirmarCorreo: RequestHandler<ParametrosEstudiante>;
@@ -83,8 +95,17 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
     usuarioConsola: async (req, res) => {
       responder(res, await servicio.obtenerUsuarioConsola(usuarioInternoDe(req)));
     },
+    ...crearControladorVerificacion(servicio),
+  };
+}
+
+function crearControladorVerificacion(servicio: CuentasServicio): ControladorVerificacion {
+  return {
     verificarEnlace: async (req, res) => {
       responder(res, await servicio.verificarConEnlace(req.body.token));
+    },
+    verificarCodigo: async (req, res) => {
+      responder(res, await servicio.verificarConCodigo(estudianteDe(req), req.body.codigo));
     },
     reenviarVerificacion: async (req, res) => {
       responder(res, await servicio.emitirVerificacion(estudianteDe(req)));

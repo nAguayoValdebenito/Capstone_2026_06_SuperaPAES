@@ -9,6 +9,7 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearCuentasControlador } from './cuentas.controlador.js';
 import type { CuentasServicio } from './cuentas.servicio.js';
 import {
+  esquemaCodigoVerificacion,
   esquemaEnlaceVerificacion,
   esquemaIngresoApp,
   esquemaRecuperacion,
@@ -48,6 +49,13 @@ export function crearRutasAppCuentas(servicio: CuentasServicio, mw: MiddlewareRu
     validar({ cuerpo: esquemaEnlaceVerificacion }),
     mw.crearLimiteIntentos({ soloFallidos: true }),
     controlador.verificarEnlace,
+  );
+  // El código exige sesión: cada correo admite 5 intentos (RN-32), así que no lleva otro límite.
+  router.post(
+    '/verificacion/codigo',
+    mw.autenticarApp,
+    validar({ cuerpo: esquemaCodigoVerificacion }),
+    controlador.verificarCodigo,
   );
   router.post(
     '/verificacion/reenviar',

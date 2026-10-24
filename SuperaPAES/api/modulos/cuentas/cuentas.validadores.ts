@@ -57,6 +57,11 @@ export const esquemaTokenRenovacion = z.strictObject({
 /** Verificar con el enlace del correo: el token que la consola lee de /verificar-correo?token=. */
 export const esquemaEnlaceVerificacion = z.strictObject({ token: z.string().min(1).max(100) });
 
+/** Verificar con el código de 6 dígitos que el estudiante escribe en la app (A06). */
+export const esquemaCodigoVerificacion = z.strictObject({
+  codigo: z.string().regex(/^\d{6}$/, 'El código tiene 6 dígitos.'),
+});
+
 /** C15: buscar a un estudiante por su correo (consulta ?correo=). */
 export const esquemaBusquedaEstudiante = z.strictObject({ correo });
 
@@ -70,5 +75,6 @@ export type CredencialesApp = z.output<typeof esquemaIngresoApp>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
 export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
 export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
+export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
 export type DatosBusquedaEstudiante = z.output<typeof esquemaBusquedaEstudiante>;
 export type ParametrosEstudiante = z.output<typeof esquemaIdEstudiante>;
