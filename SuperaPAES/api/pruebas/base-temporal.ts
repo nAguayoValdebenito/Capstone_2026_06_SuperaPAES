@@ -56,7 +56,21 @@ export async function crearBaseTemporal(prefijo: string): Promise<BaseTemporal> 
   };
 }
 
-/** La auditoría no admite DELETE (disparador): TRUNCATE no lo dispara y deja las tablas vacías. */
+/**
+ * La auditoría no admite DELETE (disparador): TRUNCATE no lo dispara y deja las tablas vacías. El
+ * CASCADE también vacía las tablas que apuntan a usuario_interno, entre ellas contenido.configuracion
+ * (por actualizado_por): sus parámetros, que carga la migración, se guardan y se vuelven a cargar.
+ */
 export async function vaciarCuentasInternas(bd: pg.Client): Promise<void> {
+  const { rows } = await bd.query<{ filas: unknown }>(
+    `SELECT COALESCE(json_agg(c), '[]') AS filas
+       FROM (SELECT clave, valor, descripcion, actualizado_en FROM contenido.configuracion) c`,
+  );
   await bd.query('TRUNCATE contenido.auditoria, contenido.usuario_interno CASCADE');
+  await bd.query(
+    `INSERT INTO contenido.configuracion (clave, valor, descripcion, actualizado_en)
+     SELECT clave, valor, descripcion, actualizado_en
+       FROM json_populate_recordset(NULL::contenido.configuracion, $1::json)`,
+    [JSON.stringify(rows[0]?.filas ?? [])],
+  );
 }

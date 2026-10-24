@@ -21,6 +21,7 @@ import { registro } from '../../comun/registro.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
+import type { CupoInvitacionesServicio } from '../cupo-invitaciones/index.js';
 import type {
   EstudianteVerificable,
   TokenVerificacion,
@@ -37,6 +38,7 @@ export interface DependenciasVerificacion {
   unidadDeTrabajo: UnidadDeTrabajo;
   correo: ProveedorCorreo;
   administracion: AdministracionServicio;
+  cupoInvitaciones: CupoInvitacionesServicio;
   reloj: Reloj;
   configuracion: ConfiguracionVerificacionCorreo;
 }
@@ -105,14 +107,17 @@ function resultadoDe(resultado: Resultado): ResultadoVerificacion {
 
 /**
  * Lo que pasa cada vez que un correo queda verificado: con el enlace, con el código o por el
- * administrador. Es el punto de extensión de CU-02a: el bono para quien invitó (HU-47) va aquí.
+ * administrador, siempre dentro de la misma transacción. El cupo de hoy sube a cupo_verificado desde
+ * ese momento (RN-01, HU-05.3). Es el punto de extensión de CU-02a: el bono para quien invitó (HU-47)
+ * se agrega aquí, con una llamada al servicio de cupo-invitaciones.
  */
 async function marcarVerificado(
-  { repositorio, reloj }: DependenciasVerificacion,
+  { repositorio, reloj, cupoInvitaciones }: DependenciasVerificacion,
   estudianteId: string,
   tx: Ejecutor,
 ): Promise<void> {
   await repositorio.marcarCorreoVerificado(estudianteId, reloj(), tx);
+  await cupoInvitaciones.aplicarCupoVerificado(estudianteId, tx);
 }
 
 interface CorreoPreparado {

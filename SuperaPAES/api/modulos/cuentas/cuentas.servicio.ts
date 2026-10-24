@@ -13,6 +13,7 @@ import type { Reloj } from '../../comun/reloj.js';
 import type { RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
+import type { CupoInvitacionesServicio } from '../cupo-invitaciones/index.js';
 import {
   crearCuentasRepositorio,
   type CuentasRepositorio,
@@ -46,6 +47,8 @@ export interface DependenciasCuentasServicio {
   unidadDeTrabajo: UnidadDeTrabajo;
   correo: ProveedorCorreo;
   administracion: AdministracionServicio;
+  /** Sube el cupo del día cuando el estudiante verifica su correo (HU-05.3). */
+  cupoInvitaciones: CupoInvitacionesServicio;
   jwt: SecretosJwt;
   reloj: Reloj;
   verificacionCorreo: ConfiguracionVerificacionCorreo;
@@ -292,6 +295,7 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
       correo: dependencias.correo,
       administracion: dependencias.administracion,
+      cupoInvitaciones: dependencias.cupoInvitaciones,
       reloj,
       configuracion: dependencias.verificacionCorreo,
     }),

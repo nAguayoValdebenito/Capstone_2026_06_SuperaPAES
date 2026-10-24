@@ -158,6 +158,7 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
     jwt: dependencias.jwt,
     reloj,
     verificacionCorreo: dependencias.verificacionCorreo,
+    cupoInvitaciones: crearServicios(dependencias).cupoInvitaciones,
     repositorio: crearRepositorioCuentas(falso.usuarios, estudiantes, sesiones),
   });
   const app = crearApp(dependencias, { ...crearServicios(dependencias), administracion, cuentas });

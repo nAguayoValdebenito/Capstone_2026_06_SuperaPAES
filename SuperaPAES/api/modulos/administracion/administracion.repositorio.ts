@@ -64,6 +64,8 @@ export interface AdministracionRepositorio {
   cambiarActivoUsuarioInterno(id: string, activo: boolean, tx?: Ejecutor): Promise<void>;
   reemplazarEspecialidades(id: string, areas: readonly number[], tx?: Ejecutor): Promise<void>;
   registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
+  /** Valor (JSON) de un parámetro de contenido.configuracion, o undefined si la clave no existe. */
+  leerParametro(clave: string, tx?: Ejecutor): Promise<unknown>;
   /**
    * Ids de los administradores activos, bloqueados (FOR UPDATE, en orden de id) hasta el fin de la
    * transacción: dos cambios a la vez no pueden dejar la consola sin administradores (CU-23 3.c).
@@ -183,6 +185,14 @@ function cambiosYAuditoria(bd: Ejecutor): CambiosYAuditoria {
     async bloquearAdministradoresActivos(tx = bd) {
       const { rows } = await tx.query<{ id: string }>(ADMINISTRADORES_ACTIVOS);
       return rows.map((fila) => fila.id);
+    },
+
+    async leerParametro(clave, tx = bd) {
+      const { rows } = await tx.query<{ valor: unknown }>(
+        'SELECT valor FROM contenido.configuracion WHERE clave = $1',
+        [clave],
+      );
+      return rows[0]?.valor;
     },
 
     async registrarAuditoria(entrada, tx = bd) {

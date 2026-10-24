@@ -62,6 +62,11 @@ export interface AdministracionServicio {
    * módulo que hace el cambio. Nunca recibe contraseñas, hashes ni códigos.
    */
   registrarAuditoria(entrada: EntradaAuditoria, tx: Ejecutor): Promise<void>;
+  /**
+   * Parámetro de negocio entero de contenido.configuracion (por ejemplo cupo_verificado). Falla si la
+   * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto.
+   */
+  obtenerParametroEntero(clave: string): Promise<number>;
 }
 
 interface Contexto {
@@ -273,5 +278,12 @@ export function crearAdministracionServicio(
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
       cambiarEstado(contexto, autorId, id, activo),
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
+    obtenerParametroEntero: async (clave) => {
+      const valor = await contexto.repositorio.leerParametro(clave);
+      if (typeof valor !== 'number' || !Number.isInteger(valor)) {
+        throw new Error(`contenido.configuracion no tiene un entero en ${clave}.`);
+      }
+      return valor;
+    },
   };
 }

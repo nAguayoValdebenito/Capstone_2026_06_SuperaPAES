@@ -117,10 +117,12 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     ...base,
     revocarSesionesUsuarioInterno: (id, tx) => cuentas.revocarSesionesUsuarioInterno(id, tx),
   });
+  const cupoInvitaciones = crearCupoInvitacionesServicio({ ...base, administracion });
   const cuentas = crearCuentasServicio({
     ...base,
     correo,
     administracion,
+    cupoInvitaciones,
     jwt: dependencias.jwt,
     reloj: dependencias.reloj,
     verificacionCorreo: dependencias.verificacionCorreo,
@@ -129,7 +131,6 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const preguntas = crearPreguntasServicio({ ...base, temario });
   const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
   const revision = crearRevisionServicio({ ...base, administracion, preguntas });
-  const cupoInvitaciones = crearCupoInvitacionesServicio({ ...base, administracion });
   const suscripciones = crearSuscripcionesServicio({ ...base, pagos });
   const evaluaciones = crearEvaluacionesServicio({
     ...base,

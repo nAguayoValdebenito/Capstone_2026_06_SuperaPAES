@@ -62,6 +62,7 @@ export function crearRepositorioFalso() {
       if (usuario) usuario.areas = [...areas];
       return Promise.resolve();
     },
+    leerParametro: () => Promise.resolve(undefined),
     registrarAuditoria: (entrada) => {
       auditoria.push(entrada);
       return Promise.resolve();
