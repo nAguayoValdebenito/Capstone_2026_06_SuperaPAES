@@ -1,7 +1,7 @@
 // Estado y lógica del formulario de ingreso a la consola (C00), el mismo para administrador y docente.
 // La consola no tiene registro: solo entran los usuarios internos activos que crea el administrador
-// (HU-04). Los mensajes no revelan el caso: una contraseña incorrecta, un correo sin cuenta interna,
-// una cuenta de estudiante y un usuario desactivado reciben la misma respuesta.
+// (HU-04). Una contraseña incorrecta, un correo sin cuenta interna y una cuenta de estudiante reciben
+// la misma respuesta. Solo con la contraseña correcta, una cuenta desactivada recibe su propio aviso.
 import { useCallback, useState } from 'react';
 import { ErrorApi } from '../api/cliente';
 import { ingresar } from '../servicios/cuentas';
@@ -16,6 +16,8 @@ export type EstadoIngreso =
 
 export const MENSAJES_INGRESO = {
   credenciales: 'Correo o contraseña incorrectos.',
+  desactivada:
+    'Tu cuenta está desactivada. Contacta a un administrador para que la vuelva a activar.',
   intentos: 'Hiciste demasiados intentos. Espera unos minutos y vuelve a intentarlo.',
   datos: 'Revisa el correo y la contraseña.',
   general: 'No se pudo iniciar sesión. Inténtalo de nuevo en unos minutos.',
@@ -27,6 +29,8 @@ export function mensajeErrorIngreso(error: unknown): string {
     case 'NO_AUTENTICADO':
     case 'SIN_PERMISO':
       return MENSAJES_INGRESO.credenciales;
+    case 'CUENTA_DESACTIVADA':
+      return MENSAJES_INGRESO.desactivada;
     case 'DEMASIADOS_INTENTOS':
       return MENSAJES_INGRESO.intentos;
     case 'VALIDACION':

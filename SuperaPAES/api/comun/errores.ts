@@ -44,6 +44,18 @@ export class ErrorSinPermiso extends ErrorAplicacion {
   }
 }
 
+/**
+ * 403 CUENTA_DESACTIVADA: el correo y la contraseña son correctos, pero un administrador desactivó
+ * la cuenta (CU-23 3.b). Solo lo ve quien conoce la contraseña, así que no revela qué correos existen.
+ */
+export class ErrorCuentaDesactivada extends ErrorAplicacion {
+  constructor(
+    mensaje = 'Tu cuenta está desactivada. Contacta a un administrador para que la vuelva a activar.',
+  ) {
+    super(403, 'CUENTA_DESACTIVADA', mensaje);
+  }
+}
+
 export class ErrorNoEncontrado extends ErrorAplicacion {
   constructor(mensaje = 'El recurso solicitado no existe.') {
     super(404, 'NO_ENCONTRADO', mensaje);

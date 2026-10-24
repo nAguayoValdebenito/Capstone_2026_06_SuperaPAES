@@ -138,16 +138,29 @@ describe('ingreso a la consola (CU-03, HU-03)', () => {
     expect(accesos).toHaveLength(0);
   });
 
-  it('una cuenta desactivada no entra, aunque la contraseña sea correcta (CU-23 3.b)', async () => {
-    const { app, cuentas, sesiones } = crearEscenario();
+  it('una cuenta desactivada con la contraseña correcta no entra y se le pide contactar a un administrador (CU-23 3.b)', async () => {
+    const { app, cuentas, sesiones, accesos } = crearEscenario();
     const cuenta = cuentas.get('admin@ejemplo.cl');
     if (cuenta) cuenta.activo = false;
 
     const respuesta = await ingresar(app, 'admin@ejemplo.cl');
 
+    expect(respuesta.status).toBe(403);
+    expect(respuesta.body).toEqual(errorConFormato('CUENTA_DESACTIVADA'));
+    expect(respuesta.body.error.mensaje).toMatch(/desactivada.*administrador/);
+    expect(sesiones).toHaveLength(0);
+    expect(accesos).toHaveLength(0);
+  });
+
+  it('una cuenta desactivada con una contraseña incorrecta recibe el mensaje genérico', async () => {
+    const { app, cuentas } = crearEscenario();
+    const cuenta = cuentas.get('admin@ejemplo.cl');
+    if (cuenta) cuenta.activo = false;
+
+    const respuesta = await ingresar(app, 'admin@ejemplo.cl', 'otra-clave-cualquiera');
+
     expect(respuesta.status).toBe(401);
     expect(respuesta.body.error.mensaje).toBe(CREDENCIALES_INCORRECTAS);
-    expect(sesiones).toHaveLength(0);
   });
 });
 

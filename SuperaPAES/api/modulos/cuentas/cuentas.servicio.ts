@@ -5,7 +5,11 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
 import { cifrarContrasena, compararContrasena } from '../../comun/contrasenas.js';
-import { ErrorNoAutenticado, ErrorNoImplementado } from '../../comun/errores.js';
+import {
+  ErrorCuentaDesactivada,
+  ErrorNoAutenticado,
+  ErrorNoImplementado,
+} from '../../comun/errores.js';
 import { firmarToken } from '../../comun/jwt.js';
 import { esRolCuentaInterna, type RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
@@ -35,8 +39,8 @@ export interface CuentasServicio {
   solicitarRecuperacion(correo: string): Promise<void>;
   /**
    * CU-03 y HU-03: ingreso a la consola. Un correo sin cuenta interna (por ejemplo, el de un
-   * estudiante, HU-03 esc. 2), una contraseña incorrecta y una cuenta desactivada (CU-23 3.b) reciben
-   * el mismo 401, para no revelar cuál fue.
+   * estudiante, HU-03 esc. 2) y una contraseña incorrecta reciben el mismo 401, para no revelar cuál
+   * fue. Con la contraseña correcta, una cuenta desactivada (CU-23 3.b) recibe 403 CUENTA_DESACTIVADA.
    */
   ingresarUsuarioInterno(credenciales: Credenciales, dispositivo?: string): Promise<SesionIniciada>;
   /** RNF-01: cambia la credencial de renovación por una sesión nueva, con el rol actual de la cuenta. */
@@ -108,9 +112,11 @@ async function ingresarInterno(
   const coincide = cuenta
     ? await compararContrasena(contrasena, cuenta.hashContrasena)
     : await compararSinCuenta(contrasena);
-  if (!cuenta || !coincide || !cuenta.activo || !esRolCuentaInterna(cuenta.rol)) {
+  if (!cuenta || !coincide || !esRolCuentaInterna(cuenta.rol)) {
     throw new ErrorNoAutenticado(CREDENCIALES_INCORRECTAS);
   }
+  // Solo quien escribió la contraseña correcta se entera de que la cuenta está desactivada.
+  if (!cuenta.activo) throw new ErrorCuentaDesactivada();
   const { id, rol } = cuenta;
   return contexto.unidadDeTrabajo.enTransaccion(async (tx) => {
     await contexto.repositorio.registrarAccesoInterno(id, tx);

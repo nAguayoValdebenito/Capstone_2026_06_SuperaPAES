@@ -75,6 +75,13 @@ describe('mensajeErrorIngreso', () => {
     expect(mensajeErrorIngreso(new Error('x'))).toBe(MENSAJES_INGRESO.general);
   });
 
+  it('una cuenta desactivada recibe su propio aviso, no el de credenciales incorrectas', () => {
+    const error = new ErrorApi(403, 'CUENTA_DESACTIVADA', 'x');
+
+    expect(mensajeErrorIngreso(error)).toBe(MENSAJES_INGRESO.desactivada);
+    expect(MENSAJES_INGRESO.desactivada).toMatch(/administrador/);
+  });
+
   it('sin conexión usa el mensaje del cliente', () => {
     const error = new ErrorApi(0, 'SIN_CONEXION', 'No se pudo conectar con la API.');
 
