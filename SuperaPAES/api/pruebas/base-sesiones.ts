@@ -13,7 +13,7 @@ import { crearPool } from '../db/conexion.js';
 import { crearPrimerAdministrador } from '../db/primer-administrador.js';
 import { crearUnidadDeTrabajo } from '../db/transaccion.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
-import { crearBaseTemporal, MINUTO, vaciarCuentasInternas } from './base-temporal.js';
+import { crearBaseTemporal, MINUTO, vaciarCuentasInternas, vaciarTablas } from './base-temporal.js';
 
 export interface EntornoSesiones {
   /** Conexión a la base temporal, para preparar datos y revisar app.token_sesion. */
@@ -103,7 +103,7 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
 
   beforeEach(async () => {
     ahora = new Date(Math.floor(Date.now() / 1000) * 1000);
-    await base.bd.query('TRUNCATE app.token_sesion, app.estudiante CASCADE');
+    await vaciarTablas(base.bd, ['app.token_sesion', 'app.estudiante']);
     await vaciarCuentasInternas(base.bd);
     buzon.correos.length = 0;
     buzon.fallar(false);

@@ -2,6 +2,7 @@
 import pg from 'pg';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { crearUnidadDeTrabajo, type Ejecutor } from '../db/transaccion.js';
+import { exigirBaseDePruebas, urlBase } from './base-temporal.js';
 
 /** Cliente falso que registra cada consulta. */
 function crearPoolFalso(fallarCon?: string) {
@@ -75,14 +76,14 @@ describe('ROLLBACK que también falla', () => {
   });
 });
 
-// Con PostgreSQL real: se activa solo si hay DATABASE_URL (por ejemplo, en la CI o con api/.env).
-const urlBase = process.env['DATABASE_URL'];
-
+// Con PostgreSQL real: se activa con DATABASE_URL_PRUEBAS (una base aparte terminada en _test, en la
+// CI o en api/.env), nunca con la base de desarrollo.
 describe.skipIf(!urlBase)('crearUnidadDeTrabajo con PostgreSQL', () => {
   const pool = new pg.Pool({ connectionString: urlBase, max: 2 });
   afterAll(() => pool.end());
 
   it('no deja rastro de lo escrito antes del error', async () => {
+    await exigirBaseDePruebas(pool);
     const tabla = `prueba_unidad_${process.pid}`;
     await pool.query(`CREATE TABLE ${tabla} (n INTEGER)`);
     try {
