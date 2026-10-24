@@ -1,15 +1,18 @@
 // Controlador del módulo cuentas: traduce HTTP a llamadas del servicio y responde con responder().
 // Sin SQL ni adaptadores. El cuerpo ya viene validado por validar() en las rutas.
-import type { RequestHandler } from 'express';
+import type { Request, RequestHandler } from 'express';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { CuentasServicio } from './cuentas.servicio.js';
 import type {
   Credenciales,
   CredencialesApp,
+  DatosBusquedaEstudiante,
+  DatosEnlaceVerificacion,
   DatosRecuperacion,
   DatosRegistro,
   DatosTokenRenovacion,
+  ParametrosEstudiante,
 } from './cuentas.validadores.js';
 
 /** Manejador cuyo cuerpo ya fue validado y tipado por validar() en la ruta. */
@@ -25,6 +28,22 @@ export interface CuentasControlador {
   renovarConsola: ConCuerpo<DatosTokenRenovacion>;
   cerrarConsola: ConCuerpo<DatosTokenRenovacion>;
   usuarioConsola: RequestHandler;
+  verificarEnlace: ConCuerpo<DatosEnlaceVerificacion>;
+  reenviarVerificacion: RequestHandler;
+  buscarEstudiantes: RequestHandler;
+  confirmarCorreo: RequestHandler<ParametrosEstudiante>;
+}
+
+/** Estudiante de la sesión de la app. Lo deja autenticarApp. */
+function estudianteDe(req: Request<unknown, unknown, unknown>): string {
+  if (!req.estudiante) throw new ErrorNoAutenticado();
+  return req.estudiante.id;
+}
+
+/** Usuario interno de la sesión de la consola. Lo deja autenticarAdmin. */
+function usuarioInternoDe(req: Request<unknown, unknown, unknown>): string {
+  if (!req.usuarioInterno) throw new ErrorNoAutenticado();
+  return req.usuarioInterno.id;
 }
 
 export function crearCuentasControlador(servicio: CuentasServicio): CuentasControlador {
@@ -62,8 +81,21 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
       responder(res, { sesionCerrada: true });
     },
     usuarioConsola: async (req, res) => {
-      if (!req.usuarioInterno) throw new ErrorNoAutenticado();
-      responder(res, await servicio.obtenerUsuarioConsola(req.usuarioInterno.id));
+      responder(res, await servicio.obtenerUsuarioConsola(usuarioInternoDe(req)));
+    },
+    verificarEnlace: async (req, res) => {
+      responder(res, await servicio.verificarConEnlace(req.body.token));
+    },
+    reenviarVerificacion: async (req, res) => {
+      responder(res, await servicio.emitirVerificacion(estudianteDe(req)));
+    },
+    buscarEstudiantes: async (_req, res) => {
+      // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
+      const { correo } = res.locals.consulta as DatosBusquedaEstudiante;
+      responder(res, await servicio.buscarEstudiantes(correo));
+    },
+    confirmarCorreo: async (req, res) => {
+      responder(res, await servicio.confirmarCorreo(usuarioInternoDe(req), req.params.id));
     },
   };
 }

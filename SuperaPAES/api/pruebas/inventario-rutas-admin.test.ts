@@ -105,6 +105,8 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
       'POST /cuentas/renovar': 'publica',
       'POST /cuentas/cerrar': 'publica',
       'GET /cuentas/yo': ['admin', 'docente'],
+      'GET /cuentas/estudiantes': ['admin'],
+      'POST /cuentas/estudiantes/:id/confirmar-correo': ['admin'],
       'GET /temario/areas': ['admin'],
       'GET /revision/mis-revisiones': ['docente'],
       'GET /revision/desempates': ['docente'],

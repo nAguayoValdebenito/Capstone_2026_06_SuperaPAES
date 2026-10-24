@@ -9,7 +9,12 @@ import { exigirRol, rutaPublica } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
 import { crearCuentasControlador } from './cuentas.controlador.js';
 import type { CuentasServicio } from './cuentas.servicio.js';
-import { esquemaIngreso, esquemaTokenRenovacion } from './cuentas.validadores.js';
+import {
+  esquemaBusquedaEstudiante,
+  esquemaIdEstudiante,
+  esquemaIngreso,
+  esquemaTokenRenovacion,
+} from './cuentas.validadores.js';
 
 export function crearRutasAdminCuentas(servicio: CuentasServicio, mw: MiddlewareRutas): Router {
   const router = Router();
@@ -29,5 +34,20 @@ export function crearRutasAdminCuentas(servicio: CuentasServicio, mw: Middleware
   router.post('/cerrar', rutaPublica, conToken, controlador.cerrarConsola);
   // Usuario de la sesión, para que la consola arme el menú de su rol (HU-03.2).
   router.get('/yo', mw.autenticarAdmin, exigirRol('admin', 'docente'), controlador.usuarioConsola);
+  // C15 · Estudiantes (CU-02b): buscar por correo y confirmar la cuenta cuando el correo no llega.
+  router.get(
+    '/estudiantes',
+    mw.autenticarAdmin,
+    exigirRol('admin'),
+    validar({ consulta: esquemaBusquedaEstudiante }),
+    controlador.buscarEstudiantes,
+  );
+  router.post(
+    '/estudiantes/:id/confirmar-correo',
+    mw.autenticarAdmin,
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdEstudiante }),
+    controlador.confirmarCorreo,
+  );
   return router;
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FabricaProveedores } from '../adaptadores/fabrica.js';
 import { PasarelaPagoSimulada } from '../adaptadores/pagos/simulado.js';
 import { ErrorNoImplementado, ErrorSolicitudInvalida } from '../comun/errores.js';
@@ -58,6 +58,20 @@ describe('FabricaProveedores: correo', () => {
     [smtp, 'smtp'],
   ])('devuelve el proveedor indicado (%j)', (config, nombre) => {
     expect(FabricaProveedores.correo(config).nombre).toBe(nombre);
+  });
+
+  it('el proveedor consola de desarrollo escribe el mensaje completo en el registro y no falla', async () => {
+    const escribir = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const mensaje = {
+      para: 'eva@ejemplo.cl',
+      asunto: 'Verifica tu correo',
+      texto: 'Código: 123456',
+    };
+
+    await FabricaProveedores.correo({ proveedor: 'consola' }).enviar(mensaje);
+
+    expect(escribir).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(escribir.mock.calls[0]?.[0]))).toMatchObject(mensaje);
   });
 });
 

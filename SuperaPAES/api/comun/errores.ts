@@ -57,6 +57,27 @@ export class ErrorConflicto extends ErrorAplicacion {
   }
 }
 
+/**
+ * RN-32, CU-02 3.b: el enlace o el código de verificación ya se usó, se anuló al pedir un correo nuevo,
+ * venció o no existe. El estudiante debe pedir un correo nuevo.
+ */
+export class ErrorVerificacionNoVigente extends ErrorAplicacion {
+  constructor() {
+    super(
+      409,
+      'VERIFICACION_NO_VIGENTE',
+      'Este enlace o código ya no sirve: se usó, venció o pediste un correo nuevo. Pide que te enviemos otro correo.',
+    );
+  }
+}
+
+/** CU-02b: el administrador intenta confirmar un correo que ya estaba verificado. */
+export class ErrorYaVerificado extends ErrorAplicacion {
+  constructor() {
+    super(409, 'YA_VERIFICADO', 'El correo de este estudiante ya está verificado.');
+  }
+}
+
 export class ErrorDemasiadosIntentos extends ErrorAplicacion {
   constructor() {
     super(

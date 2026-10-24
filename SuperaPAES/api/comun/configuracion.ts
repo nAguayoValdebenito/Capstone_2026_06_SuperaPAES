@@ -27,6 +27,10 @@ const esquemaBase = z.object({
   CORS_ORIGENES: z.string().default(''),
   JWT_SECRETO_CONSOLA: z.string().min(SECRETO_MINIMO),
   JWT_SECRETO_APP: z.string().min(SECRETO_MINIMO),
+  /** Dirección pública de la consola: los correos enlazan a sus páginas (por ejemplo /verificar-correo). */
+  URL_CONSOLA: z.url({ protocol: /^https?$/ }).transform((valor) => valor.replace(/\/+$/, '')),
+  /** Clave del HMAC-SHA-256 con que se guarda el código de 6 dígitos del correo de verificación (RN-32). */
+  CLAVE_CODIGO_CORREO: z.string().min(SECRETO_MINIMO),
   PROVEEDOR_IA: z.enum(['simulado', 'deepseek', 'gemini']).default('simulado'),
   DEEPSEEK_API_KEY: textoOpcional,
   GEMINI_API_KEY: textoOpcional,
@@ -93,27 +97,58 @@ const PROHIBIDOS_EN_PRODUCCION: [keyof Variables, string, string][] = [
   ],
 ];
 
-const esquema = esquemaBase.superRefine((v, ctx) => {
+type Problema = [keyof Variables, string];
+
+/** Secretos que no pueden repetirse: si se filtra uno, los demás siguen protegiendo lo suyo. */
+function problemasDeSecretos(v: Variables): Problema[] {
+  const problemas: Problema[] = [];
   if (v.JWT_SECRETO_CONSOLA === v.JWT_SECRETO_APP) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['JWT_SECRETO_APP'],
-      message: 'debe ser distinto de JWT_SECRETO_CONSOLA',
-    });
+    problemas.push(['JWT_SECRETO_APP', 'debe ser distinto de JWT_SECRETO_CONSOLA']);
   }
-  if (v.NODE_ENV === 'production') {
-    for (const [variable, valor, mensaje] of PROHIBIDOS_EN_PRODUCCION) {
-      if (v[variable] === valor)
-        ctx.addIssue({ code: 'custom', path: [variable], message: mensaje });
-    }
+  if ([v.JWT_SECRETO_CONSOLA, v.JWT_SECRETO_APP].includes(v.CLAVE_CODIGO_CORREO)) {
+    problemas.push(['CLAVE_CODIGO_CORREO', 'debe ser distinta de los secretos JWT']);
   }
-  for (const [aplica, motivo, variables] of EXIGIDAS_POR_PROVEEDOR) {
-    if (!aplica(v)) continue;
-    for (const variable of variables) {
-      if (v[variable] === undefined) {
-        ctx.addIssue({ code: 'custom', path: [variable], message: `obligatoria con ${motivo}` });
-      }
-    }
+  return problemas;
+}
+
+/** La consola llama a la API desde el navegador: su dirección debe estar en CORS_ORIGENES. */
+function problemasDeConsola(v: Variables): Problema[] {
+  const problemas: Problema[] = [];
+  const origen = new URL(v.URL_CONSOLA).origin;
+  const origenes = v.CORS_ORIGENES.split(',').map((o) => o.trim().replace(/\/+$/, ''));
+  if (!origenes.includes(origen)) {
+    problemas.push(['CORS_ORIGENES', `debe incluir el origen de URL_CONSOLA (${origen})`]);
+  }
+  if (v.NODE_ENV === 'production' && !v.URL_CONSOLA.startsWith('https://')) {
+    problemas.push(['URL_CONSOLA', 'en producción debe usar https']);
+  }
+  return problemas;
+}
+
+function problemasDeProduccion(v: Variables): Problema[] {
+  if (v.NODE_ENV !== 'production') return [];
+  return PROHIBIDOS_EN_PRODUCCION.filter(([variable, valor]) => v[variable] === valor).map(
+    ([variable, , mensaje]): Problema => [variable, mensaje],
+  );
+}
+
+function problemasDeProveedores(v: Variables): Problema[] {
+  return EXIGIDAS_POR_PROVEEDOR.filter(([aplica]) => aplica(v)).flatMap(([, motivo, variables]) =>
+    variables
+      .filter((variable) => v[variable] === undefined)
+      .map((variable): Problema => [variable, `obligatoria con ${motivo}`]),
+  );
+}
+
+const esquema = esquemaBase.superRefine((v, ctx) => {
+  const problemas = [
+    ...problemasDeSecretos(v),
+    ...problemasDeConsola(v),
+    ...problemasDeProduccion(v),
+    ...problemasDeProveedores(v),
+  ];
+  for (const [variable, mensaje] of problemas) {
+    ctx.addIssue({ code: 'custom', path: [variable], message: mensaje });
   }
 });
 
@@ -143,12 +178,19 @@ export type ConfiguracionPagos =
   | { proveedor: 'simulado' }
   | { proveedor: 'tiendas'; googlePlay: ConfiguracionGooglePlay; appStore: ConfiguracionAppStore };
 
+/** Lo que necesita el correo de verificación (RN-32): la página de la consola y la clave del código. */
+export interface ConfiguracionVerificacionCorreo {
+  urlConsola: string;
+  claveCodigo: string;
+}
+
 export interface Configuracion {
   entorno: 'development' | 'test' | 'production';
   puerto: number;
   baseDeDatos: { url: string; ssl: boolean };
   corsOrigenes: string[];
   jwt: { secretoConsola: string; secretoApp: string };
+  verificacionCorreo: ConfiguracionVerificacionCorreo;
   ia: ConfiguracionIA;
   correo: ConfiguracionCorreo;
   pagos: ConfiguracionPagos;
@@ -173,6 +215,7 @@ export function leerConfiguracion(
       .map((origen) => origen.trim())
       .filter(Boolean),
     jwt: { secretoConsola: v.JWT_SECRETO_CONSOLA, secretoApp: v.JWT_SECRETO_APP },
+    verificacionCorreo: { urlConsola: v.URL_CONSOLA, claveCodigo: v.CLAVE_CODIGO_CORREO },
     ia: leerConfiguracionIA(v),
     correo: leerConfiguracionCorreo(v),
     pagos: leerConfiguracionPagos(v),

@@ -14,6 +14,7 @@ import {
 } from './comun/middleware/limite-intentos.js';
 import { manejarErrores, rutaNoEncontrada } from './comun/middleware/manejo-errores.js';
 import { registrarPeticiones } from './comun/middleware/registro-peticiones.js';
+import type { ConfiguracionVerificacionCorreo } from './comun/configuracion.js';
 import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
 import type { Ejecutor, UnidadDeTrabajo } from './db/transaccion.js';
@@ -85,6 +86,8 @@ export interface Dependencias {
   /** Hora actual (sesiones y vencimientos); en las pruebas se reemplaza para simular el paso del tiempo. */
   reloj: Reloj;
   jwt: SecretosJwt;
+  /** Dirección de la consola y clave del código del correo de verificación (RN-32). */
+  verificacionCorreo: ConfiguracionVerificacionCorreo;
   corsOrigenes: string[];
   registrarPeticiones: boolean;
   limiteIntentos?: OpcionesLimiteIntentos;
@@ -120,6 +123,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     administracion,
     jwt: dependencias.jwt,
     reloj: dependencias.reloj,
+    verificacionCorreo: dependencias.verificacionCorreo,
   });
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario });

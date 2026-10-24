@@ -54,8 +54,21 @@ export const esquemaTokenRenovacion = z.strictObject({
   tokenRenovacion: z.string().min(1).max(100),
 });
 
+/** Verificar con el enlace del correo: el token que la consola lee de /verificar-correo?token=. */
+export const esquemaEnlaceVerificacion = z.strictObject({ token: z.string().min(1).max(100) });
+
+/** C15: buscar a un estudiante por su correo (consulta ?correo=). */
+export const esquemaBusquedaEstudiante = z.strictObject({ correo });
+
+export const esquemaIdEstudiante = z.strictObject({
+  id: z.string().regex(/^[1-9]\d{0,17}$/, 'El identificador no es válido.'),
+});
+
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;
 export type CredencialesApp = z.output<typeof esquemaIngresoApp>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
 export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
+export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
+export type DatosBusquedaEstudiante = z.output<typeof esquemaBusquedaEstudiante>;
+export type ParametrosEstudiante = z.output<typeof esquemaIdEstudiante>;

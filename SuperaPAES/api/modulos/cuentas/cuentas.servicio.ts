@@ -4,6 +4,7 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import { createHash, randomBytes } from 'node:crypto';
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
+import type { ConfiguracionVerificacionCorreo } from '../../comun/configuracion.js';
 import { cifrarContrasena, compararContrasena } from '../../comun/contrasenas.js';
 import { ErrorNoAutenticado, ErrorNoImplementado, ErrorSinPermiso } from '../../comun/errores.js';
 import { type Audiencia, firmarToken } from '../../comun/jwt.js';
@@ -18,6 +19,14 @@ import {
   type DuenoSesion,
 } from './cuentas.repositorio.js';
 import type { Credenciales, CredencialesApp, DatosRegistro } from './cuentas.validadores.js';
+import {
+  crearVerificacionRepositorio,
+  type VerificacionRepositorio,
+} from './cuentas.verificacion.repositorio.js';
+import {
+  crearVerificacionCorreo,
+  type VerificacionCorreo,
+} from './cuentas.verificacion.servicio.js';
 
 /**
  * Duración de las sesiones (RNF-01: JWT de corta duración que se renueva de forma segura). El DAS no
@@ -39,8 +48,11 @@ export interface DependenciasCuentasServicio {
   administracion: AdministracionServicio;
   jwt: SecretosJwt;
   reloj: Reloj;
+  verificacionCorreo: ConfiguracionVerificacionCorreo;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearCuentasRepositorio(bd). */
   repositorio?: CuentasRepositorio;
+  /** Solo para pruebas: reemplaza al de la verificación del correo. */
+  repositorioVerificacion?: VerificacionRepositorio;
 }
 
 export interface SesionIniciada {
@@ -77,7 +89,8 @@ export interface UsuarioConsola extends UsuarioDeSesion {
   areas?: number[];
 }
 
-export interface CuentasServicio {
+/** Incluye la verificación del correo (cuentas.verificacion.servicio.ts). */
+export interface CuentasServicio extends VerificacionCorreo {
   registrarEstudiante(datos: DatosRegistro): Promise<SesionIniciada>;
   /**
    * HU-02.1 (app): correo o contraseña incorrectos, o cuenta eliminada, 401 con el mismo mensaje. Un
@@ -273,5 +286,14 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     obtenerUsuarioConsola: (id) => usuarioConsola(contexto, id),
     revocarSesionesUsuarioInterno: (id, tx) =>
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
+    ...crearVerificacionCorreo({
+      repositorio:
+        dependencias.repositorioVerificacion ?? crearVerificacionRepositorio(dependencias.bd),
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
+      correo: dependencias.correo,
+      administracion: dependencias.administracion,
+      reloj,
+      configuracion: dependencias.verificacionCorreo,
+    }),
   };
 }

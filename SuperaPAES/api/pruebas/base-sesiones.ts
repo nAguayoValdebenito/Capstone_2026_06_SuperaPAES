@@ -1,8 +1,10 @@
 // Entorno de las pruebas de sesión con PostgreSQL real (ver base-temporal.ts): una base temporal
 // migrada, la app sobre el pool y la unidad de trabajo de producción, y un reloj que se adelanta para
 // simular el paso del tiempo (la base compara con la hora que entrega el reloj, no con now()).
-// Cada prueba empieza con las sesiones, los estudiantes y las cuentas internas vacíos.
+// Cada prueba empieza con las sesiones, los estudiantes y las cuentas internas vacíos, y con el buzón
+// de correos vacío: el proveedor de correo de estas apps guarda los mensajes en vez de enviarlos.
 import type { Express } from 'express';
+import type { MensajeCorreo, ProveedorCorreo } from '../adaptadores/fabrica.js';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach } from 'vitest';
 import { crearApp } from '../app.js';
@@ -25,6 +27,30 @@ export interface EntornoSesiones {
   avanzarSegundos(segundos: number): void;
   /** Crea el primer administrador (como el comando crear-admin) y devuelve sus credenciales. */
   crearAdmin(): Promise<{ correo: string; contrasena: string }>;
+  /** Correos que la app intentó enviar, en orden (también los que fallaron). */
+  correos: MensajeCorreo[];
+  /** Hace que el proveedor de correo falle desde ahora (true) o vuelva a funcionar (false). */
+  fallarCorreo(fallar: boolean): void;
+}
+
+/** Proveedor de correo de prueba: guarda cada mensaje y, si se pide, falla después de guardarlo. */
+function crearBuzon() {
+  const correos: MensajeCorreo[] = [];
+  let falla = false;
+  const proveedor: ProveedorCorreo = {
+    nombre: 'consola',
+    enviar: (mensaje) => {
+      correos.push(mensaje);
+      return falla ? Promise.reject(new Error(`SMTP rechazó ${mensaje.para}`)) : Promise.resolve();
+    },
+  };
+  return {
+    proveedor,
+    correos,
+    fallar: (valor: boolean) => {
+      falla = valor;
+    },
+  };
 }
 
 const ADMIN = { nombre: 'Ana Admin', correo: 'ana@ejemplo.cl', contrasena: 'clave-de-ana-1' };
@@ -35,16 +61,20 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
   let base: Awaited<ReturnType<typeof crearBaseTemporal>>;
   let pool: pg.Pool;
   const entorno = {} as EntornoSesiones;
+  const buzon = crearBuzon();
 
-  const crearAppSobreElPool = (limiteIntentos?: OpcionesLimiteIntentos) =>
-    crearApp(
-      crearDependenciasDePrueba({
-        bd: pool,
-        unidadDeTrabajo: crearUnidadDeTrabajo(pool),
-        reloj: () => new Date(ahora),
-        ...(limiteIntentos && { limiteIntentos }),
-      }),
-    );
+  const crearAppSobreElPool = (limiteIntentos?: OpcionesLimiteIntentos) => {
+    const dependencias = crearDependenciasDePrueba({
+      bd: pool,
+      unidadDeTrabajo: crearUnidadDeTrabajo(pool),
+      reloj: () => new Date(ahora),
+      ...(limiteIntentos && { limiteIntentos }),
+    });
+    return crearApp({
+      ...dependencias,
+      proveedores: { ...dependencias.proveedores, correo: buzon.proveedor },
+    });
+  };
 
   beforeAll(async () => {
     base = await crearBaseTemporal(prefijo);
@@ -53,6 +83,8 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
       bd: base.bd,
       app: crearAppSobreElPool(),
       crearAppConLimite: crearAppSobreElPool,
+      correos: buzon.correos,
+      fallarCorreo: buzon.fallar,
       ahora: () => new Date(ahora),
       avanzarSegundos: (segundos: number) => {
         ahora = new Date(ahora.getTime() + segundos * 1000);
@@ -73,6 +105,8 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     ahora = new Date(Math.floor(Date.now() / 1000) * 1000);
     await base.bd.query('TRUNCATE app.token_sesion, app.estudiante CASCADE');
     await vaciarCuentasInternas(base.bd);
+    buzon.correos.length = 0;
+    buzon.fallar(false);
   });
 
   return entorno;

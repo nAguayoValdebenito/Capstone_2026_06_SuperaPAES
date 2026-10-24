@@ -31,6 +31,9 @@ export interface UsoLimiteIntentos {
    * de una cuenta desde muchas IP. El ingreso usa los dos límites, por IP y por correo (RNF-02).
    */
   porCorreo?: boolean;
+  /** Ventana y máximo propios de esta ruta, en vez de los valores generales de la API. */
+  ventanaMs?: number;
+  maximo?: number;
 }
 
 /** Cada llamada crea un contador independiente: un límite por grupo de rutas. */
@@ -51,10 +54,10 @@ function claveDe(req: Request, { porEstudiante, porCorreo }: UsoLimiteIntentos):
 }
 
 export function crearFabricaLimiteIntentos(opciones: OpcionesLimiteIntentos): CrearLimiteIntentos {
-  return ({ soloFallidos = false, ...uso } = {}) =>
+  return ({ soloFallidos = false, ventanaMs, maximo, ...uso } = {}) =>
     rateLimit({
-      windowMs: opciones.ventanaMs,
-      limit: opciones.maximo,
+      windowMs: ventanaMs ?? opciones.ventanaMs,
+      limit: maximo ?? opciones.maximo,
       standardHeaders: 'draft-8',
       legacyHeaders: false,
       skipSuccessfulRequests: soloFallidos,

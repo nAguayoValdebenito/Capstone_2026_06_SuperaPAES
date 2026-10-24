@@ -10,6 +10,8 @@ import { DURACION_TOKEN_ACCESO_SEGUNDOS } from '../modulos/cuentas/cuentas.servi
 
 export const SECRETO_DE_PRUEBA = 'secreto-de-prueba-con-mas-de-32-caracteres';
 export const SECRETO_APP_DE_PRUEBA = `${SECRETO_DE_PRUEBA}-app`;
+export const CLAVE_CODIGO_DE_PRUEBA = `${SECRETO_DE_PRUEBA}-codigo-correo`;
+export const URL_CONSOLA_DE_PRUEBA = 'http://localhost:5173';
 
 const sinBase = () => Promise.reject(new Error('Las pruebas de la API no usan una base real.'));
 
@@ -28,7 +30,8 @@ export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): 
     ),
     reloj: relojDelSistema,
     jwt: { secretoConsola: SECRETO_DE_PRUEBA, secretoApp: SECRETO_APP_DE_PRUEBA },
-    corsOrigenes: ['http://localhost:5173'],
+    verificacionCorreo: { urlConsola: URL_CONSOLA_DE_PRUEBA, claveCodigo: CLAVE_CODIGO_DE_PRUEBA },
+    corsOrigenes: [URL_CONSOLA_DE_PRUEBA],
     registrarPeticiones: false,
     ...cambios,
   };

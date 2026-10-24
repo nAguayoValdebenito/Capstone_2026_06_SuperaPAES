@@ -49,6 +49,13 @@ describe('límite de intentos', () => {
     expect(await intentar(crearAppDePrueba({ soloFallidos: true }, 401), 3)).toBe(429);
   });
 
+  it('una ruta puede usar su propio máximo en vez del general', async () => {
+    const app = crearAppDePrueba({ maximo: 4 }, 201);
+
+    expect(await intentar(app, 4)).toBe(201);
+    expect(await intentar(app, 1)).toBe(429);
+  });
+
   it('con porEstudiante cada estudiante tiene su propio contador aunque compartan IP', async () => {
     const app = crearAppDePrueba({ porEstudiante: true }, 201);
 

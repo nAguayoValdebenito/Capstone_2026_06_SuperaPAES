@@ -9,6 +9,7 @@ import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type AdministracionRepositorio,
   crearAdministracionRepositorio,
+  type EntradaAuditoria,
   type UsuarioInterno,
 } from './administracion.repositorio.js';
 import type {
@@ -56,6 +57,11 @@ export interface AdministracionServicio {
     id: string,
     activo: boolean,
   ): Promise<UsuarioInterno>;
+  /**
+   * Registra una acción de la consola en contenido.auditoria (RNF-08), dentro de la transacción del
+   * módulo que hace el cambio. Nunca recibe contraseñas, hashes ni códigos.
+   */
+  registrarAuditoria(entrada: EntradaAuditoria, tx: Ejecutor): Promise<void>;
 }
 
 interface Contexto {
@@ -266,5 +272,6 @@ export function crearAdministracionServicio(
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
       cambiarEstado(contexto, autorId, id, activo),
+    registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
   };
 }
