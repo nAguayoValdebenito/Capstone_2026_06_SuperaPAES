@@ -1,19 +1,44 @@
 // Reglas de negocio del módulo cuentas: registro, ingreso, verificación de correo y recuperación de
 // contraseña de estudiantes, consentimientos, pruebas elegidas, áreas de carrera de interés,
-// puntajes PAES declarados e ingreso del personal interno.
+// puntajes PAES declarados, ingreso del personal interno y sesiones de la app y de la consola.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
+import { createHash, randomBytes } from 'node:crypto';
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
-import { ErrorNoImplementado } from '../../comun/errores.js';
+import { cifrarContrasena, compararContrasena } from '../../comun/contrasenas.js';
+import { ErrorNoAutenticado, ErrorNoImplementado, ErrorSinPermiso } from '../../comun/errores.js';
+import { type Audiencia, firmarToken } from '../../comun/jwt.js';
+import type { ComprobarSesion, SecretosJwt } from '../../comun/middleware/autenticacion.js';
+import type { Reloj } from '../../comun/reloj.js';
+import type { RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
-import type { CuentasRepositorio } from './cuentas.repositorio.js';
+import {
+  crearCuentasRepositorio,
+  type CuentasRepositorio,
+  type DuenoSesion,
+} from './cuentas.repositorio.js';
 import type { Credenciales, DatosRegistro } from './cuentas.validadores.js';
+
+/**
+ * Duración de las sesiones (RNF-01: JWT de corta duración que se renueva de forma segura). El DAS no
+ * fija los valores; los aprobó el equipo el 24/10/2026. Renovar rota el token de renovación, así que
+ * su duración cuenta desde la última renovación, no desde el ingreso.
+ */
+export const DURACION_TOKEN_ACCESO_SEGUNDOS = 15 * 60;
+export const DURACION_TOKEN_RENOVACION_SEGUNDOS: { [A in Audiencia]: number } = {
+  admin: 8 * 60 * 60,
+  app: 30 * 24 * 60 * 60,
+};
+/** Bytes al azar del token de renovación (se entrega en base64url y se guarda solo su SHA-256). */
+const BYTES_TOKEN_RENOVACION = 32;
 
 export interface DependenciasCuentasServicio {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
   correo: ProveedorCorreo;
   administracion: AdministracionServicio;
+  jwt: SecretosJwt;
+  reloj: Reloj;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearCuentasRepositorio(bd). */
   repositorio?: CuentasRepositorio;
 }
@@ -23,22 +48,178 @@ export interface SesionIniciada {
   tokenRenovacion: string;
 }
 
+/** Datos mínimos del usuario interno que entrega el ingreso. Nunca el hash de la contraseña. */
+export interface UsuarioDeSesion {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: RolCuentaInterna;
+}
+
+export interface SesionConsola extends SesionIniciada {
+  usuario: UsuarioDeSesion;
+}
+
+/** Usuario de la sesión para armar el menú de la consola; el docente también trae sus áreas. */
+export interface UsuarioConsola extends UsuarioDeSesion {
+  areas?: number[];
+}
+
 export interface CuentasServicio {
   registrarEstudiante(datos: DatosRegistro): Promise<SesionIniciada>;
   ingresarEstudiante(credenciales: Credenciales): Promise<SesionIniciada>;
   solicitarRecuperacion(correo: string): Promise<void>;
-  ingresarUsuarioInterno(credenciales: Credenciales): Promise<SesionIniciada>;
+  /** HU-02.1 (consola): correo o contraseña incorrectos, 401; cuenta desactivada, 403 (CU-23 3.b). */
+  ingresarUsuarioInterno(credenciales: Credenciales): Promise<SesionConsola>;
+  /** Rota el token: revoca la sesión usada y abre otra. Revocado, vencido o de otro tipo: 401. */
+  renovarSesion(tipo: Audiencia, tokenRenovacion: string): Promise<SesionIniciada>;
+  /** Cierra la sesión del token. Si no existe o ya estaba cerrada, termina igual, sin error. */
+  cerrarSesion(tipo: Audiencia, tokenRenovacion: string): Promise<void>;
+  /** La usa el middleware de autenticación en cada petición. */
+  sesionVigente: ComprobarSesion;
+  obtenerUsuarioConsola(id: string): Promise<UsuarioConsola>;
+  /** Cierra todas las sesiones abiertas de una cuenta interna (al desactivarla). */
+  revocarSesionesUsuarioInterno(id: string, tx: Ejecutor): Promise<void>;
 }
 
-// Esqueleto: cada método se implementa en la historia de usuario correspondiente.
-export function crearCuentasServicio(_dependencias: DependenciasCuentasServicio): CuentasServicio {
+interface Contexto {
+  repositorio: CuentasRepositorio;
+  unidadDeTrabajo: UnidadDeTrabajo;
+  administracion: AdministracionServicio;
+  jwt: SecretosJwt;
+  reloj: Reloj;
+}
+
+/** Lo que lleva el token de acceso además de la cuenta y la sesión. */
+type DatosToken = { tipo: 'app' } | { tipo: 'admin'; rol: RolCuentaInterna };
+
+const hashDe = (token: string) => createHash('sha256').update(token).digest('hex');
+
+const errorSesion = () =>
+  new ErrorNoAutenticado('La sesión no es válida o venció. Inicia sesión de nuevo.');
+
+let rellenoPendiente: Promise<string> | undefined;
+
+/**
+ * Hash de una contraseña al azar, creado una sola vez. Con un correo sin cuenta se compara contra él,
+ * así el tiempo de respuesta no delata qué correos existen.
+ */
+function hashDeRelleno(): Promise<string> {
+  rellenoPendiente ??= cifrarContrasena(randomBytes(16).toString('hex'));
+  return rellenoPendiente;
+}
+
+async function abrirSesion(
+  { repositorio, jwt, reloj }: Contexto,
+  cuentaId: string,
+  datos: DatosToken,
+  tx: Ejecutor,
+): Promise<SesionIniciada> {
+  const desde = reloj();
+  const tokenRenovacion = randomBytes(BYTES_TOKEN_RENOVACION).toString('base64url');
+  const expiraEn = new Date(
+    desde.getTime() + DURACION_TOKEN_RENOVACION_SEGUNDOS[datos.tipo] * 1000,
+  );
+  const sid = await repositorio.crearSesion(
+    { tipo: datos.tipo, cuentaId, hashToken: hashDe(tokenRenovacion), expiraEn },
+    tx,
+  );
+  const vigencia = { desde, segundos: DURACION_TOKEN_ACCESO_SEGUNDOS };
+  const tokenAcceso =
+    datos.tipo === 'admin'
+      ? await firmarToken(
+          'admin',
+          { sub: cuentaId, sid, rol: datos.rol },
+          jwt.secretoConsola,
+          vigencia,
+        )
+      : await firmarToken('app', { sub: cuentaId, sid }, jwt.secretoApp, vigencia);
+  return { tokenAcceso, tokenRenovacion };
+}
+
+async function ingresarInterno(
+  contexto: Contexto,
+  { correo, contrasena }: Credenciales,
+): Promise<SesionConsola> {
+  const { repositorio, unidadDeTrabajo, reloj } = contexto;
+  const cuenta = await repositorio.buscarCredencialesInternas(correo);
+  const hash = cuenta?.hashContrasena ?? (await hashDeRelleno());
+  const correcta = await compararContrasena(contrasena, hash);
+  // El mismo mensaje para el correo y para la contraseña.
+  if (!cuenta || !correcta) {
+    throw new ErrorNoAutenticado('El correo o la contraseña no son correctos.');
+  }
+  if (!cuenta.activo) {
+    throw new ErrorSinPermiso('Tu cuenta está desactivada. Pide a un administrador que la active.');
+  }
+  const { id, nombre, rol } = cuenta;
+  return unidadDeTrabajo.enTransaccion(async (tx) => {
+    await repositorio.registrarAccesoInterno(id, reloj(), tx);
+    const sesion = await abrirSesion(contexto, id, { tipo: 'admin', rol }, tx);
+    return { ...sesion, usuario: { id, nombre, correo: cuenta.correo, rol } };
+  });
+}
+
+/** En la consola el rol se lee de nuevo: un cambio de rol rige desde la renovación. */
+async function datosDelToken(
+  { administracion }: Contexto,
+  { tipo, cuentaId }: DuenoSesion,
+): Promise<DatosToken> {
+  if (tipo === 'app') return { tipo };
+  const usuario = await administracion.obtenerUsuarioInterno(cuentaId);
+  if (!usuario?.activo) throw errorSesion();
+  return { tipo, rol: usuario.rol };
+}
+
+async function renovar(
+  contexto: Contexto,
+  tipo: Audiencia,
+  tokenRenovacion: string,
+): Promise<SesionIniciada> {
+  const { repositorio, unidadDeTrabajo, reloj } = contexto;
+  return unidadDeTrabajo.enTransaccion(async (tx) => {
+    const dueno = await repositorio.consumirSesion(tipo, hashDe(tokenRenovacion), reloj(), tx);
+    if (!dueno) throw errorSesion();
+    return abrirSesion(contexto, dueno.cuentaId, await datosDelToken(contexto, dueno), tx);
+  });
+}
+
+async function usuarioConsola({ administracion }: Contexto, id: string): Promise<UsuarioConsola> {
+  const usuario = await administracion.obtenerUsuarioInterno(id);
+  if (!usuario) throw errorSesion();
+  const { nombre, correo, rol, areas } = usuario;
+  return rol === 'docente' ? { id, nombre, correo, rol, areas } : { id, nombre, correo, rol };
+}
+
+export function crearCuentasServicio(dependencias: DependenciasCuentasServicio): CuentasServicio {
+  const contexto: Contexto = {
+    repositorio: dependencias.repositorio ?? crearCuentasRepositorio(dependencias.bd),
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    administracion: dependencias.administracion,
+    jwt: dependencias.jwt,
+    reloj: dependencias.reloj,
+  };
+  const { repositorio, reloj } = contexto;
+  // Se prepara al crear el servicio para que el primer ingreso con un correo sin cuenta no tarde más.
+  void hashDeRelleno();
   return {
+    // Esqueletos: cada uno se implementa en la historia de usuario correspondiente.
     registrarEstudiante: () =>
       Promise.reject(new ErrorNoImplementado('El registro de estudiantes')),
     ingresarEstudiante: () => Promise.reject(new ErrorNoImplementado('El ingreso de estudiantes')),
     solicitarRecuperacion: () =>
       Promise.reject(new ErrorNoImplementado('La recuperación de contraseña')),
-    ingresarUsuarioInterno: () =>
-      Promise.reject(new ErrorNoImplementado('El ingreso a la consola')),
+    ingresarUsuarioInterno: (credenciales) => ingresarInterno(contexto, credenciales),
+    renovarSesion: (tipo, token) => renovar(contexto, tipo, token),
+    cerrarSesion: (tipo, token) => repositorio.revocarSesion(tipo, hashDe(token), reloj()),
+    sesionVigente: (audiencia, { sub, sid, rol }) => {
+      if (audiencia === 'app') return repositorio.sesionEstudianteVigente(sid, sub, reloj());
+      return rol
+        ? repositorio.sesionInternaVigente(sid, sub, rol, reloj())
+        : Promise.resolve(false);
+    },
+    obtenerUsuarioConsola: (id) => usuarioConsola(contexto, id),
+    revocarSesionesUsuarioInterno: (id, tx) =>
+      repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
   };
 }

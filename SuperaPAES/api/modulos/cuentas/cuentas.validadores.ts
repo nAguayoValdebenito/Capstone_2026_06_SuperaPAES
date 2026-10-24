@@ -34,6 +34,12 @@ export const esquemaIngreso = z.strictObject({ correo, contrasena });
 
 export const esquemaRecuperacion = z.strictObject({ correo });
 
+/** Renovar y cerrar la sesión: el token de renovación que entregó el ingreso (o la última renovación). */
+export const esquemaTokenRenovacion = z.strictObject({
+  tokenRenovacion: z.string().min(1).max(100),
+});
+
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
+export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;

@@ -17,11 +17,15 @@ import {
   vaciarCuentasInternas,
 } from './base-temporal.js';
 
-/** El servicio de administración sobre una conexión, cada operación en su propia transacción. */
+/**
+ * El servicio de administración sobre una conexión, cada operación en su propia transacción. El
+ * cierre de sesiones al desactivar se prueba con PostgreSQL en sesion-consola-bd.test.ts.
+ */
 const servicioSobre = (cliente: pg.Client) =>
   crearAdministracionServicio({
     bd: cliente,
     unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(cliente, trabajo) },
+    revocarSesionesUsuarioInterno: () => Promise.resolve(),
   });
 
 describe('usuarios internos sin base de datos', () => {

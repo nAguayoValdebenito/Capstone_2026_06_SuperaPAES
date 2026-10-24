@@ -21,6 +21,12 @@ export type { UsuarioInterno } from './administracion.repositorio.js';
 export interface DependenciasAdministracionServicio {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
+  /**
+   * Cierra las sesiones abiertas de una cuenta que se desactiva, en la misma transacción (CU-23 3.b):
+   * sin esto su token de renovación seguiría vivo. Las sesiones son del módulo cuentas, que se crea
+   * después porque usa este servicio; app.ts entrega la función.
+   */
+  revocarSesionesUsuarioInterno: (id: string, tx: Ejecutor) => Promise<void>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearAdministracionRepositorio(bd). */
   repositorio?: AdministracionRepositorio;
 }
@@ -32,6 +38,8 @@ export interface DependenciasAdministracionServicio {
  */
 export interface AdministracionServicio {
   listarUsuariosInternos(): Promise<UsuarioInterno[]>;
+  /** La cuenta con su rol y sus áreas, o null si no existe (para la sesión de la consola). */
+  obtenerUsuarioInterno(id: string): Promise<UsuarioInterno | null>;
   crearUsuarioInterno(autorId: string, datos: DatosCrearUsuarioInterno): Promise<UsuarioInterno>;
   editarUsuarioInterno(
     autorId: string,
@@ -39,7 +47,8 @@ export interface AdministracionServicio {
     cambios: DatosEditarUsuarioInterno,
   ): Promise<UsuarioInterno>;
   /**
-   * CU-23 3.b: una cuenta desactivada no puede iniciar sesión. Repetir el estado no cambia nada.
+   * CU-23 3.b: una cuenta desactivada no puede iniciar sesión y sus sesiones abiertas se cierran.
+   * Repetir el estado no cambia nada.
    * CU-23 3.c: no se desactiva la propia cuenta ni al último administrador activo (409).
    */
   cambiarEstadoUsuarioInterno(
@@ -52,6 +61,7 @@ export interface AdministracionServicio {
 interface Contexto {
   repositorio: AdministracionRepositorio;
   unidadDeTrabajo: UnidadDeTrabajo;
+  revocarSesiones: DependenciasAdministracionServicio['revocarSesionesUsuarioInterno'];
 }
 
 const ENTIDAD_USUARIO_INTERNO = 'usuario_interno';
@@ -224,6 +234,7 @@ async function cambiarEstado(contexto: Contexto, autorId: string, id: string, ac
     if (!activo) protegerContinuidad(autorId, actual, activos, 'desactivar');
     if (actual.activo === activo) return actual;
     await repositorio.cambiarActivoUsuarioInterno(id, activo, tx);
+    if (!activo) await contexto.revocarSesiones(id, tx);
     const cambiado = { ...actual, activo };
     await repositorio.registrarAuditoria(
       {
@@ -246,9 +257,11 @@ export function crearAdministracionServicio(
   const contexto: Contexto = {
     repositorio: dependencias.repositorio ?? crearAdministracionRepositorio(dependencias.bd),
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    revocarSesiones: dependencias.revocarSesionesUsuarioInterno,
   };
   return {
     listarUsuariosInternos: () => contexto.repositorio.listarUsuariosInternos(),
+    obtenerUsuarioInterno: (id) => contexto.repositorio.buscarUsuarioInterno(id, false),
     crearUsuarioInterno: (autorId, datos) => crearUsuario(contexto, autorId, datos),
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>

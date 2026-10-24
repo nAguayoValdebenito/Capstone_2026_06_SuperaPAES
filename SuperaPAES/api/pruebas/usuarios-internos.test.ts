@@ -157,7 +157,7 @@ describe('editar, activar y desactivar un usuario interno', () => {
   });
 
   it('desactiva y activa la cuenta, con una fila de auditoría por cambio', async () => {
-    const { app, auditoria } = await conDocenteCreado();
+    const { app, auditoria, sesionesRevocadas, tx } = await conDocenteCreado();
     const admin = await comoAdmin();
 
     const desactivada = await request(app).post(`${RUTA}/1/desactivar`).set(admin);
@@ -170,6 +170,8 @@ describe('editar, activar y desactivar un usuario interno', () => {
       ['desactivar_usuario', true, false],
       ['activar_usuario', false, true],
     ]);
+    // CU-23 3.b: solo la desactivación cierra sus sesiones, en la misma transacción que el cambio.
+    expect(sesionesRevocadas).toEqual([{ id: '1', tx }]);
   });
 
   it('responde 404 si la cuenta no existe y 400 si el id no es válido', async () => {

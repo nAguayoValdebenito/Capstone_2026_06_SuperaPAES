@@ -8,13 +8,13 @@ import type {
   UsuarioInterno,
 } from '../modulos/administracion/administracion.repositorio.js';
 import { crearAdministracionServicio } from '../modulos/administracion/index.js';
-import { crearDependenciasDePrueba, tokenAdmin } from './ayudantes.js';
+import { aceptarCualquierSesion, crearDependenciasDePrueba, tokenAdmin } from './ayudantes.js';
 
 export const RUTA = '/api/v1/admin/administracion/usuarios-internos';
 const AREAS_EXISTENTES = new Set([1, 2, 3]);
 
 /** Repositorio en memoria con las restricciones de la base que el servicio traduce. */
-function crearRepositorioFalso() {
+export function crearRepositorioFalso() {
   const usuarios = new Map<string, UsuarioInterno & { hash: string }>();
   const auditoria: EntradaAuditoria[] = [];
   let siguienteId = 1;
@@ -84,14 +84,23 @@ export function crearEscenario() {
       return trabajo(tx);
     },
   };
+  /** Cuentas cuyas sesiones se cerraron, con la transacción en que se pidió. */
+  const sesionesRevocadas: { id: string; tx: Ejecutor }[] = [];
   const dependencias = crearDependenciasDePrueba({ unidadDeTrabajo });
   const administracion = crearAdministracionServicio({
     bd: dependencias.bd,
     unidadDeTrabajo,
     repositorio: falso.repositorio,
+    revocarSesionesUsuarioInterno: (id, txRevocar) => {
+      sesionesRevocadas.push({ id, tx: txRevocar });
+      return Promise.resolve();
+    },
   });
-  const app = crearApp(dependencias, { ...crearServicios(dependencias), administracion });
-  return { ...falso, app, transacciones: () => transacciones };
+  const app = crearApp(
+    dependencias,
+    aceptarCualquierSesion({ ...crearServicios(dependencias), administracion }),
+  );
+  return { ...falso, app, tx, sesionesRevocadas, transacciones: () => transacciones };
 }
 
 export const docente = (cambios: Record<string, unknown> = {}) => ({

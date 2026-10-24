@@ -12,3 +12,8 @@ export function exigirRol(...roles: RolCuentaInterna[]): RequestHandler {
     next(roles.includes(req.usuarioInterno.rol) ? undefined : new ErrorSinPermiso());
   };
 }
+
+/** Marca una ruta que no pide sesión a propósito (ingreso, renovar y cerrar). No hace nada más. */
+export const rutaPublica: RequestHandler = (_req, _res, next) => {
+  next();
+};

@@ -14,6 +14,7 @@ import {
 } from './comun/middleware/limite-intentos.js';
 import { manejarErrores, rutaNoEncontrada } from './comun/middleware/manejo-errores.js';
 import { registrarPeticiones } from './comun/middleware/registro-peticiones.js';
+import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
 import type { Ejecutor, UnidadDeTrabajo } from './db/transaccion.js';
 import {
@@ -81,7 +82,8 @@ export interface Dependencias {
   unidadDeTrabajo: UnidadDeTrabajo;
   comprobarBaseDeDatos: () => Promise<void>;
   proveedores: Proveedores;
-  /** Hora actual; en las pruebas se reemplaza por una fija. */
+  /** Hora actual (sesiones y vencimientos); en las pruebas se reemplaza para simular el paso del tiempo. */
+  reloj: Reloj;
   jwt: SecretosJwt;
   corsOrigenes: string[];
   registrarPeticiones: boolean;
@@ -106,8 +108,19 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const { ia, correo, pagos } = dependencias.proveedores;
 
-  const administracion = crearAdministracionServicio(base);
-  const cuentas = crearCuentasServicio({ ...base, correo, administracion });
+  // Al desactivar una cuenta interna, administracion cierra sus sesiones, que son de cuentas. Cuentas
+  // se crea después porque usa administracion: la función solo se llama una vez creados los dos.
+  const administracion = crearAdministracionServicio({
+    ...base,
+    revocarSesionesUsuarioInterno: (id, tx) => cuentas.revocarSesionesUsuarioInterno(id, tx),
+  });
+  const cuentas = crearCuentasServicio({
+    ...base,
+    correo,
+    administracion,
+    jwt: dependencias.jwt,
+    reloj: dependencias.reloj,
+  });
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario });
   const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
@@ -150,7 +163,10 @@ function crearRouterApp(s: Servicios, mw: MiddlewareRutas): Router {
   return router;
 }
 
-/** /api/v1/admin: el ingreso de la consola y, después, todo con el JWT de la consola y su rol. */
+/**
+ * /api/v1/admin: la sesión de la consola y, después, todo con el JWT de la consola. Cada ruta declara
+ * su rol con exigirRol en su propia cadena (DAS 4.3.3); los routers de los módulos no aplican roles.
+ */
 function crearRouterAdmin(s: Servicios, mw: MiddlewareRutas): Router {
   const router = Router();
   router.use('/cuentas', crearRutasAdminCuentas(s.cuentas, mw));
@@ -192,7 +208,10 @@ export function crearApp(
   );
 
   const mw: MiddlewareRutas = {
-    ...crearAutenticacion(dependencias.jwt),
+    ...crearAutenticacion(dependencias.jwt, {
+      reloj: dependencias.reloj,
+      sesionVigente: servicios.cuentas.sesionVigente,
+    }),
     crearLimiteIntentos: crearFabricaLimiteIntentos(
       dependencias.limiteIntentos ?? LIMITE_INTENTOS_POR_DEFECTO,
     ),

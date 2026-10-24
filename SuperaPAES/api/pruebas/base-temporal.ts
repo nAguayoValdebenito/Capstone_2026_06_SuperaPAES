@@ -20,6 +20,8 @@ export function exigirBaseEnCi(): void {
 }
 
 export interface BaseTemporal {
+  /** URL de la base temporal, por ejemplo para crear un pool como el de la API. */
+  url: string;
   /** Conexión principal, ya migrada. */
   bd: pg.Client;
   /** Otra conexión a la misma base, por ejemplo para dos operaciones al mismo tiempo. */
@@ -43,6 +45,7 @@ export async function crearBaseTemporal(prefijo: string): Promise<BaseTemporal> 
   const bd = await conectarOtra();
   await migrar(bd, path.join(import.meta.dirname, '../db/migraciones'));
   return {
+    url: url.toString(),
     bd,
     conectarOtra,
     async cerrar() {
