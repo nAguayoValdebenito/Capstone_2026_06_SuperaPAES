@@ -1,9 +1,11 @@
-// Protege una ruta por rol de cuenta. La API vuelve a verificar el rol en cada petición:
+// Protege una ruta por rol de cuenta (HU-03 esc. 3): sin sesión lleva al ingreso y con un rol sin
+// permiso, a la sección de entrada de su rol. La API vuelve a verificar el rol en cada petición:
 // esto solo ordena la navegación, no reemplaza la autorización del servidor.
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router';
 import { useSesion } from '../estado/contexto-sesion';
 import type { RolCuentaInterna } from '../tipos';
+import { redireccionDeRuta } from './secciones';
 
 export function RutaProtegida({
   roles,
@@ -13,14 +15,6 @@ export function RutaProtegida({
   children: ReactNode;
 }) {
   const { usuario } = useSesion();
-  if (!usuario) return <Navigate to="/ingreso" replace />;
-  if (!roles.includes(usuario.rol)) {
-    return (
-      <section className="pagina">
-        <h1>Acceso restringido</h1>
-        <p>No tienes permiso para ver esta sección con el rol {usuario.rol}.</p>
-      </section>
-    );
-  }
-  return children;
+  const destino = redireccionDeRuta(usuario, roles);
+  return destino ? <Navigate to={destino} replace /> : children;
 }

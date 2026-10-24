@@ -34,6 +34,12 @@ export const esquemaIngreso = z.strictObject({ correo, contrasena });
 
 export const esquemaRecuperacion = z.strictObject({ correo });
 
+/** Credencial de renovación de la consola: 32 bytes en base64url (43 caracteres). */
+export const esquemaSesionConsola = z.strictObject({
+  tokenRenovacion: z.string().min(1).max(200),
+});
+
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
+export type DatosSesionConsola = z.output<typeof esquemaSesionConsola>;

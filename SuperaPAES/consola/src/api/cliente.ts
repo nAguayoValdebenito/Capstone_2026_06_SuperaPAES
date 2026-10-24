@@ -25,13 +25,45 @@ export interface Respuesta<T> {
 }
 
 let obtenerToken: () => string | null = () => null;
+let alRechazarSesion: () => void = () => undefined;
+let renovarSesion: () => Promise<boolean> = () => Promise.resolve(false);
+let renovacionEnCurso: Promise<boolean> | null = null;
 
-/**
- * Lo configurará el estado de sesión cuando exista el ingreso real.
- */
+/** Rutas de ingreso, renovación y cierre: un 401 en ellas no se intenta renovar. */
+const RUTAS_DE_SESION = '/admin/cuentas/';
+
+/** Lo configura el estado de sesión (ProveedorSesion) con el token de acceso guardado. */
 export function configurarToken(fuente: () => string | null): void {
   obtenerToken = fuente;
 }
+
+/**
+ * Qué hacer cuando la API responde 401 a una petición que llevaba token: la sesión venció o ya no
+ * es válida. Sin token (por ejemplo, en el ingreso) un 401 es solo el error de esa petición.
+ */
+export function configurarAlRechazarSesion(accion: () => void): void {
+  alRechazarSesion = accion;
+}
+
+/**
+ * Lo configura ProveedorSesion: pide un token de acceso nuevo con la credencial de renovación y
+ * responde si lo obtuvo. Se usa una vez cuando la API responde 401 a una petición con token.
+ */
+export function configurarRenovacion(accion: () => Promise<boolean>): void {
+  renovarSesion = accion;
+}
+
+/** Varias peticiones rechazadas al mismo tiempo comparten una sola renovación. */
+function renovarUnaVez(): Promise<boolean> {
+  renovacionEnCurso ??= renovarSesion()
+    .catch(() => false)
+    .finally(() => {
+      renovacionEnCurso = null;
+    });
+  return renovacionEnCurso;
+}
+
+const esSesionRechazada = (error: unknown) => error instanceof ErrorApi && error.estadoHttp === 401;
 
 function esCuerpoRespuesta(valor: unknown): valor is CuerpoRespuesta<unknown> {
   return typeof valor === 'object' && valor !== null && 'data' in valor && 'error' in valor;
@@ -88,13 +120,40 @@ async function leerCuerpo(respuesta: Response): Promise<CuerpoRespuesta<unknown>
   return cuerpo;
 }
 
-/** Llama a /api/v1{ruta} y devuelve `data` y `meta`, o lanza ErrorApi con el error de la API. */
+async function pedir<T>(ruta: string, opciones: RequestInit): Promise<Respuesta<T>> {
+  const cuerpo = await leerCuerpo(await enviar(ruta, opciones));
+  return { data: cuerpo.data as T, meta: cuerpo.meta };
+}
+
+/** Después de renovar, repite la petición una sola vez; si se rechaza de nuevo, la sesión terminó. */
+async function repetirTrasRenovar<T>(ruta: string, opciones: RequestInit): Promise<Respuesta<T>> {
+  try {
+    return await pedir<T>(ruta, opciones);
+  } catch (error) {
+    if (esSesionRechazada(error)) alRechazarSesion();
+    throw error;
+  }
+}
+
+/**
+ * Llama a /api/v1{ruta} y devuelve `data` y `meta`, o lanza ErrorApi con el error de la API.
+ * Si la API rechaza una petición con token (401), renueva la sesión una vez y la repite; si no se
+ * puede renovar, avisa que la sesión terminó. Sin token (por ejemplo, en el ingreso) un 401 es solo
+ * el error de esa petición.
+ */
 export async function solicitar<T>(
   ruta: string,
   opciones: RequestInit = {},
 ): Promise<Respuesta<T>> {
-  const cuerpo = await leerCuerpo(await enviar(ruta, opciones));
-  return { data: cuerpo.data as T, meta: cuerpo.meta };
+  const conToken = obtenerToken() !== null;
+  try {
+    return await pedir<T>(ruta, opciones);
+  } catch (error) {
+    if (!conToken || !esSesionRechazada(error) || ruta.startsWith(RUTAS_DE_SESION)) throw error;
+    if (await renovarUnaVez()) return repetirTrasRenovar<T>(ruta, opciones);
+    alRechazarSesion();
+    throw error;
+  }
 }
 
 /**

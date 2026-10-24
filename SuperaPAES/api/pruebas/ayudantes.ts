@@ -27,6 +27,8 @@ export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): 
     jwt: { secretoConsola: SECRETO_DE_PRUEBA, secretoApp: SECRETO_APP_DE_PRUEBA },
     corsOrigenes: ['http://localhost:5173'],
     registrarPeticiones: false,
+    // Sin base: la cuenta del token se da por vigente. Las pruebas de la separación de roles la cambian.
+    verificarCuentaInterna: () => Promise.resolve(true),
     ...cambios,
   };
 }

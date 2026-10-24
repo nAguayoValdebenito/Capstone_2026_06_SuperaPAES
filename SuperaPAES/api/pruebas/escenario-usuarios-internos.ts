@@ -27,6 +27,10 @@ function crearRepositorioFalso() {
       const usuario = usuarios.get(id);
       return Promise.resolve(usuario ? sinHash(usuario) : null);
     },
+    buscarRolActivo: (id) => {
+      const usuario = usuarios.get(id);
+      return Promise.resolve(usuario ? { rol: usuario.rol, activo: usuario.activo } : null);
+    },
     crearUsuarioInterno: ({ nombre, correo, rol, hashContrasena }) => {
       if ([...usuarios.values()].some((u) => u.correo === correo)) {
         return Promise.reject(
@@ -74,7 +78,11 @@ function crearRepositorioFalso() {
   return { repositorio, usuarios, auditoria };
 }
 
-export function crearEscenario() {
+/**
+ * Con `comprobarCuentas`, cada petición de la consola revisa la cuenta del token en el repositorio en
+ * memoria, como en producción; sin él, la cuenta del token se da por vigente.
+ */
+export function crearEscenario({ comprobarCuentas = false } = {}) {
   const falso = crearRepositorioFalso();
   const tx: Ejecutor = { query: () => Promise.reject(new Error('sin base')) };
   let transacciones = 0;
@@ -85,6 +93,8 @@ export function crearEscenario() {
     },
   };
   const dependencias = crearDependenciasDePrueba({ unidadDeTrabajo });
+  // Sin el reemplazo de las pruebas, crearApp usa la comprobación real del servicio de administración.
+  if (comprobarCuentas) delete dependencias.verificarCuentaInterna;
   const administracion = crearAdministracionServicio({
     bd: dependencias.bd,
     unidadDeTrabajo,

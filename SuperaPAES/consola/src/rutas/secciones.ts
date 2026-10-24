@@ -20,7 +20,7 @@ import { PaginaSolicitudesDatos } from '../paginas/solicitudes-datos/PaginaSolic
 import { PaginaSuscripciones } from '../paginas/suscripciones/PaginaSuscripciones';
 import { PaginaTemario } from '../paginas/temario/PaginaTemario';
 import { PaginaUsuariosInternos } from '../paginas/usuarios-internos/PaginaUsuariosInternos';
-import type { RolCuentaInterna } from '../tipos';
+import type { RolCuentaInterna, UsuarioInterno } from '../tipos';
 
 export interface Seccion {
   ruta: string;
@@ -74,4 +74,13 @@ export const INICIO_POR_ROL: Record<RolCuentaInterna, string> = {
 
 export function seccionesDelRol(rol: RolCuentaInterna): Seccion[] {
   return SECCIONES.filter((s) => s.roles.includes(rol));
+}
+
+/** A dónde redirigir a quien abre una ruta de esos roles, o `null` si puede verla. */
+export function redireccionDeRuta(
+  usuario: UsuarioInterno | null,
+  roles: readonly RolCuentaInterna[],
+): string | null {
+  if (!usuario) return '/ingreso';
+  return roles.includes(usuario.rol) ? null : INICIO_POR_ROL[usuario.rol];
 }

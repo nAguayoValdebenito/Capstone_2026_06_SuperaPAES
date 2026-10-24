@@ -134,17 +134,15 @@ a {
   color: var(--menu-tenue);
 }
 
-.menu__cambio-rol {
-  display: grid;
-  gap: 0.25rem;
+.menu__salir {
   margin-top: 0.75rem;
-  color: var(--menu-tenue);
-}
-
-.menu__cambio-rol select {
+  padding: 0.25rem 0;
+  border: 0;
+  background: none;
+  color: var(--menu-texto);
   font: inherit;
-  padding: 0.25rem 0.375rem;
-  border-radius: 0.375rem;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* Páginas */
@@ -180,6 +178,27 @@ a {
 .ingreso__logo {
   width: 12rem;
   height: auto;
+}
+
+.ingreso__formulario {
+  display: grid;
+  gap: 1rem;
+  width: min(24rem, 100%);
+  padding: 2rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.75rem;
+}
+
+.ingreso__formulario h1 {
+  margin: 0;
+  font-size: var(--texto-md);
+}
+
+.ingreso__error {
+  margin: 0;
+  color: var(--error);
+  font-size: var(--texto-sm);
 }
 
 /* Estado del sistema */
