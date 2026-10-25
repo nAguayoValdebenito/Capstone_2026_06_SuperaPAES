@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import type { MiddlewareRutas } from '../../comun/middleware/index.js';
 import { validar } from '../../comun/middleware/validacion.js';
-import { crearCuentasControlador } from './cuentas.controlador.js';
+import { crearCuentasControlador, type CuentasControlador } from './cuentas.controlador.js';
 import type { CuentasServicio } from './cuentas.servicio.js';
 import {
   esquemaCodigoVerificacion,
@@ -14,14 +14,45 @@ import {
   esquemaIngresoApp,
   esquemaRecuperacion,
   esquemaRegistro,
+  esquemaRestablecer,
   esquemaTokenRenovacion,
 } from './cuentas.validadores.js';
 
 /** Documentos legales vigentes: pública y sin sesión, así que lleva un límite por IP (60 por minuto). */
 const LIMITE_DOCUMENTOS_VIGENTES = { ventanaMs: 60 * 1000, maximo: 60 };
 
+/**
+ * Pedir la recuperación de la contraseña: 5 por hora por IP y 3 por hora por correo, contando todas las
+ * peticiones (exista o no la cuenta), para que no sirva para llenar de correos a un tercero.
+ */
+const LIMITE_RECUPERACION_POR_IP = { ventanaMs: 60 * 60 * 1000, maximo: 5 };
+const LIMITE_RECUPERACION_POR_CORREO = { ventanaMs: 60 * 60 * 1000, maximo: 3 };
+
 /** Reenviar el correo de verificación: 3 por hora por estudiante, para que no sirva para enviar en masa. */
 const LIMITE_REENVIO_VERIFICACION = { ventanaMs: 60 * 60 * 1000, maximo: 3 };
+
+/** Recuperación de la contraseña (HU-06). */
+function montarRecuperacion(
+  router: Router,
+  controlador: CuentasControlador,
+  mw: MiddlewareRutas,
+): void {
+  // Las dos son públicas: las llama la consola desde el
+  // navegador, con el enlace del correo.
+  router.post(
+    '/recuperacion/solicitar',
+    validar({ cuerpo: esquemaRecuperacion }),
+    mw.crearLimiteIntentos(LIMITE_RECUPERACION_POR_IP),
+    mw.crearLimiteIntentos({ ...LIMITE_RECUPERACION_POR_CORREO, porCorreo: true }),
+    controlador.solicitarRecuperacion,
+  );
+  router.post(
+    '/recuperacion/restablecer',
+    validar({ cuerpo: esquemaRestablecer }),
+    mw.crearLimiteIntentos({ soloFallidos: true }),
+    controlador.restablecerContrasena,
+  );
+}
 
 export function crearRutasAppCuentas(servicio: CuentasServicio, mw: MiddlewareRutas): Router {
   const router = Router();
@@ -72,11 +103,6 @@ export function crearRutasAppCuentas(servicio: CuentasServicio, mw: MiddlewareRu
     mw.crearLimiteIntentos({ porEstudiante: true, ...LIMITE_REENVIO_VERIFICACION }),
     controlador.reenviarVerificacion,
   );
-  router.post(
-    '/recuperar-contrasena',
-    validar({ cuerpo: esquemaRecuperacion }),
-    mw.crearLimiteIntentos(),
-    controlador.solicitarRecuperacion,
-  );
+  montarRecuperacion(router, controlador, mw);
   return router;
 }

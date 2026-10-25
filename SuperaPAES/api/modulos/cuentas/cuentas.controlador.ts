@@ -12,6 +12,7 @@ import type {
   DatosEnlaceVerificacion,
   DatosRecuperacion,
   DatosRegistro,
+  DatosRestablecer,
   DatosTokenRenovacion,
   ParametrosEstudiante,
 } from './cuentas.validadores.js';
@@ -38,6 +39,7 @@ export interface CuentasControlador {
   renovarApp: ConCuerpo<DatosTokenRenovacion>;
   cerrarApp: ConCuerpo<DatosTokenRenovacion>;
   solicitarRecuperacion: ConCuerpo<DatosRecuperacion>;
+  restablecerContrasena: ConCuerpo<DatosRestablecer>;
   ingresarConsola: ConCuerpo<Credenciales>;
   renovarConsola: ConCuerpo<DatosTokenRenovacion>;
   cerrarConsola: ConCuerpo<DatosTokenRenovacion>;
@@ -81,7 +83,12 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
     solicitarRecuperacion: async (req, res) => {
       // Siempre la misma respuesta, exista o no la cuenta, para no revelar qué correos están registrados.
       await servicio.solicitarRecuperacion(req.body.correo);
-      responder(res, { enviado: true }, { estado: 202 });
+      responder(res, { solicitada: true }, { estado: 202 });
+    },
+    restablecerContrasena: async (req, res) => {
+      await servicio.restablecerContrasena(req.body.token, req.body.contrasena);
+      // No inicia sesión: la app o la consola le piden ingresar con la contraseña nueva (CU-04 paso 5).
+      responder(res, { restablecida: true });
     },
     ingresarConsola: async (req, res) => {
       // El navegador queda en app.token_sesion.dispositivo, para reconocer la sesión.

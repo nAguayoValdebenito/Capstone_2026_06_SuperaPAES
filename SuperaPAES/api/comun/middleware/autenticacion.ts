@@ -89,8 +89,14 @@ export function crearAutenticacion(
   // la siguiente petición, no cuando vence el token.
   const comprobarAdmin: Comprobacion<'admin'> = async (token) => {
     const claims = await verificarToken('admin', token, secretos.secretoConsola, reloj());
-    if (!claims || !(await sesionVigente('admin', claims))) return { rechazo: SESION_INVALIDA };
-    if (!(await verificarCuentaInterna(claims))) return { rechazo: CUENTA_CAMBIADA };
+    if (!claims) return { rechazo: SESION_INVALIDA };
+    // Dos consultas de módulos distintos y sin dependencia entre ellas: van en paralelo.
+    const [sesionAbierta, cuentaVigente] = await Promise.all([
+      sesionVigente('admin', claims),
+      verificarCuentaInterna(claims),
+    ]);
+    if (!sesionAbierta) return { rechazo: SESION_INVALIDA };
+    if (!cuentaVigente) return { rechazo: CUENTA_CAMBIADA };
     return claims;
   };
   return {

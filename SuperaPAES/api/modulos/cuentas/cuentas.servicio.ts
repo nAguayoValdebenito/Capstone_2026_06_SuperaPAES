@@ -6,11 +6,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
 import type { ConfiguracionVerificacionCorreo } from '../../comun/configuracion.js';
 import { cifrarContrasena, compararContrasena } from '../../comun/contrasenas.js';
-import {
-  ErrorCuentaDesactivada,
-  ErrorNoAutenticado,
-  ErrorNoImplementado,
-} from '../../comun/errores.js';
+import { ErrorCuentaDesactivada, ErrorNoAutenticado } from '../../comun/errores.js';
 import { type Audiencia, firmarToken } from '../../comun/jwt.js';
 import { generarCodigoInvitacion } from '../../comun/codigo-invitacion.js';
 import type { ComprobarSesion, SecretosJwt } from '../../comun/middleware/autenticacion.js';
@@ -24,6 +20,11 @@ import {
   type CuentasRepositorio,
   type DuenoSesion,
 } from './cuentas.repositorio.js';
+import {
+  crearRecuperacionRepositorio,
+  type RecuperacionRepositorio,
+} from './cuentas.recuperacion.repositorio.js';
+import { crearRecuperacion, type Recuperacion } from './cuentas.recuperacion.servicio.js';
 import {
   crearRegistroRepositorio,
   type RegistroRepositorio,
@@ -75,6 +76,13 @@ export interface DependenciasCuentasServicio {
   repositorioVerificacion?: VerificacionRepositorio;
   /** Solo para pruebas: reemplaza al del registro. */
   repositorioRegistro?: RegistroRepositorio;
+  /** Solo para pruebas: reemplaza al de la recuperación de la contraseña. */
+  repositorioRecuperacion?: RecuperacionRepositorio;
+  /**
+   * Ejecuta una tarea sin que la respuesta la espere (el correo de la recuperación). Por defecto la
+   * lanza y sigue; las pruebas lo reemplazan para esperarla.
+   */
+  segundoPlano?: (tarea: () => Promise<void>) => void;
   /** Solo para pruebas: reemplaza al generador del código de invitación propio (RN-33). */
   generarCodigoInvitacion?: () => string;
 }
@@ -113,8 +121,8 @@ export interface UsuarioConsola extends UsuarioDeSesion {
   areas?: number[];
 }
 
-/** Incluye la verificación del correo (cuentas.verificacion.servicio.ts). */
-export interface CuentasServicio extends VerificacionCorreo {
+/** Incluye la verificación del correo y la recuperación de la contraseña. */
+export interface CuentasServicio extends VerificacionCorreo, Recuperacion {
   /**
    * HU-01.1 (CU-01): crea la cuenta sin verificar con sus consentimientos, la invitación si vino un
    * código y la sesión de la app, en una transacción; después emite el correo de verificación.
@@ -127,7 +135,6 @@ export interface CuentasServicio extends VerificacionCorreo {
    * correo sin verificar sí entra (solo tiene el cupo de RN-01).
    */
   ingresarEstudiante(credenciales: CredencialesApp): Promise<SesionApp>;
-  solicitarRecuperacion(correo: string): Promise<void>;
   /**
    * HU-02.1 (consola): correo o contraseña incorrectos, 401; cuenta desactivada, 403
    * CUENTA_DESACTIVADA (CU-23 3.b). El navegador (User-Agent) queda como dispositivo de la sesión.
@@ -332,7 +339,21 @@ function crearVerificacionYRegistro(dependencias: DependenciasCuentasServicio, c
     emitirVerificacion: (id) => verificacion.emitirVerificacion(id),
     generarCodigo: dependencias.generarCodigoInvitacion ?? generarCodigoInvitacion,
   });
-  return { ...verificacion, ...registro };
+  const recuperacion = crearRecuperacion({
+    repositorio: dependencias.repositorioRecuperacion ?? crearRecuperacionRepositorio(bd),
+    unidadDeTrabajo,
+    correo: dependencias.correo,
+    reloj,
+    configuracion: dependencias.verificacionCorreo,
+    revocarSesionesEstudiante: (id, tx) =>
+      contexto.repositorio.revocarSesionesEstudiante(id, reloj(), tx),
+    segundoPlano:
+      dependencias.segundoPlano ??
+      ((tarea) => {
+        void tarea();
+      }),
+  });
+  return { ...verificacion, ...registro, ...recuperacion };
 }
 
 export function crearCuentasServicio(dependencias: DependenciasCuentasServicio): CuentasServicio {
@@ -347,9 +368,6 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
   // Se prepara al crear el servicio para que el primer ingreso con un correo sin cuenta no tarde más.
   void hashDeRelleno();
   return {
-    // Esqueleto: se implementa con su historia de usuario (HU-06).
-    solicitarRecuperacion: () =>
-      Promise.reject(new ErrorNoImplementado('La recuperación de contraseña')),
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales, navegador) =>
       ingresarInterno(contexto, credenciales, navegador),

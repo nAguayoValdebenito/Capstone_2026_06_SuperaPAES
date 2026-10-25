@@ -100,6 +100,8 @@ export interface Dependencias {
    * que por defecto consulta la base por el servicio de administracion.
    */
   verificarCuentaInterna?: VerificarCuentaInterna;
+  /** Solo para pruebas: ejecuta el envío del correo de recuperación de modo que la prueba lo espere. */
+  segundoPlano?: (tarea: () => Promise<void>) => void;
 }
 
 export interface Servicios {
@@ -135,6 +137,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     jwt: dependencias.jwt,
     reloj: dependencias.reloj,
     verificacionCorreo: dependencias.verificacionCorreo,
+    ...(dependencias.segundoPlano && { segundoPlano: dependencias.segundoPlano }),
   });
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario });

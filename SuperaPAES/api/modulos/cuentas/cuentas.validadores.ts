@@ -76,6 +76,15 @@ export const esquemaIngresoApp = z.strictObject({
 
 export const esquemaRecuperacion = z.strictObject({ correo });
 
+/**
+ * Crear la contraseña nueva con el enlace del correo (HU-06 esc. 2 y 3). La contraseña se valida con
+ * RN-31 en el servicio, porque necesita el correo de la cuenta del enlace; aquí solo se acota su tamaño.
+ */
+export const esquemaRestablecer = z.strictObject({
+  token: z.string().min(1).max(100),
+  contrasena: z.string().min(1, 'Ingresa la contraseña nueva.').max(500),
+});
+
 /** Renovar y cerrar la sesión: el token de renovación que entregó el ingreso (o la última renovación). */
 export const esquemaTokenRenovacion = z.strictObject({
   tokenRenovacion: z.string().min(1).max(100),
@@ -100,6 +109,7 @@ export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;
 export type CredencialesApp = z.output<typeof esquemaIngresoApp>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
+export type DatosRestablecer = z.output<typeof esquemaRestablecer>;
 export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
 export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
 export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
