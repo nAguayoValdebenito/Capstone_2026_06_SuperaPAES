@@ -2,6 +2,7 @@
 // Los controladores responden con `responder`; los errores los arma el middleware central.
 import type { Response } from 'express';
 import type { ErrorAplicacion } from './errores.js';
+import { CAMPOS_ID_POR_RUTA, serializarIds } from './ids-respuesta.js';
 
 /** Paginación de un listado, en `meta`. */
 export interface Paginacion {
@@ -27,7 +28,13 @@ export function responder<T>(
   data: T,
   opciones: { estado?: number; meta?: CuerpoRespuesta<T>['meta'] } = {},
 ): void {
-  const cuerpo: CuerpoRespuesta<T> = { data, error: null, meta: opciones.meta ?? null };
+  const patron = (res.req.route as { path?: unknown } | undefined)?.path;
+  const ruta = `${res.req.method} ${res.req.baseUrl}${typeof patron === 'string' ? patron : ''}`;
+  const cuerpo: CuerpoRespuesta<T> = {
+    data: serializarIds(data, CAMPOS_ID_POR_RUTA[ruta] ?? []),
+    error: null,
+    meta: opciones.meta ?? null,
+  };
   res.status(opciones.estado ?? 200).json(cuerpo);
 }
 
