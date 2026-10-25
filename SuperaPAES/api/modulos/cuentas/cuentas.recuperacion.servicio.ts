@@ -80,7 +80,11 @@ async function emitirYEnviar(
   const { repositorio, unidadDeTrabajo, reloj, configuracion } = dependencias;
   try {
     const tokenEnlace = randomBytes(BYTES_TOKEN_ENLACE).toString('base64url');
-    const { horasVigencia } = await unidadDeTrabajo.enTransaccion(async (tx) => {
+    const emitido = await unidadDeTrabajo.enTransaccion(async (tx) => {
+      // Primero la cuenta y después el enlace, igual que restablecer: el trigger bloquea el enlace
+      // anterior al insertar y la clave foránea pide la cuenta; en otro orden dos peticiones a la vez
+      // pueden quedar esperándose (deadlock). También serializa dos solicitudes simultáneas.
+      if (!(await repositorio.bloquearCuenta(cuenta.id, tx))) return null;
       const tipo = await repositorio.tipoRecuperacion(tx);
       await repositorio.insertarToken(
         {
@@ -93,8 +97,10 @@ async function emitirYEnviar(
       );
       return tipo;
     });
+    // La cuenta se eliminó entre la consulta y el bloqueo: no hay nada que enviar.
+    if (!emitido) return;
     await dependencias.correo.enviar(
-      mensajeDeRecuperacion(configuracion.urlConsola, cuenta, tokenEnlace, horasVigencia),
+      mensajeDeRecuperacion(configuracion.urlConsola, cuenta, tokenEnlace, emitido.horasVigencia),
     );
   } catch (error) {
     // Solo el id y el tipo de error: el mensaje del proveedor puede traer el correo.

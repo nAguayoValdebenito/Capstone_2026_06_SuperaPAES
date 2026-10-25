@@ -155,6 +155,8 @@ describe('cuentaInternaVigente', () => {
 
     expect(await servicio.cuentaInternaVigente('desarrollo', 'admin')).toBe(false);
     expect(await servicio.cuentaInternaVigente('7 OR 1=1', 'admin')).toBe(false);
+    // Más de 18 dígitos no caben en el BIGINT de usuario_interno: se rechazan sin consultar la base.
+    expect(await servicio.cuentaInternaVigente('9999999999999999999', 'admin')).toBe(false);
     expect(consultas).toBe(0);
     expect(await servicio.cuentaInternaVigente('7', 'admin')).toBe(true);
     expect(await servicio.cuentaInternaVigente('7', 'docente')).toBe(false);

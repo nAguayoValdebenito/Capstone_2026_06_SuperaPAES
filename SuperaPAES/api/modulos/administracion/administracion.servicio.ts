@@ -277,7 +277,7 @@ async function cambiarEstado(contexto: Contexto, autorId: string, id: string, ac
 }
 
 /** El id de usuario_interno es BIGINT: un sub que no es un número no corresponde a ninguna cuenta. */
-const ID_USUARIO_INTERNO = /^[1-9]\d{0,18}$/;
+const ID_USUARIO_INTERNO = /^[1-9]\d{0,17}$/;
 
 async function cuentaVigente(
   { repositorio }: Contexto,
