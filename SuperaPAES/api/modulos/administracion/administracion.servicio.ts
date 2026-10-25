@@ -9,6 +9,7 @@ import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type AdministracionRepositorio,
   crearAdministracionRepositorio,
+  type EntradaAuditoria,
   type UsuarioInterno,
 } from './administracion.repositorio.js';
 import type {
@@ -21,6 +22,12 @@ export type { UsuarioInterno } from './administracion.repositorio.js';
 export interface DependenciasAdministracionServicio {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
+  /**
+   * Cierra las sesiones abiertas de una cuenta que se desactiva, en la misma transacción (CU-23 3.b):
+   * sin esto su token de renovación seguiría vivo. Las sesiones son del módulo cuentas, que se crea
+   * después porque usa este servicio; app.ts entrega la función.
+   */
+  revocarSesionesUsuarioInterno: (id: string, tx: Ejecutor) => Promise<void>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearAdministracionRepositorio(bd). */
   repositorio?: AdministracionRepositorio;
 }
@@ -32,6 +39,8 @@ export interface DependenciasAdministracionServicio {
  */
 export interface AdministracionServicio {
   listarUsuariosInternos(): Promise<UsuarioInterno[]>;
+  /** La cuenta con su rol y sus áreas, o null si no existe (para la sesión de la consola). */
+  obtenerUsuarioInterno(id: string): Promise<UsuarioInterno | null>;
   crearUsuarioInterno(autorId: string, datos: DatosCrearUsuarioInterno): Promise<UsuarioInterno>;
   editarUsuarioInterno(
     autorId: string,
@@ -39,7 +48,8 @@ export interface AdministracionServicio {
     cambios: DatosEditarUsuarioInterno,
   ): Promise<UsuarioInterno>;
   /**
-   * CU-23 3.b: una cuenta desactivada no puede iniciar sesión. Repetir el estado no cambia nada.
+   * CU-23 3.b: una cuenta desactivada no puede iniciar sesión y sus sesiones abiertas se cierran.
+   * Repetir el estado no cambia nada.
    * CU-23 3.c: no se desactiva la propia cuenta ni al último administrador activo (409).
    */
   cambiarEstadoUsuarioInterno(
@@ -48,15 +58,21 @@ export interface AdministracionServicio {
     activo: boolean,
   ): Promise<UsuarioInterno>;
   /**
-   * HU-03 esc. 3 y CU-23 3.b: si la cuenta existe, está activa y tiene ese rol. autenticarAdmin lo
-   * llama en cada petición de la consola, así que un cambio de rol o una desactivación rige de inmediato.
+   * Registra una acción de la consola en contenido.auditoria (RNF-08), dentro de la transacción del
+   * módulo que hace el cambio. Nunca recibe contraseñas, hashes ni códigos.
    */
-  cuentaInternaVigente(id: string, rol: RolCuentaInterna): Promise<boolean>;
+  registrarAuditoria(entrada: EntradaAuditoria, tx: Ejecutor): Promise<void>;
+  /**
+   * Parámetro de negocio entero de contenido.configuracion (por ejemplo cupo_verificado). Falla si la
+   * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto.
+   */
+  obtenerParametroEntero(clave: string): Promise<number>;
 }
 
 interface Contexto {
   repositorio: AdministracionRepositorio;
   unidadDeTrabajo: UnidadDeTrabajo;
+  revocarSesiones: DependenciasAdministracionServicio['revocarSesionesUsuarioInterno'];
 }
 
 const ENTIDAD_USUARIO_INTERNO = 'usuario_interno';
@@ -229,6 +245,7 @@ async function cambiarEstado(contexto: Contexto, autorId: string, id: string, ac
     if (!activo) protegerContinuidad(autorId, actual, activos, 'desactivar');
     if (actual.activo === activo) return actual;
     await repositorio.cambiarActivoUsuarioInterno(id, activo, tx);
+    if (!activo) await contexto.revocarSesiones(id, tx);
     const cambiado = { ...actual, activo };
     await repositorio.registrarAuditoria(
       {
@@ -245,32 +262,28 @@ async function cambiarEstado(contexto: Contexto, autorId: string, id: string, ac
   });
 }
 
-/** El id de usuario_interno es BIGINT: un sub que no es un número no corresponde a ninguna cuenta. */
-const ID_USUARIO_INTERNO = /^[1-9]\d{0,18}$/;
-
-async function cuentaVigente(
-  { repositorio }: Contexto,
-  id: string,
-  rol: RolCuentaInterna,
-): Promise<boolean> {
-  if (!ID_USUARIO_INTERNO.test(id)) return false;
-  const cuenta = await repositorio.buscarRolActivo(id);
-  return cuenta !== null && cuenta.activo && cuenta.rol === rol;
-}
-
 export function crearAdministracionServicio(
   dependencias: DependenciasAdministracionServicio,
 ): AdministracionServicio {
   const contexto: Contexto = {
     repositorio: dependencias.repositorio ?? crearAdministracionRepositorio(dependencias.bd),
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    revocarSesiones: dependencias.revocarSesionesUsuarioInterno,
   };
   return {
     listarUsuariosInternos: () => contexto.repositorio.listarUsuariosInternos(),
+    obtenerUsuarioInterno: (id) => contexto.repositorio.buscarUsuarioInterno(id, false),
     crearUsuarioInterno: (autorId, datos) => crearUsuario(contexto, autorId, datos),
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
       cambiarEstado(contexto, autorId, id, activo),
-    cuentaInternaVigente: (id, rol) => cuentaVigente(contexto, id, rol),
+    registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
+    obtenerParametroEntero: async (clave) => {
+      const valor = await contexto.repositorio.leerParametro(clave);
+      if (typeof valor !== 'number' || !Number.isInteger(valor)) {
+        throw new Error(`contenido.configuracion no tiene un entero en ${clave}.`);
+      }
+      return valor;
+    },
   };
 }

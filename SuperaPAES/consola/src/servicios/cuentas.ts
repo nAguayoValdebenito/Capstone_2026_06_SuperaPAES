@@ -22,7 +22,7 @@ export async function renovar(tokenRenovacion: string): Promise<SesionIniciada> 
 
 /** Cierra la sesión en la API: su credencial de renovación deja de servir (CU-03). */
 export async function cerrar(tokenRenovacion: string): Promise<void> {
-  await solicitarAdmin<{ cerrada: boolean }>('/cuentas/cierre', {
+  await solicitarAdmin<{ sesionCerrada: boolean }>('/cuentas/cerrar', {
     method: 'POST',
     body: JSON.stringify({ tokenRenovacion }),
   });

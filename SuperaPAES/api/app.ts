@@ -5,11 +5,7 @@ import cors from 'cors';
 import express, { Router, type Express } from 'express';
 import helmet from 'helmet';
 import type { Proveedores } from './adaptadores/fabrica.js';
-import {
-  crearAutenticacion,
-  type SecretosJwt,
-  type VerificarCuentaInterna,
-} from './comun/middleware/autenticacion.js';
+import { crearAutenticacion, type SecretosJwt } from './comun/middleware/autenticacion.js';
 import type { MiddlewareRutas } from './comun/middleware/index.js';
 import {
   crearFabricaLimiteIntentos,
@@ -18,6 +14,8 @@ import {
 } from './comun/middleware/limite-intentos.js';
 import { manejarErrores, rutaNoEncontrada } from './comun/middleware/manejo-errores.js';
 import { registrarPeticiones } from './comun/middleware/registro-peticiones.js';
+import type { ConfiguracionVerificacionCorreo } from './comun/configuracion.js';
+import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
 import type { Ejecutor, UnidadDeTrabajo } from './db/transaccion.js';
 import {
@@ -85,16 +83,14 @@ export interface Dependencias {
   unidadDeTrabajo: UnidadDeTrabajo;
   comprobarBaseDeDatos: () => Promise<void>;
   proveedores: Proveedores;
-  /** Hora actual; en las pruebas se reemplaza por una fija. */
+  /** Hora actual (sesiones y vencimientos); en las pruebas se reemplaza para simular el paso del tiempo. */
+  reloj: Reloj;
   jwt: SecretosJwt;
+  /** Dirección de la consola y clave del código del correo de verificación (RN-32). */
+  verificacionCorreo: ConfiguracionVerificacionCorreo;
   corsOrigenes: string[];
   registrarPeticiones: boolean;
   limiteIntentos?: OpcionesLimiteIntentos;
-  /**
-   * Solo para pruebas: reemplaza la comprobación de la cuenta interna en cada petición de la consola,
-   * que por defecto consulta la base por el servicio de administracion.
-   */
-  verificarCuentaInterna?: VerificarCuentaInterna;
 }
 
 export interface Servicios {
@@ -115,18 +111,26 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const { ia, correo, pagos } = dependencias.proveedores;
 
-  const administracion = crearAdministracionServicio(base);
+  // Al desactivar una cuenta interna, administracion cierra sus sesiones, que son de cuentas. Cuentas
+  // se crea después porque usa administracion: la función solo se llama una vez creados los dos.
+  const administracion = crearAdministracionServicio({
+    ...base,
+    revocarSesionesUsuarioInterno: (id, tx) => cuentas.revocarSesionesUsuarioInterno(id, tx),
+  });
+  const cupoInvitaciones = crearCupoInvitacionesServicio({ ...base, administracion });
   const cuentas = crearCuentasServicio({
     ...base,
     correo,
     administracion,
-    secretoConsola: dependencias.jwt.secretoConsola,
+    cupoInvitaciones,
+    jwt: dependencias.jwt,
+    reloj: dependencias.reloj,
+    verificacionCorreo: dependencias.verificacionCorreo,
   });
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario });
   const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
   const revision = crearRevisionServicio({ ...base, administracion, preguntas });
-  const cupoInvitaciones = crearCupoInvitacionesServicio({ ...base, administracion });
   const suscripciones = crearSuscripcionesServicio({ ...base, pagos });
   const evaluaciones = crearEvaluacionesServicio({
     ...base,
@@ -164,7 +168,10 @@ function crearRouterApp(s: Servicios, mw: MiddlewareRutas): Router {
   return router;
 }
 
-/** /api/v1/admin: el ingreso de la consola y, después, todo con el JWT de la consola y su rol. */
+/**
+ * /api/v1/admin: la sesión de la consola y, después, todo con el JWT de la consola. Cada ruta declara
+ * su rol con exigirRol en su propia cadena (DAS 4.3.3); los routers de los módulos no aplican roles.
+ */
 function crearRouterAdmin(s: Servicios, mw: MiddlewareRutas): Router {
   const router = Router();
   router.use('/cuentas', crearRutasAdminCuentas(s.cuentas, mw));
@@ -205,12 +212,11 @@ export function crearApp(
     }),
   );
 
-  // La cuenta de cada token de la consola se vuelve a comprobar con su dueño, el módulo administracion.
-  const verificarCuentaInterna: VerificarCuentaInterna =
-    dependencias.verificarCuentaInterna ??
-    (({ sub, rol }) => servicios.administracion.cuentaInternaVigente(sub, rol));
   const mw: MiddlewareRutas = {
-    ...crearAutenticacion(dependencias.jwt, verificarCuentaInterna),
+    ...crearAutenticacion(dependencias.jwt, {
+      reloj: dependencias.reloj,
+      sesionVigente: servicios.cuentas.sesionVigente,
+    }),
     crearLimiteIntentos: crearFabricaLimiteIntentos(
       dependencias.limiteIntentos ?? LIMITE_INTENTOS_POR_DEFECTO,
     ),

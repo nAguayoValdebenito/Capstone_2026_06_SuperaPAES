@@ -110,12 +110,21 @@ en el simulador de iOS, `http://localhost:3000`.
 
 ## Chequeos
 
+Las pruebas con PostgreSQL usan una base aparte cuyo nombre termina en `_test` (se niegan a vaciar o
+borrar cualquier otra). Se prepara una vez, con el mismo procedimiento de la CI:
+
+1. Crear la base: `psql -U postgres -c "CREATE DATABASE supera_paes_test"`.
+2. En `api/.env`, agregar `DATABASE_URL_PRUEBAS` con la misma dirección de `DATABASE_URL`, pero con
+   `supera_paes_test` como nombre de la base.
+3. Migrarla: ejecutar `npm run migrar -w api` con `DATABASE_URL` igual a esa dirección (en la CI, el
+   paso «Migrar la base de pruebas»).
+
 ```bash
 npm run lint      # tipos, ESLint (incluye las reglas de dependencia entre módulos) y Prettier
-npm run test      # Vitest (no necesita base de datos)
+npm run test      # Vitest; con DATABASE_URL_PRUEBAS en api/.env también corre las pruebas con PostgreSQL
 npm run build
 npm run codigo-muerto && npm run circulares && npm run duplicacion
 npm run revisar-secretos   # ningún secreto puede llegar a GitHub
-npm run probar:bd -w api   # 249 casos del modelo de datos (también en la CI)
+npm run probar:bd -w api   # 249 casos del modelo de datos (también en la CI); usa DATABASE_URL, crea y borra su propia base, sin la protección de _test
 cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
 ```

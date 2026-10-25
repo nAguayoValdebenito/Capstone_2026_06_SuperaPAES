@@ -69,6 +69,50 @@ export class ErrorConflicto extends ErrorAplicacion {
   }
 }
 
+/**
+ * RN-32, CU-02 3.b: el enlace o el código de verificación ya se usó, se anuló al pedir un correo nuevo,
+ * venció o no existe. El estudiante debe pedir un correo nuevo.
+ */
+export class ErrorVerificacionNoVigente extends ErrorAplicacion {
+  constructor() {
+    super(
+      409,
+      'VERIFICACION_NO_VIGENTE',
+      'Este enlace o código ya no sirve: se usó, venció o pediste un correo nuevo. Pide que te enviemos otro correo.',
+    );
+  }
+}
+
+/** RN-32, CU-02 3.a: el código de verificación no es el correcto; quedan intentos. */
+export class ErrorCodigoIncorrecto extends ErrorAplicacion {
+  constructor(intentosRestantes: number) {
+    super(
+      400,
+      'CODIGO_INCORRECTO',
+      `El código no es correcto. Te ${intentosRestantes === 1 ? 'queda 1 intento' : `quedan ${String(intentosRestantes)} intentos`}.`,
+      { detalles: { intentosRestantes } },
+    );
+  }
+}
+
+/** RN-32, CU-02 3.a: se acabaron los intentos del código; hay que pedir un correo nuevo. */
+export class ErrorCodigoAgotado extends ErrorAplicacion {
+  constructor() {
+    super(
+      409,
+      'CODIGO_AGOTADO',
+      'Se acabaron los intentos para escribir el código. Pide que te enviemos un correo nuevo.',
+    );
+  }
+}
+
+/** CU-02b: el administrador intenta confirmar un correo que ya estaba verificado. */
+export class ErrorYaVerificado extends ErrorAplicacion {
+  constructor() {
+    super(409, 'YA_VERIFICADO', 'El correo de este estudiante ya está verificado.');
+  }
+}
+
 export class ErrorDemasiadosIntentos extends ErrorAplicacion {
   constructor() {
     super(

@@ -1,136 +1,26 @@
-// Montaje de rutas por módulo, separación de tokens de la app y de la consola, autorización por rol,
-// límite de intentos y webhooks de las tiendas.
+// Montaje de rutas por módulo, validación de la entrada, límite de intentos y webhooks de las tiendas.
+// La separación de tokens y los permisos por rol están en permisos.test.ts; la sesión de la consola,
+// en sesion-consola.test.ts.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { crearApp, crearServicios } from '../app.js';
-import { firmarToken } from '../comun/jwt.js';
+import { crearServicios } from '../app.js';
+import { ErrorNoAutenticado } from '../comun/errores.js';
 import { crearTemarioServicio } from '../modulos/temario/index.js';
 import {
+  crearAppDePrueba,
   crearDependenciasDePrueba,
   cuerpoIngreso,
   cuerpoRegistro,
-  errorConFormato,
-  SECRETO_APP_DE_PRUEBA,
   tokenAdmin,
   tokenApp,
 } from './ayudantes.js';
 
-const app = crearApp(crearDependenciasDePrueba());
+const app = crearAppDePrueba();
 const RUTA_REGISTRO = '/api/v1/app/cuentas/registro';
 const RUTA_INGRESO_APP = '/api/v1/app/cuentas/ingreso';
 const RUTA_INGRESO_ADMIN = '/api/v1/admin/cuentas/ingreso';
 const RUTA_INVITACIONES = '/api/v1/app/cupo-invitaciones/invitaciones';
 const conToken = (token: string) => ({ Authorization: `Bearer ${token}` });
-
-describe('separación de tokens de la app y de la consola', () => {
-  it('un token de la app recibe 401 en /api/v1/admin', async () => {
-    const respuesta = await request(app)
-      .get('/api/v1/admin/temario')
-      .set(conToken(await tokenApp()));
-
-    expect(respuesta.status).toBe(401);
-    expect(respuesta.body).toEqual(errorConFormato('NO_AUTENTICADO'));
-  });
-
-  it('un token de la consola recibe 401 en /api/v1/app', async () => {
-    const respuesta = await request(app)
-      .get('/api/v1/app/evaluaciones')
-      .set(conToken(await tokenAdmin()));
-
-    expect(respuesta.status).toBe(401);
-    expect(respuesta.body.error.codigo).toBe('NO_AUTENTICADO');
-  });
-
-  it('un token firmado con el secreto de la app pero con audiencia admin no sirve en la consola', async () => {
-    const falsificado = await firmarToken(
-      'admin',
-      { sub: '1', rol: 'admin' },
-      SECRETO_APP_DE_PRUEBA,
-    );
-
-    const respuesta = await request(app).get('/api/v1/admin/temario').set(conToken(falsificado));
-
-    expect(respuesta.status).toBe(401);
-  });
-
-  it('sin token, ambas interfaces responden 401', async () => {
-    expect((await request(app).get('/api/v1/admin/temario')).status).toBe(401);
-    expect((await request(app).get('/api/v1/app/evaluaciones')).status).toBe(401);
-  });
-
-  it('un token vencido responde 401', async () => {
-    const vencido = await firmarToken('app', { sub: '10' }, SECRETO_APP_DE_PRUEBA, '-1s');
-
-    const respuesta = await request(app).get('/api/v1/app/evaluaciones').set(conToken(vencido));
-
-    expect(respuesta.status).toBe(401);
-  });
-
-  it('con el token correcto pasa la autenticación y llega al módulo (sin endpoints aún: 404)', async () => {
-    const admin = await request(app)
-      .get('/api/v1/admin/temario')
-      .set(conToken(await tokenAdmin()));
-    const estudiante = await request(app)
-      .get('/api/v1/app/evaluaciones')
-      .set(conToken(await tokenApp()));
-
-    expect(admin.status).toBe(404);
-    expect(estudiante.status).toBe(404);
-  });
-});
-
-describe('autorización por rol en la consola', () => {
-  it('un docente recibe 403 en un módulo solo para el administrador', async () => {
-    const respuesta = await request(app)
-      .get('/api/v1/admin/administracion')
-      .set(conToken(await tokenAdmin('docente')));
-
-    expect(respuesta.status).toBe(403);
-    expect(respuesta.body.error.codigo).toBe('SIN_PERMISO');
-  });
-
-  // DAS 4.3.3: cada ruta de revisión declara su rol (casos CP-04 y CP-05 del C2).
-  it.each(['/mis-revisiones', '/desempates'])(
-    'un administrador recibe 403 en la ruta del docente %s',
-    async (ruta) => {
-      const respuesta = await request(app)
-        .get(`/api/v1/admin/revision${ruta}`)
-        .set(conToken(await tokenAdmin('admin')));
-
-      expect(respuesta.status).toBe(403);
-      expect(respuesta.body).toEqual(errorConFormato('SIN_PERMISO'));
-    },
-  );
-
-  it('un docente recibe 403 en el seguimiento de revisiones del administrador (C06)', async () => {
-    const respuesta = await request(app)
-      .get('/api/v1/admin/revision/seguimiento')
-      .set(conToken(await tokenAdmin('docente')));
-
-    expect(respuesta.status).toBe(403);
-    expect(respuesta.body).toEqual(errorConFormato('SIN_PERMISO'));
-  });
-
-  it.each([
-    ['docente', '/mis-revisiones'],
-    ['docente', '/desempates'],
-    ['admin', '/seguimiento'],
-  ] as const)('el %s pasa la autorización de %s (todavía 501)', async (rol, ruta) => {
-    const respuesta = await request(app)
-      .get(`/api/v1/admin/revision${ruta}`)
-      .set(conToken(await tokenAdmin(rol)));
-
-    expect(respuesta.status).toBe(501);
-  });
-
-  it('un docente recibe 403 en las áreas del temario', async () => {
-    const respuesta = await request(app)
-      .get('/api/v1/admin/temario/areas')
-      .set(conToken(await tokenAdmin('docente')));
-
-    expect(respuesta.status).toBe(403);
-  });
-});
 
 describe('áreas de especialidad del temario', () => {
   it('el administrador recibe id y nombre de cada área', async () => {
@@ -138,12 +28,11 @@ describe('áreas de especialidad del temario', () => {
       { id: 4, nombre: 'Biología' },
       { id: 1, nombre: 'Lenguaje' },
     ];
-    const dependencias = crearDependenciasDePrueba();
     const temario = crearTemarioServicio({
-      ...dependencias,
+      ...crearDependenciasDePrueba(),
       repositorio: { listarAreas: () => Promise.resolve(areas) },
     });
-    const conAreas = crearApp(dependencias, { ...crearServicios(dependencias), temario });
+    const conAreas = crearAppDePrueba({}, { temario });
 
     const respuesta = await request(conAreas)
       .get('/api/v1/admin/temario/areas')
@@ -180,10 +69,9 @@ describe('módulos montados', () => {
 
   it.each([
     [RUTA_REGISTRO, cuerpoRegistro()],
-    [RUTA_INGRESO_APP, cuerpoIngreso()],
     ['/api/v1/app/cuentas/recuperar-contrasena', { correo: cuerpoIngreso().correo }],
   ])('%s es pública y todavía responde 501', async (ruta, cuerpo) => {
-    const respuesta = await request(crearApp(crearDependenciasDePrueba())).post(ruta).send(cuerpo);
+    const respuesta = await request(crearAppDePrueba()).post(ruta).send(cuerpo);
 
     expect(respuesta.status).toBe(501);
     expect(respuesta.body.error.codigo).toBe('NO_IMPLEMENTADO');
@@ -262,9 +150,16 @@ describe('webhooks de las tiendas', () => {
 });
 
 describe('límite de intentos', () => {
-  const appLimitada = () =>
-    crearApp(crearDependenciasDePrueba({ limiteIntentos: { ventanaMs: 60_000, maximo: 2 } }));
+  const limite = { limiteIntentos: { ventanaMs: 60_000, maximo: 2 } };
   const ingreso = cuerpoIngreso();
+  /** Los ingresos de la app y de la consola siempre fallan con 401: así cuentan para el límite. */
+  const appLimitada = () => {
+    const { cuentas } = crearServicios(crearDependenciasDePrueba(limite));
+    const fallar = () => Promise.reject(new ErrorNoAutenticado());
+    return crearAppDePrueba(limite, {
+      cuentas: { ...cuentas, ingresarEstudiante: fallar, ingresarUsuarioInterno: fallar },
+    });
+  };
 
   it('responde 429 con el formato común al superar el máximo', async () => {
     const limitada = appLimitada();
@@ -286,8 +181,7 @@ describe('límite de intentos', () => {
 
     const respuesta = await request(limitada).post(RUTA_INGRESO_ADMIN).send(ingreso);
 
-    // Sin base en esta prueba el ingreso de la consola no termina, pero no lo frena el contador de la app.
-    expect(respuesta.status).not.toBe(429);
+    expect(respuesta.status).toBe(401);
   });
 
   it('las invitaciones también están limitadas, después de autenticar y validar', async () => {
@@ -307,10 +201,14 @@ describe('límite de intentos', () => {
 
   it('usa la IP real que informa el proxy (trust proxy)', async () => {
     const limitada = appLimitada();
-    const desde = (ip: string) =>
-      request(limitada).post(RUTA_INGRESO_APP).set('X-Forwarded-For', ip).send(ingreso);
-    for (let i = 0; i < 3; i++) await desde('203.0.113.1');
+    // Correos distintos: el límite por correo es independiente del límite por IP (ver sesion-estudiante-bd).
+    const desde = (ip: string, correo: string) =>
+      request(limitada)
+        .post(RUTA_INGRESO_APP)
+        .set('X-Forwarded-For', ip)
+        .send({ ...ingreso, correo });
+    for (let i = 0; i < 3; i++) await desde('203.0.113.1', `uno${String(i)}@ejemplo.cl`);
 
-    expect((await desde('203.0.113.2')).status).toBe(501);
+    expect((await desde('203.0.113.2', 'otro@ejemplo.cl')).status).toBe(401);
   });
 });

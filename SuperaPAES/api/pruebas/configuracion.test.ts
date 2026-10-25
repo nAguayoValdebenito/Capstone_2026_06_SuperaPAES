@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { ErrorConfiguracion, leerConfiguracion } from '../comun/configuracion.js';
-import { SECRETO_APP_DE_PRUEBA, SECRETO_DE_PRUEBA } from './ayudantes.js';
+import {
+  CLAVE_CODIGO_DE_PRUEBA,
+  SECRETO_APP_DE_PRUEBA,
+  SECRETO_DE_PRUEBA,
+  URL_CONSOLA_DE_PRUEBA,
+} from './ayudantes.js';
 
 const minimas = {
   // Valor de prueba, no es un secreto. secretlint-disable-next-line
   DATABASE_URL: 'postgres://usuario:clave@localhost:5432/supera_paes',
   JWT_SECRETO_CONSOLA: SECRETO_DE_PRUEBA,
   JWT_SECRETO_APP: SECRETO_APP_DE_PRUEBA,
+  URL_CONSOLA: URL_CONSOLA_DE_PRUEBA,
+  CORS_ORIGENES: URL_CONSOLA_DE_PRUEBA,
+  CLAVE_CODIGO_CORREO: CLAVE_CODIGO_DE_PRUEBA,
 };
 
 const tiendas = {
@@ -99,6 +107,8 @@ describe('leerConfiguracion', () => {
       ...minimas,
       ...tiendas,
       NODE_ENV: 'production',
+      URL_CONSOLA: 'https://consola.superapaes.cl',
+      CORS_ORIGENES: 'https://consola.superapaes.cl',
       PROVEEDOR_CORREO: 'smtp',
       SMTP_HOST: 'smtp.ejemplo.cl',
       SMTP_PORT: '587',
@@ -117,6 +127,16 @@ describe('leerConfiguracion', () => {
       ['PROVEEDOR_IA', 'simulado', /PROVEEDOR_IA[\s\S]*deepseek o gemini/],
     ])('rechaza %s=%s', (variable, valor, mensaje) => {
       expect(() => leerConfiguracion({ ...produccion, [variable]: valor })).toThrow(mensaje);
+    });
+
+    it('exige https en URL_CONSOLA', () => {
+      expect(() =>
+        leerConfiguracion({
+          ...produccion,
+          URL_CONSOLA: 'http://consola.superapaes.cl',
+          CORS_ORIGENES: 'http://consola.superapaes.cl',
+        }),
+      ).toThrow(/URL_CONSOLA[\s\S]*https/);
     });
 
     it('rechaza los proveedores de desarrollo aunque falte la variable', () => {
@@ -152,6 +172,36 @@ describe('leerConfiguracion', () => {
     const config = leerConfiguracion({ ...minimas, PORT: '', SMTP_PORT: '' });
 
     expect(config.puerto).toBe(3000);
+  });
+
+  describe('correo de verificación (RN-32)', () => {
+    it('entrega la dirección de la consola sin / final y la clave del código', () => {
+      const config = leerConfiguracion({ ...minimas, URL_CONSOLA: `${URL_CONSOLA_DE_PRUEBA}/` });
+
+      expect(config.verificacionCorreo).toEqual({
+        urlConsola: URL_CONSOLA_DE_PRUEBA,
+        claveCodigo: CLAVE_CODIGO_DE_PRUEBA,
+      });
+    });
+
+    it.each(['URL_CONSOLA', 'CLAVE_CODIGO_CORREO'])('exige %s', (variable) => {
+      expect(() => leerConfiguracion({ ...minimas, [variable]: undefined })).toThrow(variable);
+    });
+
+    it('exige que el origen de URL_CONSOLA esté en CORS_ORIGENES', () => {
+      expect(() =>
+        leerConfiguracion({ ...minimas, CORS_ORIGENES: 'https://otra.superapaes.cl' }),
+      ).toThrow(/CORS_ORIGENES[\s\S]*http:\/\/localhost:5173/);
+    });
+
+    it('rechaza una clave del código corta o igual a un secreto JWT', () => {
+      expect(() => leerConfiguracion({ ...minimas, CLAVE_CODIGO_CORREO: 'corta' })).toThrow(
+        /CLAVE_CODIGO_CORREO/,
+      );
+      expect(() =>
+        leerConfiguracion({ ...minimas, CLAVE_CODIGO_CORREO: SECRETO_APP_DE_PRUEBA }),
+      ).toThrow(/CLAVE_CODIGO_CORREO[\s\S]*distinta/);
+    });
   });
 
   it('rechaza el mismo secreto para la consola y la app', () => {

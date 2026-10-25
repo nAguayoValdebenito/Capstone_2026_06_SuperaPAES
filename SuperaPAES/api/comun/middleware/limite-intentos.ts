@@ -26,26 +26,42 @@ export interface UsoLimiteIntentos {
   soloFallidos?: boolean;
   /** Cuenta por estudiante autenticado (si lo hay) en vez de por IP. */
   porEstudiante?: boolean;
+  /**
+   * Cuenta por el correo del cuerpo ya validado en vez de por IP: frena a quien prueba contraseñas
+   * de una cuenta desde muchas IP. El ingreso usa los dos límites, por IP y por correo (RNF-02).
+   */
+  porCorreo?: boolean;
+  /** Ventana y máximo propios de esta ruta, en vez de los valores generales de la API. */
+  ventanaMs?: number;
+  maximo?: number;
 }
 
 /** Cada llamada crea un contador independiente: un límite por grupo de rutas. */
 export type CrearLimiteIntentos = (uso?: UsoLimiteIntentos) => RequestHandler;
 
-function claveDe(req: Request, porEstudiante: boolean): string {
+function correoDelCuerpo(req: Request): string | null {
+  const cuerpo: unknown = req.body;
+  if (typeof cuerpo !== 'object' || cuerpo === null || !('correo' in cuerpo)) return null;
+  return typeof cuerpo.correo === 'string' ? cuerpo.correo : null;
+}
+
+function claveDe(req: Request, { porEstudiante, porCorreo }: UsoLimiteIntentos): string {
   if (porEstudiante && req.estudiante) return `estudiante:${req.estudiante.id}`;
+  const correo = porCorreo ? correoDelCuerpo(req) : null;
+  if (correo !== null) return `correo:${correo}`;
   // ipKeyGenerator agrupa las direcciones IPv6 por subred para que no se esquive el límite.
   return ipKeyGenerator(req.ip ?? '');
 }
 
 export function crearFabricaLimiteIntentos(opciones: OpcionesLimiteIntentos): CrearLimiteIntentos {
-  return ({ soloFallidos = false, porEstudiante = false } = {}) =>
+  return ({ soloFallidos = false, ventanaMs, maximo, ...uso } = {}) =>
     rateLimit({
-      windowMs: opciones.ventanaMs,
-      limit: opciones.maximo,
+      windowMs: ventanaMs ?? opciones.ventanaMs,
+      limit: maximo ?? opciones.maximo,
       standardHeaders: 'draft-8',
       legacyHeaders: false,
       skipSuccessfulRequests: soloFallidos,
-      keyGenerator: (req) => claveDe(req, porEstudiante),
+      keyGenerator: (req) => claveDe(req, uso),
       handler: (_req, _res, next) => next(new ErrorDemasiadosIntentos()),
     });
 }

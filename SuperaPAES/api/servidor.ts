@@ -16,7 +16,9 @@ function iniciar(): void {
     unidadDeTrabajo: crearUnidadDeTrabajo(pool),
     comprobarBaseDeDatos: () => comprobarBaseDeDatos(pool),
     proveedores: FabricaProveedores.crear(config, relojDelSistema),
+    reloj: relojDelSistema,
     jwt: config.jwt,
+    verificacionCorreo: config.verificacionCorreo,
     corsOrigenes: config.corsOrigenes,
     registrarPeticiones: config.entorno !== 'test',
   };

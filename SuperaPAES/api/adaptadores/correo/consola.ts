@@ -1,11 +1,14 @@
-// Proveedor de correo que solo registrará los mensajes en la consola. Esqueleto por ahora.
-import { ErrorNoImplementado } from '../../comun/errores.js';
-import type { ProveedorCorreo } from './proveedor.js';
+// Proveedor de correo de desarrollo: no envía nada, escribe el mensaje completo en el registro de la API
+// para poder probar los enlaces y los códigos (RN-32). La configuración lo prohíbe en producción, así
+// que ningún registro de la versión publicada contiene un enlace ni un código.
+import { registro } from '../../comun/registro.js';
+import type { MensajeCorreo, ProveedorCorreo } from './proveedor.js';
 
 export class ProveedorCorreoConsola implements ProveedorCorreo {
   readonly nombre = 'consola';
 
-  enviar(): Promise<void> {
-    return Promise.reject(new ErrorNoImplementado('El registro de correos en consola'));
+  enviar({ para, asunto, texto }: MensajeCorreo): Promise<void> {
+    registro.info('Correo (proveedor consola de desarrollo: no se envía)', { para, asunto, texto });
+    return Promise.resolve();
   }
 }

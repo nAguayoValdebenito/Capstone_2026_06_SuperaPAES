@@ -8,8 +8,6 @@ import { ErrorConflicto } from '../comun/errores.js';
 import { crearPrimerAdministrador, restablecerAdministrador } from '../db/primer-administrador.js';
 import { ejecutarEnTransaccion } from '../db/transaccion.js';
 import { crearAdministracionServicio } from '../modulos/administracion/index.js';
-import { crearCuentasServicio } from '../modulos/cuentas/index.js';
-import { crearDependenciasDePrueba } from './ayudantes.js';
 import {
   type BaseTemporal,
   crearBaseTemporal,
@@ -19,11 +17,15 @@ import {
   vaciarCuentasInternas,
 } from './base-temporal.js';
 
-/** El servicio de administración sobre una conexión, cada operación en su propia transacción. */
+/**
+ * El servicio de administración sobre una conexión, cada operación en su propia transacción. El
+ * cierre de sesiones al desactivar se prueba con PostgreSQL en sesion-consola-bd.test.ts.
+ */
 const servicioSobre = (cliente: pg.Client) =>
   crearAdministracionServicio({
     bd: cliente,
     unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(cliente, trabajo) },
+    revocarSesionesUsuarioInterno: () => Promise.resolve(),
   });
 
 describe('usuarios internos sin base de datos', () => {
@@ -79,69 +81,6 @@ describe.skipIf(!urlBase)('usuarios internos con PostgreSQL', () => {
     } finally {
       await otra.end();
     }
-  });
-
-  it('la cuenta del token es vigente solo si existe, está activa y tiene ese rol (HU-03 esc. 3)', async () => {
-    const admin = await crearPrimerAdministrador(bd, {
-      nombre: 'Admin',
-      correo: 'admin@ejemplo.cl',
-      contrasena: 'clave-del-admin',
-    });
-    const servicio = servicioSobre(bd);
-
-    expect(await servicio.cuentaInternaVigente(admin.id, 'admin')).toBe(true);
-    expect(await servicio.cuentaInternaVigente(admin.id, 'docente')).toBe(false);
-    expect(await servicio.cuentaInternaVigente('999999999', 'admin')).toBe(false);
-    await bd.query('UPDATE contenido.usuario_interno SET activo = false WHERE id = $1', [admin.id]);
-    expect(await servicio.cuentaInternaVigente(admin.id, 'admin')).toBe(false);
-  });
-
-  it('ingreso, renovación y cierre de la consola en app.token_sesion (CU-03, RNF-01)', async () => {
-    const admin = await crearPrimerAdministrador(bd, {
-      nombre: 'Admin',
-      correo: 'admin@ejemplo.cl',
-      contrasena: 'clave-del-admin',
-    });
-    const cuentas = crearCuentasServicio({
-      bd,
-      unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(bd, trabajo) },
-      correo: crearDependenciasDePrueba().proveedores.correo,
-      administracion: servicioSobre(bd),
-      secretoConsola: 'secreto-de-prueba-con-mas-de-32-caracteres',
-    });
-    const sesiones = async () =>
-      (
-        await bd.query<{ hash: string; vigente: boolean; horas: number; dispositivo: string }>(
-          `SELECT hash_token AS hash, revocado_en IS NULL AS vigente, dispositivo,
-                  round(extract(epoch FROM expira_en - now()) / 3600)::int AS horas
-             FROM app.token_sesion WHERE usuario_interno_id = $1 ORDER BY id`,
-          [admin.id],
-        )
-      ).rows;
-
-    await expect(
-      cuentas.ingresarUsuarioInterno({ correo: 'admin@ejemplo.cl', contrasena: 'otra-clave' }),
-    ).rejects.toThrow('Correo o contraseña incorrectos.');
-    const sesion = await cuentas.ingresarUsuarioInterno(
-      { correo: 'ADMIN@ejemplo.cl', contrasena: 'clave-del-admin' },
-      'Navegador',
-    );
-    const [primera] = await sesiones();
-    expect(primera).toMatchObject({ vigente: true, horas: 8, dispositivo: 'Navegador' });
-    expect(primera?.hash).not.toBe(sesion.tokenRenovacion);
-    const { rows: acceso } = await bd.query<{ ultimo: Date | null }>(
-      'SELECT ultimo_acceso AS ultimo FROM contenido.usuario_interno WHERE id = $1',
-      [admin.id],
-    );
-    expect(acceso[0]?.ultimo).toBeInstanceOf(Date);
-
-    const renovada = await cuentas.renovarSesionConsola(sesion.tokenRenovacion);
-    expect((await sesiones()).map((s) => s.vigente)).toEqual([false, true]);
-    await expect(cuentas.renovarSesionConsola(sesion.tokenRenovacion)).rejects.toThrow(/venció/);
-
-    await cuentas.cerrarSesionConsola(renovada.tokenRenovacion);
-    expect((await sesiones()).map((s) => s.vigente)).toEqual([false, false]);
-    await expect(cuentas.renovarSesionConsola(renovada.tokenRenovacion)).rejects.toThrow(/venció/);
   });
 
   it('ninguna fila de la auditoría guarda una contraseña ni su hash (RNF-08)', async () => {
