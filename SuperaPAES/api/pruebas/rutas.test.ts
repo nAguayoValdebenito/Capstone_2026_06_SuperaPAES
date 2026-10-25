@@ -30,7 +30,10 @@ describe('áreas de especialidad del temario', () => {
     ];
     const temario = crearTemarioServicio({
       ...crearDependenciasDePrueba(),
-      repositorio: { listarAreas: () => Promise.resolve(areas) },
+      repositorio: {
+        listarAreas: () => Promise.resolve(areas),
+        alcancePracticaValido: () => Promise.resolve(true),
+      },
     });
     const conAreas = crearAppDePrueba({}, { temario });
 
