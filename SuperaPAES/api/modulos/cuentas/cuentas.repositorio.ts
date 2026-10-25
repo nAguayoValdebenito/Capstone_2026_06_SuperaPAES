@@ -75,6 +75,8 @@ export interface CuentasRepositorio {
   /** Cierra la sesión del token si sigue abierta; si no existe o ya estaba cerrada, no hace nada. */
   revocarSesion(tipo: Audiencia, hashToken: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   revocarSesionesUsuarioInterno(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
+  /** Cierra todas las sesiones abiertas de un estudiante (al cambiar su contraseña, CU-04). */
+  revocarSesionesEstudiante(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   /** Sesión abierta, vigente y de esa cuenta interna, que además sigue activa y con ese rol. */
   sesionInternaVigente(sesionId: string, usuarioId: string, ahora: Date): Promise<boolean>;
   /** Sesión abierta, vigente y de ese estudiante, cuya cuenta no fue eliminada. */
@@ -167,7 +169,35 @@ function consultasIngreso(bd: Ejecutor): Ingreso {
   };
 }
 
-function consultasSesiones(bd: Ejecutor): Omit<CuentasRepositorio, keyof Ingreso> {
+/** Cierre de todas las sesiones de una cuenta (al desactivar un usuario interno o cambiar la contraseña). */
+type RevocacionesMasivas = Pick<
+  CuentasRepositorio,
+  'revocarSesionesUsuarioInterno' | 'revocarSesionesEstudiante'
+>;
+
+function consultasRevocaciones(bd: Ejecutor): RevocacionesMasivas {
+  return {
+    async revocarSesionesUsuarioInterno(id, ahora, tx = bd) {
+      await tx.query(
+        `UPDATE app.token_sesion SET revocado_en = $2
+          WHERE usuario_interno_id = $1 AND revocado_en IS NULL`,
+        [id, ahora],
+      );
+    },
+
+    async revocarSesionesEstudiante(id, ahora, tx = bd) {
+      await tx.query(
+        `UPDATE app.token_sesion SET revocado_en = $2
+          WHERE estudiante_id = $1 AND revocado_en IS NULL`,
+        [id, ahora],
+      );
+    },
+  };
+}
+
+function consultasSesiones(
+  bd: Ejecutor,
+): Omit<CuentasRepositorio, keyof Ingreso | keyof RevocacionesMasivas> {
   return {
     async crearSesion({ tipo, cuentaId, hashToken, dispositivo, expiraEn }, tx = bd) {
       const dueno = tipo === 'admin' ? [null, cuentaId] : [cuentaId, null];
@@ -196,14 +226,6 @@ function consultasSesiones(bd: Ejecutor): Omit<CuentasRepositorio, keyof Ingreso
       await tx.query(REVOCAR_SESION, [hashToken, ahora, tipo === 'admin']);
     },
 
-    async revocarSesionesUsuarioInterno(id, ahora, tx = bd) {
-      await tx.query(
-        `UPDATE app.token_sesion SET revocado_en = $2
-          WHERE usuario_interno_id = $1 AND revocado_en IS NULL`,
-        [id, ahora],
-      );
-    },
-
     async sesionInternaVigente(sesionId, usuarioId, ahora) {
       if (!esId(sesionId) || !esId(usuarioId)) return false;
       const { rows } = await bd.query(SESION_INTERNA_VIGENTE, [sesionId, usuarioId, ahora]);
@@ -219,5 +241,5 @@ function consultasSesiones(bd: Ejecutor): Omit<CuentasRepositorio, keyof Ingreso
 }
 
 export function crearCuentasRepositorio(bd: Ejecutor): CuentasRepositorio {
-  return { ...consultasIngreso(bd), ...consultasSesiones(bd) };
+  return { ...consultasIngreso(bd), ...consultasRevocaciones(bd), ...consultasSesiones(bd) };
 }

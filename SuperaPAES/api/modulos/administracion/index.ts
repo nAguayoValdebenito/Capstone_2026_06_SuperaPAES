@@ -5,4 +5,5 @@ export { crearRutasAdminAdministracion } from './administracion.rutas.admin.js';
 export {
   crearAdministracionServicio,
   type AdministracionServicio,
+  type DocumentoLegalVigente,
 } from './administracion.servicio.js';

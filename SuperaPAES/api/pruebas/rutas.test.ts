@@ -68,13 +68,13 @@ describe('módulos montados', () => {
   });
 
   it.each([
-    [RUTA_REGISTRO, cuerpoRegistro()],
-    ['/api/v1/app/cuentas/recuperar-contrasena', { correo: cuerpoIngreso().correo }],
-  ])('%s es pública y todavía responde 501', async (ruta, cuerpo) => {
+    ['/api/v1/app/cuentas/recuperacion/solicitar', { correo: 'ana@ejemplo.cl' }],
+    ['/api/v1/app/cuentas/recuperacion/restablecer', { token: 'x', contrasena: 'una-clave-larga' }],
+  ])('%s es pública: no pide sesión', async (ruta, cuerpo) => {
     const respuesta = await request(crearAppDePrueba()).post(ruta).send(cuerpo);
 
-    expect(respuesta.status).toBe(501);
-    expect(respuesta.body.error.codigo).toBe('NO_IMPLEMENTADO');
+    // Sin base en esta prueba no termina, pero la autenticación no la frena.
+    expect(respuesta.status).not.toBe(401);
   });
 
   it('la contraseña se limita a 72 bytes de UTF-8, no a 72 caracteres', async () => {
@@ -92,22 +92,43 @@ describe('módulos montados', () => {
       .send(cuerpoRegistro({ contrasena: 'ANA@ejemplo.cl' }));
 
     expect(respuesta.status).toBe(400);
-    expect(respuesta.body.error.detalles[0].ruta).toBe('contrasena');
+    expect(respuesta.body.error.detalles[0]).toMatchObject({
+      ruta: 'contrasena',
+      motivo: 'contrasena_igual_correo',
+    });
   });
 
-  it('el registro exige declarar 14 años o más (RN-18)', async () => {
+  it('el registro rechaza una contraseña común con su motivo (HU-01.4)', async () => {
     const respuesta = await request(app)
       .post(RUTA_REGISTRO)
-      .send(cuerpoRegistro({ declaraTenerCatorceAnios: false }));
+      .send(cuerpoRegistro({ contrasena: 'iloveyou' }));
 
     expect(respuesta.status).toBe(400);
-    expect(respuesta.body.error.codigo).toBe('VALIDACION');
+    expect(respuesta.body.error.detalles[0]).toMatchObject({
+      ruta: 'contrasena',
+      motivo: 'contrasena_comun',
+    });
   });
 
-  it('el registro exige aceptar la política de privacidad, que es obligatoria', async () => {
+  it.each([false, undefined, 'si'])(
+    'el registro exige declarar 14 años o más (RN-18): %s se rechaza con su motivo',
+    async (declaracion) => {
+      const respuesta = await request(app)
+        .post(RUTA_REGISTRO)
+        .send(cuerpoRegistro({ declaraTenerCatorceAnios: declaracion }));
+
+      expect(respuesta.status).toBe(400);
+      expect(respuesta.body.error.detalles[0]).toMatchObject({
+        ruta: 'declaraTenerCatorceAnios',
+        motivo: 'edad_no_declarada',
+      });
+    },
+  );
+
+  it('el registro valida el formato de la lista de documentos aceptados', async () => {
     const respuesta = await request(app)
       .post(RUTA_REGISTRO)
-      .send(cuerpoRegistro({ aceptaPrivacidad: undefined }));
+      .send(cuerpoRegistro({ documentosAceptados: ['terminos'] }));
 
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.error.codigo).toBe('VALIDACION');

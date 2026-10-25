@@ -105,6 +105,14 @@ function crearRepositorioCuentas(
       if (fila && fila.revocadoEn === null) fila.revocadoEn = ahora;
       return Promise.resolve();
     },
+    revocarSesionesEstudiante: (id, ahora) => {
+      for (const fila of sesiones.values()) {
+        if (fila.tipo === 'app' && fila.cuentaId === id && fila.revocadoEn === null) {
+          fila.revocadoEn = ahora;
+        }
+      }
+      return Promise.resolve();
+    },
     revocarSesionesUsuarioInterno: (id, ahora) => {
       for (const fila of sesiones.values()) {
         if (fila.tipo === 'admin' && fila.cuentaId === id && fila.revocadoEn === null) {

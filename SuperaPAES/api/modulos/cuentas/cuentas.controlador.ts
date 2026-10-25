@@ -12,6 +12,7 @@ import type {
   DatosEnlaceVerificacion,
   DatosRecuperacion,
   DatosRegistro,
+  DatosRestablecer,
   DatosTokenRenovacion,
   ParametrosEstudiante,
 } from './cuentas.validadores.js';
@@ -29,16 +30,21 @@ type ControladorVerificacion = Pick<
   | 'confirmarCorreo'
 >;
 
+/** Cinco minutos: una versión nueva de los términos tarda a lo más eso en verse (RN-30). */
+const CACHE_DOCUMENTOS_VIGENTES = 'public, max-age=300';
+
 export interface CuentasControlador {
   registrar: ConCuerpo<DatosRegistro>;
   ingresar: ConCuerpo<CredencialesApp>;
   renovarApp: ConCuerpo<DatosTokenRenovacion>;
   cerrarApp: ConCuerpo<DatosTokenRenovacion>;
   solicitarRecuperacion: ConCuerpo<DatosRecuperacion>;
+  restablecerContrasena: ConCuerpo<DatosRestablecer>;
   ingresarConsola: ConCuerpo<Credenciales>;
   renovarConsola: ConCuerpo<DatosTokenRenovacion>;
   cerrarConsola: ConCuerpo<DatosTokenRenovacion>;
   usuarioConsola: RequestHandler;
+  documentosVigentes: RequestHandler;
   verificarEnlace: ConCuerpo<DatosEnlaceVerificacion>;
   verificarCodigo: ConCuerpo<DatosCodigoVerificacion>;
   reenviarVerificacion: RequestHandler;
@@ -61,9 +67,7 @@ function usuarioInternoDe(req: Request<unknown, unknown, unknown>): string {
 export function crearCuentasControlador(servicio: CuentasServicio): CuentasControlador {
   return {
     registrar: async (req, res) => {
-      responder(res, await servicio.registrarEstudiante(req.body), {
-        estado: 201,
-      });
+      responder(res, await servicio.registrarEstudiante(req.body), { estado: 201 });
     },
     ingresar: async (req, res) => {
       responder(res, await servicio.ingresarEstudiante(req.body));
@@ -79,7 +83,12 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
     solicitarRecuperacion: async (req, res) => {
       // Siempre la misma respuesta, exista o no la cuenta, para no revelar qué correos están registrados.
       await servicio.solicitarRecuperacion(req.body.correo);
-      responder(res, { enviado: true }, { estado: 202 });
+      responder(res, { solicitada: true }, { estado: 202 });
+    },
+    restablecerContrasena: async (req, res) => {
+      await servicio.restablecerContrasena(req.body.token, req.body.contrasena);
+      // No inicia sesión: la app o la consola le piden ingresar con la contraseña nueva (CU-04 paso 5).
+      responder(res, { restablecida: true });
     },
     ingresarConsola: async (req, res) => {
       // El navegador queda en app.token_sesion.dispositivo, para reconocer la sesión.
@@ -93,6 +102,11 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
       // Siempre la misma respuesta, aunque la sesión ya estuviera cerrada o vencida.
       await servicio.cerrarSesionConsola(req.body.tokenRenovacion);
       responder(res, { sesionCerrada: true });
+    },
+    documentosVigentes: async (_req, res) => {
+      // El texto es igual para todos y cambia pocas veces: el navegador y el CDN pueden guardarlo.
+      res.set('Cache-Control', CACHE_DOCUMENTOS_VIGENTES);
+      responder(res, await servicio.documentosLegalesVigentes());
     },
     usuarioConsola: async (req, res) => {
       responder(res, await servicio.obtenerUsuarioConsola(usuarioInternoDe(req)));

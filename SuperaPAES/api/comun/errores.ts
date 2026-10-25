@@ -106,6 +106,20 @@ export class ErrorCodigoAgotado extends ErrorAplicacion {
   }
 }
 
+/**
+ * CU-04 4.a: el enlace de recuperación ya se usó, se anuló al pedir otro, venció o no existe. Un mismo
+ * mensaje para todos los casos: no revela cuál fue. El estudiante debe pedir un enlace nuevo.
+ */
+export class ErrorEnlaceNoVigente extends ErrorAplicacion {
+  constructor() {
+    super(
+      409,
+      'ENLACE_NO_VIGENTE',
+      'Este enlace no sirve: ya se usó, venció o pediste otro. Pide un enlace nuevo para crear tu contraseña.',
+    );
+  }
+}
+
 /** CU-02b: el administrador intenta confirmar un correo que ya estaba verificado. */
 export class ErrorYaVerificado extends ErrorAplicacion {
   constructor() {
