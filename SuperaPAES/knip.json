@@ -6,11 +6,9 @@
     "api": {
       "ignore": [
         "modulos/generador/generador.controlador.ts",
-        "modulos/evaluaciones/evaluaciones.controlador.ts",
         "modulos/preguntas/preguntas.controlador.ts",
         "modulos/privacidad/privacidad.controlador.ts",
         "modulos/generador/generador.validadores.ts",
-        "modulos/evaluaciones/evaluaciones.validadores.ts",
         "modulos/preguntas/preguntas.validadores.ts",
         "modulos/privacidad/privacidad.validadores.ts",
         "modulos/revision/revision.validadores.ts",
