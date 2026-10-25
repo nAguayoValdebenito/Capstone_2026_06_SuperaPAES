@@ -8,13 +8,13 @@ import type {
   UsuarioInterno,
 } from '../modulos/administracion/administracion.repositorio.js';
 import { crearAdministracionServicio } from '../modulos/administracion/index.js';
-import { crearDependenciasDePrueba, tokenAdmin } from './ayudantes.js';
+import { aceptarCualquierSesion, crearDependenciasDePrueba, tokenAdmin } from './ayudantes.js';
 
 export const RUTA = '/api/v1/admin/administracion/usuarios-internos';
 const AREAS_EXISTENTES = new Set([1, 2, 3]);
 
 /** Repositorio en memoria con las restricciones de la base que el servicio traduce. */
-function crearRepositorioFalso() {
+export function crearRepositorioFalso() {
   const usuarios = new Map<string, UsuarioInterno & { hash: string }>();
   const auditoria: EntradaAuditoria[] = [];
   let siguienteId = 1;
@@ -26,10 +26,6 @@ function crearRepositorioFalso() {
     buscarUsuarioInterno: (id) => {
       const usuario = usuarios.get(id);
       return Promise.resolve(usuario ? sinHash(usuario) : null);
-    },
-    buscarRolActivo: (id) => {
-      const usuario = usuarios.get(id);
-      return Promise.resolve(usuario ? { rol: usuario.rol, activo: usuario.activo } : null);
     },
     crearUsuarioInterno: ({ nombre, correo, rol, hashContrasena }) => {
       if ([...usuarios.values()].some((u) => u.correo === correo)) {
@@ -66,6 +62,7 @@ function crearRepositorioFalso() {
       if (usuario) usuario.areas = [...areas];
       return Promise.resolve();
     },
+    leerParametro: () => Promise.resolve(undefined),
     registrarAuditoria: (entrada) => {
       auditoria.push(entrada);
       return Promise.resolve();
@@ -78,11 +75,7 @@ function crearRepositorioFalso() {
   return { repositorio, usuarios, auditoria };
 }
 
-/**
- * Con `comprobarCuentas`, cada petición de la consola revisa la cuenta del token en el repositorio en
- * memoria, como en producción; sin él, la cuenta del token se da por vigente.
- */
-export function crearEscenario({ comprobarCuentas = false } = {}) {
+export function crearEscenario() {
   const falso = crearRepositorioFalso();
   const tx: Ejecutor = { query: () => Promise.reject(new Error('sin base')) };
   let transacciones = 0;
@@ -92,16 +85,23 @@ export function crearEscenario({ comprobarCuentas = false } = {}) {
       return trabajo(tx);
     },
   };
+  /** Cuentas cuyas sesiones se cerraron, con la transacción en que se pidió. */
+  const sesionesRevocadas: { id: string; tx: Ejecutor }[] = [];
   const dependencias = crearDependenciasDePrueba({ unidadDeTrabajo });
-  // Sin el reemplazo de las pruebas, crearApp usa la comprobación real del servicio de administración.
-  if (comprobarCuentas) delete dependencias.verificarCuentaInterna;
   const administracion = crearAdministracionServicio({
     bd: dependencias.bd,
     unidadDeTrabajo,
     repositorio: falso.repositorio,
+    revocarSesionesUsuarioInterno: (id, txRevocar) => {
+      sesionesRevocadas.push({ id, tx: txRevocar });
+      return Promise.resolve();
+    },
   });
-  const app = crearApp(dependencias, { ...crearServicios(dependencias), administracion });
-  return { ...falso, app, transacciones: () => transacciones };
+  const app = crearApp(
+    dependencias,
+    aceptarCualquierSesion({ ...crearServicios(dependencias), administracion }),
+  );
+  return { ...falso, app, tx, sesionesRevocadas, transacciones: () => transacciones };
 }
 
 export const docente = (cambios: Record<string, unknown> = {}) => ({

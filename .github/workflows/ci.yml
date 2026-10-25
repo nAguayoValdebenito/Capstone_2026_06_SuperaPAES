@@ -23,25 +23,28 @@ jobs:
   api:
     name: API
     runs-on: ubuntu-latest
-    # PostgreSQL 18 para la prueba de la unidad de trabajo y para las pruebas del modelo de datos, que
-    # crean su propia base temporal con las migraciones y las semillas de api/db.
+    # PostgreSQL 18 con una base de pruebas aparte (su nombre termina en _test: las pruebas se niegan a
+    # vaciar o borrar otra). Las pruebas con PostgreSQL y las del modelo de datos crean desde ella su
+    # propia base temporal, también terminada en _test, con las migraciones y las semillas de api/db.
     services:
       postgres:
         image: postgres:18
         env:
           POSTGRES_USER: supera
           POSTGRES_PASSWORD: supera_ci
-          POSTGRES_DB: supera_paes
+          POSTGRES_DB: supera_paes_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U supera -d supera_paes"
+          --health-cmd "pg_isready -U supera -d supera_paes_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
       # Clave del contenedor desechable de la CI, no es un secreto. secretlint-disable-next-line
-      DATABASE_URL: postgres://supera:supera_ci@localhost:5432/supera_paes
+      DATABASE_URL: postgres://supera:supera_ci@localhost:5432/supera_paes_test
+      # secretlint-disable-next-line
+      DATABASE_URL_PRUEBAS: postgres://supera:supera_ci@localhost:5432/supera_paes_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -54,6 +57,10 @@ jobs:
       - name: Formato (Prettier)
         run: npx prettier --check .
       - run: npm run lint -w api
+      # Mismo procedimiento que en un equipo del equipo: crear la base de pruebas (aquí la crea el
+      # contenedor) y migrarla con npm run migrar -w api.
+      - name: Migrar la base de pruebas
+        run: npm run migrar -w api
       - run: npm run test -w api
       - run: npm run build -w api
       # Pruebas del modelo de datos: siempre, con psql 18 del repositorio oficial de PostgreSQL. Si falta

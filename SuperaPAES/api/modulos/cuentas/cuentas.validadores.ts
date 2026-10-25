@@ -32,14 +32,49 @@ export const esquemaRegistro = z
 
 export const esquemaIngreso = z.strictObject({ correo, contrasena });
 
+/** Descripción del dispositivo que guarda la sesión (app.token_sesion.dispositivo, hasta 100 caracteres). */
+const MAXIMO_DISPOSITIVO = 100;
+
+/** Ingreso de la app: además, un nombre de dispositivo opcional (vacío cuenta como no enviado). */
+export const esquemaIngresoApp = z.strictObject({
+  correo,
+  contrasena,
+  dispositivo: z
+    .string()
+    .trim()
+    .max(MAXIMO_DISPOSITIVO, 'El nombre del dispositivo es demasiado largo.')
+    .optional()
+    .transform((valor) => valor || undefined),
+});
+
 export const esquemaRecuperacion = z.strictObject({ correo });
 
-/** Credencial de renovación de la consola: 32 bytes en base64url (43 caracteres). */
-export const esquemaSesionConsola = z.strictObject({
-  tokenRenovacion: z.string().min(1).max(200),
+/** Renovar y cerrar la sesión: el token de renovación que entregó el ingreso (o la última renovación). */
+export const esquemaTokenRenovacion = z.strictObject({
+  tokenRenovacion: z.string().min(1).max(100),
+});
+
+/** Verificar con el enlace del correo: el token que la consola lee de /verificar-correo?token=. */
+export const esquemaEnlaceVerificacion = z.strictObject({ token: z.string().min(1).max(100) });
+
+/** Verificar con el código de 6 dígitos que el estudiante escribe en la app (A06). */
+export const esquemaCodigoVerificacion = z.strictObject({
+  codigo: z.string().regex(/^\d{6}$/, 'El código tiene 6 dígitos.'),
+});
+
+/** C15: buscar a un estudiante por su correo (consulta ?correo=). */
+export const esquemaBusquedaEstudiante = z.strictObject({ correo });
+
+export const esquemaIdEstudiante = z.strictObject({
+  id: z.string().regex(/^[1-9]\d{0,17}$/, 'El identificador no es válido.'),
 });
 
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;
+export type CredencialesApp = z.output<typeof esquemaIngresoApp>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
-export type DatosSesionConsola = z.output<typeof esquemaSesionConsola>;
+export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
+export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
+export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
+export type DatosBusquedaEstudiante = z.output<typeof esquemaBusquedaEstudiante>;
+export type ParametrosEstudiante = z.output<typeof esquemaIdEstudiante>;
