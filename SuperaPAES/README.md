@@ -125,6 +125,6 @@ npm run test      # Vitest; con DATABASE_URL_PRUEBAS en api/.env también corre 
 npm run build
 npm run codigo-muerto && npm run circulares && npm run duplicacion
 npm run revisar-secretos   # ningún secreto puede llegar a GitHub
-npm run probar:bd -w api   # 249 casos del modelo de datos (también en la CI)
+npm run probar:bd -w api   # 249 casos del modelo de datos (también en la CI); usa DATABASE_URL, crea y borra su propia base, sin la protección de _test
 cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
 ```

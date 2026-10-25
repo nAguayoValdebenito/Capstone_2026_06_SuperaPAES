@@ -177,11 +177,12 @@ La consola y la app dependen de la API solo por HTTP. Los módulos de la API pue
 
 ### Pasos
 
-1. Clonar el repositorio e instalar las dependencias de la API y la consola (npm workspaces):
+1. Clonar el repositorio e instalar las dependencias de la API y la consola (npm workspaces). El
+   proyecto vive en la carpeta `SuperaPAES/`; los comandos siguientes se ejecutan desde ahí:
 
    ```bash
    git clone https://github.com/<organizacion>/Capstone_2026_06_SuperaPAES.git
-   cd Capstone_2026_06_SuperaPAES
+   cd Capstone_2026_06_SuperaPAES/SuperaPAES
    npm ci
    ```
 
@@ -214,7 +215,28 @@ La consola y la app dependen de la API solo por HTTP. Los módulos de la API pue
 
    Para comprobar que la API funciona, `GET /api/v1/salud/vivo` debe responder `200`.
 
-6. Ejecutar la app en un emulador o en un teléfono:
+6. Preparar la base de las pruebas con PostgreSQL, aparte de la de desarrollo. Su nombre debe
+   terminar en `_test`: las pruebas se niegan a vaciar o borrar cualquier otra base.
+
+   ```bash
+   createdb supera_paes_test
+   ```
+
+   En `api/.env`, fijar `DATABASE_URL_PRUEBAS` con la misma dirección de `DATABASE_URL`, pero con
+   `supera_paes_test` como nombre de la base. Después, migrarla con `npm run migrar -w api`, con
+   `DATABASE_URL` igual a esa dirección solo para ese comando. Es el mismo procedimiento de la CI. En
+   PowerShell:
+
+   ```powershell
+   $env:DATABASE_URL = "<la dirección de DATABASE_URL_PRUEBAS>"
+   npm run migrar -w api
+   Remove-Item Env:DATABASE_URL
+   ```
+
+   Con `DATABASE_URL_PRUEBAS` definida, `npm run test` también ejecuta las pruebas con PostgreSQL. Si
+   PostgreSQL no está encendido, esas pruebas fallan.
+
+7. Ejecutar la app en un emulador o en un teléfono:
 
    ```bash
    cd app
@@ -235,7 +257,10 @@ Nunca se suben valores reales al repositorio. Solo se versionan los archivos `.e
 | Variable | Para qué sirve |
 |---|---|
 | `NODE_ENV`, `PORT` | Entorno de ejecución y puerto de la API |
-| `DATABASE_URL`, `DATABASE_SSL` | Conexión a PostgreSQL |
+| `DATABASE_URL`, `DATABASE_SSL` | Conexión a PostgreSQL (base de desarrollo) |
+| `DATABASE_URL_PRUEBAS` | Base aparte de las pruebas con PostgreSQL; su nombre debe terminar en `_test` |
+| `URL_CONSOLA` | Dirección pública de la consola, a la que enlazan los correos (su origen debe estar en `CORS_ORIGENES`) |
+| `CLAVE_CODIGO_CORREO` | Clave del HMAC del código de 6 dígitos del correo de verificación; distinta de los secretos JWT |
 | `CORS_ORIGENES` | Orígenes permitidos (la consola) |
 | `JWT_SECRETO_APP`, `JWT_SECRETO_CONSOLA` | Firmas separadas para las sesiones de la app y de la consola |
 | `PROVEEDOR_IA` | `simulado`, `deepseek` o `gemini` |
@@ -260,13 +285,18 @@ Nunca se suben valores reales al repositorio. Solo se versionan los archivos `.e
 - **Seguridad:** OWASP ZAP sin hallazgos altos abiertos, y `npm audit` sin vulnerabilidades altas o críticas.
 - **Pagos:** el proveedor simulado se usa en desarrollo y en las pruebas automáticas. Las compras reales de prueba se hacen con cuentas de prueba de licencias en la prueba cerrada de Google Play, y con cuentas sandbox, StoreKit Testing y TestFlight en iOS.
 
-Comandos desde la raíz:
+Comandos desde `SuperaPAES/`:
 
 ```bash
 npm run lint
-npm run test
+npm run test               # con DATABASE_URL_PRUEBAS, también las pruebas con PostgreSQL
 npm run build
+npm run probar:bd -w api   # 249 casos del modelo de datos
 ```
+
+`npm run probar:bd -w api` usa `DATABASE_URL`, no `DATABASE_URL_PRUEBAS`. Crea su propia base
+temporal, ejecuta los casos y la borra al terminar. No vacía tablas de ninguna otra base, pero
+tampoco tiene la protección de `_test` de las pruebas de Vitest.
 
 En cada pull request, **GitHub Actions** instala las dependencias, levanta una base PostgreSQL 18 temporal, ejecuta las pruebas de la API, la consola y la app, y verifica que todo compile. Un pull request con la revisión automática en rojo no se une.
 
