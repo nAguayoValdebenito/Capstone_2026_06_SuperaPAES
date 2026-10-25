@@ -76,12 +76,7 @@ export interface CuentasRepositorio {
   revocarSesion(tipo: Audiencia, hashToken: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   revocarSesionesUsuarioInterno(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   /** Sesión abierta, vigente y de esa cuenta interna, que además sigue activa y con ese rol. */
-  sesionInternaVigente(
-    sesionId: string,
-    usuarioId: string,
-    rol: RolCuentaInterna,
-    ahora: Date,
-  ): Promise<boolean>;
+  sesionInternaVigente(sesionId: string, usuarioId: string, ahora: Date): Promise<boolean>;
   /** Sesión abierta, vigente y de ese estudiante, cuya cuenta no fue eliminada. */
   sesionEstudianteVigente(sesionId: string, estudianteId: string, ahora: Date): Promise<boolean>;
 }
@@ -125,13 +120,11 @@ const REVOCAR_SESION = `
      SET revocado_en = $2
    WHERE hash_token = $1 AND revocado_en IS NULL AND (usuario_interno_id IS NOT NULL) = $3`;
 
+// La cuenta (activa y con el mismo rol) la comprueba administracion.cuentaInternaVigente.
 const SESION_INTERNA_VIGENTE = `
   SELECT 1
-    FROM app.token_sesion t
-    JOIN contenido.usuario_interno u ON u.id = t.usuario_interno_id
-    JOIN contenido.rol r ON r.id = u.rol_id
-   WHERE t.id = $1 AND t.usuario_interno_id = $2 AND t.revocado_en IS NULL AND t.expira_en > $4
-     AND u.activo AND r.codigo = $3`;
+    FROM app.token_sesion
+   WHERE id = $1 AND usuario_interno_id = $2 AND revocado_en IS NULL AND expira_en > $3`;
 
 const SESION_ESTUDIANTE_VIGENTE = `
   SELECT 1
@@ -211,9 +204,9 @@ function consultasSesiones(bd: Ejecutor): Omit<CuentasRepositorio, keyof Ingreso
       );
     },
 
-    async sesionInternaVigente(sesionId, usuarioId, rol, ahora) {
+    async sesionInternaVigente(sesionId, usuarioId, ahora) {
       if (!esId(sesionId) || !esId(usuarioId)) return false;
-      const { rows } = await bd.query(SESION_INTERNA_VIGENTE, [sesionId, usuarioId, rol, ahora]);
+      const { rows } = await bd.query(SESION_INTERNA_VIGENTE, [sesionId, usuarioId, ahora]);
       return rows.length > 0;
     },
 

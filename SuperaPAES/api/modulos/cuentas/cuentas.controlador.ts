@@ -86,11 +86,12 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
       responder(res, await servicio.ingresarUsuarioInterno(req.body, req.get('user-agent')));
     },
     renovarConsola: async (req, res) => {
-      responder(res, await servicio.renovarSesion('admin', req.body.tokenRenovacion));
+      const { tokenRenovacion } = req.body;
+      responder(res, await servicio.renovarSesionConsola(tokenRenovacion, req.get('user-agent')));
     },
     cerrarConsola: async (req, res) => {
       // Siempre la misma respuesta, aunque la sesión ya estuviera cerrada o vencida.
-      await servicio.cerrarSesion('admin', req.body.tokenRenovacion);
+      await servicio.cerrarSesionConsola(req.body.tokenRenovacion);
       responder(res, { sesionCerrada: true });
     },
     usuarioConsola: async (req, res) => {

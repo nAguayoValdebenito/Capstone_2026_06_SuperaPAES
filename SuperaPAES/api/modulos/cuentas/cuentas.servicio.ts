@@ -39,8 +39,13 @@ import {
  * su duración cuenta desde la última renovación, no desde el ingreso.
  */
 export const DURACION_TOKEN_ACCESO_SEGUNDOS = 15 * 60;
+/**
+ * Vigencia de la credencial de renovación de la consola. Mientras esté vigente, la consola renueva el
+ * token de acceso sin pedir la contraseña.
+ */
+export const HORAS_SESION_CONSOLA = 8;
 export const DURACION_TOKEN_RENOVACION_SEGUNDOS: { [A in Audiencia]: number } = {
-  admin: 8 * 60 * 60,
+  admin: HORAS_SESION_CONSOLA * 60 * 60,
   app: 30 * 24 * 60 * 60,
 };
 /** Bytes al azar del token de renovación (se entrega en base64url y se guarda solo su SHA-256). */
@@ -112,10 +117,21 @@ export interface CuentasServicio extends VerificacionCorreo {
    * CUENTA_DESACTIVADA (CU-23 3.b). El navegador (User-Agent) queda como dispositivo de la sesión.
    */
   ingresarUsuarioInterno(credenciales: Credenciales, navegador?: string): Promise<SesionConsola>;
-  /** Rota el token: revoca la sesión usada y abre otra. Revocado, vencido o de otro tipo: 401. */
-  renovarSesion(tipo: Audiencia, tokenRenovacion: string): Promise<SesionIniciada>;
+  /**
+   * Rota el token: revoca la sesión usada y abre otra. Revocado, vencido o de otro tipo: 401. Con
+   * `dispositivo`, la sesión nueva lo guarda; sin él, conserva el de la sesión usada.
+   */
+  renovarSesion(
+    tipo: Audiencia,
+    tokenRenovacion: string,
+    dispositivo?: string,
+  ): Promise<SesionIniciada>;
   /** Cierra la sesión del token. Si no existe o ya estaba cerrada, termina igual, sin error. */
   cerrarSesion(tipo: Audiencia, tokenRenovacion: string): Promise<void>;
+  /** RNF-01: cambia la credencial de renovación por una sesión nueva, con el rol actual de la cuenta. */
+  renovarSesionConsola(tokenRenovacion: string, navegador?: string): Promise<SesionIniciada>;
+  /** CU-03: cierra la sesión (revocado_en). Una credencial desconocida o ya cerrada no cambia nada. */
+  cerrarSesionConsola(tokenRenovacion: string): Promise<void>;
   /** La usa el middleware de autenticación en cada petición. */
   sesionVigente: ComprobarSesion;
   obtenerUsuarioConsola(id: string): Promise<UsuarioConsola>;
@@ -138,8 +154,10 @@ type DatosToken = { dispositivo: string | null } & (
 
 const hashDe = (token: string) => createHash('sha256').update(token).digest('hex');
 
-const errorSesion = () =>
-  new ErrorNoAutenticado('La sesión no es válida o venció. Inicia sesión de nuevo.');
+const CREDENCIALES_INCORRECTAS = 'Correo o contraseña incorrectos.';
+const SESION_TERMINADA = 'La sesión venció o se cerró. Vuelve a iniciar sesión.';
+
+const errorSesion = () => new ErrorNoAutenticado(SESION_TERMINADA);
 
 let rellenoPendiente: Promise<string> | undefined;
 
@@ -163,7 +181,7 @@ async function comprobarCredenciales<C extends { hashContrasena: string }>(
   const hash = cuenta?.hashContrasena ?? (await hashDeRelleno());
   const correcta = await compararContrasena(contrasena, hash);
   if (!cuenta || !correcta) {
-    throw new ErrorNoAutenticado('El correo o la contraseña no son correctos.');
+    throw new ErrorNoAutenticado(CREDENCIALES_INCORRECTAS);
   }
   return cuenta;
 }
@@ -252,12 +270,15 @@ async function renovar(
   contexto: Contexto,
   tipo: Audiencia,
   tokenRenovacion: string,
+  dispositivo: string | undefined,
 ): Promise<SesionIniciada> {
   const { repositorio, unidadDeTrabajo, reloj } = contexto;
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     const dueno = await repositorio.consumirSesion(tipo, hashDe(tokenRenovacion), reloj(), tx);
     if (!dueno) throw errorSesion();
-    return abrirSesion(contexto, dueno.cuentaId, await datosDelToken(contexto, dueno), tx);
+    const datos = await datosDelToken(contexto, dueno);
+    const nuevo = dispositivo?.slice(0, LARGO_DISPOSITIVO) || datos.dispositivo;
+    return abrirSesion(contexto, dueno.cuentaId, { ...datos, dispositivo: nuevo }, tx);
   });
 }
 
@@ -288,14 +309,16 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales, navegador) =>
       ingresarInterno(contexto, credenciales, navegador),
-    renovarSesion: (tipo, token) => renovar(contexto, tipo, token),
+    renovarSesion: (tipo, token, dispositivo) => renovar(contexto, tipo, token, dispositivo),
     cerrarSesion: (tipo, token) => repositorio.revocarSesion(tipo, hashDe(token), reloj()),
-    sesionVigente: (audiencia, { sub, sid, rol }) => {
-      if (audiencia === 'app') return repositorio.sesionEstudianteVigente(sid, sub, reloj());
-      return rol
-        ? repositorio.sesionInternaVigente(sid, sub, rol, reloj())
-        : Promise.resolve(false);
-    },
+    // La consola renueva con el navegador de la petición, que queda como dispositivo.
+    renovarSesionConsola: (token, navegador) => renovar(contexto, 'admin', token, navegador),
+    cerrarSesionConsola: (token) => repositorio.revocarSesion('admin', hashDe(token), reloj()),
+    // Solo la sesión: la cuenta de la consola la comprueba el middleware con administracion.
+    sesionVigente: (audiencia, { sub, sid }) =>
+      audiencia === 'app'
+        ? repositorio.sesionEstudianteVigente(sid, sub, reloj())
+        : repositorio.sesionInternaVigente(sid, sub, reloj()),
     obtenerUsuarioConsola: (id) => usuarioConsola(contexto, id),
     revocarSesionesUsuarioInterno: (id, tx) =>
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),

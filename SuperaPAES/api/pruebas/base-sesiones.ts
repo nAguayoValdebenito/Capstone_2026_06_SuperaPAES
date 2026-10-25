@@ -70,6 +70,8 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
       reloj: () => new Date(ahora),
       ...(limiteIntentos && { limiteIntentos }),
     });
+    // Comprobación real de la cuenta de cada token de la consola, contra PostgreSQL.
+    delete dependencias.verificarCuentaInterna;
     return crearApp({
       ...dependencias,
       proveedores: { ...dependencias.proveedores, correo: buzon.proveedor },

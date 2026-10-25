@@ -58,6 +58,11 @@ export interface AdministracionServicio {
     activo: boolean,
   ): Promise<UsuarioInterno>;
   /**
+   * HU-03 esc. 3 y CU-23 3.b: si la cuenta existe, está activa y tiene ese rol. autenticarAdmin lo
+   * llama en cada petición de la consola, así que un cambio de rol o una desactivación rige de inmediato.
+   */
+  cuentaInternaVigente(id: string, rol: RolCuentaInterna): Promise<boolean>;
+  /**
    * Registra una acción de la consola en contenido.auditoria (RNF-08), dentro de la transacción del
    * módulo que hace el cambio. Nunca recibe contraseñas, hashes ni códigos.
    */
@@ -262,6 +267,19 @@ async function cambiarEstado(contexto: Contexto, autorId: string, id: string, ac
   });
 }
 
+/** El id de usuario_interno es BIGINT: un sub que no es un número no corresponde a ninguna cuenta. */
+const ID_USUARIO_INTERNO = /^[1-9]\d{0,18}$/;
+
+async function cuentaVigente(
+  { repositorio }: Contexto,
+  id: string,
+  rol: RolCuentaInterna,
+): Promise<boolean> {
+  if (!ID_USUARIO_INTERNO.test(id)) return false;
+  const cuenta = await repositorio.buscarRolActivo(id);
+  return cuenta !== null && cuenta.activo && cuenta.rol === rol;
+}
+
 export function crearAdministracionServicio(
   dependencias: DependenciasAdministracionServicio,
 ): AdministracionServicio {
@@ -277,6 +295,7 @@ export function crearAdministracionServicio(
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
       cambiarEstado(contexto, autorId, id, activo),
+    cuentaInternaVigente: (id, rol) => cuentaVigente(contexto, id, rol),
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
     obtenerParametroEntero: async (clave) => {
       const valor = await contexto.repositorio.leerParametro(clave);
