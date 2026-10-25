@@ -23,7 +23,7 @@ export function prepararSeleccion(prefijo: string) {
       SELECT p.id, t.id FROM contenido.prueba p, contenido.tipo_pregunta t
       WHERE t.codigo = 'seleccion_multiple' ON CONFLICT DO NOTHING`);
     await base.bd.query(
-      `CREATE TEMP TABLE niveles_originales AS SELECT id, nivel_escolar_id FROM contenido.contenido_tematico`,
+      `CREATE TEMP TABLE niveles_originales AS SELECT id, nivel_escolar_id, eje_id FROM contenido.contenido_tematico`,
     );
   }, MINUTO);
   afterAll(async () => {
@@ -36,7 +36,7 @@ export function prepararSeleccion(prefijo: string) {
       'contenido.texto_estimulo',
     ]);
     await base.bd.query(
-      `UPDATE contenido.contenido_tematico c SET nivel_escolar_id=n.nivel_escolar_id FROM niveles_originales n WHERE c.id=n.id`,
+      `UPDATE contenido.contenido_tematico c SET nivel_escolar_id=n.nivel_escolar_id, eje_id=n.eje_id FROM niveles_originales n WHERE c.id=n.id`,
     );
   });
   return {

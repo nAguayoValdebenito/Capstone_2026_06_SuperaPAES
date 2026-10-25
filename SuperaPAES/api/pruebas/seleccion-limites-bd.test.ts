@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
 import { prepararSeleccion, seleccionarTodas } from './base-seleccion.js';
+import { crearPracticaDePrueba, insertarEntregaDePrueba } from './historial-seleccion.js';
 import {
   crearPreguntaPublicada,
   crearTextoDePrueba,
@@ -10,6 +11,33 @@ import {
 exigirBaseEnCi();
 describe.skipIf(!urlBase)('selección: límites del contrato y versión vigente', () => {
   const entorno = prepararSeleccion('seleccion_limites');
+
+  it('el eje seleccionado coincide con la versión publicada aunque el temario cambie de eje', async () => {
+    const pregunta = await crearPreguntaPublicada(entorno.bd, {
+      prueba: 'M1',
+      dificultad: 'media',
+    });
+    const datos = await entorno.datos('M1', 5);
+    const {
+      rows: [otro],
+    } = await entorno.bd.query<{ id: number }>(
+      'SELECT id FROM contenido.eje_tematico WHERE prueba_id=$1 AND id<>$2 ORDER BY id LIMIT 1',
+      [datos.pruebaId, pregunta.ejeId],
+    );
+    await entorno.bd.query('UPDATE contenido.contenido_tematico SET eje_id=$2 WHERE id=$1', [
+      pregunta.contenidoId,
+      otro!.id,
+    ]);
+    expect(await entorno.servicio().contarDisponibles({ ...datos, ejeId: otro!.id })).toBe(0);
+    const acotada = { ...datos, ejeId: pregunta.ejeId };
+    expect(await entorno.servicio().contarDisponibles(acotada)).toBe(1);
+    const elegida = await entorno.servicio().elegirSiguiente(acotada);
+    expect(elegida).toEqual({ preguntaId: pregunta.preguntaId, version: pregunta.version });
+    const evaluacion = await crearPracticaDePrueba(entorno.bd, acotada);
+    await expect(
+      insertarEntregaDePrueba(entorno.bd, evaluacion, elegida!, 1),
+    ).resolves.toBeTruthy();
+  });
 
   it('un alcance sin preguntas devuelve cero y null sin excepción', async () => {
     const datos = await entorno.datos();

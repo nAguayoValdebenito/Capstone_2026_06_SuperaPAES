@@ -44,22 +44,25 @@ export interface EvaluacionesRepositorio {
 // Una única consulta base mantiene idénticos los filtros de conteo y selección. Ninguna columna
 // de claves ni explicaciones entra al servicio; solo clasificación de la vista pública vigente.
 const CANDIDATAS = `
-  SELECT v.id::text AS "preguntaId", v.version, v.eje_id AS "ejeId", p.habilidad_id AS "habilidadId",
-    v.dificultad, v.texto_estimulo_id::text AS "textoId", v.orden_en_texto AS "ordenEnTexto",
+  SELECT v.id::text AS "preguntaId", v.version, pv.eje_id AS "ejeId", pv.habilidad_id AS "habilidadId",
+    d.codigo AS dificultad, v.texto_estimulo_id::text AS "textoId", v.orden_en_texto AS "ordenEnTexto",
     (v.prueba = 'CL') AS lectora,
     CASE WHEN v.prueba = 'CL' THEN
       COALESCE(ph.respondidas >= $13 AND COALESCE(ph.acierto_ponderado, 0) < $14, false)
       ELSE COALESCE(pe.a_reforzar, false) END AS debil
   FROM contenido.v_preguntas_publicadas v JOIN contenido.pregunta p ON p.id = v.id
+  JOIN contenido.pregunta_version pv ON pv.pregunta_id = v.id AND pv.version = v.version
+  JOIN contenido.dificultad d ON d.id = pv.dificultad_id
+  JOIN contenido.contenido_tematico ct ON ct.id = pv.contenido_id
   JOIN app.estudiante es ON es.id = $1 AND es.eliminado_en IS NULL
   LEFT JOIN contenido.nivel_escolar ne ON ne.id = CASE WHEN $8::boolean THEN $7::smallint
     ELSE app.nivel_escolar_en(es.anio_egreso, ($9::timestamptz AT TIME ZONE 'America/Santiago')::date) END
-  LEFT JOIN contenido.nivel_escolar nc ON nc.id = v.nivel_escolar_id
-  LEFT JOIN app.v_progreso_eje pe ON pe.estudiante_id = es.id AND pe.prueba_id = p.prueba_id AND pe.eje_id = v.eje_id
-  LEFT JOIN app.v_progreso_habilidad ph ON ph.estudiante_id = es.id AND ph.prueba_id = p.prueba_id AND ph.habilidad_id = p.habilidad_id
-  WHERE p.prueba_id = $2 AND ($3::smallint IS NULL OR v.eje_id = $3)
-    AND ($4::integer IS NULL OR v.contenido_id = $4) AND ($5::smallint IS NULL OR p.habilidad_id = $5)
-    AND ($6::text IS NULL OR v.dificultad = $6)
+  LEFT JOIN contenido.nivel_escolar nc ON nc.id = ct.nivel_escolar_id
+  LEFT JOIN app.v_progreso_eje pe ON pe.estudiante_id = es.id AND pe.prueba_id = p.prueba_id AND pe.eje_id = pv.eje_id
+  LEFT JOIN app.v_progreso_habilidad ph ON ph.estudiante_id = es.id AND ph.prueba_id = p.prueba_id AND ph.habilidad_id = pv.habilidad_id
+  WHERE p.prueba_id = $2 AND ($3::smallint IS NULL OR pv.eje_id = $3)
+    AND ($4::integer IS NULL OR pv.contenido_id = $4) AND ($5::smallint IS NULL OR pv.habilidad_id = $5)
+    AND ($6::text IS NULL OR d.codigo = $6)
     AND (NOT $8::boolean OR $7::smallint IS NULL OR ne.id IS NOT NULL)
     AND (v.prueba = 'CL' OR nc.orden IS NULL OR ne.orden IS NULL OR nc.orden <= ne.orden)
     AND NOT (v.id = ANY($12::bigint[]))
