@@ -40,6 +40,8 @@ export function crearRutasAppCuentas(servicio: CuentasServicio, mw: MiddlewareRu
     mw.crearLimiteIntentos({ soloFallidos: true, porCorreo: true }),
     controlador.ingresar,
   );
+  // Pública: la usan el registro de la app y las páginas /terminos y /privacidad de la consola.
+  router.get('/documentos-legales/vigentes', controlador.documentosVigentes);
   router.post('/renovar', conToken, controlador.renovarApp);
   router.post('/cerrar', conToken, controlador.cerrarApp);
   // Verificación del correo. El enlace es público (se abre desde la página de la consola, quizá en un

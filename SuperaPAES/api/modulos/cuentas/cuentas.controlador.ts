@@ -39,6 +39,7 @@ export interface CuentasControlador {
   renovarConsola: ConCuerpo<DatosTokenRenovacion>;
   cerrarConsola: ConCuerpo<DatosTokenRenovacion>;
   usuarioConsola: RequestHandler;
+  documentosVigentes: RequestHandler;
   verificarEnlace: ConCuerpo<DatosEnlaceVerificacion>;
   verificarCodigo: ConCuerpo<DatosCodigoVerificacion>;
   reenviarVerificacion: RequestHandler;
@@ -91,6 +92,9 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
       // Siempre la misma respuesta, aunque la sesión ya estuviera cerrada o vencida.
       await servicio.cerrarSesionConsola(req.body.tokenRenovacion);
       responder(res, { sesionCerrada: true });
+    },
+    documentosVigentes: async (_req, res) => {
+      responder(res, await servicio.documentosLegalesVigentes());
     },
     usuarioConsola: async (req, res) => {
       responder(res, await servicio.obtenerUsuarioConsola(usuarioInternoDe(req)));

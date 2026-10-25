@@ -17,7 +17,7 @@ import type { ComprobarSesion, SecretosJwt } from '../../comun/middleware/autent
 import type { Reloj } from '../../comun/reloj.js';
 import type { RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
-import type { AdministracionServicio } from '../administracion/index.js';
+import type { AdministracionServicio, DocumentoLegalVigente } from '../administracion/index.js';
 import type { CupoInvitacionesServicio } from '../cupo-invitaciones/index.js';
 import {
   crearCuentasRepositorio,
@@ -148,6 +148,11 @@ export interface CuentasServicio extends VerificacionCorreo {
   renovarSesionConsola(tokenRenovacion: string, navegador?: string): Promise<SesionIniciada>;
   /** CU-03: cierra la sesión (revocado_en). Una credencial desconocida o ya cerrada no cambia nada. */
   cerrarSesionConsola(tokenRenovacion: string): Promise<void>;
+  /**
+   * RN-30, CP-01: la versión vigente de los términos y de la política de privacidad, para el registro
+   * de la app y las páginas /terminos y /privacidad de la consola (el mismo texto en las dos).
+   */
+  documentosLegalesVigentes(): Promise<DocumentoLegalVigente[]>;
   /** La usa el middleware de autenticación en cada petición. */
   sesionVigente: ComprobarSesion;
   obtenerUsuarioConsola(id: string): Promise<UsuarioConsola>;
@@ -359,6 +364,7 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
         ? repositorio.sesionEstudianteVigente(sid, sub, reloj())
         : repositorio.sesionInternaVigente(sid, sub, reloj()),
     obtenerUsuarioConsola: (id) => usuarioConsola(contexto, id),
+    documentosLegalesVigentes: () => dependencias.administracion.documentosLegalesVigentes(reloj()),
     revocarSesionesUsuarioInterno: (id, tx) =>
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
     ...crearVerificacionYRegistro(dependencias, contexto),
