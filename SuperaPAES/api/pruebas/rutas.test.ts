@@ -92,7 +92,22 @@ describe('módulos montados', () => {
       .send(cuerpoRegistro({ contrasena: 'ANA@ejemplo.cl' }));
 
     expect(respuesta.status).toBe(400);
-    expect(respuesta.body.error.detalles[0].ruta).toBe('contrasena');
+    expect(respuesta.body.error.detalles[0]).toMatchObject({
+      ruta: 'contrasena',
+      motivo: 'contrasena_igual_correo',
+    });
+  });
+
+  it('el registro rechaza una contraseña común con su motivo (HU-01.4)', async () => {
+    const respuesta = await request(app)
+      .post(RUTA_REGISTRO)
+      .send(cuerpoRegistro({ contrasena: 'iloveyou' }));
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.error.detalles[0]).toMatchObject({
+      ruta: 'contrasena',
+      motivo: 'contrasena_comun',
+    });
   });
 
   it('el registro exige declarar 14 años o más (RN-18)', async () => {

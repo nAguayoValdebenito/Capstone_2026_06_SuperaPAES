@@ -83,8 +83,11 @@ interface Contexto {
 const ENTIDAD_USUARIO_INTERNO = 'usuario_interno';
 const RESTRICCION_CORREO_UNICO = 'ux_usuario_interno_correo';
 
-function errorDeCampo(ruta: string, mensaje: string): ErrorValidacion {
-  return new ErrorValidacion([{ lugar: 'cuerpo', ruta, mensaje }], mensaje);
+function errorDeCampo(ruta: string, mensaje: string, motivo?: string): ErrorValidacion {
+  return new ErrorValidacion(
+    [{ lugar: 'cuerpo', ruta, mensaje, ...(motivo && { motivo }) }],
+    mensaje,
+  );
 }
 
 /** Lo que se guarda en la auditoría: sin contraseña ni hash, con las áreas como lista de ids. */
@@ -194,7 +197,7 @@ async function crearUsuario(contexto: Contexto, autorId: string, datos: DatosCre
 async function cifrarNueva(contrasena: string | undefined, correo: string): Promise<string | null> {
   if (contrasena === undefined) return null;
   const problema = validarContrasena(contrasena, correo);
-  if (problema) throw errorDeCampo('contrasena', problema);
+  if (problema) throw errorDeCampo('contrasena', problema.mensaje, problema.motivo);
   return cifrarContrasena(contrasena);
 }
 
