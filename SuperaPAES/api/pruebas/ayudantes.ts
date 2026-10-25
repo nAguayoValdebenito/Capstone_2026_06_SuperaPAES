@@ -33,6 +33,8 @@ export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): 
     verificacionCorreo: { urlConsola: URL_CONSOLA_DE_PRUEBA, claveCodigo: CLAVE_CODIGO_DE_PRUEBA },
     corsOrigenes: [URL_CONSOLA_DE_PRUEBA],
     registrarPeticiones: false,
+    // Sin base: la cuenta del token se da por vigente. Las pruebas de la separación de roles la cambian.
+    verificarCuentaInterna: () => Promise.resolve(true),
     ...cambios,
   };
 }
@@ -85,9 +87,8 @@ export function cuerpoRegistro(cambios: Record<string, unknown> = {}): Record<st
     nombre: 'Ana',
     correo: 'ana@ejemplo.cl',
     contrasena: 'una-clave-larga',
-    aceptaTerminos: true,
-    aceptaPrivacidad: true,
     declaraTenerCatorceAnios: true,
+    documentosAceptados: [1, 2],
     ...cambios,
   };
 }

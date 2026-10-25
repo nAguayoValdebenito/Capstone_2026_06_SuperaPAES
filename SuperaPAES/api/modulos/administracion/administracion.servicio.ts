@@ -9,6 +9,7 @@ import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type AdministracionRepositorio,
   crearAdministracionRepositorio,
+  type DocumentoLegalVigente,
   type EntradaAuditoria,
   type UsuarioInterno,
 } from './administracion.repositorio.js';
@@ -17,7 +18,7 @@ import type {
   DatosEditarUsuarioInterno,
 } from './administracion.validadores.js';
 
-export type { UsuarioInterno } from './administracion.repositorio.js';
+export type { DocumentoLegalVigente, UsuarioInterno } from './administracion.repositorio.js';
 
 export interface DependenciasAdministracionServicio {
   bd: Ejecutor;
@@ -58,6 +59,11 @@ export interface AdministracionServicio {
     activo: boolean,
   ): Promise<UsuarioInterno>;
   /**
+   * HU-03 esc. 3 y CU-23 3.b: si la cuenta existe, está activa y tiene ese rol. autenticarAdmin lo
+   * llama en cada petición de la consola, así que un cambio de rol o una desactivación rige de inmediato.
+   */
+  cuentaInternaVigente(id: string, rol: RolCuentaInterna): Promise<boolean>;
+  /**
    * Registra una acción de la consola en contenido.auditoria (RNF-08), dentro de la transacción del
    * módulo que hace el cambio. Nunca recibe contraseñas, hashes ni códigos.
    */
@@ -67,6 +73,11 @@ export interface AdministracionServicio {
    * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto.
    */
   obtenerParametroEntero(clave: string): Promise<number>;
+  /**
+   * RN-30: de cada documento legal obligatorio (términos y privacidad), la versión con mayor
+   * vigente_desde que ya empezó. La usan el registro y las páginas /terminos y /privacidad.
+   */
+  documentosLegalesVigentes(ahora: Date): Promise<DocumentoLegalVigente[]>;
 }
 
 interface Contexto {
@@ -78,8 +89,11 @@ interface Contexto {
 const ENTIDAD_USUARIO_INTERNO = 'usuario_interno';
 const RESTRICCION_CORREO_UNICO = 'ux_usuario_interno_correo';
 
-function errorDeCampo(ruta: string, mensaje: string): ErrorValidacion {
-  return new ErrorValidacion([{ lugar: 'cuerpo', ruta, mensaje }], mensaje);
+function errorDeCampo(ruta: string, mensaje: string, motivo?: string): ErrorValidacion {
+  return new ErrorValidacion(
+    [{ lugar: 'cuerpo', ruta, mensaje, ...(motivo && { motivo }) }],
+    mensaje,
+  );
 }
 
 /** Lo que se guarda en la auditoría: sin contraseña ni hash, con las áreas como lista de ids. */
@@ -189,7 +203,7 @@ async function crearUsuario(contexto: Contexto, autorId: string, datos: DatosCre
 async function cifrarNueva(contrasena: string | undefined, correo: string): Promise<string | null> {
   if (contrasena === undefined) return null;
   const problema = validarContrasena(contrasena, correo);
-  if (problema) throw errorDeCampo('contrasena', problema);
+  if (problema) throw errorDeCampo('contrasena', problema.mensaje, problema.motivo);
   return cifrarContrasena(contrasena);
 }
 
@@ -262,6 +276,19 @@ async function cambiarEstado(contexto: Contexto, autorId: string, id: string, ac
   });
 }
 
+/** El id de usuario_interno es BIGINT: un sub que no es un número no corresponde a ninguna cuenta. */
+const ID_USUARIO_INTERNO = /^[1-9]\d{0,17}$/;
+
+async function cuentaVigente(
+  { repositorio }: Contexto,
+  id: string,
+  rol: RolCuentaInterna,
+): Promise<boolean> {
+  if (!ID_USUARIO_INTERNO.test(id)) return false;
+  const cuenta = await repositorio.buscarRolActivo(id);
+  return cuenta !== null && cuenta.activo && cuenta.rol === rol;
+}
+
 export function crearAdministracionServicio(
   dependencias: DependenciasAdministracionServicio,
 ): AdministracionServicio {
@@ -277,7 +304,9 @@ export function crearAdministracionServicio(
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
       cambiarEstado(contexto, autorId, id, activo),
+    cuentaInternaVigente: (id, rol) => cuentaVigente(contexto, id, rol),
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
+    documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),
     obtenerParametroEntero: async (clave) => {
       const valor = await contexto.repositorio.leerParametro(clave);
       if (typeof valor !== 'number' || !Number.isInteger(valor)) {

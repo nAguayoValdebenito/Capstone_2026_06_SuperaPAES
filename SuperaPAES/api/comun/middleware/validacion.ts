@@ -9,15 +9,35 @@ interface Esquemas {
   consulta?: z.ZodType;
 }
 
+/** Problema de un campo: dónde, qué y, si el esquema lo indica, un motivo que la app puede leer. */
+export interface ProblemaDeCampo {
+  lugar: string;
+  ruta: string;
+  mensaje: string;
+  motivo?: string;
+}
+
+/** Un refinamiento puede indicar su motivo en params (por ejemplo contrasena_comun, RN-31). */
+function motivoDe(problema: z.core.$ZodIssue): { motivo?: string } {
+  const params =
+    problema.code === 'custom' ? (problema.params as { motivo?: unknown } | undefined) : undefined;
+  return typeof params?.motivo === 'string' ? { motivo: params.motivo } : {};
+}
+
 export function validar(esquemas: Esquemas): RequestHandler {
   return (req, res, next) => {
-    const problemas: { lugar: string; ruta: string; mensaje: string }[] = [];
+    const problemas: ProblemaDeCampo[] = [];
     const revisar = (lugar: string, esquema: z.ZodType | undefined, valor: unknown) => {
       if (!esquema) return valor;
       const resultado = esquema.safeParse(valor);
       if (resultado.success) return resultado.data;
       for (const problema of resultado.error.issues) {
-        problemas.push({ lugar, ruta: problema.path.join('.'), mensaje: problema.message });
+        problemas.push({
+          lugar,
+          ruta: problema.path.join('.'),
+          mensaje: problema.message,
+          ...motivoDe(problema),
+        });
       }
       return valor;
     };

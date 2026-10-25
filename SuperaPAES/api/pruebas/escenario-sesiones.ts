@@ -105,6 +105,14 @@ function crearRepositorioCuentas(
       if (fila && fila.revocadoEn === null) fila.revocadoEn = ahora;
       return Promise.resolve();
     },
+    revocarSesionesEstudiante: (id, ahora) => {
+      for (const fila of sesiones.values()) {
+        if (fila.tipo === 'app' && fila.cuentaId === id && fila.revocadoEn === null) {
+          fila.revocadoEn = ahora;
+        }
+      }
+      return Promise.resolve();
+    },
     revocarSesionesUsuarioInterno: (id, ahora) => {
       for (const fila of sesiones.values()) {
         if (fila.tipo === 'admin' && fila.cuentaId === id && fila.revocadoEn === null) {
@@ -113,11 +121,9 @@ function crearRepositorioCuentas(
       }
       return Promise.resolve();
     },
-    sesionInternaVigente: (sid, usuarioId, rol, ahora) => {
-      const usuario = usuarios.get(usuarioId);
-      const cuentaVigente = usuario?.activo === true && usuario.rol === rol;
-      return Promise.resolve(cuentaVigente && vigente('admin', sid, usuarioId, ahora));
-    },
+    // Solo la sesión: la cuenta la comprueba administracion.cuentaInternaVigente sobre `usuarios`.
+    sesionInternaVigente: (sid, usuarioId, ahora) =>
+      Promise.resolve(vigente('admin', sid, usuarioId, ahora)),
     sesionEstudianteVigente: (sid, estudianteId, ahora) => {
       const sinEliminar = estudiantes.get(estudianteId)?.eliminado === false;
       return Promise.resolve(sinEliminar && vigente('app', sid, estudianteId, ahora));
@@ -144,6 +150,8 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
   const tx: Ejecutor = { query: () => Promise.reject(new Error('sin base')) };
   const unidadDeTrabajo: UnidadDeTrabajo = { enTransaccion: (trabajo) => trabajo(tx) };
   const dependencias = crearDependenciasDePrueba({ unidadDeTrabajo, reloj, ...cambios });
+  // Comprobación real de la cuenta de cada token, sobre el repositorio en memoria de administracion.
+  delete dependencias.verificarCuentaInterna;
   const base = { bd: dependencias.bd, unidadDeTrabajo };
   const administracion = crearAdministracionServicio({
     ...base,

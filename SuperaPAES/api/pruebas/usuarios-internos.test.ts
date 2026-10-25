@@ -45,10 +45,11 @@ describe('crear un usuario interno', () => {
   });
 
   it.each([
-    ['de 7 caracteres', { contrasena: 'corta12' }],
-    ['igual al correo', { contrasena: 'diego@ejemplo.cl' }],
-    ['de más de 72 bytes', { contrasena: 'ñ'.repeat(40) }],
-  ])('rechaza una contraseña %s (RN-31)', async (_caso, cambios) => {
+    ['de 7 caracteres', { contrasena: 'corta12' }, 'contrasena_corta'],
+    ['igual al correo', { contrasena: 'diego@ejemplo.cl' }, 'contrasena_igual_correo'],
+    ['de más de 72 bytes', { contrasena: 'ñ'.repeat(40) }, 'contrasena_bytes'],
+    ['común (HU-01.4)', { contrasena: 'Contraseña123' }, 'contrasena_comun'],
+  ])('rechaza una contraseña %s (RN-31)', async (_caso, cambios, motivo) => {
     const { app, auditoria } = crearEscenario();
 
     const respuesta = await request(app)
@@ -58,7 +59,7 @@ describe('crear un usuario interno', () => {
 
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.error.codigo).toBe('VALIDACION');
-    expect(respuesta.body.error.detalles[0].ruta).toBe('contrasena');
+    expect(respuesta.body.error.detalles[0]).toMatchObject({ ruta: 'contrasena', motivo });
     expect(auditoria).toHaveLength(0);
   });
 

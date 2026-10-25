@@ -6,23 +6,30 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
 import type { ConfiguracionVerificacionCorreo } from '../../comun/configuracion.js';
 import { cifrarContrasena, compararContrasena } from '../../comun/contrasenas.js';
-import {
-  ErrorCuentaDesactivada,
-  ErrorNoAutenticado,
-  ErrorNoImplementado,
-} from '../../comun/errores.js';
+import { ErrorCuentaDesactivada, ErrorNoAutenticado } from '../../comun/errores.js';
 import { type Audiencia, firmarToken } from '../../comun/jwt.js';
+import { generarCodigoInvitacion } from '../../comun/codigo-invitacion.js';
 import type { ComprobarSesion, SecretosJwt } from '../../comun/middleware/autenticacion.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
-import type { AdministracionServicio } from '../administracion/index.js';
+import type { AdministracionServicio, DocumentoLegalVigente } from '../administracion/index.js';
 import type { CupoInvitacionesServicio } from '../cupo-invitaciones/index.js';
 import {
   crearCuentasRepositorio,
   type CuentasRepositorio,
   type DuenoSesion,
 } from './cuentas.repositorio.js';
+import {
+  crearRecuperacionRepositorio,
+  type RecuperacionRepositorio,
+} from './cuentas.recuperacion.repositorio.js';
+import { crearRecuperacion, type Recuperacion } from './cuentas.recuperacion.servicio.js';
+import {
+  crearRegistroRepositorio,
+  type RegistroRepositorio,
+} from './cuentas.registro.repositorio.js';
+import { crearRegistro } from './cuentas.registro.servicio.js';
 import type { Credenciales, CredencialesApp, DatosRegistro } from './cuentas.validadores.js';
 import {
   crearVerificacionRepositorio,
@@ -39,8 +46,13 @@ import {
  * su duración cuenta desde la última renovación, no desde el ingreso.
  */
 export const DURACION_TOKEN_ACCESO_SEGUNDOS = 15 * 60;
+/**
+ * Vigencia de la credencial de renovación de la consola. Mientras esté vigente, la consola renueva el
+ * token de acceso sin pedir la contraseña.
+ */
+export const HORAS_SESION_CONSOLA = 8;
 export const DURACION_TOKEN_RENOVACION_SEGUNDOS: { [A in Audiencia]: number } = {
-  admin: 8 * 60 * 60,
+  admin: HORAS_SESION_CONSOLA * 60 * 60,
   app: 30 * 24 * 60 * 60,
 };
 /** Bytes al azar del token de renovación (se entrega en base64url y se guarda solo su SHA-256). */
@@ -62,6 +74,17 @@ export interface DependenciasCuentasServicio {
   repositorio?: CuentasRepositorio;
   /** Solo para pruebas: reemplaza al de la verificación del correo. */
   repositorioVerificacion?: VerificacionRepositorio;
+  /** Solo para pruebas: reemplaza al del registro. */
+  repositorioRegistro?: RegistroRepositorio;
+  /** Solo para pruebas: reemplaza al de la recuperación de la contraseña. */
+  repositorioRecuperacion?: RecuperacionRepositorio;
+  /**
+   * Ejecuta una tarea sin que la respuesta la espere (el correo de la recuperación). Por defecto la
+   * lanza y sigue; las pruebas lo reemplazan para esperarla.
+   */
+  segundoPlano?: (tarea: () => Promise<void>) => void;
+  /** Solo para pruebas: reemplaza al generador del código de invitación propio (RN-33). */
+  generarCodigoInvitacion?: () => string;
 }
 
 export interface SesionIniciada {
@@ -98,24 +121,45 @@ export interface UsuarioConsola extends UsuarioDeSesion {
   areas?: number[];
 }
 
-/** Incluye la verificación del correo (cuentas.verificacion.servicio.ts). */
-export interface CuentasServicio extends VerificacionCorreo {
-  registrarEstudiante(datos: DatosRegistro): Promise<SesionIniciada>;
+/** Incluye la verificación del correo y la recuperación de la contraseña. */
+export interface CuentasServicio extends VerificacionCorreo, Recuperacion {
+  /**
+   * HU-01.1 (CU-01): crea la cuenta sin verificar con sus consentimientos, la invitación si vino un
+   * código y la sesión de la app, en una transacción; después emite el correo de verificación.
+   * Correo repetido: 409 CONFLICTO. Documentos, edad, contraseña o código inválidos: 400 VALIDACION con
+   * su motivo.
+   */
+  registrarEstudiante(datos: DatosRegistro): Promise<SesionApp>;
   /**
    * HU-02.1 (app): correo o contraseña incorrectos, o cuenta eliminada, 401 con el mismo mensaje. Un
    * correo sin verificar sí entra (solo tiene el cupo de RN-01).
    */
   ingresarEstudiante(credenciales: CredencialesApp): Promise<SesionApp>;
-  solicitarRecuperacion(correo: string): Promise<void>;
   /**
    * HU-02.1 (consola): correo o contraseña incorrectos, 401; cuenta desactivada, 403
    * CUENTA_DESACTIVADA (CU-23 3.b). El navegador (User-Agent) queda como dispositivo de la sesión.
    */
   ingresarUsuarioInterno(credenciales: Credenciales, navegador?: string): Promise<SesionConsola>;
-  /** Rota el token: revoca la sesión usada y abre otra. Revocado, vencido o de otro tipo: 401. */
-  renovarSesion(tipo: Audiencia, tokenRenovacion: string): Promise<SesionIniciada>;
+  /**
+   * Rota el token: revoca la sesión usada y abre otra. Revocado, vencido o de otro tipo: 401. Con
+   * `dispositivo`, la sesión nueva lo guarda; sin él, conserva el de la sesión usada.
+   */
+  renovarSesion(
+    tipo: Audiencia,
+    tokenRenovacion: string,
+    dispositivo?: string,
+  ): Promise<SesionIniciada>;
   /** Cierra la sesión del token. Si no existe o ya estaba cerrada, termina igual, sin error. */
   cerrarSesion(tipo: Audiencia, tokenRenovacion: string): Promise<void>;
+  /** RNF-01: cambia la credencial de renovación por una sesión nueva, con el rol actual de la cuenta. */
+  renovarSesionConsola(tokenRenovacion: string, navegador?: string): Promise<SesionIniciada>;
+  /** CU-03: cierra la sesión (revocado_en). Una credencial desconocida o ya cerrada no cambia nada. */
+  cerrarSesionConsola(tokenRenovacion: string): Promise<void>;
+  /**
+   * RN-30, CP-01: la versión vigente de los términos y de la política de privacidad, para el registro
+   * de la app y las páginas /terminos y /privacidad de la consola (el mismo texto en las dos).
+   */
+  documentosLegalesVigentes(): Promise<DocumentoLegalVigente[]>;
   /** La usa el middleware de autenticación en cada petición. */
   sesionVigente: ComprobarSesion;
   obtenerUsuarioConsola(id: string): Promise<UsuarioConsola>;
@@ -138,8 +182,10 @@ type DatosToken = { dispositivo: string | null } & (
 
 const hashDe = (token: string) => createHash('sha256').update(token).digest('hex');
 
-const errorSesion = () =>
-  new ErrorNoAutenticado('La sesión no es válida o venció. Inicia sesión de nuevo.');
+const CREDENCIALES_INCORRECTAS = 'Correo o contraseña incorrectos.';
+const SESION_TERMINADA = 'La sesión venció o se cerró. Vuelve a iniciar sesión.';
+
+const errorSesion = () => new ErrorNoAutenticado(SESION_TERMINADA);
 
 let rellenoPendiente: Promise<string> | undefined;
 
@@ -163,7 +209,7 @@ async function comprobarCredenciales<C extends { hashContrasena: string }>(
   const hash = cuenta?.hashContrasena ?? (await hashDeRelleno());
   const correcta = await compararContrasena(contrasena, hash);
   if (!cuenta || !correcta) {
-    throw new ErrorNoAutenticado('El correo o la contraseña no son correctos.');
+    throw new ErrorNoAutenticado(CREDENCIALES_INCORRECTAS);
   }
   return cuenta;
 }
@@ -252,12 +298,15 @@ async function renovar(
   contexto: Contexto,
   tipo: Audiencia,
   tokenRenovacion: string,
+  dispositivo: string | undefined,
 ): Promise<SesionIniciada> {
   const { repositorio, unidadDeTrabajo, reloj } = contexto;
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     const dueno = await repositorio.consumirSesion(tipo, hashDe(tokenRenovacion), reloj(), tx);
     if (!dueno) throw errorSesion();
-    return abrirSesion(contexto, dueno.cuentaId, await datosDelToken(contexto, dueno), tx);
+    const datos = await datosDelToken(contexto, dueno);
+    const nuevo = dispositivo?.slice(0, LARGO_DISPOSITIVO) || datos.dispositivo;
+    return abrirSesion(contexto, dueno.cuentaId, { ...datos, dispositivo: nuevo }, tx);
   });
 }
 
@@ -266,6 +315,45 @@ async function usuarioConsola({ administracion }: Contexto, id: string): Promise
   if (!usuario) throw errorSesion();
   const { nombre, correo, rol, areas } = usuario;
   return rol === 'docente' ? { id, nombre, correo, rol, areas } : { id, nombre, correo, rol };
+}
+
+/** Verificación del correo y registro, cada uno en su archivo, sobre el mismo contexto. */
+function crearVerificacionYRegistro(dependencias: DependenciasCuentasServicio, contexto: Contexto) {
+  const { bd, unidadDeTrabajo, administracion, cupoInvitaciones, reloj } = dependencias;
+  const verificacion = crearVerificacionCorreo({
+    repositorio: dependencias.repositorioVerificacion ?? crearVerificacionRepositorio(bd),
+    unidadDeTrabajo,
+    correo: dependencias.correo,
+    administracion,
+    cupoInvitaciones,
+    reloj,
+    configuracion: dependencias.verificacionCorreo,
+  });
+  const registro = crearRegistro({
+    repositorio: dependencias.repositorioRegistro ?? crearRegistroRepositorio(bd),
+    unidadDeTrabajo,
+    administracion,
+    cupoInvitaciones,
+    reloj,
+    abrirSesionApp: (id, tx) => abrirSesion(contexto, id, { tipo: 'app', dispositivo: null }, tx),
+    emitirVerificacion: (id) => verificacion.emitirVerificacion(id),
+    generarCodigo: dependencias.generarCodigoInvitacion ?? generarCodigoInvitacion,
+  });
+  const recuperacion = crearRecuperacion({
+    repositorio: dependencias.repositorioRecuperacion ?? crearRecuperacionRepositorio(bd),
+    unidadDeTrabajo,
+    correo: dependencias.correo,
+    reloj,
+    configuracion: dependencias.verificacionCorreo,
+    revocarSesionesEstudiante: (id, tx) =>
+      contexto.repositorio.revocarSesionesEstudiante(id, reloj(), tx),
+    segundoPlano:
+      dependencias.segundoPlano ??
+      ((tarea) => {
+        void tarea();
+      }),
+  });
+  return { ...verificacion, ...registro, ...recuperacion };
 }
 
 export function crearCuentasServicio(dependencias: DependenciasCuentasServicio): CuentasServicio {
@@ -280,34 +368,23 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
   // Se prepara al crear el servicio para que el primer ingreso con un correo sin cuenta no tarde más.
   void hashDeRelleno();
   return {
-    // Esqueletos: cada uno se implementa en la historia de usuario correspondiente.
-    registrarEstudiante: () =>
-      Promise.reject(new ErrorNoImplementado('El registro de estudiantes')),
-    solicitarRecuperacion: () =>
-      Promise.reject(new ErrorNoImplementado('La recuperación de contraseña')),
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales, navegador) =>
       ingresarInterno(contexto, credenciales, navegador),
-    renovarSesion: (tipo, token) => renovar(contexto, tipo, token),
+    renovarSesion: (tipo, token, dispositivo) => renovar(contexto, tipo, token, dispositivo),
     cerrarSesion: (tipo, token) => repositorio.revocarSesion(tipo, hashDe(token), reloj()),
-    sesionVigente: (audiencia, { sub, sid, rol }) => {
-      if (audiencia === 'app') return repositorio.sesionEstudianteVigente(sid, sub, reloj());
-      return rol
-        ? repositorio.sesionInternaVigente(sid, sub, rol, reloj())
-        : Promise.resolve(false);
-    },
+    // La consola renueva con el navegador de la petición, que queda como dispositivo.
+    renovarSesionConsola: (token, navegador) => renovar(contexto, 'admin', token, navegador),
+    cerrarSesionConsola: (token) => repositorio.revocarSesion('admin', hashDe(token), reloj()),
+    // Solo la sesión: la cuenta de la consola la comprueba el middleware con administracion.
+    sesionVigente: (audiencia, { sub, sid }) =>
+      audiencia === 'app'
+        ? repositorio.sesionEstudianteVigente(sid, sub, reloj())
+        : repositorio.sesionInternaVigente(sid, sub, reloj()),
     obtenerUsuarioConsola: (id) => usuarioConsola(contexto, id),
+    documentosLegalesVigentes: () => dependencias.administracion.documentosLegalesVigentes(reloj()),
     revocarSesionesUsuarioInterno: (id, tx) =>
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
-    ...crearVerificacionCorreo({
-      repositorio:
-        dependencias.repositorioVerificacion ?? crearVerificacionRepositorio(dependencias.bd),
-      unidadDeTrabajo: dependencias.unidadDeTrabajo,
-      correo: dependencias.correo,
-      administracion: dependencias.administracion,
-      cupoInvitaciones: dependencias.cupoInvitaciones,
-      reloj,
-      configuracion: dependencias.verificacionCorreo,
-    }),
+    ...crearVerificacionYRegistro(dependencias, contexto),
   };
 }

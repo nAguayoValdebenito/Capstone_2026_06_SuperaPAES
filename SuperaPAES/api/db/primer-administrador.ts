@@ -50,7 +50,7 @@ export function problemaCorreo(correo: string): string | null {
 /** Las dos contraseñas coinciden y cumplen RN-31 frente al correo de la cuenta. */
 export function problemaContrasena(contrasena: string, repetida: string, correo: string) {
   if (contrasena !== repetida) return 'Las contraseñas no coinciden.';
-  return validarContrasena(contrasena, correo);
+  return validarContrasena(contrasena, correo)?.mensaje ?? null;
 }
 
 /** Solo el servidor y el nombre de la base: nunca el usuario ni la contraseña de la conexión. */
@@ -116,7 +116,7 @@ export async function crearPrimerAdministrador(
   const nombre = datos.nombre.trim();
   const correo = normalizarCorreo(datos.correo);
   exigir(problemaNombre(nombre) ?? problemaCorreo(correo));
-  exigir(validarContrasena(datos.contrasena, correo));
+  exigir(validarContrasena(datos.contrasena, correo)?.mensaje ?? null);
   const hash = await cifrarContrasena(datos.contrasena);
   return ejecutarEnTransaccion(cliente, async (tx) => {
     await tx.query('SELECT pg_advisory_xact_lock($1)', [CLAVE_BLOQUEO]);
@@ -152,7 +152,7 @@ export async function restablecerAdministrador(
   contrasena: string,
 ): Promise<CuentaAdministrador> {
   const correo = normalizarCorreo(correoIngresado);
-  exigir(validarContrasena(contrasena, correo));
+  exigir(validarContrasena(contrasena, correo)?.mensaje ?? null);
   const hash = await cifrarContrasena(contrasena);
   return ejecutarEnTransaccion(cliente, async (tx) => {
     await tx.query('SELECT pg_advisory_xact_lock($1)', [CLAVE_BLOQUEO]);
