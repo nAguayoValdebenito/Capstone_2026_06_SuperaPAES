@@ -67,15 +67,15 @@ describe('módulos montados', () => {
     expect((await request(app).get(`/api/v1/app/${modulo}`)).status).toBe(401);
   });
 
-  it.each([['/api/v1/app/cuentas/recuperar-contrasena', { correo: cuerpoIngreso().correo }]])(
-    '%s es pública y todavía responde 501',
-    async (ruta, cuerpo) => {
-      const respuesta = await request(crearAppDePrueba()).post(ruta).send(cuerpo);
+  it.each([
+    ['/api/v1/app/cuentas/recuperacion/solicitar', { correo: 'ana@ejemplo.cl' }],
+    ['/api/v1/app/cuentas/recuperacion/restablecer', { token: 'x', contrasena: 'una-clave-larga' }],
+  ])('%s es pública: no pide sesión', async (ruta, cuerpo) => {
+    const respuesta = await request(crearAppDePrueba()).post(ruta).send(cuerpo);
 
-      expect(respuesta.status).toBe(501);
-      expect(respuesta.body.error.codigo).toBe('NO_IMPLEMENTADO');
-    },
-  );
+    // Sin base en esta prueba no termina, pero la autenticación no la frena.
+    expect(respuesta.status).not.toBe(401);
+  });
 
   it('la contraseña se limita a 72 bytes de UTF-8, no a 72 caracteres', async () => {
     const respuesta = await request(app)

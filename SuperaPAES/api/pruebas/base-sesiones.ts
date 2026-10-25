@@ -31,6 +31,8 @@ export interface EntornoSesiones {
   correos: MensajeCorreo[];
   /** Hace que el proveedor de correo falle desde ahora (true) o vuelva a funcionar (false). */
   fallarCorreo(fallar: boolean): void;
+  /** Espera las tareas que la API lanzó sin esperarlas (el correo de la recuperación de contraseña). */
+  esperarSegundoPlano(): Promise<void>;
 }
 
 /** Proveedor de correo de prueba: guarda cada mensaje y, si se pide, falla después de guardarlo. */
@@ -62,6 +64,12 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
   let pool: pg.Pool;
   const entorno = {} as EntornoSesiones;
   const buzon = crearBuzon();
+  /** Tareas en segundo plano de la API: la prueba las espera para ver su efecto de forma determinista. */
+  const pendientes = new Set<Promise<void>>();
+  const segundoPlano = (tarea: () => Promise<void>) => {
+    const ejecucion = tarea().finally(() => pendientes.delete(ejecucion));
+    pendientes.add(ejecucion);
+  };
 
   const crearAppSobreElPool = (limiteIntentos?: OpcionesLimiteIntentos) => {
     const dependencias = crearDependenciasDePrueba({
@@ -75,6 +83,7 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     return crearApp({
       ...dependencias,
       proveedores: { ...dependencias.proveedores, correo: buzon.proveedor },
+      segundoPlano,
     });
   };
 
@@ -87,6 +96,9 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
       crearAppConLimite: crearAppSobreElPool,
       correos: buzon.correos,
       fallarCorreo: buzon.fallar,
+      esperarSegundoPlano: async () => {
+        await Promise.all([...pendientes]);
+      },
       ahora: () => new Date(ahora),
       avanzarSegundos: (segundos: number) => {
         ahora = new Date(ahora.getTime() + segundos * 1000);
