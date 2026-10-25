@@ -9,6 +9,7 @@ import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type AdministracionRepositorio,
   crearAdministracionRepositorio,
+  type DocumentoLegalVigente,
   type EntradaAuditoria,
   type UsuarioInterno,
 } from './administracion.repositorio.js';
@@ -17,7 +18,7 @@ import type {
   DatosEditarUsuarioInterno,
 } from './administracion.validadores.js';
 
-export type { UsuarioInterno } from './administracion.repositorio.js';
+export type { DocumentoLegalVigente, UsuarioInterno } from './administracion.repositorio.js';
 
 export interface DependenciasAdministracionServicio {
   bd: Ejecutor;
@@ -72,6 +73,11 @@ export interface AdministracionServicio {
    * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto.
    */
   obtenerParametroEntero(clave: string): Promise<number>;
+  /**
+   * RN-30: de cada documento legal obligatorio (términos y privacidad), la versión con mayor
+   * vigente_desde que ya empezó. La usan el registro y las páginas /terminos y /privacidad.
+   */
+  documentosLegalesVigentes(ahora: Date): Promise<DocumentoLegalVigente[]>;
 }
 
 interface Contexto {
@@ -300,6 +306,7 @@ export function crearAdministracionServicio(
       cambiarEstado(contexto, autorId, id, activo),
     cuentaInternaVigente: (id, rol) => cuentaVigente(contexto, id, rol),
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
+    documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),
     obtenerParametroEntero: async (clave) => {
       const valor = await contexto.repositorio.leerParametro(clave);
       if (typeof valor !== 'number' || !Number.isInteger(valor)) {

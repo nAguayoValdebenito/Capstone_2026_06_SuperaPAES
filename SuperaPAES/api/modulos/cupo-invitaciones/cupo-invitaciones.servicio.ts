@@ -9,6 +9,7 @@ import type { AdministracionServicio } from '../administracion/index.js';
 import {
   crearCupoInvitacionesRepositorio,
   type CupoInvitacionesRepositorio,
+  type NuevaInvitacion,
 } from './cupo-invitaciones.repositorio.js';
 
 export interface DependenciasCupoInvitacionesServicio {
@@ -30,6 +31,12 @@ export interface CupoInvitacionesServicio {
    * Se llama dentro de la transacción de la verificación (módulo cuentas).
    */
   aplicarCupoVerificado(estudianteId: string, tx: Ejecutor): Promise<void>;
+  /**
+   * HU-01 esc. 3, RN-03: un estudiante nuevo se registró con el código de otro. Crea la fila de
+   * app.invitacion dentro de la transacción del registro (módulo cuentas, que ya buscó al invitante
+   * por su código). No entrega el bono (HU-47) ni guarda el dispositivo (HU-47.1).
+   */
+  registrarInvitacion(invitacion: NuevaInvitacion, tx: Ejecutor): Promise<void>;
 }
 
 export function crearCupoInvitacionesServicio(
@@ -40,6 +47,7 @@ export function crearCupoInvitacionesServicio(
     // Esqueleto: se implementa con su historia de usuario.
     registrarCodigoInvitacion: () =>
       Promise.reject(new ErrorNoImplementado('El registro de códigos de invitación')),
+    registrarInvitacion: (invitacion, tx) => repositorio.crearInvitacion(invitacion, tx),
     aplicarCupoVerificado: async (estudianteId, tx) => {
       const maximo = await dependencias.administracion.obtenerParametroEntero('cupo_verificado');
       await repositorio.subirMaximoDelDia(estudianteId, maximo, tx);

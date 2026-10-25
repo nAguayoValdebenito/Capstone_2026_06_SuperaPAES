@@ -12,6 +12,7 @@ import {
   ErrorNoImplementado,
 } from '../../comun/errores.js';
 import { type Audiencia, firmarToken } from '../../comun/jwt.js';
+import { generarCodigoInvitacion } from '../../comun/codigo-invitacion.js';
 import type { ComprobarSesion, SecretosJwt } from '../../comun/middleware/autenticacion.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { RolCuentaInterna } from '../../comun/roles.js';
@@ -23,6 +24,11 @@ import {
   type CuentasRepositorio,
   type DuenoSesion,
 } from './cuentas.repositorio.js';
+import {
+  crearRegistroRepositorio,
+  type RegistroRepositorio,
+} from './cuentas.registro.repositorio.js';
+import { crearRegistro } from './cuentas.registro.servicio.js';
 import type { Credenciales, CredencialesApp, DatosRegistro } from './cuentas.validadores.js';
 import {
   crearVerificacionRepositorio,
@@ -67,6 +73,10 @@ export interface DependenciasCuentasServicio {
   repositorio?: CuentasRepositorio;
   /** Solo para pruebas: reemplaza al de la verificación del correo. */
   repositorioVerificacion?: VerificacionRepositorio;
+  /** Solo para pruebas: reemplaza al del registro. */
+  repositorioRegistro?: RegistroRepositorio;
+  /** Solo para pruebas: reemplaza al generador del código de invitación propio (RN-33). */
+  generarCodigoInvitacion?: () => string;
 }
 
 export interface SesionIniciada {
@@ -105,7 +115,13 @@ export interface UsuarioConsola extends UsuarioDeSesion {
 
 /** Incluye la verificación del correo (cuentas.verificacion.servicio.ts). */
 export interface CuentasServicio extends VerificacionCorreo {
-  registrarEstudiante(datos: DatosRegistro): Promise<SesionIniciada>;
+  /**
+   * HU-01.1 (CU-01): crea la cuenta sin verificar con sus consentimientos, la invitación si vino un
+   * código y la sesión de la app, en una transacción; después emite el correo de verificación.
+   * Correo repetido: 409 CONFLICTO. Documentos, edad, contraseña o código inválidos: 400 VALIDACION con
+   * su motivo.
+   */
+  registrarEstudiante(datos: DatosRegistro): Promise<SesionApp>;
   /**
    * HU-02.1 (app): correo o contraseña incorrectos, o cuenta eliminada, 401 con el mismo mensaje. Un
    * correo sin verificar sí entra (solo tiene el cupo de RN-01).
@@ -289,6 +305,31 @@ async function usuarioConsola({ administracion }: Contexto, id: string): Promise
   return rol === 'docente' ? { id, nombre, correo, rol, areas } : { id, nombre, correo, rol };
 }
 
+/** Verificación del correo y registro, cada uno en su archivo, sobre el mismo contexto. */
+function crearVerificacionYRegistro(dependencias: DependenciasCuentasServicio, contexto: Contexto) {
+  const { bd, unidadDeTrabajo, administracion, cupoInvitaciones, reloj } = dependencias;
+  const verificacion = crearVerificacionCorreo({
+    repositorio: dependencias.repositorioVerificacion ?? crearVerificacionRepositorio(bd),
+    unidadDeTrabajo,
+    correo: dependencias.correo,
+    administracion,
+    cupoInvitaciones,
+    reloj,
+    configuracion: dependencias.verificacionCorreo,
+  });
+  const registro = crearRegistro({
+    repositorio: dependencias.repositorioRegistro ?? crearRegistroRepositorio(bd),
+    unidadDeTrabajo,
+    administracion,
+    cupoInvitaciones,
+    reloj,
+    abrirSesionApp: (id, tx) => abrirSesion(contexto, id, { tipo: 'app', dispositivo: null }, tx),
+    emitirVerificacion: (id) => verificacion.emitirVerificacion(id),
+    generarCodigo: dependencias.generarCodigoInvitacion ?? generarCodigoInvitacion,
+  });
+  return { ...verificacion, ...registro };
+}
+
 export function crearCuentasServicio(dependencias: DependenciasCuentasServicio): CuentasServicio {
   const contexto: Contexto = {
     repositorio: dependencias.repositorio ?? crearCuentasRepositorio(dependencias.bd),
@@ -301,9 +342,7 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
   // Se prepara al crear el servicio para que el primer ingreso con un correo sin cuenta no tarde más.
   void hashDeRelleno();
   return {
-    // Esqueletos: cada uno se implementa en la historia de usuario correspondiente.
-    registrarEstudiante: () =>
-      Promise.reject(new ErrorNoImplementado('El registro de estudiantes')),
+    // Esqueleto: se implementa con su historia de usuario (HU-06).
     solicitarRecuperacion: () =>
       Promise.reject(new ErrorNoImplementado('La recuperación de contraseña')),
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
@@ -322,15 +361,6 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     obtenerUsuarioConsola: (id) => usuarioConsola(contexto, id),
     revocarSesionesUsuarioInterno: (id, tx) =>
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
-    ...crearVerificacionCorreo({
-      repositorio:
-        dependencias.repositorioVerificacion ?? crearVerificacionRepositorio(dependencias.bd),
-      unidadDeTrabajo: dependencias.unidadDeTrabajo,
-      correo: dependencias.correo,
-      administracion: dependencias.administracion,
-      cupoInvitaciones: dependencias.cupoInvitaciones,
-      reloj,
-      configuracion: dependencias.verificacionCorreo,
-    }),
+    ...crearVerificacionYRegistro(dependencias, contexto),
   };
 }

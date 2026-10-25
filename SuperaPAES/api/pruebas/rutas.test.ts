@@ -67,15 +67,15 @@ describe('módulos montados', () => {
     expect((await request(app).get(`/api/v1/app/${modulo}`)).status).toBe(401);
   });
 
-  it.each([
-    [RUTA_REGISTRO, cuerpoRegistro()],
-    ['/api/v1/app/cuentas/recuperar-contrasena', { correo: cuerpoIngreso().correo }],
-  ])('%s es pública y todavía responde 501', async (ruta, cuerpo) => {
-    const respuesta = await request(crearAppDePrueba()).post(ruta).send(cuerpo);
+  it.each([['/api/v1/app/cuentas/recuperar-contrasena', { correo: cuerpoIngreso().correo }]])(
+    '%s es pública y todavía responde 501',
+    async (ruta, cuerpo) => {
+      const respuesta = await request(crearAppDePrueba()).post(ruta).send(cuerpo);
 
-    expect(respuesta.status).toBe(501);
-    expect(respuesta.body.error.codigo).toBe('NO_IMPLEMENTADO');
-  });
+      expect(respuesta.status).toBe(501);
+      expect(respuesta.body.error.codigo).toBe('NO_IMPLEMENTADO');
+    },
+  );
 
   it('la contraseña se limita a 72 bytes de UTF-8, no a 72 caracteres', async () => {
     const respuesta = await request(app)
@@ -110,19 +110,25 @@ describe('módulos montados', () => {
     });
   });
 
-  it('el registro exige declarar 14 años o más (RN-18)', async () => {
+  it.each([false, undefined, 'si'])(
+    'el registro exige declarar 14 años o más (RN-18): %s se rechaza con su motivo',
+    async (declaracion) => {
+      const respuesta = await request(app)
+        .post(RUTA_REGISTRO)
+        .send(cuerpoRegistro({ declaraTenerCatorceAnios: declaracion }));
+
+      expect(respuesta.status).toBe(400);
+      expect(respuesta.body.error.detalles[0]).toMatchObject({
+        ruta: 'declaraTenerCatorceAnios',
+        motivo: 'edad_no_declarada',
+      });
+    },
+  );
+
+  it('el registro valida el formato de la lista de documentos aceptados', async () => {
     const respuesta = await request(app)
       .post(RUTA_REGISTRO)
-      .send(cuerpoRegistro({ declaraTenerCatorceAnios: false }));
-
-    expect(respuesta.status).toBe(400);
-    expect(respuesta.body.error.codigo).toBe('VALIDACION');
-  });
-
-  it('el registro exige aceptar la política de privacidad, que es obligatoria', async () => {
-    const respuesta = await request(app)
-      .post(RUTA_REGISTRO)
-      .send(cuerpoRegistro({ aceptaPrivacidad: undefined }));
+      .send(cuerpoRegistro({ documentosAceptados: ['terminos'] }));
 
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.error.codigo).toBe('VALIDACION');

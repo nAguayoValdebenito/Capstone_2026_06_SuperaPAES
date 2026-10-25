@@ -61,9 +61,7 @@ function usuarioInternoDe(req: Request<unknown, unknown, unknown>): string {
 export function crearCuentasControlador(servicio: CuentasServicio): CuentasControlador {
   return {
     registrar: async (req, res) => {
-      responder(res, await servicio.registrarEstudiante(req.body), {
-        estado: 201,
-      });
+      responder(res, await servicio.registrarEstudiante(req.body), { estado: 201 });
     },
     ingresar: async (req, res) => {
       responder(res, await servicio.ingresarEstudiante(req.body));

@@ -47,6 +47,18 @@ export interface EntradaAuditoria {
   despues: Record<string, unknown> | null;
 }
 
+/** Versión vigente de un documento legal obligatorio (términos o privacidad, RN-30). */
+export interface DocumentoLegalVigente {
+  id: number;
+  /** Código de contenido.tipo_documento_legal: terminos o privacidad. */
+  tipo: string;
+  nombre: string;
+  /** mayor.menor, por ejemplo 1.0. */
+  version: string;
+  texto: string;
+  vigenteDesde: Date;
+}
+
 export interface AdministracionRepositorio {
   listarUsuariosInternos(tx?: Ejecutor): Promise<UsuarioInterno[]>;
   /** Con `bloquear`, bloquea la fila hasta el fin de la transacción (FOR UPDATE). */
@@ -66,6 +78,8 @@ export interface AdministracionRepositorio {
   cambiarActivoUsuarioInterno(id: string, activo: boolean, tx?: Ejecutor): Promise<void>;
   reemplazarEspecialidades(id: string, areas: readonly number[], tx?: Ejecutor): Promise<void>;
   registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
+  /** De cada tipo obligatorio, la versión con mayor vigente_desde que ya empezó a la hora `ahora`. */
+  documentosLegalesVigentes(ahora: Date, tx?: Ejecutor): Promise<DocumentoLegalVigente[]>;
   /** Valor (JSON) de un parámetro de contenido.configuracion, o undefined si la clave no existe. */
   leerParametro(clave: string, tx?: Ejecutor): Promise<unknown>;
   /**
@@ -162,6 +176,14 @@ function consultasUsuarios(bd: Ejecutor): ConsultasUsuarios {
   };
 }
 
+const DOCUMENTOS_VIGENTES = `
+  SELECT DISTINCT ON (t.id) d.id, t.codigo AS tipo, t.nombre, d.version, d.contenido AS texto,
+         d.vigente_desde AS "vigenteDesde"
+    FROM contenido.documento_legal d
+    JOIN contenido.tipo_documento_legal t ON t.id = d.tipo_documento_legal_id
+   WHERE t.obligatorio AND d.vigente_desde <= $1
+   ORDER BY t.id, d.vigente_desde DESC`;
+
 const ADMINISTRADORES_ACTIVOS = `
   SELECT u.id::text AS id FROM contenido.usuario_interno u JOIN contenido.rol r ON r.id = u.rol_id
    WHERE r.codigo = 'admin' AND u.activo
@@ -198,6 +220,11 @@ function cambiosYAuditoria(bd: Ejecutor): CambiosYAuditoria {
     async bloquearAdministradoresActivos(tx = bd) {
       const { rows } = await tx.query<{ id: string }>(ADMINISTRADORES_ACTIVOS);
       return rows.map((fila) => fila.id);
+    },
+
+    async documentosLegalesVigentes(ahora, tx = bd) {
+      const { rows } = await tx.query<DocumentoLegalVigente>(DOCUMENTOS_VIGENTES, [ahora]);
+      return rows;
     },
 
     async leerParametro(clave, tx = bd) {

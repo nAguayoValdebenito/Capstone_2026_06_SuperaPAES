@@ -87,9 +87,8 @@ export function cuerpoRegistro(cambios: Record<string, unknown> = {}): Record<st
     nombre: 'Ana',
     correo: 'ana@ejemplo.cl',
     contrasena: 'una-clave-larga',
-    aceptaTerminos: true,
-    aceptaPrivacidad: true,
     declaraTenerCatorceAnios: true,
+    documentosAceptados: [1, 2],
     ...cambios,
   };
 }
