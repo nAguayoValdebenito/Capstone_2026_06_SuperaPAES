@@ -17,6 +17,9 @@ import {
   esquemaTokenRenovacion,
 } from './cuentas.validadores.js';
 
+/** Documentos legales vigentes: pública y sin sesión, así que lleva un límite por IP (60 por minuto). */
+const LIMITE_DOCUMENTOS_VIGENTES = { ventanaMs: 60 * 1000, maximo: 60 };
+
 /** Reenviar el correo de verificación: 3 por hora por estudiante, para que no sirva para enviar en masa. */
 const LIMITE_REENVIO_VERIFICACION = { ventanaMs: 60 * 60 * 1000, maximo: 3 };
 
@@ -41,7 +44,11 @@ export function crearRutasAppCuentas(servicio: CuentasServicio, mw: MiddlewareRu
     controlador.ingresar,
   );
   // Pública: la usan el registro de la app y las páginas /terminos y /privacidad de la consola.
-  router.get('/documentos-legales/vigentes', controlador.documentosVigentes);
+  router.get(
+    '/documentos-legales/vigentes',
+    mw.crearLimiteIntentos(LIMITE_DOCUMENTOS_VIGENTES),
+    controlador.documentosVigentes,
+  );
   router.post('/renovar', conToken, controlador.renovarApp);
   router.post('/cerrar', conToken, controlador.cerrarApp);
   // Verificación del correo. El enlace es público (se abre desde la página de la consola, quizá en un

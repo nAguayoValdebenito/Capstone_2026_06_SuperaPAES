@@ -29,6 +29,9 @@ type ControladorVerificacion = Pick<
   | 'confirmarCorreo'
 >;
 
+/** Cinco minutos: una versión nueva de los términos tarda a lo más eso en verse (RN-30). */
+const CACHE_DOCUMENTOS_VIGENTES = 'public, max-age=300';
+
 export interface CuentasControlador {
   registrar: ConCuerpo<DatosRegistro>;
   ingresar: ConCuerpo<CredencialesApp>;
@@ -94,6 +97,8 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
       responder(res, { sesionCerrada: true });
     },
     documentosVigentes: async (_req, res) => {
+      // El texto es igual para todos y cambia pocas veces: el navegador y el CDN pueden guardarlo.
+      res.set('Cache-Control', CACHE_DOCUMENTOS_VIGENTES);
       responder(res, await servicio.documentosLegalesVigentes());
     },
     usuarioConsola: async (req, res) => {

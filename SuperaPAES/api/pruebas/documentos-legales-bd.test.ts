@@ -80,6 +80,18 @@ describe.skipIf(!urlBase)('documentos legales vigentes con PostgreSQL', () => {
     }
   });
 
+  it('se puede guardar cinco minutos (Cache-Control) y tiene un límite de 60 por minuto por IP', async () => {
+    const respuesta = await request(entorno.app).get(RUTA);
+    const limitada = entorno.crearAppConLimite({ ventanaMs: 60_000, maximo: 1000 });
+    const estados = [];
+    for (let i = 0; i < 61; i++) estados.push((await request(limitada).get(RUTA)).status);
+
+    expect(respuesta.headers['cache-control']).toBe('public, max-age=300');
+    expect(respuesta.headers['ratelimit']).toBeDefined();
+    expect(estados.slice(0, 60).every((estado) => estado === 200)).toBe(true);
+    expect(estados[60]).toBe(429);
+  });
+
   it('CORS permite a la consola pedirla (páginas /terminos y /privacidad)', async () => {
     const respuesta = await request(entorno.app).get(RUTA).set('Origin', URL_CONSOLA_DE_PRUEBA);
 
