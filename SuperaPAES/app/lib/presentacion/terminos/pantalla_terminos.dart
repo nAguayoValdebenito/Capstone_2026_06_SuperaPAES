@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/presentacion/comunes/en_construccion.dart';
+import 'package:supera_paes/dominio/entidades/documento_legal.dart';
+import 'package:supera_paes/presentacion/comunes/vista_documento_legal.dart';
 
-/// Pantalla Términos y condiciones (provisional).
+/// Pantalla Términos y condiciones (A02): la versión vigente.
 class PantallaTerminos extends StatelessWidget {
   const PantallaTerminos({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const EnConstruccion(
-      descripcion: 'Términos y condiciones de uso de ${Textos.nombreApp}.',
-    );
+    return const VistaDocumentoLegal(tipo: TipoDocumentoLegal.terminos);
   }
 }

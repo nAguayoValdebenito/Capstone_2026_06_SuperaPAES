@@ -1,13 +1,29 @@
 import 'package:dio/dio.dart';
 
+/// Problema de un campo en un error `VALIDACION`: `ruta` es el campo del
+/// cuerpo y `motivo`, cuando viene, identifica la regla (por ejemplo
+/// `contrasena_comun`, RN-31).
+class ProblemaDeCampo {
+  const ProblemaDeCampo({
+    required this.ruta,
+    required this.mensaje,
+    this.motivo,
+  });
+
+  final String ruta;
+  final String mensaje;
+  final String? motivo;
+}
+
 /// Error de la API con el formato común
-/// `{ "data": null, "error": { "codigo": "...", "mensaje": "..." },
-/// "meta": null }`.
+/// `{ "data": null, "error": { "codigo": "...", "mensaje": "...",
+/// "detalles": [...] }, "meta": null }`.
 class ErrorApi implements Exception {
   const ErrorApi({
     required this.codigo,
     required this.mensaje,
     this.estadoHttp,
+    this.problemas = const [],
   });
 
   /// Traduce un error de dio al formato común.
@@ -31,6 +47,9 @@ class ErrorApi implements Exception {
   final String mensaje;
   final int? estadoHttp;
 
+  /// Problemas por campo de un error `VALIDACION`; vacío en los demás.
+  final List<ProblemaDeCampo> problemas;
+
   /// Lee `error` de un cuerpo con el formato común; `null` si no trae error.
   static ErrorApi? desdeCuerpo(Object? cuerpo, {int? estadoHttp}) {
     if (cuerpo is! Map<String, dynamic>) return null;
@@ -39,7 +58,41 @@ class ErrorApi implements Exception {
     final codigo = error['codigo'];
     final mensaje = error['mensaje'];
     if (codigo is! String || mensaje is! String) return null;
-    return ErrorApi(codigo: codigo, mensaje: mensaje, estadoHttp: estadoHttp);
+    return ErrorApi(
+      codigo: codigo,
+      mensaje: mensaje,
+      estadoHttp: estadoHttp,
+      problemas: _leerProblemas(error['detalles']),
+    );
+  }
+
+  /// `detalles` es una lista de problemas solo en `VALIDACION`; en otros
+  /// errores puede ser otra cosa (por ejemplo `{ intentosRestantes }`).
+  static List<ProblemaDeCampo> _leerProblemas(Object? detalles) {
+    if (detalles is! List<dynamic>) return const [];
+    return [
+      for (final problema in detalles.whereType<Map<String, dynamic>>())
+        if (problema case {
+          'ruta': final String ruta,
+          'mensaje': final String mensaje,
+        })
+          ProblemaDeCampo(
+            ruta: ruta,
+            mensaje: mensaje,
+            motivo: switch (problema['motivo']) {
+              final String motivo => motivo,
+              _ => null,
+            },
+          ),
+    ];
+  }
+
+  /// Mensaje del primer problema del campo `ruta`, o `null` si no tiene.
+  String? mensajeDeCampo(String ruta) {
+    for (final problema in problemas) {
+      if (problema.ruta == ruta) return problema.mensaje;
+    }
+    return null;
   }
 
   @override
