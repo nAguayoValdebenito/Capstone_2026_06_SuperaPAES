@@ -116,8 +116,10 @@ async function marcarVerificado(
   estudianteId: string,
   tx: Ejecutor,
 ): Promise<void> {
-  await repositorio.marcarCorreoVerificado(estudianteId, reloj(), tx);
-  await cupoInvitaciones.aplicarCupoVerificado(estudianteId, tx);
+  // Una sola hora para las dos cosas: el cupo que sube es el del mismo día de Chile de la verificación.
+  const ahora = reloj();
+  await repositorio.marcarCorreoVerificado(estudianteId, ahora, tx);
+  await cupoInvitaciones.aplicarCupoVerificado(estudianteId, ahora, tx);
 }
 
 interface CorreoPreparado {

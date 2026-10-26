@@ -22,6 +22,7 @@ import {
 import { comprobarCredenciales, hashDeRelleno } from './cuentas.credenciales.js';
 import {
   crearPerfilPracticaRepositorio,
+  type EstadoCuentaCupo,
   type PerfilPractica,
 } from './cuentas.perfil-practica.repositorio.js';
 import {
@@ -134,6 +135,16 @@ export interface CuentasServicio extends VerificacionCorreo, Recuperacion {
     tx?: Ejecutor,
     bloquear?: boolean,
   ): Promise<PerfilPractica | null>;
+  /**
+   * HU-32.1: si el correo está verificado, para el cupo del día. Con bloquear, toma la fila del
+   * estudiante (FOR UPDATE), el primer bloqueo de una respuesta. null si la cuenta no existe o se
+   * eliminó.
+   */
+  estadoParaCupo(
+    estudianteId: string,
+    tx?: Ejecutor,
+    bloquear?: boolean,
+  ): Promise<EstadoCuentaCupo | null>;
   /**
    * HU-01.1 (CU-01): crea la cuenta sin verificar con sus consentimientos, la invitación si vino un
    * código y la sesión de la app, en una transacción; después emite el correo de verificación.
@@ -354,6 +365,7 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
   return {
     obtenerPerfilPractica: (id, tx, bloquear) =>
       perfilPractica.obtenerPerfilPractica(id, tx, bloquear),
+    estadoParaCupo: (id, tx, bloquear) => perfilPractica.estadoParaCupo(id, tx, bloquear),
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales, navegador) =>
       ingresarInterno(contexto, credenciales, navegador),

@@ -28,6 +28,11 @@ export interface SuscripcionesServicio {
    * plan anterior y el nuevo, partiendo del último registro.
    */
   recibirAviso(tienda: Tienda, aviso: AvisoEntrante): Promise<void>;
+  /**
+   * RN-04: ¿una suscripción activa o en mora cubre la prueba? Si la cubre, responder no descuenta
+   * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta).
+   */
+  cubrePrueba(estudianteId: string, pruebaId: number, tx: Ejecutor): Promise<boolean>;
 }
 
 // Esqueleto: el procesamiento de avisos se implementa en el sprint de suscripciones.
@@ -39,5 +44,8 @@ export function crearSuscripcionesServicio(
       Promise.reject(
         new ErrorNoImplementado(`El procesamiento de avisos de ${NOMBRE_TIENDA[tienda]}`),
       ),
+    // TEMPORAL hasta HU-44: todavía no hay suscripciones, así que ninguna cubre una prueba. HU-44 la
+    // reemplaza por la consulta de app.suscripcion y app.suscripcion_prueba (estado activa o en mora).
+    cubrePrueba: () => Promise.resolve(false),
   };
 }

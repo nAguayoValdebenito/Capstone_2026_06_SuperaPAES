@@ -1,7 +1,17 @@
-// HU-30.1 y HU-31.2: transacciones de inicio y entrega. La corrección y el cupo llegan en el prompt 16.
-import { ErrorAplicacion, ErrorValidacion } from '../../comun/errores.js';
+// HU-30.1 y HU-31.2: transacciones de inicio y entrega. Antes de entregar una pregunta nueva se exige
+// cupo (HU-33 esc. 1, RF-A09): el estudiante no recibe una pregunta que no podría responder.
+import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { CuentasServicio } from '../cuentas/index.js';
+import type { CupoInvitacionesServicio } from '../cupo-invitaciones/index.js';
+import {
+  evaluacionCerrada,
+  evaluacionConTiempoAbierta,
+  evaluacionNoEncontrada,
+  practicaCompleta,
+  sinPreguntas,
+  validacion,
+} from './evaluaciones.errores.js';
 import type { TemarioServicio } from '../temario/index.js';
 import type {
   ContextoInicio,
@@ -17,22 +27,11 @@ import type { DatosInicioPractica } from './evaluaciones.validadores.js';
 export interface DependenciasPracticas {
   repositorio: PracticasRepositorio;
   unidadDeTrabajo: UnidadDeTrabajo;
-  cuentas: Pick<CuentasServicio, 'obtenerPerfilPractica'>;
+  cuentas: Pick<CuentasServicio, 'obtenerPerfilPractica' | 'estadoParaCupo'>;
   temario: Pick<TemarioServicio, 'alcancePracticaValido'>;
+  cupo: Pick<CupoInvitacionesServicio, 'exigirCupoDisponible'>;
+  reloj: Reloj;
   seleccion: SeleccionPractica;
-}
-
-function validacion(ruta: string, mensaje: string, motivo: string): ErrorValidacion {
-  return new ErrorValidacion([{ lugar: 'cuerpo', ruta, mensaje, motivo }], mensaje);
-}
-
-function sinPreguntas(disponibles: number, solicitadas: number, opciones: string[]) {
-  return new ErrorAplicacion(
-    409,
-    'SIN_PREGUNTAS_SUFICIENTES',
-    'No hay suficientes preguntas publicadas para lo elegido.',
-    { detalles: { disponibles, solicitadas, opciones } },
-  );
 }
 
 function filtrosDe({
@@ -103,12 +102,7 @@ async function perfilParaInicio(
   if (!perfil || perfil.anioEgreso === null || perfil.pruebas.length === 0)
     throw validacion('pruebaId', 'Completa tu perfil antes de practicar.', 'perfil_incompleto');
   const abierta = await repositorio.leerAbierta(estudianteId, tx);
-  if (abierta?.conTiempo)
-    throw new ErrorAplicacion(
-      409,
-      'EVALUACION_CON_TIEMPO_ABIERTA',
-      'Termina tu evaluación con tiempo antes de empezar otra.',
-    );
+  if (abierta?.conTiempo) throw evaluacionConTiempoAbierta();
   if (!perfil.pruebas.includes(pruebaId))
     throw validacion('pruebaId', 'Esa prueba no está en tu perfil.', 'prueba_no_elegida');
   return { anioEgreso: perfil.anioEgreso, abierta };
@@ -165,6 +159,18 @@ async function validarAlcanceYDificultad(
   return dificultad;
 }
 
+/** 409 CUPO_AGOTADO si no queda cupo del día, ni saldo, ni una suscripción que cubra la prueba. */
+async function exigirCupo(
+  { cuentas, cupo, reloj }: DependenciasPracticas,
+  estudianteId: string,
+  pruebaId: number,
+  tx: Ejecutor,
+): Promise<void> {
+  const cuenta = await cuentas.estadoParaCupo(estudianteId, tx);
+  const correoVerificado = cuenta?.correoVerificado ?? false;
+  await cupo.exigirCupoDisponible({ estudianteId, pruebaId, correoVerificado, ahora: reloj() }, tx);
+}
+
 async function exigirDisponibilidad(
   dependencias: DependenciasPracticas,
   filtros: FiltrosSeleccion,
@@ -196,6 +202,8 @@ async function iniciar(
     const estructura = await estructuraParaInicio(repositorio, datos, tx);
     const contexto = await repositorio.leerContextoInicio(anioEgreso, tx);
     const dificultad = await validarAlcanceYDificultad(dependencias, datos, contexto, tx);
+    // Antes de comprobar el banco y de cerrar la práctica abierta: sin cupo no se cierra nada.
+    if (estructura.consumeCupo) await exigirCupo(dependencias, estudianteId, datos.pruebaId, tx);
     const filtros = filtrosDe({ estudianteId, datos, contexto, ...(dificultad && { dificultad }) });
     await exigirDisponibilidad(dependencias, filtros, datos.cantidad, tx);
     if (abierta) await repositorio.cerrarAbandonada(abierta.id, tx);
@@ -231,14 +239,8 @@ async function siguiente(dependencias: DependenciasPracticas, estudianteId: stri
   const { repositorio, unidadDeTrabajo, seleccion } = dependencias;
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     const practica = await repositorio.leerPractica(id, estudianteId, tx);
-    if (!practica)
-      throw new ErrorAplicacion(
-        404,
-        'EVALUACION_NO_ENCONTRADA',
-        'La práctica solicitada no existe.',
-      );
-    if (practica.cerradaEn)
-      throw new ErrorAplicacion(409, 'EVALUACION_CERRADA', 'Esta práctica ya está cerrada.');
+    if (!practica) throw evaluacionNoEncontrada();
+    if (practica.cerradaEn) throw evaluacionCerrada();
     const entregas = await repositorio.leerEntregas(id, tx);
     const ultima = entregas.at(-1);
     if (ultima?.respondidaEn === null)
@@ -249,13 +251,8 @@ async function siguiente(dependencias: DependenciasPracticas, estudianteId: stri
         total: practica.cantidad,
         tx,
       });
-    if (entregas.length >= practica.cantidad)
-      throw new ErrorAplicacion(
-        409,
-        'PRACTICA_COMPLETA',
-        'Ya respondiste todas las preguntas. Cierra la práctica para ver tu resumen.',
-        { detalles: { accion: 'cerrar' } },
-      );
+    if (entregas.length >= practica.cantidad) throw practicaCompleta();
+    if (practica.consumeCupo) await exigirCupo(dependencias, estudianteId, practica.pruebaId, tx);
     const filtros: FiltrosSeleccion = {
       estudianteId,
       pruebaId: practica.pruebaId,
