@@ -45,4 +45,3 @@ export const esquemaIdUsuarioInterno = z.strictObject({
 
 export type DatosCrearUsuarioInterno = z.output<typeof esquemaCrearUsuarioInterno>;
 export type DatosEditarUsuarioInterno = z.output<typeof esquemaEditarUsuarioInterno>;
-export type ParametrosUsuarioInterno = z.output<typeof esquemaIdUsuarioInterno>;

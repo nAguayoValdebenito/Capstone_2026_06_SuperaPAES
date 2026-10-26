@@ -115,4 +115,3 @@ export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
 export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
 export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
 export type DatosBusquedaEstudiante = z.output<typeof esquemaBusquedaEstudiante>;
-export type ParametrosEstudiante = z.output<typeof esquemaIdEstudiante>;
