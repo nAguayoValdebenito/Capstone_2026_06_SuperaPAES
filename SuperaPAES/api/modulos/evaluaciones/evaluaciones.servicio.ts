@@ -30,6 +30,7 @@ import {
 } from './evaluaciones.respuestas.servicio.js';
 import { crearResumenRepositorio } from './evaluaciones.resumen.repositorio.js';
 import { crearResumenServicio, type ResumenServicio } from './evaluaciones.resumen.servicio.js';
+import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 
 export interface DependenciasEvaluacionesServicio {
   bd: Ejecutor;
@@ -51,7 +52,7 @@ export type EvaluacionesServicio = SeleccionPractica &
   RespuestasServicio &
   ResumenServicio;
 
-export function crearEvaluacionesServicio(
+function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
 ): EvaluacionesServicio {
   const seleccion = crearSeleccionPractica({
@@ -82,5 +83,18 @@ export function crearEvaluacionesServicio(
       repositorio: crearResumenRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
     }),
+  };
+}
+
+export function crearEvaluacionesServicio(
+  dependencias: DependenciasEvaluacionesServicio,
+): EvaluacionesServicio {
+  const servicio = crearServicioSinReintento(dependencias);
+  return {
+    ...servicio,
+    // Dos inicios del mismo estudiante a la vez pueden chocar con la hora del cierre de la práctica
+    // anterior: se repite la transacción completa (ver evaluaciones.reintento-inicio.ts).
+    iniciarPractica: (estudianteId, datos) =>
+      conReintentoDeInicio(() => servicio.iniciarPractica(estudianteId, datos)),
   };
 }
