@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/presentacion/comunes/en_construccion.dart';
+import 'package:supera_paes/dominio/entidades/documento_legal.dart';
+import 'package:supera_paes/presentacion/comunes/vista_documento_legal.dart';
 
-/// Pantalla Política de privacidad (provisional).
+/// Pantalla Política de privacidad (A02b): la versión vigente.
 class PantallaPrivacidad extends StatelessWidget {
   const PantallaPrivacidad({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const EnConstruccion(
-      descripcion:
-          'Cómo ${Textos.nombreApp} trata tus datos personales y cómo ejercer '
-          'tus derechos según la Ley 21.719.',
-    );
+    return const VistaDocumentoLegal(tipo: TipoDocumentoLegal.privacidad);
   }
 }

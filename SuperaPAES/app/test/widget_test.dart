@@ -8,10 +8,13 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
 import 'package:supera_paes/presentacion/aplicacion.dart';
+import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+
+import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
   late ProviderContainer contenedor;
@@ -22,6 +25,7 @@ void main() {
         estadoSaludProvider.overrideWith(
           (ref) async => const EstadoSalud(estado: 'ok', baseDeDatos: 'ok'),
         ),
+        repositorioCuentasProvider.overrideWithValue(RepositorioCuentasFalso()),
       ],
     );
   });
