@@ -28,6 +28,8 @@ import {
   crearRespuestasServicio,
   type RespuestasServicio,
 } from './evaluaciones.respuestas.servicio.js';
+import { crearResumenRepositorio } from './evaluaciones.resumen.repositorio.js';
+import { crearResumenServicio, type ResumenServicio } from './evaluaciones.resumen.servicio.js';
 
 export interface DependenciasEvaluacionesServicio {
   bd: Ejecutor;
@@ -44,7 +46,10 @@ export interface DependenciasEvaluacionesServicio {
   repositorio?: EvaluacionesRepositorio;
 }
 
-export type EvaluacionesServicio = SeleccionPractica & PracticasServicio & RespuestasServicio;
+export type EvaluacionesServicio = SeleccionPractica &
+  PracticasServicio &
+  RespuestasServicio &
+  ResumenServicio;
 
 export function crearEvaluacionesServicio(
   dependencias: DependenciasEvaluacionesServicio,
@@ -72,6 +77,10 @@ export function crearEvaluacionesServicio(
       cuentas: dependencias.cuentas,
       cupo: dependencias.cupoInvitaciones,
       reloj: dependencias.reloj,
+    }),
+    ...crearResumenServicio({
+      repositorio: crearResumenRepositorio(),
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
     }),
   };
 }
