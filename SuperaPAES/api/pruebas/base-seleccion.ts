@@ -26,9 +26,10 @@ export function prepararSeleccion(prefijo: string) {
       `CREATE TEMP TABLE niveles_originales AS SELECT id, nivel_escolar_id, eje_id FROM contenido.contenido_tematico`,
     );
   }, MINUTO);
+  // Como en base-sesiones.ts: con muchas bases temporales a la vez, borrar la suya puede pasar de 10 s.
   afterAll(async () => {
     await base?.cerrar();
-  });
+  }, MINUTO);
   beforeEach(async () => {
     await vaciarTablas(base.bd, [
       'app.estudiante',
