@@ -7,7 +7,7 @@ import type { Express } from 'express';
 import type { MensajeCorreo, ProveedorCorreo } from '../adaptadores/fabrica.js';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach } from 'vitest';
-import { crearApp } from '../app.js';
+import { crearApp, type Dependencias } from '../app.js';
 import type { OpcionesLimiteIntentos } from '../comun/middleware/limite-intentos.js';
 import { crearPool } from '../db/conexion.js';
 import { crearPrimerAdministrador } from '../db/primer-administrador.js';
@@ -22,9 +22,13 @@ export interface EntornoSesiones {
   app: Express;
   /** App nueva (contadores en cero) con un límite de intentos propio. */
   crearAppConLimite(limite: OpcionesLimiteIntentos): Express;
+  /** App nueva sobre la misma base con dependencias cambiadas (por ejemplo, cubrePrueba). */
+  crearAppCon(cambios: Partial<Dependencias>): Express;
   /** Hora del reloj de la app. */
   ahora(): Date;
   avanzarSegundos(segundos: number): void;
+  /** Pone el reloj de la app en una hora exacta (por ejemplo, justo antes de las 00:00 de Chile). */
+  fijarHora(hora: Date): void;
   /** Crea el primer administrador (como el comando crear-admin) y devuelve sus credenciales. */
   crearAdmin(): Promise<{ correo: string; contrasena: string }>;
   /** Correos que la app intentó enviar, en orden (también los que fallaron). */
@@ -71,12 +75,12 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     pendientes.add(ejecucion);
   };
 
-  const crearAppSobreElPool = (limiteIntentos?: OpcionesLimiteIntentos) => {
+  const crearAppSobreElPool = (cambios: Partial<Dependencias> = {}) => {
     const dependencias = crearDependenciasDePrueba({
       bd: pool,
       unidadDeTrabajo: crearUnidadDeTrabajo(pool),
       reloj: () => new Date(ahora),
-      ...(limiteIntentos && { limiteIntentos }),
+      ...cambios,
     });
     // Comprobación real de la cuenta de cada token de la consola, contra PostgreSQL.
     delete dependencias.verificarCuentaInterna;
@@ -93,7 +97,9 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     Object.assign(entorno, {
       bd: base.bd,
       app: crearAppSobreElPool(),
-      crearAppConLimite: crearAppSobreElPool,
+      crearAppConLimite: (limiteIntentos: OpcionesLimiteIntentos) =>
+        crearAppSobreElPool({ limiteIntentos }),
+      crearAppCon: crearAppSobreElPool,
       correos: buzon.correos,
       fallarCorreo: buzon.fallar,
       esperarSegundoPlano: async () => {
@@ -102,6 +108,9 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
       ahora: () => new Date(ahora),
       avanzarSegundos: (segundos: number) => {
         ahora = new Date(ahora.getTime() + segundos * 1000);
+      },
+      fijarHora: (hora: Date) => {
+        ahora = new Date(hora);
       },
       crearAdmin: async () => {
         await crearPrimerAdministrador(base.bd, ADMIN);
