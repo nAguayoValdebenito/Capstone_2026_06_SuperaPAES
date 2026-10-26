@@ -1,56 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:supera_paes/dominio/entidades/estado_salud.dart';
 import 'package:supera_paes/nucleo/configuracion.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
-import 'package:supera_paes/presentacion/aplicacion.dart';
-import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
-import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
-import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 
+import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
-  late ProviderContainer contenedor;
-
-  setUp(() {
-    contenedor = ProviderContainer(
-      overrides: [
-        estadoSaludProvider.overrideWith(
-          (ref) async => const EstadoSalud(estado: 'ok', baseDeDatos: 'ok'),
-        ),
-        repositorioCuentasProvider.overrideWithValue(RepositorioCuentasFalso()),
-      ],
-    );
-  });
-
-  tearDown(() => contenedor.dispose());
-
-  Future<void> iniciarApp(WidgetTester tester) async {
-    // Teléfono de referencia del diseño: 390 × 844.
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: contenedor,
-        child: const AplicacionSuperaPaes(),
-      ),
-    );
-    await tester.pumpAndSettle();
-  }
-
-  Future<void> ir(WidgetTester tester, String ruta) async {
-    contenedor.read(enrutadorProvider).go(ruta);
-    await tester.pumpAndSettle();
-  }
-
   test('las 16 pantallas del prototipo están declaradas una sola vez', () {
     expect(secciones, hasLength(16));
     expect(secciones.map((s) => s.ruta).toSet(), hasLength(16));
@@ -64,21 +25,22 @@ void main() {
     ]);
   });
 
-  testWidgets('abre en Iniciar sesión, con el logo y sin barra inferior', (
-    tester,
-  ) async {
-    await iniciarApp(tester);
+  testWidgets('sin sesión abre en Iniciar sesión, con el logo y sin barra '
+      'inferior', (tester) async {
+    await iniciarApp(tester, crearContenedor());
 
     expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOneWidget);
     expect(find.image(const AssetImage(PantallaIngreso.logo)), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  testWidgets('navega a todas las pantallas', (tester) async {
-    await iniciarApp(tester);
+  testWidgets('con sesión navega a todas las pantallas', (tester) async {
+    final contenedor = crearContenedor(sesion: sesionDeEjemplo);
+    await iniciarApp(tester, contenedor);
 
-    for (final seccion in secciones) {
-      await ir(tester, seccion.ruta);
+    // Con sesión, Iniciar sesión lleva a Inicio (se prueba en sesion_test).
+    for (final seccion in secciones.where((s) => s.ruta != Rutas.ingreso)) {
+      await ir(tester, contenedor, seccion.ruta);
 
       expect(
         find.widgetWithText(AppBar, seccion.titulo),
@@ -95,8 +57,11 @@ void main() {
   });
 
   testWidgets('la barra inferior cambia de pestaña', (tester) async {
-    await iniciarApp(tester);
-    await ir(tester, Rutas.inicio);
+    await iniciarApp(
+      tester,
+      crearContenedor(sesion: sesionDeEjemplo),
+      ruta: Rutas.inicio,
+    );
 
     await tester.tap(find.text('Practicar'));
     await tester.pumpAndSettle();
@@ -110,8 +75,11 @@ void main() {
   testWidgets('desde Perfil se abren los Planes y se vuelve atrás', (
     tester,
   ) async {
-    await iniciarApp(tester);
-    await ir(tester, Rutas.inicio);
+    await iniciarApp(
+      tester,
+      crearContenedor(sesion: sesionDeEjemplo),
+      ruta: Rutas.inicio,
+    );
 
     await tester.tap(find.text('Perfil').last);
     await tester.pumpAndSettle();
@@ -131,8 +99,11 @@ void main() {
   });
 
   testWidgets('Inicio muestra el estado de la API', (tester) async {
-    await iniciarApp(tester);
-    await ir(tester, Rutas.inicio);
+    await iniciarApp(
+      tester,
+      crearContenedor(sesion: sesionDeEjemplo),
+      ruta: Rutas.inicio,
+    );
 
     expect(find.text('API: ok'), findsOneWidget);
     expect(find.text('Base de datos: ok'), findsOneWidget);

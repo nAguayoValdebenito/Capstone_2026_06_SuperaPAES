@@ -9,4 +9,18 @@ abstract interface class RepositorioCuentas {
 
   /// Crea la cuenta y devuelve la sesión abierta (HU-01).
   Future<SesionEstudiante> registrar(DatosRegistro datos);
+
+  /// Inicia sesión (HU-02). `dispositivo` queda guardado en la sesión.
+  Future<SesionEstudiante> ingresar({
+    required String correo,
+    required String contrasena,
+    String? dispositivo,
+  });
+
+  /// Cambia el token de renovación por un par nuevo; el anterior deja de
+  /// servir.
+  Future<TokensSesion> renovar(String tokenRenovacion);
+
+  /// Cierra la sesión del token. Termina bien aunque ya estuviera cerrada.
+  Future<void> cerrar(String tokenRenovacion);
 }

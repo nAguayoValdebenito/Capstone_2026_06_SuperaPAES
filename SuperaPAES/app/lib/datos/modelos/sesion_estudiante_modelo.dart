@@ -1,6 +1,7 @@
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 
-/// Campo `data` de POST /cuentas/registro (y del ingreso de la app).
+/// Campo `data` de POST /cuentas/registro y /cuentas/ingreso. También es lo
+/// que se guarda cifrado en el teléfono.
 class SesionEstudianteModelo {
   const SesionEstudianteModelo({
     required this.tokenAcceso,
@@ -10,6 +11,16 @@ class SesionEstudianteModelo {
     required this.correo,
     required this.correoVerificado,
   });
+
+  factory SesionEstudianteModelo.desdeEntidad(SesionEstudiante sesion) =>
+      SesionEstudianteModelo(
+        tokenAcceso: sesion.tokenAcceso,
+        tokenRenovacion: sesion.tokenRenovacion,
+        id: sesion.estudiante.id,
+        nombre: sesion.estudiante.nombre,
+        correo: sesion.estudiante.correo,
+        correoVerificado: sesion.estudiante.correoVerificado,
+      );
 
   factory SesionEstudianteModelo.fromJson(Map<String, dynamic> json) {
     final estudiante = json['estudiante'] as Map<String, dynamic>;
