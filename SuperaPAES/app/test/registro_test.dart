@@ -10,12 +10,11 @@ import 'package:supera_paes/datos/modelos/documento_legal_modelo.dart';
 import 'package:supera_paes/dominio/entidades/datos_registro.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
-import 'package:supera_paes/presentacion/aplicacion.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/comunes/texto_documento.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
-import 'package:supera_paes/presentacion/enrutador.dart';
 
+import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 /// Responde siempre lo mismo y guarda la última petición.
@@ -261,29 +260,17 @@ void main() {
 
   group('Pantalla Crear cuenta (A01)', () {
     late RepositorioCuentasFalso repositorio;
+    late AlmacenSesionEnMemoria almacen;
     late ProviderContainer contenedor;
 
     setUp(() {
       repositorio = RepositorioCuentasFalso();
-      contenedor = ProviderContainer(
-        overrides: [repositorioCuentasProvider.overrideWithValue(repositorio)],
-      );
+      almacen = AlmacenSesionEnMemoria();
     });
 
-    tearDown(() => contenedor.dispose());
-
     Future<void> abrir(WidgetTester tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: contenedor,
-          child: const AplicacionSuperaPaes(),
-        ),
-      );
-      contenedor.read(enrutadorProvider).go(Rutas.crearCuenta);
-      await tester.pumpAndSettle();
+      contenedor = crearContenedor(repositorio: repositorio, almacen: almacen);
+      await iniciarApp(tester, contenedor, ruta: Rutas.crearCuenta);
     }
 
     Finder campo(String etiqueta) =>
@@ -298,14 +285,6 @@ void main() {
       await tester.enterText(campo('Correo'), 'camila@ejemplo.cl');
       await tester.enterText(campo('Contraseña'), contrasena);
       await tester.enterText(campo('Código de invitación (opcional)'), codigo);
-    }
-
-    /// Desplaza la lista hasta el elemento y lo toca.
-    Future<void> tocar(WidgetTester tester, Finder elemento) async {
-      await tester.ensureVisible(elemento);
-      await tester.pumpAndSettle();
-      await tester.tap(elemento);
-      await tester.pumpAndSettle();
     }
 
     Future<void> aceptar(WidgetTester tester) =>
@@ -375,7 +354,9 @@ void main() {
       expect(enviado.correo, 'camila@ejemplo.cl');
       expect(enviado.documentosAceptados, [1, 2]);
       expect(enviado.codigoInvitacion, 'AB23CD');
-      expect(contenedor.read(sesionProvider)?.tokenAcceso, 'acceso');
+      expect(contenedor.read(sesionProvider).value?.tokenAcceso, 'acceso');
+      // La sesión del registro queda guardada en el teléfono.
+      expect(almacen.guardada?.tokenRenovacion, 'renovacion');
       expect(find.widgetWithText(AppBar, 'Verificar correo'), findsOne);
     });
 
@@ -416,7 +397,7 @@ void main() {
         findsOne,
       );
       expect(find.widgetWithText(AppBar, 'Crear cuenta'), findsOne);
-      expect(contenedor.read(sesionProvider), isNull);
+      expect(contenedor.read(sesionProvider).value, isNull);
 
       // Al corregir la contraseña, el error de la API desaparece.
       await tester.enterText(campo('Contraseña'), 'otra clave larga');

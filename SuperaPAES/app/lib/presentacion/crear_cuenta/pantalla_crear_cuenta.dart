@@ -92,8 +92,8 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
       final sesion = await ref
           .read(repositorioCuentasProvider)
           .registrar(datos);
+      await ref.read(sesionProvider.notifier).abrir(sesion);
       if (!mounted) return;
-      ref.read(sesionProvider.notifier).abrir(sesion);
       context.go(Rutas.verificarCorreo);
     } on ErrorApi catch (error) {
       if (!mounted) return;

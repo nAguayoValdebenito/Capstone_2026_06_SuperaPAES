@@ -18,4 +18,23 @@ class RepositorioCuentasApi implements RepositorioCuentas {
   @override
   Future<SesionEstudiante> registrar(DatosRegistro datos) async =>
       (await _fuente.registrar(datos)).aEntidad();
+
+  @override
+  Future<SesionEstudiante> ingresar({
+    required String correo,
+    required String contrasena,
+    String? dispositivo,
+  }) async => (await _fuente.ingresar(
+    correo: correo,
+    contrasena: contrasena,
+    dispositivo: dispositivo,
+  )).aEntidad();
+
+  @override
+  Future<TokensSesion> renovar(String tokenRenovacion) =>
+      _fuente.renovar(tokenRenovacion);
+
+  @override
+  Future<void> cerrar(String tokenRenovacion) =>
+      _fuente.cerrar(tokenRenovacion);
 }

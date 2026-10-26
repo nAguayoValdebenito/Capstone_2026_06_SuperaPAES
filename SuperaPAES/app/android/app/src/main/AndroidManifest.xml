@@ -1,9 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- allowBackup="false": la sesión se guarda cifrada con una clave de este teléfono, que no se
+         puede descifrar si un respaldo la restaura en otro (flutter_secure_storage). -->
     <application
         android:label="Supera PAES"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

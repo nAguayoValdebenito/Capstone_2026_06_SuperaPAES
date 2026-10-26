@@ -1,5 +1,8 @@
 /// Rutas de navegación de la app.
 abstract final class Rutas {
+  /// Mientras se lee la sesión guardada al abrir la app.
+  static const String cargando = '/cargando';
+
   // Acceso a la cuenta
   static const String ingreso = '/ingreso';
   static const String crearCuenta = '/crear-cuenta';

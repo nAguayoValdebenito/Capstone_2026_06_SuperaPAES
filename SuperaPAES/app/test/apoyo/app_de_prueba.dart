@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:supera_paes/dominio/entidades/estado_salud.dart';
+import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
+import 'package:supera_paes/presentacion/aplicacion.dart';
+import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/enrutador.dart';
+import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+
+import 'repositorio_cuentas_falso.dart';
+
+/// Contenedor de la app sin red ni almacén del teléfono. Con `sesion`, la
+/// app arranca con esa sesión guardada.
+ProviderContainer crearContenedor({
+  RepositorioCuentasFalso? repositorio,
+  AlmacenSesionEnMemoria? almacen,
+  SesionEstudiante? sesion,
+}) {
+  final contenedor = ProviderContainer(
+    overrides: [
+      estadoSaludProvider.overrideWith(
+        (ref) async => const EstadoSalud(estado: 'ok', baseDeDatos: 'ok'),
+      ),
+      repositorioCuentasProvider.overrideWithValue(
+        repositorio ?? RepositorioCuentasFalso(),
+      ),
+      almacenSesionProvider.overrideWithValue(
+        almacen ?? AlmacenSesionEnMemoria(sesion),
+      ),
+    ],
+  );
+  addTearDown(contenedor.dispose);
+  return contenedor;
+}
+
+/// Abre la app en el teléfono de referencia del diseño (390 × 844) y, si se
+/// indica, navega a `ruta`.
+Future<void> iniciarApp(
+  WidgetTester tester,
+  ProviderContainer contenedor, {
+  String? ruta,
+}) async {
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: contenedor,
+      child: const AplicacionSuperaPaes(),
+    ),
+  );
+  await tester.pumpAndSettle();
+  if (ruta != null) await ir(tester, contenedor, ruta);
+}
+
+Future<void> ir(
+  WidgetTester tester,
+  ProviderContainer contenedor,
+  String ruta,
+) async {
+  contenedor.read(enrutadorProvider).go(ruta);
+  await tester.pumpAndSettle();
+}
+
+/// Desplaza la lista de la pantalla hasta el elemento y lo toca. La lista
+/// construye sus hijos a medida que se desplaza, así que el elemento puede no
+/// existir todavía.
+Future<void> tocar(WidgetTester tester, Finder elemento) async {
+  await tester.scrollUntilVisible(
+    elemento,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(elemento);
+  await tester.pumpAndSettle();
+}

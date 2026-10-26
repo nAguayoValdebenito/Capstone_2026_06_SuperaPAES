@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:supera_paes/datos/modelos/documento_legal_modelo.dart';
 import 'package:supera_paes/datos/modelos/sesion_estudiante_modelo.dart';
 import 'package:supera_paes/dominio/entidades/datos_registro.dart';
+import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
 
@@ -33,27 +34,60 @@ class FuenteCuentasRemota {
   }
 
   Future<SesionEstudianteModelo> registrar(DatosRegistro datos) async {
+    final data = await _publicar('/cuentas/registro', {
+      'nombre': datos.nombre,
+      'correo': datos.correo,
+      'contrasena': datos.contrasena,
+      // Aceptar los documentos vigentes incluye declarar la edad (RN-18).
+      'declaraTenerCatorceAnios': true,
+      'documentosAceptados': datos.documentosAceptados,
+      'codigoInvitacion': ?datos.codigoInvitacion,
+    }, sinData: 'La API respondió sin la cuenta creada.');
+    return SesionEstudianteModelo.fromJson(data);
+  }
+
+  Future<SesionEstudianteModelo> ingresar({
+    required String correo,
+    required String contrasena,
+    String? dispositivo,
+  }) async {
+    final data = await _publicar('/cuentas/ingreso', {
+      'correo': correo,
+      'contrasena': contrasena,
+      'dispositivo': ?dispositivo,
+    }, sinData: 'La API respondió sin la sesión.');
+    return SesionEstudianteModelo.fromJson(data);
+  }
+
+  Future<TokensSesion> renovar(String tokenRenovacion) async {
+    final data = await _publicar('/cuentas/renovar', {
+      'tokenRenovacion': tokenRenovacion,
+    }, sinData: 'La API respondió sin la sesión renovada.');
+    return (
+      tokenAcceso: data['tokenAcceso'] as String,
+      tokenRenovacion: data['tokenRenovacion'] as String,
+    );
+  }
+
+  Future<void> cerrar(String tokenRenovacion) async {
+    await _publicar('/cuentas/cerrar', {
+      'tokenRenovacion': tokenRenovacion,
+    }, sinData: 'La API respondió sin confirmar el cierre.');
+  }
+
+  /// POST con el formato común; `data` debe ser un objeto.
+  Future<Map<String, dynamic>> _publicar(
+    String ruta,
+    Map<String, Object?> cuerpo, {
+    required String sinData,
+  }) async {
     try {
-      final respuesta = await _dio.post<Object?>(
-        '/cuentas/registro',
-        data: {
-          'nombre': datos.nombre,
-          'correo': datos.correo,
-          'contrasena': datos.contrasena,
-          // Aceptar los documentos vigentes incluye declarar la edad (RN-18).
-          'declaraTenerCatorceAnios': true,
-          'documentosAceptados': datos.documentosAceptados,
-          'codigoInvitacion': ?datos.codigoInvitacion,
-        },
-      );
+      final respuesta = await _dio.post<Object?>(ruta, data: cuerpo);
       final data = leerData(respuesta.data, estadoHttp: respuesta.statusCode);
       if (data is! Map<String, dynamic>) {
-        throw const ErrorApi(
-          codigo: 'RESPUESTA_INVALIDA',
-          mensaje: 'La API respondió sin la cuenta creada.',
-        );
+        throw ErrorApi(codigo: 'RESPUESTA_INVALIDA', mensaje: sinData);
       }
-      return SesionEstudianteModelo.fromJson(data);
+      return data;
     } on DioException catch (excepcion) {
       throw ErrorApi.desdeDio(excepcion);
     }

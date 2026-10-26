@@ -1,6 +1,7 @@
 import 'package:supera_paes/dominio/entidades/datos_registro.dart';
 import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
+import 'package:supera_paes/dominio/repositorios/almacen_sesion.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_cuentas.dart';
 
 /// Documentos vigentes de ejemplo, como los de la semilla 003.
@@ -38,6 +39,9 @@ const sesionDeEjemplo = SesionEstudiante(
   ),
 );
 
+/// Datos de un ingreso recibido por el repositorio falso.
+typedef Ingreso = ({String correo, String contrasena, String? dispositivo});
+
 /// Repositorio de cuentas en memoria: guarda lo que recibe y responde lo que
 /// se le indique.
 class RepositorioCuentasFalso implements RepositorioCuentas {
@@ -45,8 +49,14 @@ class RepositorioCuentasFalso implements RepositorioCuentas {
 
   /// Si no es `null`, `registrar` lo lanza.
   Exception? errorAlRegistrar;
+  Exception? errorAlIngresar;
+  Exception? errorAlRenovar;
+  Exception? errorAlCerrar;
 
   final List<DatosRegistro> registros = [];
+  final List<Ingreso> ingresos = [];
+  final List<String> renovaciones = [];
+  final List<String> cierres = [];
 
   @override
   Future<List<DocumentoLegal>> documentosVigentes() async =>
@@ -58,4 +68,50 @@ class RepositorioCuentasFalso implements RepositorioCuentas {
     if (errorAlRegistrar case final error?) throw error;
     return sesionDeEjemplo;
   }
+
+  @override
+  Future<SesionEstudiante> ingresar({
+    required String correo,
+    required String contrasena,
+    String? dispositivo,
+  }) async {
+    ingresos.add((
+      correo: correo,
+      contrasena: contrasena,
+      dispositivo: dispositivo,
+    ));
+    if (errorAlIngresar case final error?) throw error;
+    return sesionDeEjemplo;
+  }
+
+  /// Entrega `acceso-N` y `renovacion-N`, con N el número de renovación.
+  @override
+  Future<TokensSesion> renovar(String tokenRenovacion) async {
+    renovaciones.add(tokenRenovacion);
+    if (errorAlRenovar case final error?) throw error;
+    final n = renovaciones.length;
+    return (tokenAcceso: 'acceso-$n', tokenRenovacion: 'renovacion-$n');
+  }
+
+  @override
+  Future<void> cerrar(String tokenRenovacion) async {
+    cierres.add(tokenRenovacion);
+    if (errorAlCerrar case final error?) throw error;
+  }
+}
+
+/// Almacén de la sesión en memoria, en lugar del cifrado del teléfono.
+class AlmacenSesionEnMemoria implements AlmacenSesion {
+  AlmacenSesionEnMemoria([this.guardada]);
+
+  SesionEstudiante? guardada;
+
+  @override
+  Future<SesionEstudiante?> leer() async => guardada;
+
+  @override
+  Future<void> guardar(SesionEstudiante sesion) async => guardada = sesion;
+
+  @override
+  Future<void> borrar() async => guardada = null;
 }
