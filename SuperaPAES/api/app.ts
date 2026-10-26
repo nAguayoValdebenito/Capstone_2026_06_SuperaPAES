@@ -149,6 +149,8 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     cupoInvitaciones,
     preguntas,
     suscripciones,
+    administracion,
+    reloj: dependencias.reloj,
   });
   const privacidad = crearPrivacidadServicio({ ...base, cuentas });
 
