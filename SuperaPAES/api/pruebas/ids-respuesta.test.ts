@@ -10,44 +10,28 @@ const MAXIMO = Number.MAX_SAFE_INTEGER;
 
 describe('contrato central de ids', () => {
   it('fija cada ruta y campo convertido; agregar un campo requiere cambiar este inventario', () => {
-    expect(CAMPOS_ID_POR_RUTA).toEqual({
-      'POST /api/v1/app/cuentas/registro': ['data.estudiante.id'],
-      'POST /api/v1/app/cuentas/ingreso': ['data.estudiante.id'],
-      'GET /api/v1/app/cuentas/documentos-legales/vigentes': ['data[].id'],
-      'POST /api/v1/admin/cuentas/ingreso': ['data.usuario.id'],
-      'GET /api/v1/admin/cuentas/yo': ['data.id', 'data.areas[]'],
-      'GET /api/v1/admin/cuentas/estudiantes': ['data[].id'],
-      'POST /api/v1/admin/cuentas/estudiantes/:id/confirmar-correo': ['data.id'],
-      'GET /api/v1/admin/administracion/usuarios-internos': ['data[].id', 'data[].areas[]'],
-      'POST /api/v1/admin/administracion/usuarios-internos': ['data.id', 'data.areas[]'],
-      'PATCH /api/v1/admin/administracion/usuarios-internos/:id': ['data.id', 'data.areas[]'],
-      'POST /api/v1/admin/administracion/usuarios-internos/:id/activar': [
-        'data.id',
-        'data.areas[]',
-      ],
-      'POST /api/v1/admin/administracion/usuarios-internos/:id/desactivar': [
-        'data.id',
-        'data.areas[]',
-      ],
-      'GET /api/v1/admin/temario/areas': ['data[].id'],
-      'POST /api/v1/app/evaluaciones/practicas': [
-        'data.id',
-        'data.pruebaId',
-        'data.ejeId',
-        'data.contenidoId',
-        'data.habilidadId',
-        'data.dificultadId',
-      ],
-      'POST /api/v1/app/evaluaciones/practicas/:id/siguiente': [
-        'data.id',
-        'data.alternativas[].id',
-      ],
-      'POST /api/v1/app/evaluaciones/:id/items/:item/respuesta': [
-        'data.alternativaElegidaId',
-        'data.alternativaCorrectaId',
-        'data.alternativas[].id',
-      ],
-    });
+    // Una línea por ruta, en el orden del inventario: «método ruta → campos».
+    const inventario = Object.entries(CAMPOS_ID_POR_RUTA).map(
+      ([ruta, campos]) => `${ruta} → ${campos.join(', ')}`,
+    );
+    expect(inventario).toEqual([
+      'POST /api/v1/app/cuentas/registro → data.estudiante.id',
+      'POST /api/v1/app/cuentas/ingreso → data.estudiante.id',
+      'GET /api/v1/app/cuentas/documentos-legales/vigentes → data[].id',
+      'POST /api/v1/admin/cuentas/ingreso → data.usuario.id',
+      'GET /api/v1/admin/cuentas/yo → data.id, data.areas[]',
+      'GET /api/v1/admin/cuentas/estudiantes → data[].id',
+      'POST /api/v1/admin/cuentas/estudiantes/:id/confirmar-correo → data.id',
+      'GET /api/v1/admin/administracion/usuarios-internos → data[].id, data[].areas[]',
+      'POST /api/v1/admin/administracion/usuarios-internos → data.id, data.areas[]',
+      'PATCH /api/v1/admin/administracion/usuarios-internos/:id → data.id, data.areas[]',
+      'POST /api/v1/admin/administracion/usuarios-internos/:id/activar → data.id, data.areas[]',
+      'POST /api/v1/admin/administracion/usuarios-internos/:id/desactivar → data.id, data.areas[]',
+      'GET /api/v1/admin/temario/areas → data[].id',
+      'POST /api/v1/app/evaluaciones/practicas → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.dificultadId',
+      'POST /api/v1/app/evaluaciones/practicas/:id/siguiente → data.id, data.alternativas[].id',
+      'POST /api/v1/app/evaluaciones/:id/items/:item/respuesta → data.alternativaElegidaId, data.alternativaCorrectaId, data.alternativas[].id',
+    ]);
   });
 
   it('convierte ids anidados y listas, incluso las pruebas del perfil, sin tocar otros campos', () => {

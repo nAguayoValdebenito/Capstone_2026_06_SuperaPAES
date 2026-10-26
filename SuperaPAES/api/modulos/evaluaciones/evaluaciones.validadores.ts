@@ -35,4 +35,3 @@ export const esquemaIdsItem = z.object({ id: idDeRuta, item: idDeRuta });
 export const esquemaRespuesta = z.object({ alternativaId: idDeCuerpo });
 export type DatosInicioPractica = z.infer<typeof esquemaInicioPractica>;
 export type DatosRespuestaPregunta = z.infer<typeof esquemaRespuesta>;
-export type ParametrosPractica = z.infer<typeof esquemaIdPractica>;
