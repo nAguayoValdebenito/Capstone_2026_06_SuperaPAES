@@ -14,7 +14,6 @@ import type {
   DatosRegistro,
   DatosRestablecer,
   DatosTokenRenovacion,
-  ParametrosEstudiante,
 } from './cuentas.validadores.js';
 
 /** Manejador cuyo cuerpo ya fue validado y tipado por validar() en la ruta. */
@@ -49,7 +48,7 @@ export interface CuentasControlador {
   verificarCodigo: ConCuerpo<DatosCodigoVerificacion>;
   reenviarVerificacion: RequestHandler;
   buscarEstudiantes: RequestHandler;
-  confirmarCorreo: RequestHandler<ParametrosEstudiante>;
+  confirmarCorreo: RequestHandler;
 }
 
 /** Estudiante de la sesión de la app. Lo deja autenticarApp. */
@@ -132,7 +131,7 @@ function crearControladorVerificacion(servicio: CuentasServicio): ControladorVer
       responder(res, await servicio.buscarEstudiantes(correo));
     },
     confirmarCorreo: async (req, res) => {
-      responder(res, await servicio.confirmarCorreo(usuarioInternoDe(req), req.params.id));
+      responder(res, await servicio.confirmarCorreo(usuarioInternoDe(req), String(req.params.id)));
     },
   };
 }
