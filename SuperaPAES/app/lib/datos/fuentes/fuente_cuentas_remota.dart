@@ -75,21 +75,9 @@ class FuenteCuentasRemota {
     }, sinData: 'La API respondió sin confirmar el cierre.');
   }
 
-  /// POST con el formato común; `data` debe ser un objeto.
   Future<Map<String, dynamic>> _publicar(
     String ruta,
     Map<String, Object?> cuerpo, {
     required String sinData,
-  }) async {
-    try {
-      final respuesta = await _dio.post<Object?>(ruta, data: cuerpo);
-      final data = leerData(respuesta.data, estadoHttp: respuesta.statusCode);
-      if (data is! Map<String, dynamic>) {
-        throw ErrorApi(codigo: 'RESPUESTA_INVALIDA', mensaje: sinData);
-      }
-      return data;
-    } on DioException catch (excepcion) {
-      throw ErrorApi.desdeDio(excepcion);
-    }
-  }
+  }) => publicarObjeto(_dio, ruta, cuerpo, sinData: sinData);
 }
