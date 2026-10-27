@@ -33,12 +33,7 @@ describe('ingreso a la consola', () => {
       data: {
         tokenAcceso: expect.any(String) as string,
         tokenRenovacion: expect.any(String) as string,
-        usuario: {
-          id: Number(escenario.adminId),
-          nombre: 'Ana Admin',
-          correo: ADMIN.correo,
-          rol: 'admin',
-        },
+        usuario: { id: escenario.adminId, nombre: 'Ana Admin', correo: ADMIN.correo, rol: 'admin' },
       },
       error: null,
       meta: null,
@@ -144,7 +139,7 @@ describe('usuario de la sesión (GET /admin/cuentas/yo)', () => {
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body.data).toEqual({
-      id: Number(escenario.adminId),
+      id: escenario.adminId,
       nombre: 'Ana Admin',
       correo: ADMIN.correo,
       rol: 'admin',

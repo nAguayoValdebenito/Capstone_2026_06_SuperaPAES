@@ -81,7 +81,7 @@ describe.skipIf(!urlBase)('confirmación por el administrador con PostgreSQL (CU
     expect(encontrada.status).toBe(200);
     expect(encontrada.body.data).toEqual([
       {
-        id: Number(id),
+        id,
         nombre: 'Eva Estudiante',
         correo: 'eva@ejemplo.cl',
         correoVerificado: false,
@@ -101,7 +101,7 @@ describe.skipIf(!urlBase)('confirmación por el administrador con PostgreSQL (CU
     const respuesta = await request(entorno.app).post(confirmarRuta(eva.id)).set(admin.sesion);
 
     expect(respuesta.status).toBe(200);
-    expect(respuesta.body.data).toMatchObject({ id: Number(eva.id), correoVerificado: true });
+    expect(respuesta.body.data).toMatchObject({ id: eva.id, correoVerificado: true });
     const { rows } = await entorno.bd.query<{ verificado: boolean; anulado: boolean }>(
       `SELECT e.correo_verificado AS verificado, t.anulado_en IS NOT NULL AS anulado
          FROM app.estudiante e JOIN app.token_correo t ON t.estudiante_id = e.id WHERE e.id = $1`,

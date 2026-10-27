@@ -85,12 +85,7 @@ describe.skipIf(!urlBase)('sesión del estudiante con PostgreSQL', () => {
         data: {
           tokenAcceso: expect.any(String) as string,
           tokenRenovacion: expect.any(String) as string,
-          estudiante: {
-            id: Number(id),
-            nombre: 'Eva Estudiante',
-            correo: EVA.correo,
-            correoVerificado: true,
-          },
+          estudiante: { id, nombre: 'Eva Estudiante', correo: EVA.correo, correoVerificado: true },
         },
         error: null,
         meta: null,

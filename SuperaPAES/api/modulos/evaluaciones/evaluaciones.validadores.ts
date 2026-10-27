@@ -1,6 +1,5 @@
 // Esquemas zod de entrada del módulo evaluaciones. Se usan con validar() en las rutas.
 import { z } from 'zod';
-import { idDeRuta } from '../../comun/identificadores.js';
 
 const identificador = z.number().int().positive().max(32767);
 const identificadorContenido = z.number().int().positive().max(2147483647);
@@ -27,5 +26,6 @@ export const esquemaInicioPractica = z
     }
   });
 
-export const esquemaIdPractica = z.object({ id: idDeRuta });
+export const esquemaIdPractica = z.object({ id: z.string().regex(/^\d{1,18}$/) });
 export type DatosInicioPractica = z.infer<typeof esquemaInicioPractica>;
+export type ParametrosPractica = z.infer<typeof esquemaIdPractica>;

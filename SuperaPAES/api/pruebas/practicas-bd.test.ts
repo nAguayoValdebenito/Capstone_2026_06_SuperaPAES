@@ -24,7 +24,7 @@ describe.skipIf(!urlBase)('prácticas con PostgreSQL (CP-44 y CP-20)', () => {
     const creada = await inicio(token, { pruebaId, cantidad: 5 });
     expect(creada.status).toBe(201);
     expect(creada.body.data).toMatchObject({ pruebaId, cantidad: 5, entregadas: 0 });
-    const id = String(creada.body.data.id as number);
+    const id = creada.body.data.id as string;
     const primera = await siguiente(token, id);
     const [segunda, tercera] = await Promise.all([siguiente(token, id), siguiente(token, id)]);
     expect(primera.status).toBe(200);
@@ -56,13 +56,13 @@ describe.skipIf(!urlBase)('prácticas con PostgreSQL (CP-44 y CP-20)', () => {
       dificultad: 'media',
       entregadas: 0,
     });
-    const id = String(creada.body.data.id as number);
+    const id = creada.body.data.id as string;
     const recibidas = new Set<string>();
     for (let orden = 1; orden <= 10; orden++) {
       const entrega = await siguiente(token, id);
       expect(entrega.status).toBe(200);
       expect(entrega.body.data).toMatchObject({ orden, total: 10 });
-      const itemId = String(entrega.body.data.id as number);
+      const itemId = entrega.body.data.id as string;
       const { rows } = await entorno.bd.query<{ preguntaId: string }>(
         'SELECT pregunta_id::text AS "preguntaId" FROM app.evaluacion_item WHERE id=$1',
         [itemId],

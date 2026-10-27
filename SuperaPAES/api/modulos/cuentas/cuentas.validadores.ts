@@ -1,6 +1,5 @@
 // Esquemas zod de entrada del módulo cuentas. Se usan con validar() en las rutas.
 import { z } from 'zod';
-import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 import { codigoInvitacion } from '../../comun/codigo-invitacion.js';
 import { cabeEnBcrypt, refinarContrasena } from '../../comun/contrasenas.js';
 
@@ -51,7 +50,7 @@ export const esquemaRegistro = z
      * (motivo documentos_no_vigentes); sin la lista, falta aceptar los dos.
      */
     documentosAceptados: z
-      .array(idDeCuerpo, 'Indica los documentos legales aceptados.')
+      .array(z.number().int().positive(), 'Indica los documentos legales aceptados.')
       .max(10)
       .default([]),
     codigoInvitacion: codigoInvitacion.optional(),
@@ -103,7 +102,7 @@ export const esquemaCodigoVerificacion = z.strictObject({
 export const esquemaBusquedaEstudiante = z.strictObject({ correo });
 
 export const esquemaIdEstudiante = z.strictObject({
-  id: idDeRuta,
+  id: z.string().regex(/^[1-9]\d{0,17}$/, 'El identificador no es válido.'),
 });
 
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
@@ -115,3 +114,4 @@ export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
 export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
 export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
 export type DatosBusquedaEstudiante = z.output<typeof esquemaBusquedaEstudiante>;
+export type ParametrosEstudiante = z.output<typeof esquemaIdEstudiante>;

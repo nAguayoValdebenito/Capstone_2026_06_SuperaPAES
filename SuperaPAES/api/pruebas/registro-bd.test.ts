@@ -75,7 +75,7 @@ describe.skipIf(!urlBase)('registro del estudiante con PostgreSQL', () => {
       });
 
       expect(respuesta.status).toBe(201);
-      const { estudiante } = respuesta.body.data as { estudiante: { id: number } };
+      const { estudiante } = respuesta.body.data as { estudiante: { id: string } };
       expect(respuesta.body.data).toEqual({
         tokenAcceso: expect.any(String) as string,
         tokenRenovacion: expect.any(String) as string,
@@ -238,7 +238,7 @@ describe.skipIf(!urlBase)('registro del estudiante con PostgreSQL', () => {
       expect(rows).toEqual([
         {
           invitante,
-          invitado: String((respuesta.body.data as { estudiante: { id: number } }).estudiante.id),
+          invitado: (respuesta.body.data as { estudiante: { id: string } }).estudiante.id,
           registrado: entorno.ahora(),
           verificado: null,
           bono: false,
