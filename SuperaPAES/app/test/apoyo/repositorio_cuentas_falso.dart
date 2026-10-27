@@ -32,7 +32,7 @@ const sesionDeEjemplo = SesionEstudiante(
   tokenAcceso: 'acceso',
   tokenRenovacion: 'renovacion',
   estudiante: Estudiante(
-    id: '15',
+    id: 15,
     nombre: 'Camila Rojas',
     correo: 'camila@ejemplo.cl',
     correoVerificado: false,

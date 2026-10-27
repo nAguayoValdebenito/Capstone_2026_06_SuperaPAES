@@ -155,7 +155,7 @@ void main() {
             'tokenAcceso': 'acceso',
             'tokenRenovacion': 'renovacion',
             'estudiante': {
-              'id': '15',
+              'id': 15,
               'nombre': 'Camila Rojas',
               'correo': 'camila@ejemplo.cl',
               'correoVerificado': false,
@@ -178,7 +178,7 @@ void main() {
           'documentosAceptados': [1, 2],
         });
         expect(sesion.tokenAcceso, 'acceso');
-        expect(sesion.estudiante.id, '15');
+        expect(sesion.estudiante.id, 15);
         expect(sesion.estudiante.correoVerificado, isFalse);
       },
     );

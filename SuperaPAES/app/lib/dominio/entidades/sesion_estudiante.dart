@@ -7,7 +7,7 @@ class Estudiante {
     required this.correoVerificado,
   });
 
-  final String id;
+  final int id;
   final String nombre;
   final String correo;
   final bool correoVerificado;

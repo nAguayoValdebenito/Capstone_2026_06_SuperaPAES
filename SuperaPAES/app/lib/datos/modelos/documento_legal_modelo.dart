@@ -1,4 +1,5 @@
 import 'package:supera_paes/dominio/entidades/documento_legal.dart';
+import 'package:supera_paes/nucleo/ids.dart';
 
 /// Elemento de `data` de GET /cuentas/documentos-legales/vigentes.
 class DocumentoLegalModelo {
@@ -13,7 +14,7 @@ class DocumentoLegalModelo {
 
   factory DocumentoLegalModelo.fromJson(Map<String, dynamic> json) {
     return DocumentoLegalModelo(
-      id: json['id'] as int,
+      id: leerId(json['id']),
       tipo: json['tipo'] as String,
       nombre: json['nombre'] as String,
       version: json['version'] as String,
