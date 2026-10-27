@@ -351,6 +351,97 @@ a {
   font-weight: 400;
 }
 
+/* Banco de preguntas (C02) */
+.filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+/* Cada selector ocupa su columna aunque una opción sea larga ("Historia y Ciencias Sociales"). */
+.filtros .campo,
+.filtros select {
+  min-width: 0;
+}
+
+.campo select:disabled {
+  background: var(--fondo);
+  color: var(--texto-secundario);
+}
+
+/* En pantallas angostas la tabla se desplaza dentro de su caja en vez de salirse de la página. */
+.tabla-desplazable {
+  overflow-x: auto;
+}
+
+.filtros__limpiar {
+  justify-self: start;
+}
+
+.tabla__secundario {
+  display: block;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.tabla--banco td:first-child {
+  max-width: 28rem;
+}
+
+/* Estado de la pregunta: texto del color del estado sobre la superficie (contraste AA). */
+.etiqueta {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.etiqueta--en_revision,
+.etiqueta--en_desempate {
+  color: var(--primario);
+}
+
+.etiqueta--observada {
+  color: var(--aviso);
+}
+
+.etiqueta--aprobada,
+.etiqueta--publicada {
+  color: var(--exito);
+}
+
+.etiqueta--rechazada,
+.etiqueta--retirada {
+  color: var(--error);
+}
+
+/* Marca de posiblemente confusa, bajo el enunciado. */
+.etiqueta--confusa {
+  display: table;
+  margin-top: 0.25rem;
+  color: var(--aviso);
+}
+
+.paginacion {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
 @media (max-width: 48rem) {
   .diseno {
     grid-template-columns: minmax(0, 1fr);

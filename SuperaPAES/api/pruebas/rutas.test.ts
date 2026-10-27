@@ -33,6 +33,8 @@ describe('áreas de especialidad del temario', () => {
       repositorio: {
         listarAreas: () => Promise.resolve(areas),
         alcancePracticaValido: () => Promise.resolve(true),
+        listarTemario: () => Promise.resolve([]),
+        listarHabilidades: () => Promise.resolve([]),
       },
     });
     const conAreas = crearAppDePrueba({}, { temario });

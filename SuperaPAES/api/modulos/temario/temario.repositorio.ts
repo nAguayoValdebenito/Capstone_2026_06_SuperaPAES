@@ -16,9 +16,29 @@ export interface Area {
   nombre: string;
 }
 
+/** Una fila por contenido (o por prueba o eje sin contenidos), en el orden del temario. */
+export interface FilaTemario {
+  pruebaId: number;
+  pruebaCodigo: string;
+  pruebaNombre: string;
+  ejeId: number | null;
+  ejeNombre: string | null;
+  contenidoId: number | null;
+  contenidoNombre: string | null;
+}
+
+/** Habilidad de una prueba (contenido.habilidad). */
+export interface FilaHabilidad {
+  id: number;
+  pruebaId: number;
+  nombre: string;
+}
+
 export interface TemarioRepositorio {
   listarAreas(tx?: Ejecutor): Promise<Area[]>;
   alcancePracticaValido(datos: AlcancePractica, tx?: Ejecutor): Promise<boolean>;
+  listarTemario(tx?: Ejecutor): Promise<FilaTemario[]>;
+  listarHabilidades(tx?: Ejecutor): Promise<FilaHabilidad[]>;
 }
 
 export interface AlcancePractica {
@@ -65,6 +85,14 @@ function contenidoValido(tx: Ejecutor, datos: AlcancePractica): Promise<boolean>
   );
 }
 
+const TEMARIO = `
+  SELECT p.id AS "pruebaId", p.codigo AS "pruebaCodigo", p.nombre AS "pruebaNombre",
+         e.id AS "ejeId", e.nombre AS "ejeNombre", c.id AS "contenidoId", c.nombre AS "contenidoNombre"
+    FROM contenido.prueba p
+    LEFT JOIN contenido.eje_tematico e ON e.prueba_id = p.id
+    LEFT JOIN contenido.contenido_tematico c ON c.eje_id = e.id
+   ORDER BY p.id, e.orden, e.id, c.nombre, c.id`;
+
 export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
   return {
     async listarAreas(tx = bd) {
@@ -78,6 +106,18 @@ export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
       if (datos.habilidadId !== undefined) return habilidadValida(tx, datos);
       if (datos.contenidoId !== undefined) return contenidoValido(tx, datos);
       return true;
+    },
+
+    async listarTemario(tx = bd) {
+      const { rows } = await tx.query<FilaTemario>(TEMARIO);
+      return rows;
+    },
+
+    async listarHabilidades(tx = bd) {
+      const { rows } = await tx.query<FilaHabilidad>(
+        'SELECT id, prueba_id AS "pruebaId", nombre FROM contenido.habilidad ORDER BY prueba_id, codigo, id',
+      );
+      return rows;
     },
   };
 }
