@@ -75,6 +75,12 @@ class FuenteCuentasRemota {
     }, sinData: 'La API respondió sin confirmar el cierre.');
   }
 
+  Future<void> solicitarRecuperacion(String correo) async {
+    await _publicar('/cuentas/recuperacion/solicitar', {
+      'correo': correo,
+    }, sinData: 'La API respondió sin confirmar la solicitud.');
+  }
+
   Future<Map<String, dynamic>> _publicar(
     String ruta,
     Map<String, Object?> cuerpo, {

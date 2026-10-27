@@ -9,8 +9,8 @@ import 'package:supera_paes/presentacion/comunes/pantalla_base.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
 
 /// Pantalla Iniciar sesión (A03; HU-02, CU-03), con el logo (DAS 7.5). Al
-/// entrar, la sesión queda guardada y la app pasa a Inicio. El enlace
-/// «¿Olvidaste tu contraseña?» llega con la recuperación (HU-06.2).
+/// entrar, la sesión queda guardada y la app pasa a Inicio. «¿Olvidaste tu
+/// contraseña?» lleva a Recuperar contraseña (A04, HU-06.2).
 class PantallaIngreso extends ConsumerStatefulWidget {
   const PantallaIngreso({super.key});
 
@@ -156,6 +156,15 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
                   onFieldSubmitted: (_) => _enviando ? null : _ingresar(),
                   validator: (valor) =>
                       (valor ?? '').isEmpty ? 'Ingresa tu contraseña.' : null,
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _enviando
+                        ? null
+                        : () => context.push(Rutas.recuperarContrasena),
+                    child: const Text('¿Olvidaste tu contraseña?'),
+                  ),
                 ),
                 if (_errorGeneral case final mensaje?) ...[
                   const SizedBox(height: 12),

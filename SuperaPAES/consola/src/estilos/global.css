@@ -195,6 +195,11 @@ a {
   font-size: var(--texto-md);
 }
 
+/* Avisos de las páginas públicas (A05): el espacio entre párrafos lo da el gap del contenedor. */
+.ingreso__formulario p {
+  margin: 0;
+}
+
 .ingreso__error {
   margin: 0;
   color: var(--error);

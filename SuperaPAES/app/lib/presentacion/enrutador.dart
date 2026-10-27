@@ -12,6 +12,7 @@ import 'package:supera_paes/presentacion/comunes/secciones.dart';
 const Set<String> rutasPublicas = {
   Rutas.ingreso,
   Rutas.crearCuenta,
+  Rutas.recuperarContrasena,
   Rutas.terminos,
   Rutas.privacidad,
 };

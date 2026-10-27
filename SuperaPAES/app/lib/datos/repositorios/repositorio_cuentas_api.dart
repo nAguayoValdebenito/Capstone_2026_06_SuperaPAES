@@ -37,4 +37,8 @@ class RepositorioCuentasApi implements RepositorioCuentas {
   @override
   Future<void> cerrar(String tokenRenovacion) =>
       _fuente.cerrar(tokenRenovacion);
+
+  @override
+  Future<void> solicitarRecuperacion(String correo) =>
+      _fuente.solicitarRecuperacion(correo);
 }
