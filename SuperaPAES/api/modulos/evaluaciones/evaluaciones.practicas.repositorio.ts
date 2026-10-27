@@ -6,6 +6,8 @@ export interface EstructuraPractica {
   id: number;
   cantidadMin: number;
   cantidadMax: number;
+  /** contenido.tipo_evaluacion.consume_cupo de la práctica (RN-04). */
+  consumeCupo: boolean;
 }
 export interface ContextoInicio {
   iniciadaEn: Date;
@@ -27,6 +29,7 @@ export interface PracticaGuardada {
   nivelEscolarId: number | null;
   iniciadaEn: Date;
   cerradaEn: Date | null;
+  consumeCupo: boolean;
 }
 export interface EntregaGuardada extends PreguntaSeleccionada {
   id: string;
@@ -57,7 +60,8 @@ export interface NuevaPractica {
 const consultasPracticas = {
   async leerEstructura(pruebaId: number, tx: Ejecutor): Promise<EstructuraPractica | null> {
     const { rows } = await tx.query<EstructuraPractica>(
-      `SELECT s.id, s.cantidad_min AS "cantidadMin", s.cantidad_max AS "cantidadMax"
+      `SELECT s.id, s.cantidad_min AS "cantidadMin", s.cantidad_max AS "cantidadMax",
+          t.consume_cupo AS "consumeCupo"
          FROM contenido.estructura_evaluacion s
          JOIN contenido.tipo_evaluacion t ON t.id=s.tipo_evaluacion_id
          JOIN contenido.prueba p ON p.id=s.prueba_id
@@ -133,7 +137,7 @@ const consultasPracticas = {
           e.contenido_id AS "contenidoId", e.habilidad_id AS "habilidadId",
           e.dificultad_id AS "dificultadId", d.codigo AS dificultad,
           e.cantidad_preguntas AS cantidad, e.nivel_escolar_id AS "nivelEscolarId",
-          e.iniciada_en AS "iniciadaEn", e.cerrada_en AS "cerradaEn"
+          e.iniciada_en AS "iniciadaEn", e.cerrada_en AS "cerradaEn", t.consume_cupo AS "consumeCupo"
          FROM app.evaluacion e JOIN contenido.tipo_evaluacion t ON t.id=e.tipo_evaluacion_id
          LEFT JOIN contenido.dificultad d ON d.id=e.dificultad_id
          WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo='practica' FOR UPDATE OF e`,
