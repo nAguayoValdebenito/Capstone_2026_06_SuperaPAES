@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/coverage
+**/.env*
+!**/.env.example
+!.env.docker.example
+.git
+.github
+.claude
+.agents
+CLAUDE.md
+docs
+app
