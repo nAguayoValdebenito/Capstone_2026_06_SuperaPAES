@@ -4,6 +4,7 @@
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type Area,
+  type AlcancePractica,
   crearTemarioRepositorio,
   type TemarioRepositorio,
 } from './temario.repositorio.js';
@@ -20,11 +21,14 @@ export interface DependenciasTemarioServicio {
 export interface TemarioServicio {
   /** Áreas de especialidad de los docentes, ordenadas por nombre (C10, HU-04). */
   listarAreas(): Promise<Area[]>;
+  /** Valida pertenencia a la prueba y RN-24 para un contenido concreto. */
+  alcancePracticaValido(datos: AlcancePractica, tx?: Ejecutor): Promise<boolean>;
 }
 
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
   const repositorio = dependencias.repositorio ?? crearTemarioRepositorio(dependencias.bd);
   return {
     listarAreas: () => repositorio.listarAreas(),
+    alcancePracticaValido: (datos, tx) => repositorio.alcancePracticaValido(datos, tx),
   };
 }

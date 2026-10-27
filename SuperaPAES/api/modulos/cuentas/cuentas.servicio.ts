@@ -5,7 +5,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
 import type { ConfiguracionVerificacionCorreo } from '../../comun/configuracion.js';
-import { cifrarContrasena, compararContrasena } from '../../comun/contrasenas.js';
 import { ErrorCuentaDesactivada, ErrorNoAutenticado } from '../../comun/errores.js';
 import { type Audiencia, firmarToken } from '../../comun/jwt.js';
 import { generarCodigoInvitacion } from '../../comun/codigo-invitacion.js';
@@ -20,6 +19,11 @@ import {
   type CuentasRepositorio,
   type DuenoSesion,
 } from './cuentas.repositorio.js';
+import { comprobarCredenciales, hashDeRelleno } from './cuentas.credenciales.js';
+import {
+  crearPerfilPracticaRepositorio,
+  type PerfilPractica,
+} from './cuentas.perfil-practica.repositorio.js';
 import {
   crearRecuperacionRepositorio,
   type RecuperacionRepositorio,
@@ -123,6 +127,13 @@ export interface UsuarioConsola extends UsuarioDeSesion {
 
 /** Incluye la verificación del correo y la recuperación de la contraseña. */
 export interface CuentasServicio extends VerificacionCorreo, Recuperacion {
+  /** HU-29.1, contrato mínimo para iniciar una práctica. Con bloquear, serializa inicios sobre el
+   * estudiante dentro de la transacción del módulo consumidor. */
+  obtenerPerfilPractica(
+    estudianteId: string,
+    tx?: Ejecutor,
+    bloquear?: boolean,
+  ): Promise<PerfilPractica | null>;
   /**
    * HU-01.1 (CU-01): crea la cuenta sin verificar con sus consentimientos, la invitación si vino un
    * código y la sesión de la app, en una transacción; después emite el correo de verificación.
@@ -182,37 +193,9 @@ type DatosToken = { dispositivo: string | null } & (
 
 const hashDe = (token: string) => createHash('sha256').update(token).digest('hex');
 
-const CREDENCIALES_INCORRECTAS = 'Correo o contraseña incorrectos.';
 const SESION_TERMINADA = 'La sesión venció o se cerró. Vuelve a iniciar sesión.';
 
 const errorSesion = () => new ErrorNoAutenticado(SESION_TERMINADA);
-
-let rellenoPendiente: Promise<string> | undefined;
-
-/**
- * Hash de una contraseña al azar, creado una sola vez. Con un correo sin cuenta se compara contra él,
- * así el tiempo de respuesta no delata qué correos existen.
- */
-function hashDeRelleno(): Promise<string> {
-  rellenoPendiente ??= cifrarContrasena(randomBytes(16).toString('hex'));
-  return rellenoPendiente;
-}
-
-/**
- * Compara siempre con bcrypt, también cuando no hay cuenta (contra un hash de relleno), y responde lo
- * mismo para el correo y para la contraseña: el tiempo y el mensaje no delatan qué correos existen.
- */
-async function comprobarCredenciales<C extends { hashContrasena: string }>(
-  cuenta: C | null,
-  contrasena: string,
-): Promise<C> {
-  const hash = cuenta?.hashContrasena ?? (await hashDeRelleno());
-  const correcta = await compararContrasena(contrasena, hash);
-  if (!cuenta || !correcta) {
-    throw new ErrorNoAutenticado(CREDENCIALES_INCORRECTAS);
-  }
-  return cuenta;
-}
 
 async function abrirSesion(
   { repositorio, jwt, reloj }: Contexto,
@@ -365,9 +348,12 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     reloj: dependencias.reloj,
   };
   const { repositorio, reloj } = contexto;
+  const perfilPractica = crearPerfilPracticaRepositorio(dependencias.bd);
   // Se prepara al crear el servicio para que el primer ingreso con un correo sin cuenta no tarde más.
   void hashDeRelleno();
   return {
+    obtenerPerfilPractica: (id, tx, bloquear) =>
+      perfilPractica.obtenerPerfilPractica(id, tx, bloquear),
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales, navegador) =>
       ingresarInterno(contexto, credenciales, navegador),

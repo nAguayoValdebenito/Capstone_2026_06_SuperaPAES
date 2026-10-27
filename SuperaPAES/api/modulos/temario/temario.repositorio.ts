@@ -18,6 +18,51 @@ export interface Area {
 
 export interface TemarioRepositorio {
   listarAreas(tx?: Ejecutor): Promise<Area[]>;
+  alcancePracticaValido(datos: AlcancePractica, tx?: Ejecutor): Promise<boolean>;
+}
+
+export interface AlcancePractica {
+  pruebaId: number;
+  ejeId?: number;
+  contenidoId?: number;
+  habilidadId?: number;
+  nivelEscolarId: number | null;
+}
+
+async function existe(tx: Ejecutor, sql: string, parametros: unknown[]): Promise<boolean> {
+  const { rows } = await tx.query<{ valido: boolean }>(sql, parametros);
+  return rows[0]?.valido ?? false;
+}
+
+function ejeValido(tx: Ejecutor, datos: AlcancePractica): Promise<boolean> {
+  return existe(
+    tx,
+    `SELECT EXISTS(SELECT 1 FROM contenido.eje_tematico
+      WHERE id=$1 AND prueba_id=$2 AND activo) AS valido`,
+    [datos.ejeId, datos.pruebaId],
+  );
+}
+
+function habilidadValida(tx: Ejecutor, datos: AlcancePractica): Promise<boolean> {
+  return existe(
+    tx,
+    `SELECT EXISTS(SELECT 1 FROM contenido.habilidad
+      WHERE id=$1 AND prueba_id=$2) AS valido`,
+    [datos.habilidadId, datos.pruebaId],
+  );
+}
+
+function contenidoValido(tx: Ejecutor, datos: AlcancePractica): Promise<boolean> {
+  return existe(
+    tx,
+    `SELECT EXISTS(SELECT 1 FROM contenido.contenido_tematico c
+      JOIN contenido.prueba p ON p.id=c.prueba_id
+      LEFT JOIN contenido.nivel_escolar nc ON nc.id=c.nivel_escolar_id
+      LEFT JOIN contenido.nivel_escolar ne ON ne.id=$3
+      WHERE c.id=$1 AND c.prueba_id=$2 AND c.activo
+        AND (p.codigo='CL' OR $3::smallint IS NULL OR nc.orden IS NULL OR nc.orden<=ne.orden)) AS valido`,
+    [datos.contenidoId, datos.pruebaId, datos.nivelEscolarId],
+  );
 }
 
 export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
@@ -27,6 +72,12 @@ export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
         'SELECT id, nombre FROM contenido.area ORDER BY nombre',
       );
       return rows;
+    },
+    async alcancePracticaValido(datos, tx = bd) {
+      if (datos.ejeId !== undefined) return ejeValido(tx, datos);
+      if (datos.habilidadId !== undefined) return habilidadValida(tx, datos);
+      if (datos.contenidoId !== undefined) return contenidoValido(tx, datos);
+      return true;
     },
   };
 }

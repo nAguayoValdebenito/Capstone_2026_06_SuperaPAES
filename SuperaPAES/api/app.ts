@@ -146,6 +146,8 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const suscripciones = crearSuscripcionesServicio({ ...base, pagos });
   const evaluaciones = crearEvaluacionesServicio({
     ...base,
+    cuentas,
+    temario,
     cupoInvitaciones,
     preguntas,
     suscripciones,

@@ -1,11 +1,30 @@
 // Controlador del módulo evaluaciones: traduce HTTP a llamadas del servicio y responde con responder().
 // Sin SQL ni adaptadores.
+import type { Request, RequestHandler } from 'express';
+import { ErrorNoAutenticado } from '../../comun/errores.js';
+import { responder } from '../../comun/respuesta.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
+import type { DatosInicioPractica, ParametrosPractica } from './evaluaciones.validadores.js';
 
-export type EvaluacionesControlador = Record<string, never>;
+export interface EvaluacionesControlador {
+  iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
+  siguientePregunta: RequestHandler<ParametrosPractica>;
+}
+
+function estudianteDe(req: Request): string {
+  if (!req.estudiante) throw new ErrorNoAutenticado();
+  return req.estudiante.id;
+}
 
 export function crearEvaluacionesControlador(
-  _servicio: EvaluacionesServicio,
+  servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
-  return {};
+  return {
+    iniciarPractica: async (req, res) => {
+      responder(res, await servicio.iniciarPractica(estudianteDe(req), req.body), { estado: 201 });
+    },
+    siguientePregunta: async (req, res) => {
+      responder(res, await servicio.siguientePregunta(estudianteDe(req), req.params.id));
+    },
+  };
 }
