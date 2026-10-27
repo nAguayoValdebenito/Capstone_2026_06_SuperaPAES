@@ -42,9 +42,10 @@ npm run dev -w api                           # http://localhost:3000/api/v1/salu
 npm run dev -w consola                       # http://localhost:5173
 ```
 
-El SQL vive en `api/db`: migraciones `001` a `003` (modelo de datos 12.0), semillas `001` a `003`
-(temario PAES 2027, evaluaciones y documentos legales 1.0, en ese orden) y las pruebas del modelo. La
-migración `003` y la semilla `003` comparten el número, pero están en carpetas distintas y no chocan.
+El SQL vive en `api/db`: migraciones `001` a `003` (modelo de datos 12.0), semillas `001` a `004`
+(temario PAES 2027, evaluaciones, documentos legales 1.0 y acciones de auditoría de usuarios internos,
+en ese orden) y las pruebas del modelo. La migración `003` y la semilla `003` comparten el número,
+pero están en carpetas distintas y no chocan.
 
 **Primer administrador.** La consola no permite registrarse: en tu base local creas tu propia cuenta
 de administrador con `npm run crear-admin -w api`, en una terminal interactiva (PowerShell o la de VS
@@ -74,6 +75,66 @@ en producción se omiten con `SEMILLAS_OMITIDAS=003_documentos_legales.sql`.
 
 Con todos los proveedores en `simulado`/`consola`, la API solo necesita `DATABASE_URL`, los dos
 secretos JWT y `PORT`.
+
+## Levantar con Docker
+
+Docker es otra forma de ejecutar la base, la API y la consola en el computador. Se necesita Docker
+Desktop abierto (en Windows, con WSL 2). Ejecuta estos comandos desde `SuperaPAES/`, la carpeta que
+contiene `docker-compose.yml`:
+
+```powershell
+Copy-Item .env.docker.example .env.docker
+```
+
+En macOS o Linux, usa `cp .env.docker.example .env.docker`. Abre `.env.docker` y completa
+`POSTGRES_PASSWORD`, `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP` y `CLAVE_CODIGO_CORREO` con cuatro valores
+aleatorios distintos. Los tres últimos deben tener al menos 32 caracteres. Para generar cada valor
+con Docker, puedes ejecutar este comando cuatro veces:
+
+```bash
+docker run --rm node:24-alpine node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"
+```
+
+El formato `base64url` también sirve para `POSTGRES_PASSWORD`: `.env.docker` construye `DATABASE_URL`
+con esa contraseña y el nombre `db` de la red de Compose. No pongas valores reales en el archivo de
+ejemplo ni subas `.env.docker` a Git. La consola se compila con `VITE_API_URL=http://localhost:3000`,
+una dirección pública; nunca pongas claves en variables `VITE_`.
+
+```bash
+docker compose --env-file .env.docker up --build
+```
+
+La primera ejecución crea la base `supera_paes`, aplica las migraciones `001` a `003` y carga las
+cuatro semillas, incluidos los textos legales locales. En cada arranque, `migraciones` termina antes
+de iniciar la API. La API usa IA y pagos simulados y escribe el correo en los registros. Abre
+http://localhost:3000/api/v1/salud/vivo para comprobar la API y http://localhost:8080 para la consola.
+La base queda disponible solo desde este computador en el puerto 5433.
+
+Para crear el primer administrador, abre otra terminal mientras los servicios están activos y ejecuta:
+
+```bash
+docker compose --env-file .env.docker exec api npm run crear-admin:produccion -w api
+```
+
+El comando usa una terminal interactiva: confirma la base con `s` y escribe la contraseña cuando la
+pida, sin ponerla en argumentos ni archivos. Si ya existe un administrador activo, no crea otro. Para
+ver los registros y apagar los servicios:
+
+```bash
+docker compose --env-file .env.docker logs -f api
+docker compose --env-file .env.docker logs migraciones
+docker compose --env-file .env.docker down
+```
+
+`down` conserva el volumen y sus datos. **`docker compose --env-file .env.docker down -v` borra la
+base local del volumen**; úsalo solo si quieres empezar desde cero. Si 5433 está ocupado, cambia
+`PUERTO_POSTGRES_LOCAL` en `.env.docker`. Si están ocupados 3000 u 8080, libera esos puertos antes de
+levantar los servicios: son las direcciones configuradas para la API, el navegador y los enlaces del
+correo.
+
+La app Flutter se ejecuta fuera de Docker. Desde el emulador de Android, conéctala a
+`http://10.0.2.2:3000`. La instalación sin Docker de la sección «Puesta en marcha» sigue disponible
+con Node 24 y PostgreSQL 18.
 
 ## API
 

@@ -23,6 +23,9 @@ export default defineConfig({
     include: ['pruebas/**/*.test.ts'],
     environment: 'node',
     env: urlPruebas ? { DATABASE_URL_PRUEBAS: urlPruebas } : {},
+    // Varios archivos crean y migran bases temporales a la vez; limitar los workers evita
+    // que esa carga haga exceder los 5 s de las pruebas de selección con PostgreSQL.
+    maxWorkers: 4,
     // Cada prueba deja los espías (vi.spyOn) como estaban, aunque falle antes de restaurarlos.
     restoreMocks: true,
     // npm run cobertura -w api. Solo el código de producción (sin pruebas ni scripts de línea de comandos).
