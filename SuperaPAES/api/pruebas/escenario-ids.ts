@@ -17,21 +17,6 @@ const estudiante = { id: '84', nombre: 'Ana', correo: 'ana@ejemplo.cl', correoVe
 const usuario = { id: '7', nombre: 'Admin', correo: 'admin@ejemplo.cl', rol: 'admin' as const };
 const interno = { ...usuario, activo: true, areas: [1, 2], creadoEn: fecha, ultimoAcceso: null };
 const sesion = { tokenAcceso: 'token', tokenRenovacion: 'renovacion' };
-const resumenPractica = {
-  id: '41',
-  prueba: { id: 2, codigo: 'M1', nombre: 'Matemática 1' },
-  alcance: { tipo: 'eje' as const, id: 3, nombre: 'Álgebra' },
-  dificultad: { id: null, codigo: 'mezcla', nombre: 'Mezcla' },
-  cantidad: 5,
-  respondidas: 5,
-  correctas: 4,
-  incorrectas: 1,
-  omitidas: 0,
-  porcentaje: 80,
-  tiempoUsadoSeg: 300,
-  ejes: [{ id: 3, nombre: 'Álgebra', preguntas: 5, correctas: 4 }],
-  habilidades: [{ id: 6, nombre: 'Resolver problemas', preguntas: 5, correctas: 4 }],
-};
 
 export function escenario() {
   const dependencias = crearDependenciasDePrueba();
@@ -111,8 +96,6 @@ export function escenario() {
         cupo: { maximo: 10, usadas: 1, restantes: 9, saldoExtra: 0, agotado: false },
       }),
     ),
-    cerrarPractica: vi.fn(() => Promise.resolve(resumenPractica)),
-    resumenPractica: vi.fn(() => Promise.resolve(resumenPractica)),
   };
   const app = crearApp(dependencias, {
     ...servicios,

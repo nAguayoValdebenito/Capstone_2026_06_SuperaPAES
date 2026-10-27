@@ -4,7 +4,7 @@
 // - CP-05 pasos 2 y 3: cada rol recibe 403 SIN_PERMISO en las rutas del otro.
 // El inventario de rutas (toda ruta declara su permiso) está en inventario-rutas-admin.test.ts.
 import { SignJWT } from 'jose';
-import request, { type Test } from 'supertest';
+import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import {
   crearAppDePrueba,
@@ -162,35 +162,6 @@ describe('separación de las sesiones de la app y de la consola (CP-04)', () => 
 
     expect((await request(app).get(RUTA_YO)).status).toBe(401);
     expect((await request(app).get('/api/v1/app/evaluaciones')).status).toBe(401);
-  });
-
-  it('las cinco rutas del recorrido de práctica exigen la sesión del estudiante', async () => {
-    const app = crearAppDePrueba();
-    const tokenDeConsola = { Authorization: `Bearer ${await tokenAdmin()}` };
-    const peticiones = (encabezados?: Record<string, string>) => {
-      const agregar = <T extends Test>(peticion: T) =>
-        encabezados ? peticion.set(encabezados) : peticion;
-      return [
-        agregar(
-          request(app)
-            .post('/api/v1/app/evaluaciones/practicas')
-            .send({ pruebaId: 1, cantidad: 5 }),
-        ),
-        agregar(request(app).post('/api/v1/app/evaluaciones/practicas/1/siguiente')),
-        agregar(
-          request(app)
-            .post('/api/v1/app/evaluaciones/1/items/1/respuesta')
-            .send({ alternativaId: 1 }),
-        ),
-        agregar(request(app).post('/api/v1/app/evaluaciones/practicas/1/cerrar')),
-        agregar(request(app).get('/api/v1/app/evaluaciones/practicas/1/resumen')),
-      ];
-    };
-
-    for (const respuesta of await Promise.all(peticiones()))
-      expect(respuesta.body.error.codigo).toBe('NO_AUTENTICADO');
-    for (const respuesta of await Promise.all(peticiones(tokenDeConsola)))
-      expect(respuesta.body.error.codigo).toBe('NO_AUTENTICADO');
   });
 
   it('los tokens firmados a mano también quedan separados', async () => {

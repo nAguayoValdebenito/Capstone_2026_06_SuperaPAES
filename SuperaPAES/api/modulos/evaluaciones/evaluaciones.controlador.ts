@@ -9,8 +9,6 @@ import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones
 export interface EvaluacionesControlador {
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
   siguientePregunta: RequestHandler;
-  cerrarPractica: RequestHandler;
-  resumenPractica: RequestHandler;
   responderPregunta: RequestHandler<Record<string, string>, unknown, DatosRespuestaPregunta>;
 }
 
@@ -28,12 +26,6 @@ export function crearEvaluacionesControlador(
     },
     siguientePregunta: async (req, res) => {
       responder(res, await servicio.siguientePregunta(estudianteDe(req), String(req.params.id)));
-    },
-    cerrarPractica: async (req, res) => {
-      responder(res, await servicio.cerrarPractica(estudianteDe(req), String(req.params.id)));
-    },
-    resumenPractica: async (req, res) => {
-      responder(res, await servicio.resumenPractica(estudianteDe(req), String(req.params.id)));
     },
     responderPregunta: async (req, res) => {
       const datos = {

@@ -28,8 +28,6 @@ import {
   crearRespuestasServicio,
   type RespuestasServicio,
 } from './evaluaciones.respuestas.servicio.js';
-import { crearResumenRepositorio } from './evaluaciones.resumen.repositorio.js';
-import { crearResumenServicio, type ResumenServicio } from './evaluaciones.resumen.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 
 export interface DependenciasEvaluacionesServicio {
@@ -47,10 +45,7 @@ export interface DependenciasEvaluacionesServicio {
   repositorio?: EvaluacionesRepositorio;
 }
 
-export type EvaluacionesServicio = SeleccionPractica &
-  PracticasServicio &
-  RespuestasServicio &
-  ResumenServicio;
+export type EvaluacionesServicio = SeleccionPractica & PracticasServicio & RespuestasServicio;
 
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
@@ -78,10 +73,6 @@ function crearServicioSinReintento(
       cuentas: dependencias.cuentas,
       cupo: dependencias.cupoInvitaciones,
       reloj: dependencias.reloj,
-    }),
-    ...crearResumenServicio({
-      repositorio: crearResumenRepositorio(),
-      unidadDeTrabajo: dependencias.unidadDeTrabajo,
     }),
   };
 }
