@@ -4,7 +4,7 @@
 import { useCallback, useState } from 'react';
 import { ErrorApi } from '../api/cliente';
 import { restablecerContrasena } from '../servicios/recuperacion';
-import { problemaContrasena, REQUISITOS_CONTRASENA } from '../utilidades/contrasena';
+import { problemaContrasena } from '../utilidades/contrasena';
 
 export type EstadoRestablecer =
   | { tipo: 'editando' }
@@ -18,8 +18,6 @@ export type EstadoRestablecer =
       /** El enlace ya no sirve: hay que pedir otro desde la app. */
       enlaceNoVigente: boolean;
     };
-
-export const REQUISITOS_CONTRASENA_NUEVA = `${REQUISITOS_CONTRASENA} Tampoco puede ser una contraseña común.`;
 
 export const MENSAJES_RESTABLECER = {
   noCoinciden: 'Las dos contraseñas no coinciden.',

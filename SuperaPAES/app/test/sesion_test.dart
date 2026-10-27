@@ -452,9 +452,6 @@ void main() {
       await iniciarApp(tester, contenedor);
     }
 
-    Finder campo(String etiqueta) =>
-        find.widgetWithText(TextFormField, etiqueta);
-
     Future<void> ingresar(
       WidgetTester tester, {
       String correo = 'camila@ejemplo.cl',
@@ -462,7 +459,7 @@ void main() {
     }) async {
       await tester.enterText(campo('Correo'), correo);
       await tester.enterText(campo('Contraseña'), contrasena);
-      await tocar(tester, find.widgetWithText(FilledButton, 'Ingresar'));
+      await tocar(tester, find.widgetWithText(FilledButton, 'Entrar'));
     }
 
     testWidgets('muestra el logo y el formulario', (tester) async {
@@ -476,7 +473,7 @@ void main() {
 
     testWidgets('sin datos no envía nada', (tester) async {
       await abrir(tester);
-      await tocar(tester, find.widgetWithText(FilledButton, 'Ingresar'));
+      await tocar(tester, find.widgetWithText(FilledButton, 'Entrar'));
 
       expect(find.text('Ingresa un correo válido.'), findsOne);
       expect(find.text('Ingresa tu contraseña.'), findsOne);
@@ -495,7 +492,7 @@ void main() {
       // Las pruebas corren como Android.
       expect(ingreso.dispositivo, 'Android');
       expect(almacen.guardada, same(sesionDeEjemplo));
-      expect(find.widgetWithText(AppBar, 'Inicio'), findsOne);
+      expect(rutaActual(contenedor), Rutas.inicio);
     });
 
     testWidgets('con credenciales incorrectas muestra el mensaje de la API', (
@@ -510,7 +507,7 @@ void main() {
       await ingresar(tester);
 
       expect(find.text('Correo o contraseña incorrectos.'), findsOne);
-      expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOne);
+      expect(rutaActual(contenedor), Rutas.ingreso);
       expect(almacen.guardada, isNull);
 
       // Al corregir un campo, el mensaje desaparece.
@@ -541,12 +538,9 @@ void main() {
 
     testWidgets('el enlace lleva a Crear cuenta', (tester) async {
       await abrir(tester);
-      await tocar(
-        tester,
-        find.widgetWithText(TextButton, '¿No tienes cuenta? Crea una'),
-      );
+      await tocar(tester, find.widgetWithText(TextButton, 'Crea una'));
 
-      expect(find.widgetWithText(AppBar, 'Crear cuenta'), findsOne);
+      expect(rutaActual(contenedor), Rutas.crearCuenta);
     });
   });
 
@@ -554,9 +548,10 @@ void main() {
     testWidgets('con una sesión guardada, la app abre en Inicio', (
       tester,
     ) async {
-      await iniciarApp(tester, crearContenedor(sesion: sesionDeEjemplo));
+      final contenedor = crearContenedor(sesion: sesionDeEjemplo);
+      await iniciarApp(tester, contenedor);
 
-      expect(find.widgetWithText(AppBar, 'Inicio'), findsOne);
+      expect(rutaActual(contenedor), Rutas.inicio);
     });
 
     testWidgets('sin sesión, una pantalla de la cuenta lleva a Iniciar '
@@ -564,7 +559,7 @@ void main() {
       final contenedor = crearContenedor();
       await iniciarApp(tester, contenedor, ruta: Rutas.perfil);
 
-      expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOne);
+      expect(rutaActual(contenedor), Rutas.ingreso);
     });
 
     testWidgets('Perfil muestra la cuenta y cierra la sesión', (tester) async {
@@ -583,7 +578,7 @@ void main() {
 
       expect(repositorio.cierres, ['renovacion']);
       expect(almacen.guardada, isNull);
-      expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOne);
+      expect(rutaActual(contenedor), Rutas.ingreso);
     });
 
     testWidgets('si la renovación es rechazada, vuelve a Iniciar sesión', (
@@ -600,11 +595,7 @@ void main() {
       await contenedor.read(sesionProvider.notifier).renovar();
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOne);
-      expect(
-        contenedor.read(enrutadorProvider).state.matchedLocation,
-        Rutas.ingreso,
-      );
+      expect(rutaActual(contenedor), Rutas.ingreso);
     });
   });
 }

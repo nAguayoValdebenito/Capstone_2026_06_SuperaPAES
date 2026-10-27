@@ -248,33 +248,23 @@ void main() {
       await iniciarApp(tester, contenedor, ruta: Rutas.verificarCorreo);
     }
 
-    Finder campoCodigo() =>
-        find.widgetWithText(TextFormField, 'Código de 6 dígitos');
+    Finder campoCodigo() => campo('Código de 6 dígitos');
 
     Future<void> escribirYVerificar(WidgetTester tester, String codigo) async {
       await tester.enterText(campoCodigo(), codigo);
       await tocar(tester, find.widgetWithText(FilledButton, 'Verificar'));
     }
 
-    bool campoActivo(WidgetTester tester) => tester
-        .widget<TextField>(
-          find.descendant(of: campoCodigo(), matching: find.byType(TextField)),
-        )
-        .enabled!;
+    bool campoActivo(WidgetTester tester) =>
+        tester.widget<TextField>(campoCodigo()).enabled!;
 
     testWidgets('explica el beneficio y muestra el correo', (tester) async {
       await abrir(tester);
 
-      expect(
-        find.text(
-          'Verifica tu correo y tu cupo diario sube de 10 a 20 preguntas.',
-        ),
-        findsOne,
-      );
-      expect(
-        find.textContaining('Te enviamos un correo a camila@ejemplo.cl'),
-        findsOne,
-      );
+      expect(find.text('Verifica tu correo'), findsOne);
+      expect(find.text('10 preguntas'), findsOne);
+      expect(find.text('20 preguntas'), findsOne);
+      expect(find.textContaining('camila@ejemplo.cl'), findsOne);
       expect(find.textContaining('vencen en 24 horas'), findsOne);
       expect(find.textContaining('5 intentos'), findsOne);
     });
@@ -287,11 +277,17 @@ void main() {
       expect(verificacion.codigos, isEmpty);
     });
 
-    testWidgets('el campo solo acepta dígitos', (tester) async {
+    testWidgets('el campo solo acepta dígitos y los muestra en las casillas', (
+      tester,
+    ) async {
       await abrir(tester);
       await tester.enterText(campoCodigo(), '12a4b6');
+      await tester.pump();
 
-      expect(find.text('1246'), findsOne);
+      expect(tester.widget<TextField>(campoCodigo()).controller!.text, '1246');
+      for (final digito in ['1', '2', '4', '6']) {
+        expect(find.text(digito), findsOne);
+      }
     });
 
     testWidgets('con el código correcto verifica la cuenta y la guarda', (
@@ -305,7 +301,7 @@ void main() {
       expect(almacen.guardada?.estudiante.correoVerificado, isTrue);
 
       await tocar(tester, find.widgetWithText(FilledButton, 'Ir a Inicio'));
-      expect(find.widgetWithText(AppBar, 'Inicio'), findsOne);
+      expect(rutaActual(contenedor), Rutas.inicio);
     });
 
     testWidgets('un código incorrecto muestra los intentos que quedan (A06b)', (
@@ -340,19 +336,12 @@ void main() {
 
       expect(find.text(_codigoAgotado.mensaje), findsOne);
       expect(campoActivo(tester), isFalse);
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Verificar'),
-            )
-            .onPressed,
-        isNull,
-      );
+      expect(find.widgetWithText(FilledButton, 'Verificar'), findsNothing);
 
-      // Reenviar el correo vuelve a activar el código.
+      // Pedir un correo nuevo vuelve a activar el código.
       await tocar(
         tester,
-        find.widgetWithText(OutlinedButton, 'Reenviar el correo'),
+        find.widgetWithText(FilledButton, 'Enviar un correo nuevo'),
       );
       expect(verificacion.reenvios, 1);
       expect(find.textContaining('Te enviamos un correo nuevo'), findsOne);
@@ -365,10 +354,7 @@ void main() {
     ) async {
       verificacion.resultadoReenvio = (enviado: false, yaVerificado: true);
       await abrir(tester);
-      await tocar(
-        tester,
-        find.widgetWithText(OutlinedButton, 'Reenviar el correo'),
-      );
+      await tocar(tester, find.widgetWithText(TextButton, 'Reenviar correo'));
 
       expect(find.text('¡Listo! Tu correo está verificado.'), findsOne);
       expect(almacen.guardada?.estudiante.correoVerificado, isTrue);
@@ -385,22 +371,16 @@ void main() {
         estadoHttp: 429,
       );
       await abrir(tester);
-      await tocar(
-        tester,
-        find.widgetWithText(OutlinedButton, 'Reenviar el correo'),
-      );
+      await tocar(tester, find.widgetWithText(TextButton, 'Reenviar correo'));
 
       expect(find.textContaining('Hiciste demasiados intentos'), findsOne);
     });
 
-    testWidgets('«Verificar más tarde» lleva a Inicio', (tester) async {
+    testWidgets('«‹ Inicio» deja verificar más tarde', (tester) async {
       await abrir(tester);
-      await tocar(
-        tester,
-        find.widgetWithText(TextButton, 'Verificar más tarde'),
-      );
+      await tocar(tester, find.byIcon(Icons.chevron_left));
 
-      expect(find.widgetWithText(AppBar, 'Inicio'), findsOne);
+      expect(rutaActual(contenedor), Rutas.inicio);
       expect(verificacion.codigos, isEmpty);
     });
 
@@ -417,7 +397,7 @@ void main() {
 
   group('Aviso de correo sin verificar en Inicio', () {
     const textoAviso =
-        'Verifica tu correo para tener 20 preguntas diarias. Hoy tienes 10.';
+        'Verifica tu correo y sube tu cupo a 20 preguntas diarias.';
 
     testWidgets('aparece mientras el correo no esté verificado', (
       tester,
@@ -445,29 +425,22 @@ void main() {
       tester,
     ) async {
       final verificacion = RepositorioVerificacionFalso();
-      await iniciarApp(
-        tester,
-        crearContenedor(verificacion: verificacion, sesion: sesionDeEjemplo),
-        ruta: Rutas.inicio,
+      final contenedor = crearContenedor(
+        verificacion: verificacion,
+        sesion: sesionDeEjemplo,
       );
+      await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
 
-      await tocar(
-        tester,
-        find.widgetWithText(FilledButton, 'Verificar mi correo'),
-      );
-      expect(find.widgetWithText(AppBar, 'Verificar correo'), findsOne);
+      await tocar(tester, find.widgetWithText(FilledButton, 'Verificar'));
+      expect(rutaActual(contenedor), Rutas.verificarCorreo);
 
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Código de 6 dígitos'),
-        '194987',
-      );
+      await tester.enterText(campo('Código de 6 dígitos'), '194987');
       await tocar(tester, find.widgetWithText(FilledButton, 'Verificar'));
       expect(find.text('¡Listo! Tu correo está verificado.'), findsOne);
 
-      // Se abrió encima de Inicio: atrás vuelve a Inicio, ya sin el aviso.
-      await tester.tap(find.byType(BackButton));
-      await tester.pumpAndSettle();
-      expect(find.widgetWithText(AppBar, 'Inicio'), findsOne);
+      // Se abrió encima de Inicio: «‹ Inicio» vuelve, ya sin el aviso.
+      await tocar(tester, find.byIcon(Icons.chevron_left));
+      expect(rutaActual(contenedor), Rutas.inicio);
       expect(find.text(textoAviso), findsNothing);
     });
   });

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/fuentes/fuente_cuentas_remota.dart';
+import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
 
@@ -95,18 +96,15 @@ void main() {
     }
 
     Future<void> enviar(WidgetTester tester, String correo) async {
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Correo'),
-        correo,
-      );
+      await tester.enterText(campo('Correo'), correo);
       await tocar(tester, find.widgetWithText(FilledButton, 'Enviar enlace'));
     }
 
     testWidgets('se abre desde Iniciar sesión, sin sesión', (tester) async {
       await abrir(tester);
 
-      expect(find.widgetWithText(AppBar, 'Recuperar contraseña'), findsOne);
-      expect(find.byType(BackButton), findsOne);
+      expect(rutaActual(contenedor), Rutas.recuperarContrasena);
+      expect(find.text('Recupera tu contraseña'), findsOne);
     });
 
     testWidgets('sin un correo válido no envía nada', (tester) async {
@@ -122,29 +120,24 @@ void main() {
       await enviar(tester, '  camila@ejemplo.cl ');
 
       expect(repositorio.recuperaciones, ['camila@ejemplo.cl']);
-      expect(find.text('Revisa tu correo'), findsOne);
+      expect(find.textContaining('Revisa tu correo.'), findsOne);
       expect(
-        find.textContaining(
-          'Si camila@ejemplo.cl tiene una cuenta, te enviamos un enlace',
-        ),
+        find.textContaining('Si camila@ejemplo.cl está registrado'),
         findsOne,
       );
-      expect(find.textContaining('Vence en 1 hora'), findsOne);
+      expect(find.textContaining('vence en 1 hora'), findsOne);
     });
 
     testWidgets('reenvía el enlace al mismo correo', (tester) async {
       await abrir(tester);
       await enviar(tester, 'camila@ejemplo.cl');
-      await tocar(
-        tester,
-        find.widgetWithText(OutlinedButton, 'Reenviar el enlace'),
-      );
+      await tocar(tester, find.widgetWithText(TextButton, 'Reenviar enlace'));
 
       expect(repositorio.recuperaciones, [
         'camila@ejemplo.cl',
         'camila@ejemplo.cl',
       ]);
-      expect(find.text('Te enviamos otro enlace'), findsOne);
+      expect(find.textContaining('Te enviamos otro enlace.'), findsOne);
     });
 
     testWidgets('con demasiados intentos muestra el aviso', (tester) async {
@@ -159,20 +152,15 @@ void main() {
       await enviar(tester, 'camila@ejemplo.cl');
 
       expect(find.textContaining('Hiciste demasiados intentos'), findsOne);
-      expect(find.text('Revisa tu correo'), findsNothing);
+      expect(find.textContaining('Revisa tu correo.'), findsNothing);
     });
 
-    testWidgets('«Volver a Iniciar sesión» vuelve a Iniciar sesión', (
-      tester,
-    ) async {
+    testWidgets('«‹ Iniciar sesión» vuelve a Iniciar sesión', (tester) async {
       await abrir(tester);
       await enviar(tester, 'camila@ejemplo.cl');
-      await tocar(
-        tester,
-        find.widgetWithText(FilledButton, 'Volver a Iniciar sesión'),
-      );
+      await tocar(tester, find.byIcon(Icons.chevron_left));
 
-      expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOne);
+      expect(rutaActual(contenedor), Rutas.ingreso);
     });
 
     test('es una pantalla pública', () {
