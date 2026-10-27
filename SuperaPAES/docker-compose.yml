@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: supera
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Completa POSTGRES_PASSWORD en .env.docker}
+      POSTGRES_DB: supera_paes
+    ports:
+      - '127.0.0.1:${PUERTO_POSTGRES_LOCAL:-5433}:5432'
+    volumes:
+      - datos_postgres:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U supera -d supera_paes']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - interna
+
+  migraciones:
+    image: supera-paes-api:local
+    command: ['npm', 'run', 'migrar:produccion', '-w', 'api']
+    restart: 'no'
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Completa DATABASE_URL en .env.docker}
+      DATABASE_SSL: 'false'
+      SEMILLAS_OMITIDAS: ''
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - interna
+
+  api:
+    image: supera-paes-api:local
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: '3000'
+      DATABASE_URL: ${DATABASE_URL:?Completa DATABASE_URL en .env.docker}
+      DATABASE_SSL: 'false'
+      JWT_SECRETO_CONSOLA: ${JWT_SECRETO_CONSOLA:?Completa JWT_SECRETO_CONSOLA en .env.docker}
+      JWT_SECRETO_APP: ${JWT_SECRETO_APP:?Completa JWT_SECRETO_APP en .env.docker}
+      CLAVE_CODIGO_CORREO: ${CLAVE_CODIGO_CORREO:?Completa CLAVE_CODIGO_CORREO en .env.docker}
+      CORS_ORIGENES: ${CORS_ORIGENES:-http://localhost:8080}
+      URL_CONSOLA: ${URL_CONSOLA:-http://localhost:8080}
+      PROVEEDOR_IA: ${PROVEEDOR_IA:-simulado}
+      PROVEEDOR_CORREO: ${PROVEEDOR_CORREO:-consola}
+      PROVEEDOR_PAGOS: ${PROVEEDOR_PAGOS:-simulado}
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      migraciones:
+        condition: service_completed_successfully
+    networks:
+      - interna
+
+  consola:
+    build:
+      context: .
+      dockerfile: consola/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    ports:
+      - '127.0.0.1:8080:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - interna
+
+volumes:
+  datos_postgres:
+
+networks:
+  interna:
