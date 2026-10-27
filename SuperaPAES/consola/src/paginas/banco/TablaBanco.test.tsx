@@ -7,7 +7,7 @@ import { ResultadoBanco } from './PaginaBanco';
 import { TablaBanco } from './TablaBanco';
 
 const pregunta = (cambios: Partial<PreguntaDelBanco> = {}): PreguntaDelBanco => ({
-  id: '7',
+  id: 7,
   resumen: 'Si 2x + 3 = 11, ¿cuánto vale x?',
   prueba: { id: 2, codigo: 'M1', nombre: 'Matemática 1' },
   eje: { id: 11, nombre: 'Álgebra' },
@@ -48,7 +48,7 @@ describe('tabla del banco (C02, HU-11 esc. 2)', () => {
         preguntas={[
           pregunta(),
           pregunta({
-            id: '8',
+            id: 8,
             estado: { codigo: 'publicada', nombre: 'Publicada' },
             origen: 'ia',
             dificultadAsignada: { codigo: 'media', nombre: 'Media' },

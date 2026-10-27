@@ -103,7 +103,7 @@ export interface FiltrosBanco {
 
 /** Pregunta tal como la lista el banco: con su estado, sin la alternativa correcta. */
 export interface PreguntaDelBanco {
-  id: string;
+  id: number;
   resumen: string;
   prueba: { id: number; codigo: string; nombre: string };
   eje: { id: number; nombre: string };

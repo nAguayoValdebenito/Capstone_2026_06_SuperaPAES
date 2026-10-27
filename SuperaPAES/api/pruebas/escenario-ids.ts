@@ -53,6 +53,40 @@ const opcionesPerfil = {
   ],
 };
 
+/** Banco de preguntas (HU-11): el repositorio entrega el id BIGINT como texto. */
+const paginaBanco = {
+  preguntas: [
+    {
+      id: '84',
+      resumen: 'Pregunta',
+      prueba: { id: 2, codigo: 'M1', nombre: 'Matemática 1' },
+      eje: { id: 3, nombre: 'Álgebra' },
+      contenido: { id: 30, nombre: 'Ecuaciones' },
+      estado: { codigo: 'borrador', nombre: 'Borrador' },
+      origen: 'manual' as const,
+      dificultadSugerida: null,
+      dificultadAsignada: null,
+      posibleAmbigua: false,
+      actualizadoEn: fecha.toISOString(),
+    },
+  ],
+  paginacion: { pagina: 1, porPagina: 20, total: 1 },
+};
+const filtrosBanco = {
+  pruebas: [
+    {
+      id: 2,
+      codigo: 'M1',
+      nombre: 'Matemática 1',
+      ejes: [{ id: 3, nombre: 'Álgebra', contenidos: [{ id: 30, nombre: 'Ecuaciones' }] }],
+      habilidades: [{ id: 6, nombre: 'Resolver problemas' }],
+    },
+  ],
+  estados: [{ codigo: 'borrador', nombre: 'Borrador' }],
+  origenes: [{ codigo: 'manual', nombre: 'Manual' }],
+  dificultades: [{ codigo: 'facil', nombre: 'Fácil' }],
+};
+
 export function escenario() {
   const dependencias = crearDependenciasDePrueba();
   const servicios = aceptarCualquierSesion(crearServicios(dependencias));
@@ -138,11 +172,17 @@ export function escenario() {
     cerrarPractica: vi.fn(() => Promise.resolve(resumenPractica)),
     resumenPractica: vi.fn(() => Promise.resolve(resumenPractica)),
   };
+  const preguntas = {
+    ...servicios.preguntas,
+    listarBanco: vi.fn(() => Promise.resolve(paginaBanco)),
+    filtrosDelBanco: vi.fn(() => Promise.resolve(filtrosBanco)),
+  };
   const app = crearApp(dependencias, {
     ...servicios,
     cuentas,
     administracion,
     temario,
+    preguntas,
     evaluaciones,
   });
   return { app, cuentas, administracion, evaluaciones };

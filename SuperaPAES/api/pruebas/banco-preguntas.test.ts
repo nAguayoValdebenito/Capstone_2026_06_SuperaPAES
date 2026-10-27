@@ -108,7 +108,7 @@ describe('banco de preguntas: lista (HU-11, CP-08)', () => {
     expect(respuesta.body.meta).toEqual({ pagina: 1, porPagina: 20, total: 134 });
     expect(respuesta.body.data).toEqual([
       {
-        id: '7',
+        id: 7,
         resumen: 'Si 2x + 3 = 11, ¿cuánto vale x?',
         prueba: { id: 2, codigo: 'M1', nombre: 'Matemática 1' },
         eje: { id: 11, nombre: 'Álgebra' },

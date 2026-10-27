@@ -32,6 +32,8 @@ describe('contrato central de ids', () => {
       'POST /api/v1/admin/administracion/usuarios-internos/:id/activar → data.id, data.areas[]',
       'POST /api/v1/admin/administracion/usuarios-internos/:id/desactivar → data.id, data.areas[]',
       'GET /api/v1/admin/temario/areas → data[].id',
+      'GET /api/v1/admin/preguntas/ → data[].id, data[].prueba.id, data[].eje.id, data[].contenido.id',
+      'GET /api/v1/admin/preguntas/filtros → data.pruebas[].id, data.pruebas[].ejes[].id, data.pruebas[].ejes[].contenidos[].id, data.pruebas[].habilidades[].id',
       'POST /api/v1/app/evaluaciones/practicas → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.dificultadId',
       'POST /api/v1/app/evaluaciones/practicas/:id/siguiente → data.id, data.alternativas[].id',
       'POST /api/v1/app/evaluaciones/practicas/:id/cerrar → data.id, data.prueba.id, data.alcance.id, data.dificultad.id, data.ejes[].id, data.habilidades[].id',
