@@ -1,4 +1,5 @@
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
+import 'package:supera_paes/nucleo/ids.dart';
 
 /// Campo `data` de POST /cuentas/registro y /cuentas/ingreso. También es lo
 /// que se guarda cifrado en el teléfono.
@@ -27,7 +28,7 @@ class SesionEstudianteModelo {
     return SesionEstudianteModelo(
       tokenAcceso: json['tokenAcceso'] as String,
       tokenRenovacion: json['tokenRenovacion'] as String,
-      id: estudiante['id'] as String,
+      id: leerId(estudiante['id']),
       nombre: estudiante['nombre'] as String,
       correo: estudiante['correo'] as String,
       correoVerificado: estudiante['correoVerificado'] as bool,
@@ -36,7 +37,7 @@ class SesionEstudianteModelo {
 
   final String tokenAcceso;
   final String tokenRenovacion;
-  final String id;
+  final int id;
   final String nombre;
   final String correo;
   final bool correoVerificado;
