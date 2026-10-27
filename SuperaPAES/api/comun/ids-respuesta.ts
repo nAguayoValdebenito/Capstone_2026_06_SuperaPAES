@@ -9,6 +9,17 @@ const CAMPOS_PERFIL = [
   'data.areasCarrera[]',
 ] as const;
 
+/** Ids de la pregunta que se crea o edita en la consola (HU-12.1), con sus alternativas. */
+const CAMPOS_PREGUNTA = [
+  'data.id',
+  'data.pruebaId',
+  'data.ejeId',
+  'data.contenidoId',
+  'data.habilidadId',
+  'data.textoEstimuloId',
+  'data.alternativas[].id',
+] as const;
+
 export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
   'POST /api/v1/app/cuentas/registro': ['data.estudiante.id'],
   'POST /api/v1/app/cuentas/ingreso': ['data.estudiante.id'],
@@ -45,6 +56,9 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.pruebas[].ejes[].contenidos[].id',
     'data.pruebas[].habilidades[].id',
   ],
+  'POST /api/v1/admin/preguntas/': CAMPOS_PREGUNTA,
+  'GET /api/v1/admin/preguntas/:id': CAMPOS_PREGUNTA,
+  'PUT /api/v1/admin/preguntas/:id': CAMPOS_PREGUNTA,
   'POST /api/v1/app/evaluaciones/practicas': [
     'data.id',
     'data.pruebaId',

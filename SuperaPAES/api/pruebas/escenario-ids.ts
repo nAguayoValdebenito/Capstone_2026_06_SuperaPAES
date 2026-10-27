@@ -4,6 +4,12 @@ import type { Express } from 'express';
 import { expect, vi } from 'vitest';
 import { crearApp, crearServicios } from '../app.js';
 import {
+  cuerpoPregunta,
+  filtrosBanco,
+  paginaBanco,
+  preguntaParaEditar,
+} from './escenario-ids-preguntas.js';
+import {
   aceptarCualquierSesion,
   crearDependenciasDePrueba,
   tokenAdmin,
@@ -51,40 +57,6 @@ const opcionesPerfil = {
   areasCarrera: [
     { id: 1, codigo: 'salud', nombre: 'Salud', pruebasSugeridas: [1, 2, 5], electivoSugeridoId: 4 },
   ],
-};
-
-/** Banco de preguntas (HU-11): el repositorio entrega el id BIGINT como texto. */
-const paginaBanco = {
-  preguntas: [
-    {
-      id: '84',
-      resumen: 'Pregunta',
-      prueba: { id: 2, codigo: 'M1', nombre: 'Matemática 1' },
-      eje: { id: 3, nombre: 'Álgebra' },
-      contenido: { id: 30, nombre: 'Ecuaciones' },
-      estado: { codigo: 'borrador', nombre: 'Borrador' },
-      origen: 'manual' as const,
-      dificultadSugerida: null,
-      dificultadAsignada: null,
-      posibleAmbigua: false,
-      actualizadoEn: fecha.toISOString(),
-    },
-  ],
-  paginacion: { pagina: 1, porPagina: 20, total: 1 },
-};
-const filtrosBanco = {
-  pruebas: [
-    {
-      id: 2,
-      codigo: 'M1',
-      nombre: 'Matemática 1',
-      ejes: [{ id: 3, nombre: 'Álgebra', contenidos: [{ id: 30, nombre: 'Ecuaciones' }] }],
-      habilidades: [{ id: 6, nombre: 'Resolver problemas' }],
-    },
-  ],
-  estados: [{ codigo: 'borrador', nombre: 'Borrador' }],
-  origenes: [{ codigo: 'manual', nombre: 'Manual' }],
-  dificultades: [{ codigo: 'facil', nombre: 'Fácil' }],
 };
 
 export function escenario() {
@@ -176,6 +148,9 @@ export function escenario() {
     ...servicios.preguntas,
     listarBanco: vi.fn(() => Promise.resolve(paginaBanco)),
     filtrosDelBanco: vi.fn(() => Promise.resolve(filtrosBanco)),
+    crearPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
+    obtenerPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
+    editarPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
   };
   const app = crearApp(dependencias, {
     ...servicios,
@@ -227,6 +202,7 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
   if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };
+  if (/^(POST|PUT) .*\/preguntas\/(:id)?$/.test(ruta)) return cuerpoPregunta;
   return cuerpoPerfil(ruta);
 }
 

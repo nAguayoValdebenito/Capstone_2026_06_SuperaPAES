@@ -5,7 +5,13 @@ import { ErrorValidacion } from '../../comun/errores.js';
 import type { ProblemaDeCampo } from '../../comun/middleware/validacion.js';
 import type { Paginacion } from '../../comun/respuesta.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
+import type { AdministracionServicio } from '../administracion/index.js';
 import type { PruebaTemario, TemarioServicio } from '../temario/index.js';
+import {
+  crearPreguntasEdicionRepositorio,
+  type PreguntasEdicionRepositorio,
+} from './preguntas.edicion.repositorio.js';
+import { crearEdicionPreguntas, type EdicionPreguntas } from './preguntas.edicion.servicio.js';
 import {
   crearPreguntasRepositorio,
   type FilaBanco,
@@ -18,8 +24,12 @@ export interface DependenciasPreguntasServicio {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
   temario: TemarioServicio;
+  /** Crear y editar preguntas queda en la auditoría (RNF-08). */
+  administracion: Pick<AdministracionServicio, 'registrarAuditoria'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearPreguntasRepositorio(bd). */
   repositorio?: PreguntasRepositorio;
+  /** Solo para pruebas: reemplaza al de crearPreguntasEdicionRepositorio(bd). */
+  repositorioEdicion?: PreguntasEdicionRepositorio;
 }
 
 /** Pregunta tal como la lista el banco (C02): con su estado y sin la alternativa correcta. */
@@ -53,7 +63,7 @@ export interface FiltrosDelBanco {
   dificultades: Opcion[];
 }
 
-export interface PreguntasServicio {
+export interface PreguntasServicio extends EdicionPreguntas {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.
@@ -224,7 +234,16 @@ export function crearPreguntasServicio(
 ): PreguntasServicio {
   const repositorio = dependencias.repositorio ?? crearPreguntasRepositorio(dependencias.bd);
   const { temario } = dependencias;
+  const edicion = crearEdicionPreguntas({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    temario,
+    auditoria: dependencias.administracion,
+    repositorio:
+      dependencias.repositorioEdicion ?? crearPreguntasEdicionRepositorio(dependencias.bd),
+    listas: repositorio,
+  });
   return {
+    ...edicion,
     listarBanco: (filtros) => listarBanco(repositorio, temario, filtros),
     // Una consulta tras otra: así también sirve con una sola conexión (una transacción o un cliente).
     async filtrosDelBanco() {

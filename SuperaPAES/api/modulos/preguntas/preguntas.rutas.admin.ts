@@ -8,7 +8,11 @@ import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
 import { crearPreguntasControlador } from './preguntas.controlador.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
-import { esquemaFiltrosBanco } from './preguntas.validadores.js';
+import {
+  esquemaFiltrosBanco,
+  esquemaIdPregunta,
+  esquemaPregunta,
+} from './preguntas.validadores.js';
 
 export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   const router = Router();
@@ -22,5 +26,26 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
     controlador.listarBanco,
   );
   router.get('/filtros', exigirRol('admin'), controlador.filtrosDelBanco);
+
+  // Crear y editar preguntas (C03, HU-12.1, RF-G02, RF-G09): la consola del administrador recibe la
+  // pregunta completa, con la alternativa correcta.
+  router.post(
+    '/',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaPregunta }),
+    controlador.crearPregunta,
+  );
+  router.get(
+    '/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdPregunta }),
+    controlador.obtenerPregunta,
+  );
+  router.put(
+    '/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdPregunta, cuerpo: esquemaPregunta }),
+    controlador.editarPregunta,
+  );
   return router;
 }

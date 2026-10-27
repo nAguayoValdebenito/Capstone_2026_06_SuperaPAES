@@ -13,12 +13,21 @@ import { crearAppDePrueba, errorConFormato, tokenAdmin } from './ayudantes.js';
 
 const RUTA = '/api/v1/admin/preguntas';
 
+/** Reglas de RN-08 de una prueba de 4 alternativas y sin textos, solo con selección múltiple. */
+const SELECCION_MULTIPLE = {
+  opcionesMin: 4,
+  opcionesMax: 4,
+  requiereTexto: false,
+  tiposPregunta: [{ codigo: 'seleccion_multiple', nombre: 'Selección múltiple' }],
+};
+
 /** M1 con dos ejes; el eje 10 tiene dos contenidos. CL con un eje y un contenido. */
 const TEMARIO: PruebaTemario[] = [
   {
     id: 2,
     codigo: 'M1',
     nombre: 'Matemática 1',
+    ...SELECCION_MULTIPLE,
     ejes: [
       {
         id: 10,
@@ -39,6 +48,8 @@ const TEMARIO: PruebaTemario[] = [
     id: 1,
     codigo: 'CL',
     nombre: 'Competencia Lectora',
+    ...SELECCION_MULTIPLE,
+    requiereTexto: true,
     ejes: [{ id: 20, nombre: 'Localizar', contenidos: [{ id: 200, nombre: 'Información' }] }],
     habilidades: [{ id: 40, nombre: 'Interpretar' }],
   },
@@ -89,6 +100,7 @@ function escenario(filas: FilaBanco[] = [fila()], total = filas.length) {
     bd: { query: () => Promise.reject(new Error('sin base')) },
     unidadDeTrabajo: { enTransaccion: () => Promise.reject(new Error('sin base')) },
     temario,
+    administracion: { registrarAuditoria: () => Promise.resolve() },
     repositorio,
   });
   return { app: crearAppDePrueba({}, { preguntas, temario }), consultas };

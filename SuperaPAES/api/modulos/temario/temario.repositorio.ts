@@ -21,6 +21,11 @@ export interface FilaTemario {
   pruebaId: number;
   pruebaCodigo: string;
   pruebaNombre: string;
+  /** Cuántas alternativas lleva cada pregunta de la prueba (RN-08). */
+  opcionesMin: number;
+  opcionesMax: number;
+  /** La prueba se organiza en textos de lectura: cada pregunta va con el suyo (RN-08). */
+  requiereTexto: boolean;
   ejeId: number | null;
   ejeNombre: string | null;
   contenidoId: number | null;
@@ -31,6 +36,13 @@ export interface FilaTemario {
 export interface FilaHabilidad {
   id: number;
   pruebaId: number;
+  nombre: string;
+}
+
+/** Tipo de pregunta que admite una prueba (contenido.prueba_tipo_pregunta), por su código. */
+export interface FilaTipoPregunta {
+  pruebaId: number;
+  codigo: string;
   nombre: string;
 }
 
@@ -62,6 +74,7 @@ export interface TemarioRepositorio {
   alcancePracticaValido(datos: AlcancePractica, tx?: Ejecutor): Promise<boolean>;
   listarTemario(tx?: Ejecutor): Promise<FilaTemario[]>;
   listarHabilidades(tx?: Ejecutor): Promise<FilaHabilidad[]>;
+  listarTiposPregunta(tx?: Ejecutor): Promise<FilaTipoPregunta[]>;
   listarCursosPerfil(tx?: Ejecutor): Promise<CursoPerfil[]>;
   listarPruebasPerfil(tx?: Ejecutor): Promise<PruebaPerfil[]>;
   listarAreasCarrera(tx?: Ejecutor): Promise<AreaCarreraPerfil[]>;
@@ -113,11 +126,21 @@ function contenidoValido(tx: Ejecutor, datos: AlcancePractica): Promise<boolean>
 
 const TEMARIO = `
   SELECT p.id AS "pruebaId", p.codigo AS "pruebaCodigo", p.nombre AS "pruebaNombre",
+         p.opciones_min AS "opcionesMin", p.opciones_max AS "opcionesMax",
+         p.textos IS NOT NULL AS "requiereTexto",
          e.id AS "ejeId", e.nombre AS "ejeNombre", c.id AS "contenidoId", c.nombre AS "contenidoNombre"
     FROM contenido.prueba p
     LEFT JOIN contenido.eje_tematico e ON e.prueba_id = p.id
     LEFT JOIN contenido.contenido_tematico c ON c.eje_id = e.id
    ORDER BY p.id, e.orden, e.id, c.nombre, c.id`;
+
+/** contenido.tipo_pregunta es una lista de opciones sin módulo propio; solo los tipos activos. */
+const TIPOS_PREGUNTA = `
+  SELECT ptp.prueba_id AS "pruebaId", t.codigo, t.nombre
+    FROM contenido.prueba_tipo_pregunta ptp
+    JOIN contenido.tipo_pregunta t ON t.id = ptp.tipo_pregunta_id
+   WHERE t.activo
+   ORDER BY ptp.prueba_id, t.id`;
 
 /** De 1° a 4° medio (0 a 3 años para egresar) y egresado; 7° y 8° básico no se ofrecen (A08). */
 const CURSOS_PERFIL = `
@@ -172,6 +195,11 @@ export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
       const { rows } = await tx.query<FilaHabilidad>(
         'SELECT id, prueba_id AS "pruebaId", nombre FROM contenido.habilidad ORDER BY prueba_id, codigo, id',
       );
+      return rows;
+    },
+
+    async listarTiposPregunta(tx = bd) {
+      const { rows } = await tx.query<FilaTipoPregunta>(TIPOS_PREGUNTA);
       return rows;
     },
 

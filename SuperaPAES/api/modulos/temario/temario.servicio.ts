@@ -10,6 +10,7 @@ import {
   type CursoPerfil,
   type FilaHabilidad,
   type FilaTemario,
+  type FilaTipoPregunta,
   type PruebaPerfil,
   type TemarioRepositorio,
 } from './temario.repositorio.js';
@@ -35,47 +36,79 @@ export interface EjeTemario {
   contenidos: ContenidoTemario[];
 }
 
-/** Prueba con sus ejes (y los contenidos de cada eje) y sus habilidades, en el orden del temario. */
+/** Tipo de pregunta que admite una prueba (selección múltiple, suficiencia de datos). */
+export interface TipoPreguntaTemario {
+  codigo: string;
+  nombre: string;
+}
+
+/**
+ * Prueba con sus ejes (y los contenidos de cada eje), sus habilidades y los tipos de pregunta que
+ * admite, en el orden del temario. opcionesMin, opcionesMax y requiereTexto son las reglas de RN-08.
+ */
 export interface PruebaTemario {
   id: number;
   codigo: string;
   nombre: string;
+  opcionesMin: number;
+  opcionesMax: number;
+  requiereTexto: boolean;
   ejes: EjeTemario[];
   habilidades: ContenidoTemario[];
+  tiposPregunta: TipoPreguntaTemario[];
 }
 
-/** Arma el árbol prueba → ejes → contenidos, y las habilidades de cada prueba. */
+/** La prueba de la fila, todavía sin ejes, habilidades ni tipos de pregunta. */
+function pruebaDe(fila: FilaTemario): PruebaTemario {
+  return {
+    id: fila.pruebaId,
+    codigo: fila.pruebaCodigo,
+    nombre: fila.pruebaNombre,
+    opcionesMin: fila.opcionesMin,
+    opcionesMax: fila.opcionesMax,
+    requiereTexto: fila.requiereTexto,
+    ejes: [],
+    habilidades: [],
+    tiposPregunta: [],
+  };
+}
+
+/** Suma a la prueba el eje y el contenido de la fila, si los tiene. */
+function agregarEjeYContenido(
+  prueba: PruebaTemario,
+  ejes: Map<number, EjeTemario>,
+  fila: FilaTemario,
+): void {
+  if (fila.ejeId === null || fila.ejeNombre === null) return;
+  let eje = ejes.get(fila.ejeId);
+  if (!eje) {
+    eje = { id: fila.ejeId, nombre: fila.ejeNombre, contenidos: [] };
+    ejes.set(eje.id, eje);
+    prueba.ejes.push(eje);
+  }
+  if (fila.contenidoId !== null && fila.contenidoNombre !== null) {
+    eje.contenidos.push({ id: fila.contenidoId, nombre: fila.contenidoNombre });
+  }
+}
+
+/** Arma el árbol prueba → ejes → contenidos, y las habilidades y los tipos de pregunta de cada prueba. */
 function armarTemario(
   filas: readonly FilaTemario[],
   habilidades: readonly FilaHabilidad[],
+  tiposPregunta: readonly FilaTipoPregunta[],
 ): PruebaTemario[] {
   const pruebas = new Map<number, PruebaTemario>();
   const ejes = new Map<number, EjeTemario>();
   for (const fila of filas) {
-    let prueba = pruebas.get(fila.pruebaId);
-    if (!prueba) {
-      prueba = {
-        id: fila.pruebaId,
-        codigo: fila.pruebaCodigo,
-        nombre: fila.pruebaNombre,
-        ejes: [],
-        habilidades: [],
-      };
-      pruebas.set(prueba.id, prueba);
-    }
-    if (fila.ejeId === null || fila.ejeNombre === null) continue;
-    let eje = ejes.get(fila.ejeId);
-    if (!eje) {
-      eje = { id: fila.ejeId, nombre: fila.ejeNombre, contenidos: [] };
-      ejes.set(eje.id, eje);
-      prueba.ejes.push(eje);
-    }
-    if (fila.contenidoId !== null && fila.contenidoNombre !== null) {
-      eje.contenidos.push({ id: fila.contenidoId, nombre: fila.contenidoNombre });
-    }
+    const prueba = pruebas.get(fila.pruebaId) ?? pruebaDe(fila);
+    pruebas.set(prueba.id, prueba);
+    agregarEjeYContenido(prueba, ejes, fila);
   }
   for (const { id, pruebaId, nombre } of habilidades) {
     pruebas.get(pruebaId)?.habilidades.push({ id, nombre });
+  }
+  for (const { pruebaId, codigo, nombre } of tiposPregunta) {
+    pruebas.get(pruebaId)?.tiposPregunta.push({ codigo, nombre });
   }
   return [...pruebas.values()];
 }
@@ -95,6 +128,7 @@ export interface TemarioServicio {
   /**
    * Pruebas con sus ejes, contenidos y habilidades, activos o no: el banco de preguntas (HU-11) filtra
    * por ellos y muestra sus nombres, y una pregunta puede seguir en un contenido que ya no está activo.
+   * Con las reglas de RN-08 y los tipos de pregunta de cada prueba, para crear y editar (HU-12).
    */
   listarTemario(): Promise<PruebaTemario[]>;
   /**
@@ -112,7 +146,8 @@ export function crearTemarioServicio(dependencias: DependenciasTemarioServicio):
     // Una consulta tras otra: así también sirve con una sola conexión.
     listarTemario: async () => {
       const filas = await repositorio.listarTemario();
-      return armarTemario(filas, await repositorio.listarHabilidades());
+      const habilidades = await repositorio.listarHabilidades();
+      return armarTemario(filas, habilidades, await repositorio.listarTiposPregunta());
     },
     opcionesPerfil: async () => ({
       cursos: await repositorio.listarCursosPerfil(),

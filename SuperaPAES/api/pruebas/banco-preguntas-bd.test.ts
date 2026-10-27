@@ -112,6 +112,8 @@ describe.skipIf(!urlBase)('banco de preguntas con PostgreSQL (HU-11, CP-08)', ()
         bd,
         unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(bd, trabajo) },
       }),
+      // El banco solo lee: no registra auditoría.
+      administracion: { registrarAuditoria: () => Promise.resolve() },
     });
   }, MINUTO);
 

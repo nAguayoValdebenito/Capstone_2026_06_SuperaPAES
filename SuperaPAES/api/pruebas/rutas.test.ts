@@ -35,6 +35,7 @@ describe('áreas de especialidad del temario', () => {
         alcancePracticaValido: () => Promise.resolve(true),
         listarTemario: () => Promise.resolve([]),
         listarHabilidades: () => Promise.resolve([]),
+        listarTiposPregunta: () => Promise.resolve([]),
         listarCursosPerfil: () => Promise.resolve([]),
         listarPruebasPerfil: () => Promise.resolve([]),
         listarAreasCarrera: () => Promise.resolve([]),

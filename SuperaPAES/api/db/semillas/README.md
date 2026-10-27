@@ -25,6 +25,11 @@ Archivos (modelo 12.0; las semillas no cambiaron respecto del 11.0):
   del 19 de octubre de 2026. Falta «dirección de la consola» (la dirección pública de la consola en
   Vercel), que se completa antes de publicarla, junto con la revisión de RN-30.
   No reemplaza una versión ya cargada: una base local con el texto anterior se recrea.
+- `004_acciones_auditoria_usuarios.sql`: acciones de auditoría para editar y activar usuarios
+  internos (HU-04, RF-C02, RNF-08).
+- `005_tipos_pregunta_por_prueba.sql`: tipos de pregunta que admite cada prueba
+  (`contenido.prueba_tipo_pregunta`): selección múltiple en todas y suficiencia de datos solo en M2.
+  Sin estas filas no se guarda ninguna pregunta (HU-12). Necesita el temario.
 
 La semilla `003_documentos_legales.sql` y la migración `003_acciones_usuario_interno.sql` comparten
 el número, pero están en carpetas distintas y cada ejecutor lleva su propia cuenta: no chocan.

@@ -59,8 +59,8 @@ export interface PreguntasRepositorio {
 /** Largo del resumen del enunciado que se muestra en la tabla del banco. */
 const LARGO_RESUMEN = 160;
 
-/** Mismo criterio que la vista contenido.v_calidad_criterio del modelo. */
-const ORIGEN = `CASE WHEN p.lote_id IS NOT NULL THEN 'ia'
+/** Origen de la pregunta `p`: mismo criterio que la vista contenido.v_calidad_criterio del modelo. */
+export const ORIGEN = `CASE WHEN p.lote_id IS NOT NULL THEN 'ia'
                      WHEN p.importacion_id IS NOT NULL THEN 'importacion'
                      ELSE 'manual' END`;
 
