@@ -27,9 +27,10 @@ void main() {
 
   testWidgets('sin sesión abre en Iniciar sesión, con el logo y sin barra '
       'inferior', (tester) async {
-    await iniciarApp(tester, crearContenedor());
+    final contenedor = crearContenedor();
+    await iniciarApp(tester, contenedor);
 
-    expect(find.widgetWithText(AppBar, 'Iniciar sesión'), findsOneWidget);
+    expect(rutaActual(contenedor), Rutas.ingreso);
     expect(find.image(const AssetImage(PantallaIngreso.logo)), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
   });
@@ -43,9 +44,9 @@ void main() {
       await ir(tester, contenedor, seccion.ruta);
 
       expect(
-        find.widgetWithText(AppBar, seccion.titulo),
-        findsOneWidget,
-        reason: 'La ruta ${seccion.ruta} debe mostrar ${seccion.titulo}',
+        rutaActual(contenedor),
+        seccion.ruta,
+        reason: 'La ruta ${seccion.ruta} debe abrir ${seccion.titulo}',
       );
       expect(
         find.byType(NavigationBar),

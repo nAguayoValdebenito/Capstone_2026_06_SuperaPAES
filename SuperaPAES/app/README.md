@@ -50,5 +50,9 @@ Tema: mismos colores y tipografías que la consola (Figtree para la interfaz y S
 fórmulas, empaquetadas en `assets/fuentes/` con licencia OFL). Diseño de referencia: 390 × 844. El
 logo oficial (Figura 63 del DAS) está en `assets/imagenes/` y se muestra al iniciar sesión.
 
+**Antes de crear o cambiar una pantalla, lee [`DISENO.md`](DISENO.md)**: el sistema de diseño del
+prototipo (colores, textos, medidas y componentes de `presentacion/comunes/componentes.dart`), las
+reglas para usarlo y el enlace al boceto de Figma de cada pantalla.
+
 La compra de suscripciones (`in_app_purchase` y el archivo de StoreKit Testing) se agrega en el
 sprint de suscripciones.

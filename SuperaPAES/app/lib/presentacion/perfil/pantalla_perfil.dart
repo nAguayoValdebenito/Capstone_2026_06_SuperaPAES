@@ -83,10 +83,10 @@ class _BotonCerrarSesionState extends ConsumerState<_BotonCerrarSesion> {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    // Botón Contorno a lo ancho, como en el boceto A37.
+    return OutlinedButton(
       onPressed: _cerrando ? null : _cerrar,
-      icon: const Icon(Icons.logout),
-      label: const Text('Cerrar sesión'),
+      child: const Text('Cerrar sesión'),
     );
   }
 }

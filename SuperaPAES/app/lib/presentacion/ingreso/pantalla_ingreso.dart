@@ -4,13 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
-import 'package:supera_paes/presentacion/comunes/pantalla_base.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
 
-/// Pantalla Iniciar sesión (A03; HU-02, CU-03), con el logo (DAS 7.5). Al
-/// entrar, la sesión queda guardada y la app pasa a Inicio. «¿Olvidaste tu
-/// contraseña?» lleva a Recuperar contraseña (A04, HU-06.2).
+/// Pantalla Iniciar sesión (A03; HU-02, CU-03), según su boceto en Figma,
+/// con el logo (DAS 7.5). Al entrar, la sesión queda guardada y la app pasa
+/// a Inicio. «¿Olvidaste tu contraseña?» lleva a Recuperar contraseña (A04,
+/// HU-06.2).
 class PantallaIngreso extends ConsumerStatefulWidget {
   const PantallaIngreso({super.key});
 
@@ -26,7 +28,6 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
   final _correo = TextEditingController();
   final _contrasena = TextEditingController();
 
-  bool _contrasenaVisible = false;
   bool _enviando = false;
 
   /// Errores de la API por campo (`VALIDACION`).
@@ -84,37 +85,40 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
 
   @override
   Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    return PantallaBase(
+    return PantallaFormulario(
       hijos: [
+        const SizedBox(height: 24),
         Center(
           child: Image.asset(
             PantallaIngreso.logo,
             // Proporción del logo (991 × 823): reserva su lugar antes de
             // cargar.
-            width: 180,
-            height: 150,
+            width: 144,
+            height: 120,
             semanticLabel: Textos.nombreApp,
           ),
         ),
-        const SizedBox(height: 24),
-        Text(
-          'Ingresa con tu correo y contraseña para seguir practicando.',
-          style: tema.textTheme.bodyLarge,
+        // En el boceto, el logo es el título; la bajada va centrada.
+        Semantics(
+          header: true,
+          label: 'Iniciar sesión',
+          child: Text(
+            'Ingresa para seguir practicando.',
+            textAlign: TextAlign.center,
+            style: TemaSuperaPaes.cuerpo.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ),
         ),
-        const SizedBox(height: 16),
         Form(
           key: _formulario,
           child: AutofillGroup(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextFormField(
+                CampoTexto(
+                  etiqueta: 'Correo',
                   controller: _correo,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo',
-                    border: OutlineInputBorder(),
-                  ),
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
@@ -125,30 +129,10 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
                   validator: ValidacionesRegistro.correo,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                CampoContrasena(
+                  etiqueta: 'Contraseña',
                   controller: _contrasena,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    border: const OutlineInputBorder(),
-                    errorMaxLines: 2,
-                    suffixIcon: IconButton(
-                      tooltip: _contrasenaVisible
-                          ? 'Ocultar contraseña'
-                          : 'Mostrar contraseña',
-                      icon: Icon(
-                        _contrasenaVisible
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                      ),
-                      onPressed: () => setState(
-                        () => _contrasenaVisible = !_contrasenaVisible,
-                      ),
-                    ),
-                  ),
-                  obscureText: !_contrasenaVisible,
                   textInputAction: TextInputAction.done,
-                  autocorrect: false,
-                  enableSuggestions: false,
                   autofillHints: const [AutofillHints.password],
                   enabled: !_enviando,
                   forceErrorText: _erroresServidor['contrasena'],
@@ -167,32 +151,23 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
                   ),
                 ),
                 if (_errorGeneral case final mensaje?) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    mensaje,
-                    style: TextStyle(color: tema.colorScheme.error),
-                  ),
+                  Aviso(tono: TonoAviso.error, texto: mensaje),
+                  const SizedBox(height: 16),
                 ],
-                const SizedBox(height: 24),
                 FilledButton(
                   onPressed: _enviando ? null : _ingresar,
                   child: _enviando
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Ingresar'),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _enviando
-                      ? null
-                      : () => context.push(Rutas.crearCuenta),
-                  child: const Text('¿No tienes cuenta? Crea una'),
+                      ? const CargandoEnBoton()
+                      : const Text('Entrar'),
                 ),
               ],
             ),
           ),
+        ),
+        PieConEnlace(
+          pregunta: '¿No tienes cuenta?',
+          enlace: 'Crea una',
+          onPressed: _enviando ? null : () => context.push(Rutas.crearCuenta),
         ),
       ],
     );

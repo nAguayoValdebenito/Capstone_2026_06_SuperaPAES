@@ -273,9 +273,6 @@ void main() {
       await iniciarApp(tester, contenedor, ruta: Rutas.crearCuenta);
     }
 
-    Finder campo(String etiqueta) =>
-        find.widgetWithText(TextFormField, etiqueta);
-
     Future<void> llenar(
       WidgetTester tester, {
       String contrasena = 'una clave larga',
@@ -288,7 +285,7 @@ void main() {
     }
 
     Future<void> aceptar(WidgetTester tester) =>
-        tocar(tester, find.byType(CheckboxListTile));
+        tocar(tester, find.byType(Checkbox));
 
     Future<void> crearCuenta(WidgetTester tester) =>
         tocar(tester, find.widgetWithText(FilledButton, 'Crear cuenta'));
@@ -301,8 +298,8 @@ void main() {
       expect(find.text(ValidacionesRegistro.requisitosContrasena), findsOne);
       expect(
         find.text(
-          'Acepto los Términos y condiciones (versión 1.0) y la Política de '
-          'privacidad (versión 1.0), y declaro tener 14 años o más.',
+          'Acepto los Términos y condiciones y la Política de privacidad, y '
+          'declaro que tengo 14 años o más.',
         ),
         findsOne,
       );
@@ -357,7 +354,7 @@ void main() {
       expect(contenedor.read(sesionProvider).value?.tokenAcceso, 'acceso');
       // La sesión del registro queda guardada en el teléfono.
       expect(almacen.guardada?.tokenRenovacion, 'renovacion');
-      expect(find.widgetWithText(AppBar, 'Verificar correo'), findsOne);
+      expect(rutaActual(contenedor), Rutas.verificarCorreo);
     });
 
     testWidgets('sin código de invitación no lo envía', (tester) async {
@@ -396,7 +393,7 @@ void main() {
         ),
         findsOne,
       );
-      expect(find.widgetWithText(AppBar, 'Crear cuenta'), findsOne);
+      expect(rutaActual(contenedor), Rutas.crearCuenta);
       expect(contenedor.read(sesionProvider).value, isNull);
 
       // Al corregir la contraseña, el error de la API desaparece.
@@ -426,9 +423,7 @@ void main() {
       await aceptar(tester);
       await crearCuenta(tester);
 
-      final correo = tester.widget<TextField>(
-        find.descendant(of: campo('Correo'), matching: find.byType(TextField)),
-      );
+      final correo = tester.widget<TextField>(campo('Correo'));
       expect(correo.decoration?.errorText, mensaje);
     });
 
@@ -452,10 +447,16 @@ void main() {
       tester,
     ) async {
       await abrir(tester);
-      await tocar(tester, find.widgetWithText(TextButton, 'Leer los términos'));
+      await tester.ensureVisible(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+      await tester.tapOnText(
+        find.textRange.ofSubstring('Términos y condiciones'),
+      );
+      await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(AppBar, 'Términos y condiciones'), findsOne);
-      expect(find.text('Versión 1.0. Vigente desde 19/10/2026.'), findsOne);
+      expect(rutaActual(contenedor), Rutas.terminos);
+      expect(find.text('Términos y privacidad'), findsOne);
+      expect(find.text('Versión 1.0 · vigente desde 19/10/2026'), findsOne);
       expect(find.text('1. Quiénes somos'), findsOne);
     });
   });

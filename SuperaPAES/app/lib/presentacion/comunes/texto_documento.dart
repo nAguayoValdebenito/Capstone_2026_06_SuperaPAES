@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:supera_paes/nucleo/tema.dart';
+
 /// Muestra el Markdown sencillo de los documentos legales: títulos (`#` y
 /// `##`), listas (`- `) y párrafos separados por una línea vacía. No
 /// interpreta nada más, porque los documentos no usan nada más.
@@ -10,7 +12,9 @@ class TextoDocumento extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
+    final cuerpo = TemaSuperaPaes.pequeno.copyWith(
+      color: TemaSuperaPaes.textoSecundario,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -18,28 +22,26 @@ class TextoDocumento extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(
               top: bloque.tipo == TipoBloque.titulo ? 16 : 0,
-              bottom: bloque.tipo == TipoBloque.elementoLista ? 4 : 12,
+              bottom: switch (bloque.tipo) {
+                TipoBloque.elementoLista => 4,
+                TipoBloque.subtitulo => 4,
+                _ => 12,
+              },
             ),
             child: switch (bloque.tipo) {
-              TipoBloque.titulo => Text(
-                bloque.texto,
-                style: textos.headlineSmall,
-              ),
+              TipoBloque.titulo => Text(bloque.texto, style: TemaSuperaPaes.h2),
               TipoBloque.subtitulo => Text(
                 bloque.texto,
-                style: textos.titleMedium,
+                style: TemaSuperaPaes.cuerpoFuerte,
               ),
               TipoBloque.elementoLista => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('•  ', style: textos.bodyMedium),
-                  Expanded(child: Text(bloque.texto, style: textos.bodyMedium)),
+                  Text('•  ', style: cuerpo),
+                  Expanded(child: Text(bloque.texto, style: cuerpo)),
                 ],
               ),
-              TipoBloque.parrafo => Text(
-                bloque.texto,
-                style: textos.bodyMedium,
-              ),
+              TipoBloque.parrafo => Text(bloque.texto, style: cuerpo),
             },
           ),
       ],

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/dominio/entidades/estado_salud.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/presentacion/aplicacion.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
@@ -67,6 +68,18 @@ Future<void> ir(
   contenedor.read(enrutadorProvider).go(ruta);
   await tester.pumpAndSettle();
 }
+
+/// Ruta de la pantalla visible. Las pantallas de los bocetos no tienen barra
+/// superior, así que se reconocen por su ruta.
+String rutaActual(ProviderContainer contenedor) =>
+    contenedor.read(enrutadorProvider).state.matchedLocation;
+
+/// El campo de texto que tiene esa etiqueta arriba (CampoTexto,
+/// CampoContrasena o CampoCodigo).
+Finder campo(String etiqueta) => find.descendant(
+  of: find.widgetWithText(CampoConEtiqueta, etiqueta),
+  matching: find.byType(TextField),
+);
 
 /// Desplaza la lista de la pantalla hasta el elemento y lo toca. La lista
 /// construye sus hijos a medida que se desplaza, así que el elemento puede no

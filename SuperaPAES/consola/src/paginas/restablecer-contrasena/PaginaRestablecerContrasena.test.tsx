@@ -19,12 +19,13 @@ describe('página Nueva contraseña (A05)', () => {
   it('es pública: con el token del enlace pide la contraseña dos veces, sin menú', () => {
     const html = renderizar('/restablecer-contrasena?token=abc123');
 
-    expect(html).toContain('Crea tu contraseña nueva');
-    expect(html).toContain('Contraseña nueva');
-    expect(html).toContain('Repite la contraseña nueva');
+    expect(html).toContain('Crea tu nueva contraseña');
+    expect(html).toContain('Nueva contraseña');
+    expect(html).toContain('Repite la contraseña');
     expect(html).toContain('De 8 a 72 caracteres');
     expect(html).toContain('contraseña común');
-    expect(html).toContain('logo_supera_paes.png');
+    expect(html).toContain('aria-label="Mostrar contraseña"');
+    expect(html).not.toContain('<nav');
     expect(html).not.toContain('Iniciar sesión</h1>');
   });
 
@@ -33,7 +34,7 @@ describe('página Nueva contraseña (A05)', () => {
 
     expect(html).toContain('Enlace incompleto');
     expect(html).toContain('«¿Olvidaste tu contraseña?»');
-    expect(html).not.toContain('Crea tu contraseña nueva');
+    expect(html).not.toContain('Crea tu nueva contraseña');
   });
 
   it('un error de la contraseña va bajo el campo', () => {
@@ -49,7 +50,7 @@ describe('página Nueva contraseña (A05)', () => {
       />,
     );
 
-    expect(html).toContain('class="campo__error"');
+    expect(html).toContain('class="restablecer__error"');
     expect(html).toContain(MENSAJES_RESTABLECER.noCoinciden);
     expect(html).toContain('aria-invalid="true"');
   });

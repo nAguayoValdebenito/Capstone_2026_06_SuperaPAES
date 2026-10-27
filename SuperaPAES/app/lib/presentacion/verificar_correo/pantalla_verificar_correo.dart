@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
-import 'package:supera_paes/presentacion/comunes/pantalla_base.dart';
+import 'package:supera_paes/presentacion/verificar_correo/campo_codigo.dart';
 
-/// Pantalla Verificar correo (A06, A06b y A06c; HU-05, CU-02, RN-32): pide
-/// el código de 6 dígitos del correo, muestra los intentos que quedan y,
-/// cuando el código ya no sirve, pide reenviar el correo. Se puede verificar
-/// más tarde: sin verificar, el cupo es de 10 preguntas diarias (RN-01).
+/// Pantalla Verificar correo (A06, A06b y A06c; HU-05, CU-02, RN-32), según
+/// sus bocetos en Figma: pide el código de 6 dígitos del correo, muestra los
+/// intentos que quedan y, cuando el código ya no sirve, pide un correo nuevo.
+/// «‹ Inicio» deja verificar más tarde: sin verificar, el cupo es de 10
+/// preguntas diarias (RN-01).
 class PantallaVerificarCorreo extends ConsumerStatefulWidget {
   const PantallaVerificarCorreo({super.key});
 
@@ -31,17 +33,16 @@ class PantallaVerificarCorreo extends ConsumerStatefulWidget {
 
 class _PantallaVerificarCorreoState
     extends ConsumerState<PantallaVerificarCorreo> {
-  final _formulario = GlobalKey<FormState>();
   final _codigo = TextEditingController();
 
   bool _verificando = false;
   bool _reenviando = false;
 
   /// El código del correo actual ya no sirve (agotado o vencido): se
-  /// desactiva el campo hasta reenviar el correo.
+  /// desactivan las casillas hasta pedir un correo nuevo (A06c).
   bool _sinCodigoVigente = false;
 
-  /// Código incorrecto (A06b), con los intentos que quedan.
+  /// Código incompleto o incorrecto (A06b), bajo las casillas.
   String? _errorCodigo;
 
   /// Error que no es del código: agotado, vencido, sin conexión, límite.
@@ -63,7 +64,10 @@ class _PantallaVerificarCorreoState
       _error = null;
       _aviso = null;
     });
-    if (!(_formulario.currentState?.validate() ?? false)) return;
+    if (_codigo.text.length != PantallaVerificarCorreo.digitosCodigo) {
+      setState(() => _errorCodigo = 'El código tiene 6 dígitos.');
+      return;
+    }
 
     setState(() => _verificando = true);
     try {
@@ -125,105 +129,139 @@ class _PantallaVerificarCorreoState
   @override
   Widget build(BuildContext context) {
     final estudiante = ref.watch(sesionProvider).value?.estudiante;
-    return PantallaBase(
+    final verificado = estudiante?.correoVerificado ?? false;
+    return PantallaFormulario(
       hijos: [
-        if (estudiante?.correoVerificado ?? false)
+        const EnlaceVolver(texto: 'Inicio', destino: Rutas.inicio),
+        if (verificado)
           const _CorreoVerificado()
         else
-          _formularioCodigo(estudiante?.correo),
+          ..._formularioCodigo(estudiante?.correo),
       ],
     );
   }
 
-  Widget _formularioCodigo(String? correo) {
-    final tema = Theme.of(context);
-    final textos = tema.textTheme;
-    return Form(
-      key: _formulario,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Verifica tu correo y tu cupo diario sube de 10 a 20 preguntas.',
-            style: textos.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            correo == null
-                ? 'Te enviamos un correo con un enlace y un código de 6 '
-                      'dígitos.'
-                : 'Te enviamos un correo a $correo con un enlace y un código '
-                      'de 6 dígitos.',
-            style: textos.bodyLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Abre el enlace o escribe aquí el código. Los dos sirven una sola '
-            'vez y vencen en 24 horas, y tienes 5 intentos para escribir el '
-            'código.',
-            style: textos.bodyMedium,
-          ),
-          const SizedBox(height: 24),
-          TextFormField(
-            controller: _codigo,
-            decoration: const InputDecoration(
-              labelText: 'Código de 6 dígitos',
-              border: OutlineInputBorder(),
-              errorMaxLines: 2,
-              counterText: '',
+  List<Widget> _formularioCodigo(String? correo) {
+    final estiloAyuda = TemaSuperaPaes.pequeno.copyWith(
+      color: TemaSuperaPaes.textoSecundario,
+    );
+    return [
+      Encabezado(
+        titulo: 'Verifica tu correo',
+        bajadaRica: TextSpan(
+          children: [
+            const TextSpan(
+              text: 'Enviamos un enlace y un código de 6 dígitos a ',
             ),
-            style: textos.headlineSmall?.copyWith(letterSpacing: 8),
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.oneTimeCode],
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            maxLength: PantallaVerificarCorreo.digitosCodigo,
-            enabled: !_ocupado && !_sinCodigoVigente,
-            forceErrorText: _errorCodigo,
-            onChanged: (_) {
-              if (_errorCodigo != null) setState(() => _errorCodigo = null);
-            },
-            onFieldSubmitted: (_) => _ocupado ? null : _verificar(),
-            validator: (valor) =>
-                (valor ?? '').length == PantallaVerificarCorreo.digitosCodigo
-                ? null
-                : 'El código tiene 6 dígitos.',
-          ),
-          if (_error case final mensaje?) ...[
-            const SizedBox(height: 12),
-            Text(mensaje, style: TextStyle(color: tema.colorScheme.error)),
+            TextSpan(
+              text: correo ?? 'tu correo',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const TextSpan(
+              text: '. Abre el enlace desde tu teléfono o escribe el código.',
+            ),
           ],
-          if (_aviso case final mensaje?) ...[
-            const SizedBox(height: 12),
-            Text(mensaje, style: textos.bodyMedium),
-          ],
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _ocupado || _sinCodigoVigente ? null : _verificar,
-            child: _verificando
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Verificar'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _ocupado ? null : _reenviar,
-            child: _reenviando
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Reenviar el correo'),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: _ocupado ? null : () => context.go(Rutas.inicio),
-            child: const Text('Verificar más tarde'),
-          ),
-        ],
+        ),
       ),
+      if (_sinCodigoVigente && _error != null)
+        Aviso(tono: TonoAviso.error, texto: _error!)
+      else
+        const _CupoAntesYDespues(),
+      CampoCodigo(
+        controller: _codigo,
+        enabled: !_ocupado && !_sinCodigoVigente,
+        error: _errorCodigo,
+        onChanged: (_) {
+          if (_errorCodigo != null) setState(() => _errorCodigo = null);
+        },
+        onSubmitted: (_) => _ocupado ? null : _verificar(),
+      ),
+      if (!_sinCodigoVigente)
+        if (_error case final mensaje?)
+          Aviso(tono: TonoAviso.error, texto: mensaje),
+      if (_aviso case final mensaje?)
+        Aviso(tono: TonoAviso.exito, texto: mensaje),
+      if (_sinCodigoVigente) ...[
+        FilledButton(
+          onPressed: _ocupado ? null : _reenviar,
+          child: _reenviando
+              ? const CargandoEnBoton()
+              : const Text('Enviar un correo nuevo'),
+        ),
+        Text(
+          'El correo nuevo trae otro enlace y otro código, que también '
+          'vencen en 24 horas.',
+          style: estiloAyuda,
+        ),
+      ] else ...[
+        FilledButton(
+          onPressed: _ocupado ? null : _verificar,
+          child: _verificando
+              ? const CargandoEnBoton()
+              : const Text('Verificar'),
+        ),
+        Text(
+          'El enlace y el código sirven una sola vez y vencen en 24 horas. '
+          'Tienes 5 intentos para escribir el código. Si te invitaron, quien '
+          'te invitó gana 5 preguntas extra cuando verificas.',
+          style: estiloAyuda,
+        ),
+        BotonTexto(
+          onPressed: _ocupado ? null : _reenviar,
+          child: _reenviando
+              ? const CargandoEnBoton()
+              : const Text('Reenviar correo'),
+        ),
+      ],
+    ];
+  }
+}
+
+/// «Hoy 10 preguntas» y «Al verificar 20 preguntas» (RN-01).
+class _CupoAntesYDespues extends StatelessWidget {
+  const _CupoAntesYDespues();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget recuadro(String titulo, String valor, Color fondo, Color texto) {
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: fondo,
+            borderRadius: BorderRadius.circular(TemaSuperaPaes.radioTarjeta),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                titulo,
+                style: TemaSuperaPaes.pequeno.copyWith(color: texto),
+              ),
+              const SizedBox(height: 2),
+              Text(valor, style: TemaSuperaPaes.h2.copyWith(color: texto)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        recuadro(
+          'Hoy',
+          '10 preguntas',
+          TemaSuperaPaes.neutroSuave,
+          TemaSuperaPaes.texto,
+        ),
+        const SizedBox(width: 10),
+        recuadro(
+          'Al verificar',
+          '20 preguntas',
+          TemaSuperaPaes.exitoSuave,
+          TemaSuperaPaes.exitoTexto,
+        ),
+      ],
     );
   }
 }
@@ -235,28 +273,19 @@ class _CorreoVerificado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textos = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(
-          Icons.mark_email_read_outlined,
-          size: 64,
-          color: Theme.of(context).colorScheme.primary,
+        const Encabezado(
+          titulo: '¡Listo! Tu correo está verificado.',
+          bajada: 'Desde ahora puedes responder 20 preguntas al día.',
         ),
         const SizedBox(height: 16),
-        Text(
-          '¡Listo! Tu correo está verificado.',
-          style: textos.titleLarge,
-          textAlign: TextAlign.center,
+        const Aviso(
+          tono: TonoAviso.exito,
+          texto: 'Tu cupo diario subió de 10 a 20 preguntas.',
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Desde ahora puedes responder 20 preguntas al día.',
-          style: textos.bodyLarge,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         FilledButton(
           onPressed: () => context.go(Rutas.inicio),
           child: const Text('Ir a Inicio'),

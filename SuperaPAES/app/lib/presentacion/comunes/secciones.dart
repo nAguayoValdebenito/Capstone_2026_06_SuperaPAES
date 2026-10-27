@@ -89,7 +89,7 @@ const List<Seccion> secciones = [
   Seccion(
     'Elegir práctica',
     Rutas.practicar,
-    Icons.edit_note,
+    Icons.edit_outlined,
     PantallaElegirPractica.new,
     esPestana: true,
     etiquetaPestana: 'Practicar',
@@ -104,14 +104,14 @@ const List<Seccion> secciones = [
   Seccion(
     'Progreso',
     Rutas.progreso,
-    Icons.insights_outlined,
+    Icons.bar_chart_outlined,
     PantallaProgreso.new,
     esPestana: true,
   ),
   Seccion(
     'Perfil',
     Rutas.perfil,
-    Icons.account_circle_outlined,
+    Icons.person_outline,
     PantallaPerfil.new,
     esPestana: true,
   ),

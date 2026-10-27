@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,14 +8,15 @@ import 'package:supera_paes/dominio/entidades/datos_registro.dart';
 import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
-import 'package:supera_paes/presentacion/comunes/pantalla_base.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
 
 /// Pantalla Crear cuenta (A01 y A01b; HU-01, CU-01): nombre, correo,
 /// contraseña con sus requisitos (RN-31), código de invitación opcional
 /// (RN-33) y aceptación de los términos y la política vigentes con la
-/// declaración de tener 14 años o más (RN-18).
+/// declaración de tener 14 años o más (RN-18). Sigue su boceto en Figma.
 class PantallaCrearCuenta extends ConsumerStatefulWidget {
   const PantallaCrearCuenta({super.key});
 
@@ -42,7 +44,6 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
   final _codigo = TextEditingController();
 
   bool _acepta = false;
-  bool _contrasenaVisible = false;
   bool _enviando = false;
 
   /// Mostrar el aviso de la casilla solo después de intentar crear la cuenta.
@@ -125,13 +126,13 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
   @override
   Widget build(BuildContext context) {
     final documentos = ref.watch(documentosVigentesProvider);
-    return PantallaBase(
+    return PantallaFormulario(
+      separacion: 14,
       hijos: [
-        Text(
-          'Crea tu cuenta para empezar a practicar.',
-          style: Theme.of(context).textTheme.bodyLarge,
+        const Encabezado(
+          titulo: 'Crea tu cuenta',
+          bajada: 'Practica la PAES con preguntas revisadas por docentes.',
         ),
-        const SizedBox(height: 16),
         documentos.when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 32),
@@ -146,12 +147,20 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
           ),
           data: _formularioRegistro,
         ),
+        PieConEnlace(
+          pregunta: '¿Ya tienes cuenta?',
+          enlace: 'Inicia sesión',
+          onPressed: _enviando
+              ? null
+              : () => context.canPop()
+                    ? context.pop()
+                    : context.go(Rutas.ingreso),
+        ),
       ],
     );
   }
 
   Widget _formularioRegistro(List<DocumentoLegal> documentos) {
-    final tema = Theme.of(context);
     final errorAceptacion =
         _erroresServidor[_Campo.documentosAceptados] ??
         _erroresServidor[_Campo.declaraEdad] ??
@@ -166,12 +175,9 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextFormField(
+            CampoTexto(
+              etiqueta: 'Nombre',
               controller: _nombre,
-              decoration: const InputDecoration(
-                labelText: 'Nombre',
-                border: OutlineInputBorder(),
-              ),
               textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.name],
@@ -180,13 +186,10 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
               onChanged: (_) => _limpiarErrorServidor(_Campo.nombre),
               validator: ValidacionesRegistro.nombre,
             ),
-            const SizedBox(height: 16),
-            TextFormField(
+            const SizedBox(height: 14),
+            CampoTexto(
+              etiqueta: 'Correo',
               controller: _correo,
-              decoration: const InputDecoration(
-                labelText: 'Correo',
-                border: OutlineInputBorder(),
-              ),
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autocorrect: false,
@@ -196,32 +199,12 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
               onChanged: (_) => _limpiarErrorServidor(_Campo.correo),
               validator: ValidacionesRegistro.correo,
             ),
-            const SizedBox(height: 16),
-            TextFormField(
+            const SizedBox(height: 14),
+            CampoContrasena(
+              etiqueta: 'Contraseña',
               controller: _contrasena,
-              decoration: InputDecoration(
-                labelText: 'Contraseña',
-                border: const OutlineInputBorder(),
-                helperText: ValidacionesRegistro.requisitosContrasena,
-                helperMaxLines: 3,
-                errorMaxLines: 3,
-                suffixIcon: IconButton(
-                  tooltip: _contrasenaVisible
-                      ? 'Ocultar contraseña'
-                      : 'Mostrar contraseña',
-                  icon: Icon(
-                    _contrasenaVisible
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                  ),
-                  onPressed: () =>
-                      setState(() => _contrasenaVisible = !_contrasenaVisible),
-                ),
-              ),
-              obscureText: !_contrasenaVisible,
+              ayuda: ValidacionesRegistro.requisitosContrasena,
               textInputAction: TextInputAction.next,
-              autocorrect: false,
-              enableSuggestions: false,
               autofillHints: const [AutofillHints.newPassword],
               enabled: !_enviando,
               forceErrorText: _erroresServidor[_Campo.contrasena],
@@ -229,15 +212,12 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
               validator: (valor) =>
                   ValidacionesRegistro.contrasena(valor, _correo.text),
             ),
-            const SizedBox(height: 16),
-            TextFormField(
+            const SizedBox(height: 14),
+            CampoTexto(
+              etiqueta: 'Código de invitación (opcional)',
               controller: _codigo,
-              decoration: const InputDecoration(
-                labelText: 'Código de invitación (opcional)',
-                border: OutlineInputBorder(),
-                helperText: 'Si alguien te invitó, escribe su código.',
-                errorMaxLines: 2,
-              ),
+              pista: 'Si alguien te invitó, escríbelo aquí',
+              ayuda: 'Son 6 letras y números, por ejemplo K7P2QX.',
               textCapitalization: TextCapitalization.characters,
               textInputAction: TextInputAction.done,
               autocorrect: false,
@@ -251,52 +231,36 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
               onChanged: (_) => _limpiarErrorServidor(_Campo.codigoInvitacion),
               validator: ValidacionesRegistro.codigoInvitacion,
             ),
-            const SizedBox(height: 16),
-            CheckboxListTile(
-              value: _acepta,
+            const SizedBox(height: 14),
+            _CasillaAceptacion(
+              aceptada: _acepta,
+              documentos: documentos,
+              error: errorAceptacion,
               onChanged: _enviando
                   ? null
                   : (valor) => setState(() {
-                      _acepta = valor ?? false;
+                      _acepta = valor;
                       _erroresServidor = Map.of(_erroresServidor)
                         ..remove(_Campo.documentosAceptados)
                         ..remove(_Campo.declaraEdad);
                     }),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              title: Text(_textoAceptacion(documentos)),
-              subtitle: errorAceptacion == null
-                  ? null
-                  : Text(
-                      errorAceptacion,
-                      style: TextStyle(color: tema.colorScheme.error),
-                    ),
             ),
-            Wrap(
-              spacing: 8,
-              children: [
-                TextButton(
-                  onPressed: () => context.push(Rutas.terminos),
-                  child: const Text('Leer los términos'),
-                ),
-                TextButton(
-                  onPressed: () => context.push(Rutas.privacidad),
-                  child: const Text('Leer la política de privacidad'),
-                ),
-              ],
+            const SizedBox(height: 14),
+            Text(
+              'Los menores de 14 años no pueden registrarse en esta versión.',
+              style: TemaSuperaPaes.pequeno.copyWith(
+                color: TemaSuperaPaes.textoSecundario,
+              ),
             ),
             if (_errorGeneral case final mensaje?) ...[
-              const SizedBox(height: 8),
-              Text(mensaje, style: TextStyle(color: tema.colorScheme.error)),
+              const SizedBox(height: 14),
+              Aviso(tono: TonoAviso.error, texto: mensaje),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             FilledButton(
               onPressed: _enviando ? null : () => _crearCuenta(documentos),
               child: _enviando
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const CargandoEnBoton()
                   : const Text('Crear cuenta'),
             ),
           ],
@@ -306,17 +270,113 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
   }
 }
 
-/// «Acepto los Términos y condiciones (versión 1.0) y la Política de
-/// privacidad (versión 1.0), y declaro tener 14 años o más.»
-String _textoAceptacion(List<DocumentoLegal> documentos) {
-  final partes = [
-    for (final documento in documentos)
-      '${switch (documento.tipo) {
-        TipoDocumentoLegal.terminos => 'los',
-        TipoDocumentoLegal.privacidad => 'la',
-      }} ${documento.nombre} (versión ${documento.version})',
-  ];
-  return 'Acepto ${partes.join(' y ')}, y declaro tener 14 años o más.';
+/// Casilla «Acepto los Términos y condiciones y la Política de privacidad, y
+/// declaro que tengo 14 años o más» (Casilla del sistema de diseño). Los
+/// nombres de los documentos, en negrita, abren su texto vigente (A02 y
+/// A02b).
+class _CasillaAceptacion extends StatefulWidget {
+  const _CasillaAceptacion({
+    required this.aceptada,
+    required this.documentos,
+    required this.onChanged,
+    this.error,
+  });
+
+  final bool aceptada;
+  final List<DocumentoLegal> documentos;
+  final ValueChanged<bool>? onChanged;
+  final String? error;
+
+  @override
+  State<_CasillaAceptacion> createState() => _CasillaAceptacionState();
+}
+
+class _CasillaAceptacionState extends State<_CasillaAceptacion> {
+  late final _abrirTerminos = TapGestureRecognizer()
+    ..onTap = () => context.push(Rutas.terminos);
+  late final _abrirPrivacidad = TapGestureRecognizer()
+    ..onTap = () => context.push(Rutas.privacidad);
+
+  @override
+  void dispose() {
+    _abrirTerminos.dispose();
+    _abrirPrivacidad.dispose();
+    super.dispose();
+  }
+
+  String _nombre(TipoDocumentoLegal tipo, String porDefecto) =>
+      widget.documentos.where((d) => d.tipo == tipo).firstOrNull?.nombre ??
+      porDefecto;
+
+  @override
+  Widget build(BuildContext context) {
+    const negrita = TextStyle(fontWeight: FontWeight.w700);
+    final onChanged = widget.onChanged;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox.square(
+              dimension: 22,
+              child: Checkbox(
+                value: widget.aceptada,
+                onChanged: onChanged == null
+                    ? null
+                    : (valor) => onChanged(valor ?? false),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: onChanged == null
+                    ? null
+                    : () => onChanged(!widget.aceptada),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(text: 'Acepto los '),
+                      TextSpan(
+                        text: _nombre(
+                          TipoDocumentoLegal.terminos,
+                          'Términos y condiciones',
+                        ),
+                        style: negrita,
+                        recognizer: _abrirTerminos,
+                      ),
+                      const TextSpan(text: ' y la '),
+                      TextSpan(
+                        text: _nombre(
+                          TipoDocumentoLegal.privacidad,
+                          'Política de privacidad',
+                        ),
+                        style: negrita,
+                        recognizer: _abrirPrivacidad,
+                      ),
+                      const TextSpan(
+                        text: ', y declaro que tengo 14 años o más.',
+                      ),
+                    ],
+                  ),
+                  style: TemaSuperaPaes.pequeno,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (widget.error case final mensaje?) ...[
+          const SizedBox(height: 8),
+          Text(
+            mensaje,
+            style: TemaSuperaPaes.pequeno.copyWith(color: TemaSuperaPaes.error),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _ErrorDocumentos extends StatelessWidget {
@@ -328,13 +388,10 @@ class _ErrorDocumentos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          mensaje,
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-        const SizedBox(height: 8),
+        Aviso(tono: TonoAviso.error, texto: mensaje),
+        const SizedBox(height: 12),
         OutlinedButton(
           onPressed: alReintentar,
           child: const Text('Reintentar'),

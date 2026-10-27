@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
-import 'package:supera_paes/presentacion/comunes/pantalla_base.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
 
-/// Pantalla Recuperar contraseña (A04; HU-06, CU-04): pide el correo y
-/// confirma el envío de un enlace de un solo uso que vence en 1 hora. La
-/// confirmación es la misma exista o no la cuenta, como la respuesta de la
-/// API. La contraseña nueva se crea en la página de la consola que abre el
-/// enlace (A05).
+/// Pantalla Recuperar contraseña (A04; HU-06, CU-04), según su boceto en
+/// Figma: pide el correo y confirma el envío de un enlace de un solo uso que
+/// vence en 1 hora. La confirmación es la misma exista o no la cuenta, como
+/// la respuesta de la API. La contraseña nueva se crea en la página de la
+/// consola que abre el enlace (A05).
 class PantallaRecuperarContrasena extends ConsumerStatefulWidget {
   const PantallaRecuperarContrasena({super.key});
 
@@ -31,7 +30,7 @@ class _PantallaRecuperarContrasenaState
   /// Correo al que se pidió el enlace; con él se muestra la confirmación.
   String? _enviadoA;
 
-  /// Se pidió otro enlace desde la confirmación.
+  /// Se pidió otro enlace al mismo correo.
   bool _reenviado = false;
 
   String? _errorCorreo;
@@ -73,45 +72,21 @@ class _PantallaRecuperarContrasenaState
     await _solicitar(_correo.text.trim());
   }
 
-  void _volverAIngreso() {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(Rutas.ingreso);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PantallaBase(
+    final enviadoA = _enviadoA;
+    return PantallaFormulario(
       hijos: [
-        if (_enviadoA case final correo?)
-          _confirmacion(correo)
-        else
-          _formularioCorreo(),
-      ],
-    );
-  }
-
-  Widget _formularioCorreo() {
-    final tema = Theme.of(context);
-    return Form(
-      key: _formulario,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Escribe el correo de tu cuenta y te enviaremos un enlace para '
-            'crear una contraseña nueva.',
-            style: tema.textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
+        const EnlaceVolver(texto: 'Iniciar sesión', destino: Rutas.ingreso),
+        const Encabezado(
+          titulo: 'Recupera tu contraseña',
+          bajada: 'Te enviaremos un enlace para crear una contraseña nueva.',
+        ),
+        Form(
+          key: _formulario,
+          child: CampoTexto(
+            etiqueta: 'Correo',
             controller: _correo,
-            decoration: const InputDecoration(
-              labelText: 'Correo',
-              border: OutlineInputBorder(),
-            ),
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
             autocorrect: false,
@@ -124,84 +99,36 @@ class _PantallaRecuperarContrasenaState
             onFieldSubmitted: (_) => _enviando ? null : _enviar(),
             validator: ValidacionesRegistro.correo,
           ),
-          ..._avisoError(tema),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _enviando ? null : _enviar,
-            child: _enviando ? const _Cargando() : const Text('Enviar enlace'),
+        ),
+        FilledButton(
+          onPressed: _enviando ? null : _enviar,
+          child: _enviando && enviadoA == null
+              ? const CargandoEnBoton()
+              : const Text('Enviar enlace'),
+        ),
+        if (_error case final mensaje?)
+          Aviso(tono: TonoAviso.error, texto: mensaje),
+        if (enviadoA != null) ...[
+          Aviso(
+            tono: TonoAviso.exito,
+            destacado: _reenviado
+                ? 'Te enviamos otro enlace.'
+                : 'Revisa tu correo.',
+            texto:
+                'Si $enviadoA está registrado, te llegará un enlace. Sirve '
+                'una sola vez y vence en 1 hora. Si pides otro, el anterior '
+                'deja de servir.',
           ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: _enviando ? null : _volverAIngreso,
-            child: const Text('Volver a Iniciar sesión'),
+          BotonTexto(
+            onPressed: _enviando
+                ? null
+                : () => _solicitar(enviadoA, esReenvio: true),
+            child: _enviando
+                ? const CargandoEnBoton()
+                : const Text('Reenviar enlace'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _confirmacion(String correo) {
-    final tema = Theme.of(context);
-    final textos = tema.textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Icon(
-          Icons.mark_email_read_outlined,
-          size: 64,
-          color: tema.colorScheme.primary,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          _reenviado ? 'Te enviamos otro enlace' : 'Revisa tu correo',
-          style: textos.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Si $correo tiene una cuenta, te enviamos un enlace para crear una '
-          'contraseña nueva. Vence en 1 hora y sirve una sola vez.',
-          style: textos.bodyLarge,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Ábrelo en tu teléfono: se abrirá una página donde escribes la '
-          'contraseña nueva. Si pides otro enlace, el anterior deja de servir.',
-          style: textos.bodyMedium,
-        ),
-        ..._avisoError(tema),
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: _enviando ? null : _volverAIngreso,
-          child: const Text('Volver a Iniciar sesión'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: _enviando
-              ? null
-              : () => _solicitar(correo, esReenvio: true),
-          child: _enviando
-              ? const _Cargando()
-              : const Text('Reenviar el enlace'),
-        ),
       ],
     );
   }
-
-  List<Widget> _avisoError(ThemeData tema) => [
-    if (_error case final mensaje?) ...[
-      const SizedBox(height: 12),
-      Text(mensaje, style: TextStyle(color: tema.colorScheme.error)),
-    ],
-  ];
-}
-
-class _Cargando extends StatelessWidget {
-  const _Cargando();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox.square(
-    dimension: 20,
-    child: CircularProgressIndicator(strokeWidth: 2),
-  );
 }
