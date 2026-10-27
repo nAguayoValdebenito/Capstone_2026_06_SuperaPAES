@@ -47,6 +47,9 @@ abstract final class TemaSuperaPaes {
   static const double radioBotonChico = 10;
   static const double radioCampo = 12;
   static const double radioTarjeta = 16;
+  static const double altoChip = 36;
+  static const double radioChip = 18;
+  static const double altoEtiqueta = 24;
 
   // Estilos de texto (estilos «Titulo/…», «Texto/…» y «Boton/…» de Figma).
   static const TextStyle display = TextStyle(

@@ -8,7 +8,11 @@ import 'package:supera_paes/presentacion/evaluaciones/pantalla_evaluaciones.dart
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 import 'package:supera_paes/presentacion/inicio/pantalla_inicio.dart';
 import 'package:supera_paes/presentacion/invitaciones/pantalla_invitaciones.dart';
+import 'package:supera_paes/presentacion/mis_datos/pantalla_mis_datos.dart';
 import 'package:supera_paes/presentacion/perfil/pantalla_perfil.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_areas.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_curso.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_pruebas.dart';
 import 'package:supera_paes/presentacion/planes/pantalla_planes.dart';
 import 'package:supera_paes/presentacion/practicar/pantalla_practicar.dart';
 import 'package:supera_paes/presentacion/pregunta/pantalla_pregunta.dart';
@@ -148,7 +152,40 @@ const List<Seccion> secciones = [
     Icons.group_add_outlined,
     PantallaInvitaciones.new,
   ),
+  Seccion(
+    'Mis datos y privacidad',
+    Rutas.misDatos,
+    Icons.shield_outlined,
+    PantallaMisDatos.new,
+  ),
+  // Perfil de estudio (HU-29): bienvenida, edición y corrección del curso
+  Seccion(
+    'Tu curso',
+    Rutas.perfilCurso,
+    Icons.school_outlined,
+    PantallaPasoCurso.new,
+  ),
+  Seccion(
+    'Áreas de carrera',
+    Rutas.perfilAreas,
+    Icons.explore_outlined,
+    PantallaPasoAreas.new,
+  ),
+  Seccion(
+    'Tus pruebas',
+    Rutas.perfilPruebas,
+    Icons.checklist,
+    PantallaPasoPruebas.new,
+  ),
 ];
+
+/// Pasos del perfil de estudio: con el perfil sin completar, la app no deja
+/// salir de ellos (salvo a Verificar correo y las pantallas públicas).
+const Set<String> rutasPerfilDeEstudio = {
+  Rutas.perfilCurso,
+  Rutas.perfilAreas,
+  Rutas.perfilPruebas,
+};
 
 /// Pestañas de la barra inferior, en orden.
 final List<Seccion> pestanas = [

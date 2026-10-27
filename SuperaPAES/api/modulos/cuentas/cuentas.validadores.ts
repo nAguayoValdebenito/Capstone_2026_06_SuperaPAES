@@ -106,6 +106,88 @@ export const esquemaIdEstudiante = z.strictObject({
   id: idDeRuta,
 });
 
+/** Cursos del perfil (A08): de 1° a 4° medio y egresado (contenido.nivel_escolar.codigo). */
+const CURSOS_PERFIL = ['1M', '2M', '3M', '4M', 'EG'] as const;
+/** RN-25: hasta tres áreas de carrera. */
+const MAXIMO_AREAS_CARRERA = 3;
+/** Las cinco pruebas de la PAES regular. */
+const MAXIMO_PRUEBAS = 5;
+
+const sinRepetir = (ids: readonly number[]) => new Set(ids).size === ids.length;
+
+/** Curso o egreso (HU-29 esc. 1). El año de egreso solo va con EG; su tope lo revisa el servicio. */
+const camposCurso = {
+  curso: z.enum(CURSOS_PERFIL, 'Elige tu curso: de 1° a 4° medio, o indica que ya egresaste.'),
+  anioEgreso: z
+    .number('El año de egreso no es válido.')
+    .refine(
+      (anio) => Number.isInteger(anio) && anio >= 2000,
+      conMotivo('El año de egreso no es válido.', 'anio_egreso_invalido'),
+    )
+    .optional(),
+};
+
+function refinarCurso(
+  { curso, anioEgreso }: { curso: string; anioEgreso?: number | undefined },
+  contexto: z.RefinementCtx,
+): void {
+  if (curso === 'EG' && anioEgreso === undefined) {
+    contexto.addIssue({
+      code: 'custom',
+      path: ['anioEgreso'],
+      ...conMotivo('Indica el año en que egresaste.', 'anio_egreso_requerido'),
+    });
+  }
+  if (curso !== 'EG' && anioEgreso !== undefined) {
+    contexto.addIssue({
+      code: 'custom',
+      path: ['anioEgreso'],
+      ...conMotivo('El año de egreso solo se indica si ya egresaste.', 'anio_egreso_invalido'),
+    });
+  }
+}
+
+/** A11 (CU-05 1.a): confirmar o corregir el curso al empezar el año escolar. */
+export const esquemaConfirmarCurso = z.strictObject(camposCurso).superRefine(refinarCurso);
+
+/** HU-29.1 (CU-05): todo el perfil de una vez. Si existen las pruebas y el electivo, lo revisa el servicio. */
+export const esquemaPerfil = z
+  .strictObject({
+    ...camposCurso,
+    pruebas: z
+      .array(idDeCuerpo, 'Elige las pruebas que rendirás.')
+      .min(1, 'Elige al menos una prueba.')
+      .max(MAXIMO_PRUEBAS, 'Puedes elegir hasta cinco pruebas.')
+      .refine(sinRepetir, 'Elegiste una prueba más de una vez.'),
+    electivoId: idDeCuerpo.nullable().default(null),
+    pruebaReforzarId: idDeCuerpo.nullable().default(null),
+    areasCarrera: z
+      .array(idDeCuerpo, 'Indica las áreas de carrera.')
+      .refine(
+        (ids) => ids.length <= MAXIMO_AREAS_CARRERA,
+        conMotivo(
+          'Puedes marcar hasta tres áreas de carrera. Para cambiar una, primero desmarca otra.',
+          'tope_areas_carrera',
+        ),
+      )
+      .refine(sinRepetir, 'Marcaste un área de carrera más de una vez.')
+      .default([]),
+  })
+  .superRefine((datos, contexto) => {
+    refinarCurso(datos, contexto);
+    // HU-29 esc. 4: la prueba a reforzar es una de las que rendirá.
+    if (datos.pruebaReforzarId !== null && !datos.pruebas.includes(datos.pruebaReforzarId)) {
+      contexto.addIssue({
+        code: 'custom',
+        path: ['pruebaReforzarId'],
+        ...conMotivo(
+          'La prueba a reforzar debe estar entre las que rendirás.',
+          'reforzar_fuera_de_pruebas',
+        ),
+      });
+    }
+  });
+
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;
 export type CredencialesApp = z.output<typeof esquemaIngresoApp>;
@@ -115,3 +197,5 @@ export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
 export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
 export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
 export type DatosBusquedaEstudiante = z.output<typeof esquemaBusquedaEstudiante>;
+export type DatosPerfil = z.output<typeof esquemaPerfil>;
+export type DatosCurso = z.output<typeof esquemaConfirmarCurso>;

@@ -1,6 +1,8 @@
 // Rutas de /api/v1/app/cuentas: registro, sesión del estudiante (ingreso, renovar y cerrar),
-// verificación del correo (HU-05, RN-32) y recuperación de contraseña. Son públicas: renovar y cerrar reciben el token de renovación en el
-// cuerpo, así cerrar sirve aunque el token de acceso haya vencido (HU-02 escenarios 2 y 3).
+// verificación del correo (HU-05, RN-32), recuperación de contraseña y perfil (HU-29). Las de la
+// sesión, la verificación por enlace y la recuperación son públicas: renovar y cerrar reciben el
+// token de renovación en el cuerpo, así cerrar sirve aunque el token de acceso haya vencido (HU-02
+// escenarios 2 y 3).
 // Las rutas de la cuenta del estudiante que se agreguen aquí llevan mw.autenticarApp en su cadena,
 // porque este router se monta antes de la autenticación general de /app.
 import { Router } from 'express';
@@ -10,8 +12,10 @@ import { crearCuentasControlador, type CuentasControlador } from './cuentas.cont
 import type { CuentasServicio } from './cuentas.servicio.js';
 import {
   esquemaCodigoVerificacion,
+  esquemaConfirmarCurso,
   esquemaEnlaceVerificacion,
   esquemaIngresoApp,
+  esquemaPerfil,
   esquemaRecuperacion,
   esquemaRegistro,
   esquemaRestablecer,
@@ -51,6 +55,23 @@ function montarRecuperacion(
     validar({ cuerpo: esquemaRestablecer }),
     mw.crearLimiteIntentos({ soloFallidos: true }),
     controlador.restablecerContrasena,
+  );
+}
+
+/** Perfil del estudiante (HU-29.1): con sesión, sin otro límite. */
+function montarPerfil(router: Router, controlador: CuentasControlador, mw: MiddlewareRutas): void {
+  router.get('/perfil', mw.autenticarApp, controlador.obtenerPerfil);
+  router.put(
+    '/perfil',
+    mw.autenticarApp,
+    validar({ cuerpo: esquemaPerfil }),
+    controlador.guardarPerfil,
+  );
+  router.post(
+    '/perfil/confirmar-curso',
+    mw.autenticarApp,
+    validar({ cuerpo: esquemaConfirmarCurso }),
+    controlador.confirmarCurso,
   );
 }
 
@@ -104,5 +125,6 @@ export function crearRutasAppCuentas(servicio: CuentasServicio, mw: MiddlewareRu
     controlador.reenviarVerificacion,
   );
   montarRecuperacion(router, controlador, mw);
+  montarPerfil(router, controlador, mw);
   return router;
 }

@@ -33,6 +33,26 @@ const resumenPractica = {
   habilidades: [{ id: 6, nombre: 'Resolver problemas', preguntas: 5, correctas: 4 }],
 };
 
+const perfil = {
+  completo: true,
+  curso: { codigo: '3M', nombre: '3° medio' },
+  anioEgreso: 2027,
+  pruebas: [1, 2, 5],
+  electivoId: 4,
+  pruebaReforzarId: 2,
+  areasCarrera: [1],
+  debeConfirmarCurso: false,
+};
+const opcionesPerfil = {
+  cursos: [{ codigo: '3M', nombre: '3° medio' }],
+  pruebas: [
+    { id: 5, codigo: 'CIE', nombre: 'Ciencias', electivos: [{ id: 4, nombre: 'Biología' }] },
+  ],
+  areasCarrera: [
+    { id: 1, codigo: 'salud', nombre: 'Salud', pruebasSugeridas: [1, 2, 5], electivoSugeridoId: 4 },
+  ],
+};
+
 export function escenario() {
   const dependencias = crearDependenciasDePrueba();
   const servicios = aceptarCualquierSesion(crearServicios(dependencias));
@@ -58,6 +78,9 @@ export function escenario() {
     ),
     buscarEstudiantes: vi.fn(() => Promise.resolve([{ ...estudiante, creadoEn: fecha }])),
     confirmarCorreo: vi.fn(() => Promise.resolve({ ...estudiante, creadoEn: fecha })),
+    obtenerPerfil: vi.fn(() => Promise.resolve(perfil)),
+    guardarPerfil: vi.fn(() => Promise.resolve(perfil)),
+    confirmarCurso: vi.fn(() => Promise.resolve(perfil)),
   };
   const administracion = {
     ...servicios.administracion,
@@ -69,6 +92,7 @@ export function escenario() {
   const temario = {
     ...servicios.temario,
     listarAreas: vi.fn(() => Promise.resolve([{ id: 4, nombre: 'Biología' }])),
+    opcionesPerfil: vi.fn(() => Promise.resolve(opcionesPerfil)),
   };
   const evaluaciones = {
     ...servicios.evaluaciones,
@@ -163,7 +187,28 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
   if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };
+  return cuerpoPerfil(ruta);
+}
+
+/** Perfil del estudiante (HU-29.1): guardar todo el perfil o confirmar el curso. */
+function cuerpoPerfil(ruta: string): Record<string, unknown> | undefined {
+  if (ruta.startsWith('PUT') && ruta.endsWith('/perfil'))
+    return { curso: '3M', pruebas: [1, 2, 5], electivoId: 4, pruebaReforzarId: 2 };
+  if (ruta.endsWith('/confirmar-curso')) return { curso: '3M' };
   return undefined;
+}
+
+const METODOS = { GET: 'get', PATCH: 'patch', PUT: 'put', POST: 'post' } as const;
+
+/** Rutas de la app que exigen la sesión del estudiante. */
+const CON_SESION_APP = ['/app/evaluaciones/', '/app/temario/', '/app/cuentas/perfil'];
+
+async function sesionPara(ruta: string): Promise<Record<string, string>> {
+  if (ruta.startsWith(`${PREFIJO}/admin/`))
+    return { Authorization: `Bearer ${await tokenAdmin()}` };
+  if (CON_SESION_APP.some((prefijo) => ruta.startsWith(`${PREFIJO}${prefijo}`)))
+    return { Authorization: `Bearer ${await tokenApp()}` };
+  return {};
 }
 
 export async function consultarContrato(app: Express, contrato: string) {
@@ -175,16 +220,8 @@ export async function consultarContrato(app: Express, contrato: string) {
       patron.includes('/estudiantes/') ? '84' : patron.includes('/evaluaciones/') ? '41' : '7',
     )
     .replace(':item', '84');
-  const peticion =
-    metodo === 'GET'
-      ? request(app).get(ruta)
-      : metodo === 'PATCH'
-        ? request(app).patch(ruta)
-        : request(app).post(ruta);
-  if (ruta.startsWith(`${PREFIJO}/admin/`))
-    peticion.set({ Authorization: `Bearer ${await tokenAdmin()}` });
-  if (ruta.startsWith(`${PREFIJO}/app/evaluaciones/`))
-    peticion.set({ Authorization: `Bearer ${await tokenApp()}` });
+  const peticion = request(app)[METODOS[metodo as keyof typeof METODOS]](ruta);
+  peticion.set(await sesionPara(ruta));
   if (ruta.endsWith('/estudiantes')) peticion.query({ correo: 'ana@ejemplo.cl' });
   const cuerpo = cuerpoPara(contrato);
   if (cuerpo) peticion.send(cuerpo);

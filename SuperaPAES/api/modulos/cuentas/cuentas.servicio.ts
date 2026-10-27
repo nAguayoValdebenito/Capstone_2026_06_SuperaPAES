@@ -25,6 +25,7 @@ import {
   type EstadoCuentaCupo,
   type PerfilPractica,
 } from './cuentas.perfil-practica.repositorio.js';
+import { crearPerfil, type Perfil, type PerfilRepositorio } from './cuentas.perfil.servicio.js';
 import {
   crearRecuperacionRepositorio,
   type RecuperacionRepositorio,
@@ -83,6 +84,8 @@ export interface DependenciasCuentasServicio {
   repositorioRegistro?: RegistroRepositorio;
   /** Solo para pruebas: reemplaza al de la recuperación de la contraseña. */
   repositorioRecuperacion?: RecuperacionRepositorio;
+  /** Solo para pruebas: reemplaza al del perfil del estudiante. */
+  repositorioPerfil?: PerfilRepositorio;
   /**
    * Ejecuta una tarea sin que la respuesta la espere (el correo de la recuperación). Por defecto la
    * lanza y sigue; las pruebas lo reemplazan para esperarla.
@@ -126,8 +129,8 @@ export interface UsuarioConsola extends UsuarioDeSesion {
   areas?: number[];
 }
 
-/** Incluye la verificación del correo y la recuperación de la contraseña. */
-export interface CuentasServicio extends VerificacionCorreo, Recuperacion {
+/** Incluye la verificación del correo, la recuperación de la contraseña y el perfil del estudiante. */
+export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfil {
   /** HU-29.1, contrato mínimo para iniciar una práctica. Con bloquear, serializa inicios sobre el
    * estudiante dentro de la transacción del módulo consumidor. */
   obtenerPerfilPractica(
@@ -384,5 +387,6 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     revocarSesionesUsuarioInterno: (id, tx) =>
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
     ...crearVerificacionYRegistro(dependencias, contexto),
+    ...crearPerfil(dependencias),
   };
 }

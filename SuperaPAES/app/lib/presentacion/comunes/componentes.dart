@@ -8,32 +8,52 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 
 /// Pantalla de los bocetos de la app: sin barra superior, con el contenido
-/// desplazable y márgenes de 24. Arriba puede ir un [EnlaceVolver].
+/// desplazable y márgenes de 24. Arriba puede ir un [EnlaceVolver]; el [pie]
+/// queda fijo abajo, como el botón «Continuar» de A08. Un error de ese botón
+/// va en el pie, sobre él (ver [PieConError]), para que siempre se vea.
 class PantallaFormulario extends StatelessWidget {
-  const PantallaFormulario({required this.hijos, super.key, this.separacion});
+  const PantallaFormulario({
+    required this.hijos,
+    super.key,
+    this.separacion,
+    this.pie,
+  });
 
   final List<Widget> hijos;
 
   /// Espacio entre los hijos; por defecto, 16 como en los bocetos.
   final double? separacion;
+  final Widget? pie;
 
   @override
   Widget build(BuildContext context) {
     final espacio = separacion ?? 16;
+    const margen = TemaSuperaPaes.margenPantalla;
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            TemaSuperaPaes.margenPantalla,
-            8,
-            TemaSuperaPaes.margenPantalla,
-            TemaSuperaPaes.margenPantalla,
-          ),
+        child: Column(
           children: [
-            for (final (i, hijo) in hijos.indexed) ...[
-              if (i > 0) SizedBox(height: espacio),
-              hijo,
-            ],
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(
+                  margen,
+                  8,
+                  margen,
+                  pie == null ? margen : espacio,
+                ),
+                children: [
+                  for (final (i, hijo) in hijos.indexed) ...[
+                    if (i > 0) SizedBox(height: espacio),
+                    hijo,
+                  ],
+                ],
+              ),
+            ),
+            if (pie case final abajo?)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(margen, 0, margen, margen),
+                child: abajo,
+              ),
           ],
         ),
       ),
@@ -291,18 +311,21 @@ class _CampoContrasenaState extends State<CampoContrasena> {
 enum TonoAviso { info, aviso, error, exito, neutro, primario }
 
 /// Aviso con ícono y texto (Texto/Pequeño). [destacado] va en negrita al
-/// inicio, como «Revisa tu correo.» en A04.
+/// inicio, como «Revisa tu correo.» en A04; [textoRico] reemplaza al texto
+/// cuando la negrita va en medio, como el área de carrera en A09b.
 class Aviso extends StatelessWidget {
   const Aviso({
     required this.tono,
-    required this.texto,
+    this.texto = '',
     super.key,
     this.destacado,
+    this.textoRico,
   });
 
   final TonoAviso tono;
   final String texto;
   final String? destacado;
+  final InlineSpan? textoRico;
 
   @override
   Widget build(BuildContext context) {
@@ -368,7 +391,7 @@ class Aviso extends StatelessWidget {
                         text: '$fuerte ',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                    TextSpan(text: texto),
+                    textoRico ?? TextSpan(text: texto),
                   ],
                 ),
                 style: estilo,
@@ -445,6 +468,30 @@ class BotonTexto extends StatelessWidget {
       ),
       onPressed: onPressed,
       child: child,
+    );
+  }
+}
+
+/// Pie fijo de [PantallaFormulario]: el [Aviso] de error, si hay, sobre el
+/// botón.
+class PieConError extends StatelessWidget {
+  const PieConError({required this.boton, super.key, this.error});
+
+  final Widget boton;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (error case final texto?) ...[
+          Aviso(tono: TonoAviso.error, texto: texto),
+          const SizedBox(height: 12),
+        ],
+        boton,
+      ],
     );
   }
 }

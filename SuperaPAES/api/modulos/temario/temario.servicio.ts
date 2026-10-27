@@ -4,14 +4,24 @@
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type Area,
+  type AreaCarreraPerfil,
   type AlcancePractica,
   crearTemarioRepositorio,
+  type CursoPerfil,
   type FilaHabilidad,
   type FilaTemario,
+  type PruebaPerfil,
   type TemarioRepositorio,
 } from './temario.repositorio.js';
 
 export type { Area } from './temario.repositorio.js';
+
+/** Lo que muestran las pantallas del perfil (A08 a A10, HU-29): cursos, pruebas y áreas de carrera. */
+export interface OpcionesPerfil {
+  cursos: CursoPerfil[];
+  pruebas: PruebaPerfil[];
+  areasCarrera: AreaCarreraPerfil[];
+}
 
 /** Contenido o habilidad del temario: un id y su nombre. */
 export interface ContenidoTemario {
@@ -87,6 +97,11 @@ export interface TemarioServicio {
    * por ellos y muestra sus nombres, y una pregunta puede seguir en un contenido que ya no está activo.
    */
   listarTemario(): Promise<PruebaTemario[]>;
+  /**
+   * HU-29.1 (RF-A04, RN-25): cursos de 1° a 4° medio y egresado, pruebas activas con sus electivos y
+   * áreas de carrera activas con las pruebas y el electivo que sugiere cada una.
+   */
+  opcionesPerfil(): Promise<OpcionesPerfil>;
 }
 
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
@@ -99,5 +114,10 @@ export function crearTemarioServicio(dependencias: DependenciasTemarioServicio):
       const filas = await repositorio.listarTemario();
       return armarTemario(filas, await repositorio.listarHabilidades());
     },
+    opcionesPerfil: async () => ({
+      cursos: await repositorio.listarCursosPerfil(),
+      pruebas: await repositorio.listarPruebasPerfil(),
+      areasCarrera: await repositorio.listarAreasCarrera(),
+    }),
   };
 }

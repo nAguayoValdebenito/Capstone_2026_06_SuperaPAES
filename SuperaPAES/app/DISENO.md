@@ -21,9 +21,10 @@ diseño es el del prototipo v3 (DAS 7.2 y 7.5) y ya está en el código:
    existe, agrégalo a `componentes.dart`, con su prueba en `test/componentes_test.dart`.
 4. **Sin barra superior.** Los bocetos no tienen `AppBar`. La pantalla parte con un `EnlaceVolver`
    (si se llega desde otra) y un `Encabezado`. Las pestañas de la barra inferior (Inicio, Practicar,
-   Evaluaciones, Progreso y Perfil) tampoco llevan barra superior en sus bocetos. Hoy usan
-   `comunes/pantalla_base.dart`, que sí la tiene, porque todavía son de relleno («En
-   construcción»); al construir cada una según su boceto, deja de usar `PantallaBase`.
+   Evaluaciones, Progreso y Perfil) tampoco llevan barra superior en sus bocetos. Perfil ya
+   sigue su boceto; las demás usan `comunes/pantalla_base.dart`, que sí la tiene, porque
+   todavía son de relleno («En construcción»). Al construir cada una según su boceto, deja de
+   usar `PantallaBase`.
 5. **Etiqueta arriba del campo**, no dentro: usa `CampoTexto` o `CampoContrasena`, no un
    `TextFormField` con `labelText`.
 6. **Accesibilidad (RNF-12):** los pares de colores del tema ya cumplen contraste AA. Los botones
@@ -87,6 +88,8 @@ Los colores van con `copyWith`, por ejemplo
 | `radioBotonChico` | 10    | Botón chico                                     |
 | `radioCampo`      | 12    | Campos, avisos y casillas del código            |
 | `radioTarjeta`    | 16    | Tarjetas                                        |
+| `altoChip` / `radioChip` | 36 / 18 | Chips                                   |
+| `altoEtiqueta`    | 24    | Etiquetas (radio de la mitad)                   |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
 
@@ -94,19 +97,32 @@ Entre los elementos de un formulario van 16 de separación; el diseño de refere
 
 | Componente (en `componentes.dart`) | Para qué                                                       |
 | ---------------------------------- | -------------------------------------------------------------- |
-| `PantallaFormulario(hijos: [...])` | Estructura de la pantalla: sin barra superior, desplazable, márgenes de 24 y 16 entre hijos. |
+| `PantallaFormulario(hijos: [...], pie:)` | Estructura de la pantalla: sin barra superior, desplazable, márgenes de 24 y 16 entre hijos. El `pie` queda fijo abajo (el botón principal de A08 a A10). |
+| `PieConError(boton:, error:)`      | Pie fijo con el error del botón justo sobre él, para que siempre se vea. |
 | `EnlaceVolver(texto:, destino:)`   | «‹ Inicio». Vuelve atrás; si no hay historial, va a `destino`. |
 | `Encabezado(titulo:, bajada:)`     | Título `h1` y bajada gris. `bajadaRica` para partes en negrita; `centrado` para pantallas con logo. |
 | `CampoTexto(etiqueta:, controller:)` | Campo con etiqueta arriba, `pista`, `ayuda` abajo y validación. |
 | `CampoContrasena(etiqueta:, controller:)` | Igual, con el ojo para mostrarla.                     |
 | `CampoConEtiqueta(etiqueta:, child:)` | Para poner la etiqueta y la ayuda a otro control.           |
 | `CampoCodigo(controller:)` (en `verificar_correo/`) | Código de 6 dígitos en casillas, con `error`. |
-| `Aviso(tono:, texto:, destacado:)` | Recuadro con ícono. Tonos de `TonoAviso`: `info`, `aviso`, `error`, `exito`, `neutro` y `primario`. |
+| `Aviso(tono:, texto:, destacado:)` | Recuadro con ícono. Tonos de `TonoAviso`: `info`, `aviso`, `error`, `exito`, `neutro` y `primario`. Con `textoRico`, la negrita puede ir en medio (A09b). |
 | `Tarjeta(child:)`                  | Recuadro blanco con borde, radio 16 y relleno 16.              |
 | `BotonChico(texto:, onPressed:)`   | Botón de 40 dentro de un aviso o de una fila.                  |
 | `BotonTexto(child:, onPressed:)`   | Botón de texto a lo ancho, como «Reenviar enlace».             |
 | `CargandoEnBoton()`                | Indicador dentro de un botón mientras se envía.                |
 | `PieConEnlace(pregunta:, enlace:, onPressed:)` | «¿No tienes cuenta? **Crea una**».                 |
+
+En `comunes/componentes_seleccion.dart`:
+
+| Componente                          | Para qué                                                      |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `OpcionRadio(texto:, seleccionada:, onTap:)` | Opción con radio, una entre varias (cursos de A08).  |
+| `TarjetaCasilla(titulo:, marcada:, onTap:, detalle:, etiqueta:)` | Tarjeta con casilla (pruebas de A10).  |
+| `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
+| `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`) o «Sin verificar» (`aviso`). |
+| `IndicadorPasos(paso:, total:, opcional:, accion:)` | «Paso 2 de 3 · Opcional» con su barra y «Omitir». |
+| `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37).                |
+| `FilaNavegacion(texto:, onTap:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). |
 
 Los botones grandes no necesitan estilo propio: `FilledButton` (principal) y `OutlinedButton`
 (contorno, como «Cerrar sesión») ya salen con 52 de alto, a lo ancho y con radio 14. Las casillas
@@ -146,8 +162,14 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A06      | Verificar correo                         | `32:636`  | `verificar_correo/`                   |
 | A06b     | Verificar correo, código incorrecto      | `32:677`  | `verificar_correo/`                   |
 | A06c     | Verificar correo, código bloqueado       | `32:716`  | `verificar_correo/`                   |
+| A08      | Perfil, paso 1: tu curso                 | `32:871`  | `perfil_estudio/pantalla_paso_curso.dart` |
+| A08b     | Paso 1, si ya egresó                     | `32:927`  | `perfil_estudio/pantalla_paso_curso.dart` |
+| A09      | Perfil, paso 2: áreas de carrera         | `32:985`  | `perfil_estudio/pantalla_paso_areas.dart` |
+| A09b     | Paso 2, tope de tres áreas               | `32:1028` | `perfil_estudio/pantalla_paso_areas.dart` |
+| A10      | Perfil, paso 3: tus pruebas              | `33:643`  | `perfil_estudio/pantalla_paso_pruebas.dart` |
+| A11      | Confirmar el curso en marzo              | `33:730`  | `perfil_estudio/hoja_confirmar_curso.dart` |
 | A12      | Inicio                                   | `33:794`  | `inicio/`                             |
-| A37      | Perfil                                   | `35:1721` | `perfil/`                             |
+| A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
 
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).
 Agrega su fila aquí cuando las construyas.

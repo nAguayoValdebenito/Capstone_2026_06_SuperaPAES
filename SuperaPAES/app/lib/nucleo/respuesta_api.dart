@@ -26,9 +26,22 @@ Future<Map<String, dynamic>> publicarObjeto(
   String ruta,
   Map<String, Object?>? cuerpo, {
   required String sinData,
+}) => pedirObjeto(dio, 'POST', ruta, cuerpo: cuerpo, sinData: sinData);
+
+/// Como [publicarObjeto], con cualquier método (`GET`, `PUT`, `POST`...).
+Future<Map<String, dynamic>> pedirObjeto(
+  Dio dio,
+  String metodo,
+  String ruta, {
+  required String sinData,
+  Map<String, Object?>? cuerpo,
 }) async {
   try {
-    final respuesta = await dio.post<Object?>(ruta, data: cuerpo);
+    final respuesta = await dio.request<Object?>(
+      ruta,
+      data: cuerpo,
+      options: Options(method: metodo),
+    );
     final data = leerData(respuesta.data, estadoHttp: respuesta.statusCode);
     if (data is! Map<String, dynamic>) {
       throw ErrorApi(codigo: 'RESPUESTA_INVALIDA', mensaje: sinData);
