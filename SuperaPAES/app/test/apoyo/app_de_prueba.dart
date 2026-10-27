@@ -8,14 +8,17 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 
 import 'repositorio_cuentas_falso.dart';
+import 'repositorio_perfil_falso.dart';
 
 /// Contenedor de la app sin red ni almacén del teléfono. Con `sesion`, la
 /// app arranca con esa sesión guardada.
 ProviderContainer crearContenedor({
   RepositorioCuentasFalso? repositorio,
   RepositorioVerificacionFalso? verificacion,
+  RepositorioPerfilFalso? perfil,
   AlmacenSesionEnMemoria? almacen,
   SesionEstudiante? sesion,
 }) {
@@ -29,6 +32,10 @@ ProviderContainer crearContenedor({
       ),
       almacenSesionProvider.overrideWithValue(
         almacen ?? AlmacenSesionEnMemoria(sesion),
+      ),
+      // Sin `perfil`, el estudiante ya completó su perfil (HU-29).
+      repositorioPerfilProvider.overrideWithValue(
+        perfil ?? RepositorioPerfilFalso(),
       ),
       // Sin `verificacion` queda el repositorio real, con el cliente con
       // sesión.

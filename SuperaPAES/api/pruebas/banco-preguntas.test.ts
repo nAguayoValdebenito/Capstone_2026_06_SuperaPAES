@@ -83,6 +83,7 @@ function escenario(filas: FilaBanco[] = [fila()], total = filas.length) {
     listarAreas: () => Promise.resolve([]),
     alcancePracticaValido: () => Promise.resolve(true),
     listarTemario: () => Promise.resolve(TEMARIO),
+    opcionesPerfil: () => Promise.resolve({ cursos: [], pruebas: [], areasCarrera: [] }),
   };
   const preguntas = crearPreguntasServicio({
     bd: { query: () => Promise.reject(new Error('sin base')) },

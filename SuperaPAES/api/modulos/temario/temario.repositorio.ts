@@ -34,11 +34,37 @@ export interface FilaHabilidad {
   nombre: string;
 }
 
+/** Curso que el estudiante elige en su perfil (contenido.nivel_escolar, de 1° a 4° medio y egresado). */
+export interface CursoPerfil {
+  codigo: string;
+  nombre: string;
+}
+
+/** Prueba activa con los electivos que admite: solo Ciencias tiene (Biología, Física y Química). */
+export interface PruebaPerfil {
+  id: number;
+  codigo: string;
+  nombre: string;
+  electivos: Area[];
+}
+
+/** Área de carrera activa con las pruebas y el electivo que sugiere (RN-25). */
+export interface AreaCarreraPerfil {
+  id: number;
+  codigo: string;
+  nombre: string;
+  pruebasSugeridas: number[];
+  electivoSugeridoId: number | null;
+}
+
 export interface TemarioRepositorio {
   listarAreas(tx?: Ejecutor): Promise<Area[]>;
   alcancePracticaValido(datos: AlcancePractica, tx?: Ejecutor): Promise<boolean>;
   listarTemario(tx?: Ejecutor): Promise<FilaTemario[]>;
   listarHabilidades(tx?: Ejecutor): Promise<FilaHabilidad[]>;
+  listarCursosPerfil(tx?: Ejecutor): Promise<CursoPerfil[]>;
+  listarPruebasPerfil(tx?: Ejecutor): Promise<PruebaPerfil[]>;
+  listarAreasCarrera(tx?: Ejecutor): Promise<AreaCarreraPerfil[]>;
 }
 
 export interface AlcancePractica {
@@ -93,6 +119,35 @@ const TEMARIO = `
     LEFT JOIN contenido.contenido_tematico c ON c.eje_id = e.id
    ORDER BY p.id, e.orden, e.id, c.nombre, c.id`;
 
+/** De 1° a 4° medio (0 a 3 años para egresar) y egresado; 7° y 8° básico no se ofrecen (A08). */
+const CURSOS_PERFIL = `
+  SELECT codigo, nombre FROM contenido.nivel_escolar
+   WHERE anios_para_egreso BETWEEN 0 AND 3 OR codigo = 'EG'
+   ORDER BY orden`;
+
+/** El electivo es un área con contenidos en Ciencias, igual que contenido.electivo_valido. */
+const PRUEBAS_PERFIL = `
+  SELECT p.id, p.codigo, p.nombre,
+         COALESCE((SELECT json_agg(json_build_object('id', a.id, 'nombre', a.nombre) ORDER BY a.nombre)
+                     FROM contenido.area a
+                    WHERE p.codigo = 'CIE'
+                      AND EXISTS (SELECT 1 FROM contenido.contenido_tematico c
+                                   WHERE c.prueba_id = p.id AND c.area_id = a.id)), '[]') AS electivos
+    FROM contenido.prueba p
+   WHERE p.activa
+   ORDER BY p.id`;
+
+/** Solo sugiere pruebas activas. contenido.area_carrera es una lista de opciones sin módulo propio. */
+const AREAS_CARRERA = `
+  SELECT ac.id, ac.codigo, ac.nombre, ac.electivo_area_id AS "electivoSugeridoId",
+         COALESCE(array_agg(p.id ORDER BY p.id) FILTER (WHERE p.id IS NOT NULL), '{}') AS "pruebasSugeridas"
+    FROM contenido.area_carrera ac
+    LEFT JOIN contenido.area_carrera_prueba acp ON acp.area_carrera_id = ac.id
+    LEFT JOIN contenido.prueba p ON p.id = acp.prueba_id AND p.activa
+   WHERE ac.activo
+   GROUP BY ac.id
+   ORDER BY ac.orden, ac.id`;
+
 export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
   return {
     async listarAreas(tx = bd) {
@@ -117,6 +172,21 @@ export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
       const { rows } = await tx.query<FilaHabilidad>(
         'SELECT id, prueba_id AS "pruebaId", nombre FROM contenido.habilidad ORDER BY prueba_id, codigo, id',
       );
+      return rows;
+    },
+
+    async listarCursosPerfil(tx = bd) {
+      const { rows } = await tx.query<CursoPerfil>(CURSOS_PERFIL);
+      return rows;
+    },
+
+    async listarPruebasPerfil(tx = bd) {
+      const { rows } = await tx.query<PruebaPerfil>(PRUEBAS_PERFIL);
+      return rows;
+    },
+
+    async listarAreasCarrera(tx = bd) {
+      const { rows } = await tx.query<AreaCarreraPerfil>(AREAS_CARRERA);
       return rows;
     },
   };

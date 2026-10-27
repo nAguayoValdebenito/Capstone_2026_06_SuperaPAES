@@ -27,6 +27,12 @@ abstract final class Rutas {
   // Desde Perfil
   static const String planes = '/planes';
   static const String invitaciones = '/invitaciones';
+  static const String misDatos = '/mis-datos';
+
+  // Perfil de estudio (HU-29): la bienvenida y la edición en tres pasos.
+  static const String perfilCurso = '/perfil-de-estudio/curso';
+  static const String perfilAreas = '/perfil-de-estudio/areas';
+  static const String perfilPruebas = '/perfil-de-estudio/pruebas';
 }
 
 /// Textos de interfaz que se repiten en varias pantallas.

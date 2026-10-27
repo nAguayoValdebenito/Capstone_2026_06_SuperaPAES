@@ -1,9 +1,28 @@
 // Único contrato de serialización de ids HTTP. Cada ruta enumera sus campos, incluso listas/anidados.
 // Al agregar un campo o una ruta con ids, se registra aquí y se actualiza la prueba del inventario.
+
+/** Ids del perfil del estudiante (HU-29.1): sus pruebas, el electivo, la prueba a reforzar y las áreas. */
+const CAMPOS_PERFIL = [
+  'data.pruebas[]',
+  'data.electivoId',
+  'data.pruebaReforzarId',
+  'data.areasCarrera[]',
+] as const;
+
 export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
   'POST /api/v1/app/cuentas/registro': ['data.estudiante.id'],
   'POST /api/v1/app/cuentas/ingreso': ['data.estudiante.id'],
   'GET /api/v1/app/cuentas/documentos-legales/vigentes': ['data[].id'],
+  'GET /api/v1/app/cuentas/perfil': CAMPOS_PERFIL,
+  'PUT /api/v1/app/cuentas/perfil': CAMPOS_PERFIL,
+  'POST /api/v1/app/cuentas/perfil/confirmar-curso': CAMPOS_PERFIL,
+  'GET /api/v1/app/temario/opciones-perfil': [
+    'data.pruebas[].id',
+    'data.pruebas[].electivos[].id',
+    'data.areasCarrera[].id',
+    'data.areasCarrera[].pruebasSugeridas[]',
+    'data.areasCarrera[].electivoSugeridoId',
+  ],
   'POST /api/v1/admin/cuentas/ingreso': ['data.usuario.id'],
   'GET /api/v1/admin/cuentas/yo': ['data.id', 'data.areas[]'],
   'GET /api/v1/admin/cuentas/estudiantes': ['data[].id'],

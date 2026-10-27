@@ -9,7 +9,9 @@ import type {
   CredencialesApp,
   DatosBusquedaEstudiante,
   DatosCodigoVerificacion,
+  DatosCurso,
   DatosEnlaceVerificacion,
+  DatosPerfil,
   DatosRecuperacion,
   DatosRegistro,
   DatosRestablecer,
@@ -27,6 +29,12 @@ type ControladorVerificacion = Pick<
   | 'reenviarVerificacion'
   | 'buscarEstudiantes'
   | 'confirmarCorreo'
+>;
+
+/** Perfil del estudiante (HU-29.1). */
+type ControladorPerfil = Pick<
+  CuentasControlador,
+  'obtenerPerfil' | 'guardarPerfil' | 'confirmarCurso'
 >;
 
 /** Cinco minutos: una versión nueva de los términos tarda a lo más eso en verse (RN-30). */
@@ -49,6 +57,9 @@ export interface CuentasControlador {
   reenviarVerificacion: RequestHandler;
   buscarEstudiantes: RequestHandler;
   confirmarCorreo: RequestHandler;
+  obtenerPerfil: RequestHandler;
+  guardarPerfil: ConCuerpo<DatosPerfil>;
+  confirmarCurso: ConCuerpo<DatosCurso>;
 }
 
 /** Estudiante de la sesión de la app. Lo deja autenticarApp. */
@@ -111,6 +122,21 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
       responder(res, await servicio.obtenerUsuarioConsola(usuarioInternoDe(req)));
     },
     ...crearControladorVerificacion(servicio),
+    ...crearControladorPerfil(servicio),
+  };
+}
+
+function crearControladorPerfil(servicio: CuentasServicio): ControladorPerfil {
+  return {
+    obtenerPerfil: async (req, res) => {
+      responder(res, await servicio.obtenerPerfil(estudianteDe(req)));
+    },
+    guardarPerfil: async (req, res) => {
+      responder(res, await servicio.guardarPerfil(estudianteDe(req), req.body));
+    },
+    confirmarCurso: async (req, res) => {
+      responder(res, await servicio.confirmarCurso(estudianteDe(req), req.body));
+    },
   };
 }
 

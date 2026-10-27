@@ -12,9 +12,9 @@ import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
-  test('las 17 pantallas de la app están declaradas una sola vez', () {
-    expect(secciones, hasLength(17));
-    expect(secciones.map((s) => s.ruta).toSet(), hasLength(17));
+  test('las 21 pantallas de la app están declaradas una sola vez', () {
+    expect(secciones, hasLength(21));
+    expect(secciones.map((s) => s.ruta).toSet(), hasLength(21));
     // Barra inferior del DAS 7.4: Planes pasa a Perfil.
     expect(pestanas.map((s) => s.etiquetaPestana ?? s.titulo), [
       'Inicio',
@@ -73,30 +73,22 @@ void main() {
     expect(find.widgetWithText(AppBar, 'Evaluaciones'), findsOneWidget);
   });
 
-  testWidgets('desde Perfil se abren los Planes y se vuelve atrás', (
-    tester,
-  ) async {
-    await iniciarApp(
-      tester,
-      crearContenedor(sesion: sesionDeEjemplo),
-      ruta: Rutas.inicio,
-    );
+  testWidgets('desde Perfil se abre Mi suscripción (Planes) y se vuelve '
+      'atrás', (tester) async {
+    final contenedor = crearContenedor(sesion: sesionDeEjemplo);
+    await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
 
     await tester.tap(find.text('Perfil').last);
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Perfil'), findsOneWidget);
-    expect(find.text('Puntajes PAES'), findsOneWidget);
+    expect(rutaActual(contenedor), Rutas.perfil);
 
-    final botonPlanes = find.widgetWithText(OutlinedButton, 'Planes');
-    await tester.scrollUntilVisible(botonPlanes, 200);
-    await tester.tap(botonPlanes);
-    await tester.pumpAndSettle();
+    await tocar(tester, find.text('Mi suscripción'));
     expect(find.widgetWithText(AppBar, 'Planes'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Perfil'), findsOneWidget);
+    expect(rutaActual(contenedor), Rutas.perfil);
   });
 
   testWidgets('Inicio muestra el estado de la API', (tester) async {

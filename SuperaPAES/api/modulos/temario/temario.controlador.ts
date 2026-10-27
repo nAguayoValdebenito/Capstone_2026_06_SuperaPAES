@@ -6,12 +6,16 @@ import type { TemarioServicio } from './temario.servicio.js';
 
 export interface TemarioControlador {
   listarAreas: RequestHandler;
+  opcionesPerfil: RequestHandler;
 }
 
 export function crearTemarioControlador(servicio: TemarioServicio): TemarioControlador {
   return {
     listarAreas: async (_req, res) => {
       responder(res, await servicio.listarAreas());
+    },
+    opcionesPerfil: async (_req, res) => {
+      responder(res, await servicio.opcionesPerfil());
     },
   };
 }
