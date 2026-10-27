@@ -14,6 +14,7 @@ import 'repositorio_cuentas_falso.dart';
 /// app arranca con esa sesión guardada.
 ProviderContainer crearContenedor({
   RepositorioCuentasFalso? repositorio,
+  RepositorioVerificacionFalso? verificacion,
   AlmacenSesionEnMemoria? almacen,
   SesionEstudiante? sesion,
 }) {
@@ -28,6 +29,10 @@ ProviderContainer crearContenedor({
       almacenSesionProvider.overrideWithValue(
         almacen ?? AlmacenSesionEnMemoria(sesion),
       ),
+      // Sin `verificacion` queda el repositorio real, con el cliente con
+      // sesión.
+      if (verificacion != null)
+        repositorioVerificacionProvider.overrideWithValue(verificacion),
     ],
   );
   addTearDown(contenedor.dispose);

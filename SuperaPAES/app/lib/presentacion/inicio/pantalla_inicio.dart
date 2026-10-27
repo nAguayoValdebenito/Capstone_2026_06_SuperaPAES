@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/comunes/en_construccion.dart';
+import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/inicio/aviso_verificar_correo.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 
-/// Inicio del estudiante. Por ahora muestra el estado de la API.
+/// Inicio del estudiante. Por ahora muestra el aviso de correo sin verificar
+/// y el estado de la API.
 class PantallaInicio extends ConsumerWidget {
   const PantallaInicio({super.key});
 
@@ -14,7 +17,11 @@ class PantallaInicio extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final salud = ref.watch(estadoSaludProvider);
 
+    final sinVerificar =
+        ref.watch(sesionProvider).value?.estudiante.correoVerificado == false;
+
     return EnConstruccion(
+      encabezado: sinVerificar ? const AvisoVerificarCorreo() : null,
       descripcion:
           'Aquí verás tu resumen de práctica, tu racha y tu cupo del día.',
       acciones: const [

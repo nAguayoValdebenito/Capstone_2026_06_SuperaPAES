@@ -1,7 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,36 +13,9 @@ import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 
+import 'apoyo/adaptador_http_falso.dart';
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
-
-/// Responde según una función y guarda las peticiones recibidas.
-class _AdaptadorFalso implements HttpClientAdapter {
-  _AdaptadorFalso(this.responder);
-
-  final (int, Map<String, dynamic>) Function(RequestOptions opciones) responder;
-  final List<RequestOptions> peticiones = [];
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    peticiones.add(options);
-    final (estado, cuerpo) = responder(options);
-    return ResponseBody.fromString(
-      jsonEncode(cuerpo),
-      estado,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
 
 const Map<String, dynamic> _noAutenticado = {
   'data': null,
@@ -70,11 +39,11 @@ const _sesionVencida = ErrorApi(
 
 void main() {
   group('FuenteCuentasRemota', () {
-    FuenteCuentasRemota fuenteCon(_AdaptadorFalso adaptador) =>
+    FuenteCuentasRemota fuenteCon(AdaptadorHttpFalso adaptador) =>
         FuenteCuentasRemota(Dio()..httpClientAdapter = adaptador);
 
     test('ingresa con el dispositivo y lee la sesión', () async {
-      final adaptador = _AdaptadorFalso(
+      final adaptador = AdaptadorHttpFalso(
         (_) => (
           200,
           {
@@ -111,7 +80,7 @@ void main() {
     });
 
     test('sin dispositivo no envía la clave', () async {
-      final adaptador = _AdaptadorFalso(
+      final adaptador = AdaptadorHttpFalso(
         (_) => (
           200,
           {
@@ -139,7 +108,7 @@ void main() {
     });
 
     test('las credenciales incorrectas llegan como ErrorApi 401', () async {
-      final adaptador = _AdaptadorFalso(
+      final adaptador = AdaptadorHttpFalso(
         (_) => (
           401,
           {
@@ -170,7 +139,7 @@ void main() {
     });
 
     test('renueva con el token de renovación y lee los dos nuevos', () async {
-      final adaptador = _AdaptadorFalso(
+      final adaptador = AdaptadorHttpFalso(
         (_) => (
           200,
           {
@@ -189,7 +158,7 @@ void main() {
     });
 
     test('cierra con el token de renovación', () async {
-      final adaptador = _AdaptadorFalso(
+      final adaptador = AdaptadorHttpFalso(
         (_) => (
           200,
           {
@@ -331,7 +300,7 @@ void main() {
     late String? token;
     late int renovaciones;
     late bool renovacionFunciona;
-    late _AdaptadorFalso adaptador;
+    late AdaptadorHttpFalso adaptador;
     late Dio dio;
 
     setUp(() {
@@ -339,7 +308,7 @@ void main() {
       renovaciones = 0;
       renovacionFunciona = true;
       // La API acepta solo el token «nuevo».
-      adaptador = _AdaptadorFalso(
+      adaptador = AdaptadorHttpFalso(
         (opciones) => opciones.headers['Authorization'] == 'Bearer nuevo'
             ? (
                 200,

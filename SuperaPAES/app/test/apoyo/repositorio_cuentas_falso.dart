@@ -3,6 +3,7 @@ import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/dominio/repositorios/almacen_sesion.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_cuentas.dart';
+import 'package:supera_paes/dominio/repositorios/repositorio_verificacion.dart';
 
 /// Documentos vigentes de ejemplo, como los de la semilla 003.
 final documentosDeEjemplo = [
@@ -97,6 +98,32 @@ class RepositorioCuentasFalso implements RepositorioCuentas {
   Future<void> cerrar(String tokenRenovacion) async {
     cierres.add(tokenRenovacion);
     if (errorAlCerrar case final error?) throw error;
+  }
+}
+
+/// Verificación del correo en memoria: guarda los códigos y los reenvíos, y
+/// responde lo que se le indique.
+class RepositorioVerificacionFalso implements RepositorioVerificacion {
+  /// Errores que lanza `verificarCodigo`, uno por intento y en orden; sin
+  /// errores pendientes, el código es correcto.
+  final List<Exception> erroresAlVerificar = [];
+  Exception? errorAlReenviar;
+  ResultadoReenvio resultadoReenvio = (enviado: true, yaVerificado: false);
+
+  final List<String> codigos = [];
+  int reenvios = 0;
+
+  @override
+  Future<void> verificarCodigo(String codigo) async {
+    codigos.add(codigo);
+    if (erroresAlVerificar.isNotEmpty) throw erroresAlVerificar.removeAt(0);
+  }
+
+  @override
+  Future<ResultadoReenvio> reenviar() async {
+    reenvios++;
+    if (errorAlReenviar case final error?) throw error;
+    return resultadoReenvio;
   }
 }
 

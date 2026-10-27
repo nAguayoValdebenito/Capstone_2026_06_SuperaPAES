@@ -3,12 +3,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supera_paes/datos/fuentes/fuente_cuentas_remota.dart';
+import 'package:supera_paes/datos/fuentes/fuente_verificacion_remota.dart';
 import 'package:supera_paes/datos/repositorios/almacen_sesion_seguro.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_cuentas_api.dart';
+import 'package:supera_paes/datos/repositorios/repositorio_verificacion_api.dart';
 import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/dominio/repositorios/almacen_sesion.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_cuentas.dart';
+import 'package:supera_paes/dominio/repositorios/repositorio_verificacion.dart';
 import 'package:supera_paes/nucleo/cliente_http.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/interceptor_sesion.dart';
@@ -54,9 +57,10 @@ class EstadoSesion extends AsyncNotifier<SesionEstudiante?> {
     final actual = state.value;
     if (actual == null) return false;
     try {
-      final renovada = actual.conTokens(
-        await _cuentas.renovar(actual.tokenRenovacion),
-      );
+      final tokens = await _cuentas.renovar(actual.tokenRenovacion);
+      // Lo más reciente del estudiante: pudo cambiar mientras se renovaba
+      // (por ejemplo, el correo quedó verificado).
+      final renovada = (state.value ?? actual).conTokens(tokens);
       await _almacen.guardar(renovada);
       state = AsyncData(renovada);
       return true;
@@ -64,6 +68,15 @@ class EstadoSesion extends AsyncNotifier<SesionEstudiante?> {
       if (error.estadoHttp == 401) await _olvidar();
       return false;
     }
+  }
+
+  /// El correo quedó verificado (HU-05): con el código, o porque la API
+  /// respondió que ya lo estaba. Se guarda para no esperar al próximo
+  /// ingreso. Sin sesión, o si ya estaba verificado, no hace nada.
+  Future<void> marcarCorreoVerificado() async {
+    final actual = state.value;
+    if (actual == null || actual.estudiante.correoVerificado) return;
+    await abrir(actual.conCorreoVerificado());
   }
 
   /// Cierra la sesión en la API y en el teléfono. Si la API no responde, la
@@ -105,6 +118,14 @@ final clienteHttpConSesionProvider = Provider<Dio>((ref) {
   ref.onDispose(dio.close);
   return dio;
 });
+
+/// Verificación del correo (HU-05): sus rutas exigen sesión, así que van con
+/// el cliente que agrega el token y lo renueva.
+final repositorioVerificacionProvider = Provider<RepositorioVerificacion>(
+  (ref) => RepositorioVerificacionApi(
+    FuenteVerificacionRemota(ref.watch(clienteHttpConSesionProvider)),
+  ),
+);
 
 /// Nombre del dispositivo que se guarda en la sesión.
 String? nombreDispositivo() => switch (defaultTargetPlatform) {

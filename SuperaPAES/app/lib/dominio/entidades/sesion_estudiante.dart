@@ -38,4 +38,16 @@ class SesionEstudiante {
     tokenRenovacion: tokens.tokenRenovacion,
     estudiante: estudiante,
   );
+
+  /// La misma sesión con el correo del estudiante verificado (HU-05).
+  SesionEstudiante conCorreoVerificado() => SesionEstudiante(
+    tokenAcceso: tokenAcceso,
+    tokenRenovacion: tokenRenovacion,
+    estudiante: Estudiante(
+      id: estudiante.id,
+      nombre: estudiante.nombre,
+      correo: estudiante.correo,
+      correoVerificado: true,
+    ),
+  );
 }
