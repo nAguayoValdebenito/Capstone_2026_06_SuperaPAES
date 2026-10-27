@@ -84,6 +84,15 @@ export function prepararPracticas(prefijo: string) {
       .post(`${RUTA_PRACTICAS}/${id}/siguiente`)
       .set('Authorization', `Bearer ${token}`)
       .send();
+  const cerrar = (token: string, id: string) =>
+    request(entorno.app)
+      .post(`${RUTA_PRACTICAS}/${id}/cerrar`)
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+  const resumen = (token: string, id: string) =>
+    request(entorno.app)
+      .get(`${RUTA_PRACTICAS}/${id}/resumen`)
+      .set('Authorization', `Bearer ${token}`);
 
   async function responder(itemId: string) {
     await entorno.bd.query(
@@ -125,6 +134,8 @@ export function prepararPracticas(prefijo: string) {
     publicar,
     inicio,
     siguiente,
+    cerrar,
+    resumen,
     responder,
     crearEvaluacionAbierta,
     get pruebaId() {
