@@ -1,6 +1,6 @@
 // Esquemas zod de entrada del módulo evaluaciones. Se usan con validar() en las rutas.
 import { z } from 'zod';
-import { idDeRuta } from '../../comun/identificadores.js';
+import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 
 const identificador = z.number().int().positive().max(32767);
 const identificadorContenido = z.number().int().positive().max(2147483647);
@@ -28,4 +28,10 @@ export const esquemaInicioPractica = z
   });
 
 export const esquemaIdPractica = z.object({ id: idDeRuta });
+/** POST /evaluaciones/{id}/items/{item}/respuesta (DAS 1.13, Figura 17). */
+export const esquemaIdsItem = z.object({ id: idDeRuta, item: idDeRuta });
+// No es strictObject a propósito: un campo de más (por ejemplo esCorrecta) se descarta y nunca se usa.
+// La corrección la hace el servidor (RN-06).
+export const esquemaRespuesta = z.object({ alternativaId: idDeCuerpo });
 export type DatosInicioPractica = z.infer<typeof esquemaInicioPractica>;
+export type DatosRespuestaPregunta = z.infer<typeof esquemaRespuesta>;

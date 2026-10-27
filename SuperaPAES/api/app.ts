@@ -102,6 +102,11 @@ export interface Dependencias {
   verificarCuentaInterna?: VerificarCuentaInterna;
   /** Solo para pruebas: ejecuta el envío del correo de recuperación de modo que la prueba lo espere. */
   segundoPlano?: (tarea: () => Promise<void>) => void;
+  /**
+   * Solo para pruebas: reemplaza la respuesta de suscripciones a «¿una suscripción cubre la prueba?»
+   * (RN-04), que hoy siempre es no (hasta HU-44).
+   */
+  cubrePrueba?: SuscripcionesServicio['cubrePrueba'];
 }
 
 export interface Servicios {
@@ -117,10 +122,34 @@ export interface Servicios {
   privacidad: PrivacidadServicio;
 }
 
+/**
+ * Suscripciones y cupo-invitaciones: el cupo pregunta a suscripciones si una suscripción cubre la
+ * prueba (RN-04). Las pruebas pueden reemplazar esa respuesta con Dependencias.cubrePrueba.
+ */
+function crearSuscripcionesYCupo(
+  dependencias: Dependencias,
+  administracion: AdministracionServicio,
+): Pick<Servicios, 'suscripciones' | 'cupoInvitaciones'> {
+  const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
+  const suscripciones = crearSuscripcionesServicio({
+    ...base,
+    pagos: dependencias.proveedores.pagos,
+  });
+  const cubrePrueba: SuscripcionesServicio['cubrePrueba'] =
+    dependencias.cubrePrueba ??
+    ((estudianteId, pruebaId, tx) => suscripciones.cubrePrueba(estudianteId, pruebaId, tx));
+  const cupoInvitaciones = crearCupoInvitacionesServicio({
+    ...base,
+    administracion,
+    suscripciones: { cubrePrueba },
+  });
+  return { suscripciones, cupoInvitaciones };
+}
+
 /** Crea los servicios en orden de dependencia: cada módulo recibe los servicios que usa. */
 export function crearServicios(dependencias: Dependencias): Servicios {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
-  const { ia, correo, pagos } = dependencias.proveedores;
+  const { ia, correo } = dependencias.proveedores;
 
   // Al desactivar una cuenta interna, administracion cierra sus sesiones, que son de cuentas. Cuentas
   // se crea después porque usa administracion: la función solo se llama una vez creados los dos.
@@ -128,7 +157,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     ...base,
     revocarSesionesUsuarioInterno: (id, tx) => cuentas.revocarSesionesUsuarioInterno(id, tx),
   });
-  const cupoInvitaciones = crearCupoInvitacionesServicio({ ...base, administracion });
+  const { suscripciones, cupoInvitaciones } = crearSuscripcionesYCupo(dependencias, administracion);
   const cuentas = crearCuentasServicio({
     ...base,
     correo,
@@ -143,7 +172,6 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const preguntas = crearPreguntasServicio({ ...base, temario });
   const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
   const revision = crearRevisionServicio({ ...base, administracion, preguntas });
-  const suscripciones = crearSuscripcionesServicio({ ...base, pagos });
   const evaluaciones = crearEvaluacionesServicio({
     ...base,
     cuentas,
