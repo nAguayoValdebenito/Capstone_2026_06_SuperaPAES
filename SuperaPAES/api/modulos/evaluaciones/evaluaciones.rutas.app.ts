@@ -29,6 +29,16 @@ export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Route
     controlador.siguientePregunta,
   );
   router.post(
+    '/practicas/:id/cerrar',
+    validar({ parametros: esquemaIdPractica }),
+    controlador.cerrarPractica,
+  );
+  router.get(
+    '/practicas/:id/resumen',
+    validar({ parametros: esquemaIdPractica }),
+    controlador.resumenPractica,
+  );
+  router.post(
     '/:id/items/:item/respuesta',
     validar({ parametros: esquemaIdsItem, cuerpo: esquemaRespuesta }),
     controlador.responderPregunta,

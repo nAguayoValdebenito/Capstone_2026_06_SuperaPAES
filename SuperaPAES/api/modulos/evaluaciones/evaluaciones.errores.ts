@@ -28,6 +28,9 @@ export const evaluacionNoEncontrada = () =>
 export const evaluacionCerrada = () =>
   new ErrorAplicacion(409, 'EVALUACION_CERRADA', 'Esta práctica ya está cerrada.');
 
+export const evaluacionAbierta = () =>
+  new ErrorAplicacion(409, 'EVALUACION_ABIERTA', 'Cierra la práctica para ver su resumen.');
+
 export const practicaCompleta = () =>
   new ErrorAplicacion(
     409,

@@ -23,6 +23,22 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.dificultadId',
   ],
   'POST /api/v1/app/evaluaciones/practicas/:id/siguiente': ['data.id', 'data.alternativas[].id'],
+  'POST /api/v1/app/evaluaciones/practicas/:id/cerrar': [
+    'data.id',
+    'data.prueba.id',
+    'data.alcance.id',
+    'data.dificultad.id',
+    'data.ejes[].id',
+    'data.habilidades[].id',
+  ],
+  'GET /api/v1/app/evaluaciones/practicas/:id/resumen': [
+    'data.id',
+    'data.prueba.id',
+    'data.alcance.id',
+    'data.dificultad.id',
+    'data.ejes[].id',
+    'data.habilidades[].id',
+  ],
   'POST /api/v1/app/evaluaciones/:id/items/:item/respuesta': [
     'data.alternativaElegidaId',
     'data.alternativaCorrectaId',
