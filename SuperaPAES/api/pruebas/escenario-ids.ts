@@ -83,19 +83,6 @@ export function escenario() {
         ],
       }),
     ),
-    responderPregunta: vi.fn(() =>
-      Promise.resolve({
-        esCorrecta: false,
-        alternativaElegidaId: '102',
-        alternativaCorrectaId: '101',
-        explicacion: 'Explicación',
-        alternativas: [
-          { id: 101, letra: 'A', texto: 'Primera', explicacion: null },
-          { id: '102', letra: 'B', texto: 'Segunda', explicacion: null },
-        ],
-        cupo: { maximo: 10, usadas: 1, restantes: 9, saldoExtra: 0, agotado: false },
-      }),
-    ),
   };
   const app = crearApp(dependencias, {
     ...servicios,
@@ -145,19 +132,16 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
     };
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
-  if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };
   return undefined;
 }
 
 export async function consultarContrato(app: Express, contrato: string) {
   const [metodo, patron] = contrato.split(' ');
   if (!patron) throw new Error('Falta ruta en el contrato de IDs.');
-  const ruta = patron
-    .replace(
-      ':id',
-      patron.includes('/estudiantes/') ? '84' : patron.includes('/evaluaciones/') ? '41' : '7',
-    )
-    .replace(':item', '84');
+  const ruta = patron.replace(
+    ':id',
+    patron.includes('/estudiantes/') ? '84' : patron.includes('/practicas/') ? '41' : '7',
+  );
   const peticion =
     metodo === 'GET'
       ? request(app).get(ruta)

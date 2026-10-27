@@ -23,11 +23,6 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.dificultadId',
   ],
   'POST /api/v1/app/evaluaciones/practicas/:id/siguiente': ['data.id', 'data.alternativas[].id'],
-  'POST /api/v1/app/evaluaciones/:id/items/:item/respuesta': [
-    'data.alternativaElegidaId',
-    'data.alternativaCorrectaId',
-    'data.alternativas[].id',
-  ],
 };
 
 const MAXIMO_ID = BigInt(Number.MAX_SAFE_INTEGER);

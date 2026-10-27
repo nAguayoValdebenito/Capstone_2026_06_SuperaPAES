@@ -4,12 +4,11 @@ import type { Request, RequestHandler } from 'express';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
-import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones.validadores.js';
+import type { DatosInicioPractica } from './evaluaciones.validadores.js';
 
 export interface EvaluacionesControlador {
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
   siguientePregunta: RequestHandler;
-  responderPregunta: RequestHandler<Record<string, string>, unknown, DatosRespuestaPregunta>;
 }
 
 function estudianteDe(req: Request): string {
@@ -26,14 +25,6 @@ export function crearEvaluacionesControlador(
     },
     siguientePregunta: async (req, res) => {
       responder(res, await servicio.siguientePregunta(estudianteDe(req), String(req.params.id)));
-    },
-    responderPregunta: async (req, res) => {
-      const datos = {
-        evaluacionId: String(req.params.id),
-        itemId: String(req.params.item),
-        alternativaId: req.body.alternativaId,
-      };
-      responder(res, await servicio.responderPregunta(estudianteDe(req), datos));
     },
   };
 }

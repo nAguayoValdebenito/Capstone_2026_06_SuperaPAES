@@ -30,7 +30,6 @@ describe('contrato central de ids', () => {
       'GET /api/v1/admin/temario/areas → data[].id',
       'POST /api/v1/app/evaluaciones/practicas → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.dificultadId',
       'POST /api/v1/app/evaluaciones/practicas/:id/siguiente → data.id, data.alternativas[].id',
-      'POST /api/v1/app/evaluaciones/:id/items/:item/respuesta → data.alternativaElegidaId, data.alternativaCorrectaId, data.alternativas[].id',
     ]);
   });
 
@@ -191,26 +190,6 @@ describe('ids en todas las rutas actuales que los devuelven', () => {
     expect(evaluaciones.siguientePregunta).toHaveBeenCalledWith('10', '41');
   });
 
-  it('responder: la alternativa elegida, la correcta y las alternativas tienen ids numéricos', async () => {
-    const { app, evaluaciones } = escenario();
-    const respuesta = await request(app)
-      .post(`${PREFIJO}/app/evaluaciones/41/items/84/respuesta`)
-      .set({ Authorization: `Bearer ${await tokenApp()}` })
-      .send({ alternativaId: 102 });
-    expect(respuesta.status).toBe(200);
-    expect(respuesta.body.data).toMatchObject({
-      alternativaElegidaId: 102,
-      alternativaCorrectaId: 101,
-    });
-    const alternativas = respuesta.body.data.alternativas as { id: number }[];
-    expect(alternativas.map((a) => a.id)).toEqual([101, 102]);
-    expect(evaluaciones.responderPregunta).toHaveBeenCalledWith('10', {
-      evaluacionId: '41',
-      itemId: '84',
-      alternativaId: 102,
-    });
-  });
-
   it('rechaza ids de cuerpo como texto o decimales y segmentos de ruta inválidos', async () => {
     const { app } = escenario();
     const appToken = { Authorization: `Bearer ${await tokenApp()}` };
@@ -242,14 +221,6 @@ describe('ids en todas las rutas actuales que los devuelven', () => {
       request(app)
         .post(`${PREFIJO}/app/evaluaciones/practicas/9007199254740992/siguiente`)
         .set(appToken),
-      request(app)
-        .post(`${PREFIJO}/app/evaluaciones/41/items/84/respuesta`)
-        .set(appToken)
-        .send({ alternativaId: '102' }),
-      request(app)
-        .post(`${PREFIJO}/app/evaluaciones/41/items/8.4/respuesta`)
-        .set(appToken)
-        .send({ alternativaId: 102 }),
     ]);
     for (const respuesta of respuestas) {
       expect(respuesta.status).toBe(400);
