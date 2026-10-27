@@ -14,6 +14,7 @@ import 'package:supera_paes/presentacion/practicar/pantalla_practicar.dart';
 import 'package:supera_paes/presentacion/pregunta/pantalla_pregunta.dart';
 import 'package:supera_paes/presentacion/privacidad/pantalla_privacidad.dart';
 import 'package:supera_paes/presentacion/progreso/pantalla_progreso.dart';
+import 'package:supera_paes/presentacion/recuperar_contrasena/pantalla_recuperar_contrasena.dart';
 import 'package:supera_paes/presentacion/repaso/pantalla_repaso.dart';
 import 'package:supera_paes/presentacion/terminos/pantalla_terminos.dart';
 import 'package:supera_paes/presentacion/verificar_correo/pantalla_verificar_correo.dart';
@@ -52,6 +53,12 @@ const List<Seccion> secciones = [
     Rutas.crearCuenta,
     Icons.person_add_alt_outlined,
     PantallaCrearCuenta.new,
+  ),
+  Seccion(
+    'Recuperar contraseña',
+    Rutas.recuperarContrasena,
+    Icons.lock_reset,
+    PantallaRecuperarContrasena.new,
   ),
   Seccion(
     'Términos y condiciones',

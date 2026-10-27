@@ -4,6 +4,7 @@ import { DisenoGeneral } from '../componentes/DisenoGeneral';
 import { useSesion } from '../estado/contexto-sesion';
 import { PaginaIngreso } from '../paginas/ingreso/PaginaIngreso';
 import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada';
+import { PaginaRestablecerContrasena } from '../paginas/restablecer-contrasena/PaginaRestablecerContrasena';
 import { RutaProtegida } from './RutaProtegida';
 import { INICIO_POR_ROL, SECCIONES } from './secciones';
 
@@ -16,6 +17,8 @@ export function RutasConsola() {
   return (
     <Routes>
       <Route path="/ingreso" element={<PaginaIngreso />} />
+      {/* Pública: la abre el estudiante con el enlace del correo de recuperación (A05, HU-06). */}
+      <Route path="/restablecer-contrasena" element={<PaginaRestablecerContrasena />} />
       <Route path="/" element={<RedirigirAlInicio />} />
       <Route element={<DisenoGeneral />}>
         {SECCIONES.map(({ ruta, roles, Pagina }) => (

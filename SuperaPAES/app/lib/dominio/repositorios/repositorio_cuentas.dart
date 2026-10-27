@@ -23,4 +23,9 @@ abstract interface class RepositorioCuentas {
 
   /// Cierra la sesión del token. Termina bien aunque ya estuviera cerrada.
   Future<void> cerrar(String tokenRenovacion);
+
+  /// Pide el enlace para crear una contraseña nueva (HU-06, CU-04). La API
+  /// responde lo mismo exista o no la cuenta, así que termina sin error en
+  /// los dos casos.
+  Future<void> solicitarRecuperacion(String correo);
 }

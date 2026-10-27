@@ -53,11 +53,13 @@ class RepositorioCuentasFalso implements RepositorioCuentas {
   Exception? errorAlIngresar;
   Exception? errorAlRenovar;
   Exception? errorAlCerrar;
+  Exception? errorAlRecuperar;
 
   final List<DatosRegistro> registros = [];
   final List<Ingreso> ingresos = [];
   final List<String> renovaciones = [];
   final List<String> cierres = [];
+  final List<String> recuperaciones = [];
 
   @override
   Future<List<DocumentoLegal>> documentosVigentes() async =>
@@ -98,6 +100,12 @@ class RepositorioCuentasFalso implements RepositorioCuentas {
   Future<void> cerrar(String tokenRenovacion) async {
     cierres.add(tokenRenovacion);
     if (errorAlCerrar case final error?) throw error;
+  }
+
+  @override
+  Future<void> solicitarRecuperacion(String correo) async {
+    recuperaciones.add(correo);
+    if (errorAlRecuperar case final error?) throw error;
   }
 }
 

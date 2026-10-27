@@ -6,6 +6,7 @@ abstract final class Rutas {
   // Acceso a la cuenta
   static const String ingreso = '/ingreso';
   static const String crearCuenta = '/crear-cuenta';
+  static const String recuperarContrasena = '/recuperar-contrasena';
   static const String terminos = '/terminos';
   static const String privacidad = '/privacidad';
   static const String verificarCorreo = '/verificar-correo';
