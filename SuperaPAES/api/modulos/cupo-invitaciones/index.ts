@@ -4,4 +4,6 @@ export { crearRutasAppCupoInvitaciones } from './cupo-invitaciones.rutas.app.js'
 export {
   crearCupoInvitacionesServicio,
   type CupoInvitacionesServicio,
+  type EstadoCupo,
+  type TipoConsumo,
 } from './cupo-invitaciones.servicio.js';

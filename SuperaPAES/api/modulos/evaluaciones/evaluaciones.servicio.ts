@@ -23,6 +23,13 @@ import {
   crearPracticasServicio,
   type PracticasServicio,
 } from './evaluaciones.practicas.servicio.js';
+import { crearRespuestasRepositorio } from './evaluaciones.respuestas.repositorio.js';
+import {
+  crearRespuestasServicio,
+  type RespuestasServicio,
+} from './evaluaciones.respuestas.servicio.js';
+import { crearResumenRepositorio } from './evaluaciones.resumen.repositorio.js';
+import { crearResumenServicio, type ResumenServicio } from './evaluaciones.resumen.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 
 export interface DependenciasEvaluacionesServicio {
@@ -40,7 +47,10 @@ export interface DependenciasEvaluacionesServicio {
   repositorio?: EvaluacionesRepositorio;
 }
 
-export type EvaluacionesServicio = SeleccionPractica & PracticasServicio;
+export type EvaluacionesServicio = SeleccionPractica &
+  PracticasServicio &
+  RespuestasServicio &
+  ResumenServicio;
 
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
@@ -58,7 +68,20 @@ function crearServicioSinReintento(
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
       cuentas: dependencias.cuentas,
       temario: dependencias.temario,
+      cupo: dependencias.cupoInvitaciones,
+      reloj: dependencias.reloj,
       seleccion,
+    }),
+    ...crearRespuestasServicio({
+      repositorio: crearRespuestasRepositorio(),
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
+      cuentas: dependencias.cuentas,
+      cupo: dependencias.cupoInvitaciones,
+      reloj: dependencias.reloj,
+    }),
+    ...crearResumenServicio({
+      repositorio: crearResumenRepositorio(),
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
     }),
   };
 }

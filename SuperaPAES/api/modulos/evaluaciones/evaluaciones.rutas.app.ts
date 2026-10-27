@@ -8,7 +8,12 @@ import { Router } from 'express';
 import { validar } from '../../comun/middleware/validacion.js';
 import { crearEvaluacionesControlador } from './evaluaciones.controlador.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
-import { esquemaIdPractica, esquemaInicioPractica } from './evaluaciones.validadores.js';
+import {
+  esquemaIdPractica,
+  esquemaIdsItem,
+  esquemaInicioPractica,
+  esquemaRespuesta,
+} from './evaluaciones.validadores.js';
 
 export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Router {
   const router = Router();
@@ -22,6 +27,21 @@ export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Route
     '/practicas/:id/siguiente',
     validar({ parametros: esquemaIdPractica }),
     controlador.siguientePregunta,
+  );
+  router.post(
+    '/practicas/:id/cerrar',
+    validar({ parametros: esquemaIdPractica }),
+    controlador.cerrarPractica,
+  );
+  router.get(
+    '/practicas/:id/resumen',
+    validar({ parametros: esquemaIdPractica }),
+    controlador.resumenPractica,
+  );
+  router.post(
+    '/:id/items/:item/respuesta',
+    validar({ parametros: esquemaIdsItem, cuerpo: esquemaRespuesta }),
+    controlador.responderPregunta,
   );
   return router;
 }
