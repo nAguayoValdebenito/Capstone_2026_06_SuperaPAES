@@ -57,7 +57,9 @@ INSERT INTO contenido.usuario_interno (nombre, correo, hash_contrasena, rol_id, 
   ('Docente 1', 'd1@prueba.cl', 'x', pg_temp.id('rol', 'docente'), now()),
   ('Docente 2', 'd2@prueba.cl', 'x', pg_temp.id('rol', 'docente'), now());
 INSERT INTO contenido.prueba_tipo_pregunta SELECT p.id, t.id FROM contenido.prueba p, contenido.tipo_pregunta t
- WHERE t.codigo = 'seleccion_multiple' OR p.codigo = 'M2';
+ WHERE t.codigo = 'seleccion_multiple' OR p.codigo = 'M2'
+-- La semilla 005_tipos_pregunta_por_prueba.sql ya carga estas mismas filas.
+ON CONFLICT DO NOTHING;
 -- ---------- 0. Semillas ----------
 SELECT pg_temp.grupo('0. Semillas');
 SELECT pg_temp.debe_ser('La semilla del temario trae el curso de cada contenido de M1, M2, Historia y Ciencias',

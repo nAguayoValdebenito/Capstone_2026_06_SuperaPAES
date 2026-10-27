@@ -4,6 +4,12 @@ import type { Express } from 'express';
 import { expect, vi } from 'vitest';
 import { crearApp, crearServicios } from '../app.js';
 import {
+  cuerpoPregunta,
+  filtrosBanco,
+  paginaBanco,
+  preguntaParaEditar,
+} from './escenario-ids-preguntas.js';
+import {
   aceptarCualquierSesion,
   crearDependenciasDePrueba,
   tokenAdmin,
@@ -138,11 +144,20 @@ export function escenario() {
     cerrarPractica: vi.fn(() => Promise.resolve(resumenPractica)),
     resumenPractica: vi.fn(() => Promise.resolve(resumenPractica)),
   };
+  const preguntas = {
+    ...servicios.preguntas,
+    listarBanco: vi.fn(() => Promise.resolve(paginaBanco)),
+    filtrosDelBanco: vi.fn(() => Promise.resolve(filtrosBanco)),
+    crearPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
+    obtenerPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
+    editarPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
+  };
   const app = crearApp(dependencias, {
     ...servicios,
     cuentas,
     administracion,
     temario,
+    preguntas,
     evaluaciones,
   });
   return { app, cuentas, administracion, evaluaciones };
@@ -187,6 +202,7 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
   if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };
+  if (/^(POST|PUT) .*\/preguntas\/(:id)?$/.test(ruta)) return cuerpoPregunta;
   return cuerpoPerfil(ruta);
 }
 

@@ -1,5 +1,6 @@
 // Esquemas zod de entrada del módulo preguntas. Se usan con validar() en las rutas.
 import { z } from 'zod';
+import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 
 /** Preguntas por página del banco: 20 por defecto (docs/convenciones.md), hasta 100. */
 export const POR_PAGINA_BANCO = 20;
@@ -50,3 +51,48 @@ export const esquemaFiltrosBanco = z.strictObject({
 });
 
 export type FiltrosBanco = z.output<typeof esquemaFiltrosBanco>;
+
+/** Letras de las alternativas, en orden (contenido.alternativa.letra). */
+export const LETRAS = ['A', 'B', 'C', 'D', 'E'] as const;
+
+const textoObligatorio = (falta: string) => z.string().trim().min(1, falta);
+
+/** Código de una lista de opciones (tipo_pregunta, dificultad: VARCHAR(20) o menos). */
+const codigoDeLista = z.string().regex(/^[a-z_]{1,20}$/, 'El código no es válido.');
+
+const alternativa = z.strictObject({
+  letra: z.enum(LETRAS, 'La letra debe ser de la A a la E.'),
+  texto: textoObligatorio('Escribe el texto de la alternativa.'),
+  esCorrecta: z.boolean('Indica si la alternativa es la correcta.'),
+  /** Explicación de por qué la alternativa es correcta o no; opcional en las preguntas manuales. */
+  explicacion: z.string().trim().nullable().default(null),
+});
+
+/**
+ * HU-12, RF-G02 y C03: datos de una pregunta al crearla o editarla. El tipo de pregunta y la dificultad
+ * sugerida van por su código. El texto de lectura (texto_estimulo) y el orden de la pregunta en él van
+ * juntos, como exige el modelo. RN-08 (cuántas alternativas, una correcta y el texto en Competencia
+ * Lectora) depende de la prueba: lo revisa el servicio.
+ */
+export const esquemaPregunta = z
+  .strictObject({
+    pruebaId: idDeCuerpo,
+    contenidoId: idDeCuerpo,
+    habilidadId: idDeCuerpo,
+    tipoPregunta: codigoDeLista,
+    dificultadSugerida: codigoDeLista.nullable().default(null),
+    enunciado: textoObligatorio('Escribe el enunciado.'),
+    explicacion: textoObligatorio('Escribe la explicación de la respuesta correcta.'),
+    textoEstimuloId: idDeCuerpo.nullable().default(null),
+    ordenEnTexto: z.int().positive().max(32_767).nullable().default(null),
+    alternativas: z.array(alternativa).min(1, 'Agrega las alternativas.').max(LETRAS.length),
+  })
+  .refine((datos) => (datos.textoEstimuloId === null) === (datos.ordenEnTexto === null), {
+    message: 'Indica el texto de lectura y el orden de la pregunta en él.',
+    path: ['ordenEnTexto'],
+  });
+
+export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
+
+export type DatosPregunta = z.output<typeof esquemaPregunta>;
+export type AlternativaPregunta = DatosPregunta['alternativas'][number];
