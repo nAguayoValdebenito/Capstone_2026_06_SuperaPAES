@@ -21,9 +21,9 @@ describe.skipIf(!urlBase)('continuidad y textos de prácticas con PostgreSQL', (
     await publicar(10, { prueba: 'M1', dificultad: 'media' });
     const { token } = await sesion();
     const primera = await inicio(token, { pruebaId, cantidad: 5 });
-    const id = primera.body.data.id as string;
+    const id = String(primera.body.data.id as number);
     const entrega = await siguiente(token, id);
-    await responder(entrega.body.data.id as string);
+    await responder(String(entrega.body.data.id as number));
     const segunda = await inicio(token, { pruebaId, cantidad: 5 });
     expect(segunda.status).toBe(201);
     const { rows } = await entorno.bd.query<{ estado: string; correctas: number; cerradaEn: Date }>(
@@ -91,10 +91,10 @@ describe.skipIf(!urlBase)('continuidad y textos de prácticas con PostgreSQL', (
       );
     const { token, id: estudianteId } = await sesion();
     const creada = await inicio(token, { pruebaId, cantidad: 5 });
-    const practicaId = creada.body.data.id as string;
+    const practicaId = String(creada.body.data.id as number);
     const primera = await siguiente(token, practicaId);
     expect(primera.status).toBe(200);
-    await responder(primera.body.data.id as string);
+    await responder(String(primera.body.data.id as number));
     const { rows } = await entorno.bd.query<{ preguntaId: string }>(
       `SELECT pregunta_id::text AS "preguntaId" FROM app.evaluacion_item WHERE id=$1`,
       [primera.body.data.id],
@@ -122,7 +122,7 @@ describe.skipIf(!urlBase)('continuidad y textos de prácticas con PostgreSQL', (
     const { token } = await sesion();
     const { token: otro } = await sesion('otro@ejemplo.cl');
     const creada = await inicio(token, { pruebaId, cantidad: 5 });
-    const id = creada.body.data.id as string;
+    const id = String(creada.body.data.id as number);
     const ajena = await siguiente(otro, id);
     const inexistente = await siguiente(otro, '999999999');
     expect(ajena.status).toBe(404);
@@ -165,14 +165,14 @@ describe.skipIf(!urlBase)('continuidad y textos de prácticas con PostgreSQL', (
     const { token } = await sesion('lectora@ejemplo.cl', [lectoraId]);
     const creada = await inicio(token, { pruebaId: lectoraId, habilidadId, cantidad: 10 });
     expect(creada.status).toBe(201);
-    const id = creada.body.data.id as string;
+    const id = String(creada.body.data.id as number);
     const textos: string[] = [];
     const ordenes: number[] = [];
     for (let orden = 1; orden <= 10; orden++) {
       const entrega = await siguiente(token, id);
       expect(entrega.status).toBe(200);
       expect(entrega.body.data).toMatchObject({ orden, total: 10 });
-      const itemId = entrega.body.data.id as string;
+      const itemId = String(entrega.body.data.id as number);
       const { rows } = await entorno.bd.query<{
         textoId: string;
         ordenEnTexto: number;
@@ -208,7 +208,7 @@ describe.skipIf(!urlBase)('continuidad y textos de prácticas con PostgreSQL', (
     expect(creada.status).toBe(201);
     expect(creada.body.data.dificultad).toBe('mezcla');
     for (let orden = 1; orden <= 5; orden++) {
-      const entrega = await siguiente(token, creada.body.data.id as string);
+      const entrega = await siguiente(token, String(creada.body.data.id as number));
       expect(entrega.status).toBe(200);
       expect(entrega.body.data).toMatchObject({ orden, total: 5 });
       expect(entrega.body.data.texto).toEqual({
@@ -219,7 +219,7 @@ describe.skipIf(!urlBase)('continuidad y textos de prácticas con PostgreSQL', (
       expect(JSON.stringify(entrega.body)).not.toMatch(
         /alternativaCorrectaId|esCorrecta|explicacion|Explicación reservada/i,
       );
-      await responder(entrega.body.data.id as string);
+      await responder(String(entrega.body.data.id as number));
     }
   });
 });

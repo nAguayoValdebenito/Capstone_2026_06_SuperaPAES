@@ -1,5 +1,6 @@
 // Esquemas zod de entrada del módulo administracion. Se usan con validar() en las rutas.
 import { z } from 'zod';
+import { idDeRuta } from '../../comun/identificadores.js';
 import { refinarContrasena } from '../../comun/contrasenas.js';
 import { ROLES_CUENTA_INTERNA } from '../../comun/roles.js';
 
@@ -39,9 +40,8 @@ export const esquemaEditarUsuarioInterno = z
   });
 
 export const esquemaIdUsuarioInterno = z.strictObject({
-  id: z.string().regex(/^[1-9]\d{0,17}$/, 'El identificador no es válido.'),
+  id: idDeRuta,
 });
 
 export type DatosCrearUsuarioInterno = z.output<typeof esquemaCrearUsuarioInterno>;
 export type DatosEditarUsuarioInterno = z.output<typeof esquemaEditarUsuarioInterno>;
-export type ParametrosUsuarioInterno = z.output<typeof esquemaIdUsuarioInterno>;

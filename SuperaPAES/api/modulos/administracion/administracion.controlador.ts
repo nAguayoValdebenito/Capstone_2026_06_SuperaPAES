@@ -7,7 +7,6 @@ import type { AdministracionServicio } from './administracion.servicio.js';
 import type {
   DatosCrearUsuarioInterno,
   DatosEditarUsuarioInterno,
-  ParametrosUsuarioInterno,
 } from './administracion.validadores.js';
 
 /** Manejador cuyo cuerpo y parámetros ya fueron validados y tipados por validar() en la ruta. */
@@ -16,9 +15,9 @@ type Validado<P, C = unknown> = RequestHandler<P, unknown, C>;
 export interface AdministracionControlador {
   listarUsuariosInternos: RequestHandler;
   crearUsuarioInterno: Validado<Record<string, string>, DatosCrearUsuarioInterno>;
-  editarUsuarioInterno: Validado<ParametrosUsuarioInterno, DatosEditarUsuarioInterno>;
-  activarUsuarioInterno: Validado<ParametrosUsuarioInterno>;
-  desactivarUsuarioInterno: Validado<ParametrosUsuarioInterno>;
+  editarUsuarioInterno: Validado<Record<string, string>, DatosEditarUsuarioInterno>;
+  activarUsuarioInterno: RequestHandler;
+  desactivarUsuarioInterno: RequestHandler;
 }
 
 /** Administrador que hace el cambio, para la auditoría. Lo deja autenticarAdmin. */
@@ -38,15 +37,21 @@ export function crearAdministracionControlador(
       responder(res, await servicio.crearUsuarioInterno(autorDe(req), req.body), { estado: 201 });
     },
     editarUsuarioInterno: async (req, res) => {
-      responder(res, await servicio.editarUsuarioInterno(autorDe(req), req.params.id, req.body));
+      responder(
+        res,
+        await servicio.editarUsuarioInterno(autorDe(req), String(req.params.id), req.body),
+      );
     },
     activarUsuarioInterno: async (req, res) => {
-      responder(res, await servicio.cambiarEstadoUsuarioInterno(autorDe(req), req.params.id, true));
+      responder(
+        res,
+        await servicio.cambiarEstadoUsuarioInterno(autorDe(req), String(req.params.id), true),
+      );
     },
     desactivarUsuarioInterno: async (req, res) => {
       responder(
         res,
-        await servicio.cambiarEstadoUsuarioInterno(autorDe(req), req.params.id, false),
+        await servicio.cambiarEstadoUsuarioInterno(autorDe(req), String(req.params.id), false),
       );
     },
   };

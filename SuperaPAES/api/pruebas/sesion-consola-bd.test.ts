@@ -70,7 +70,7 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
       .post('/api/v1/admin/administracion/usuarios-internos')
       .set(conToken(admin.body.data.tokenAcceso as string))
       .send({ nombre: 'Diego Docente', ...DOCENTE, rol: 'docente', areas: [areaId] });
-    docenteId = docente.body.data.id as string;
+    docenteId = String(docente.body.data.id as number);
   }, MINUTO);
 
   it('el ingreso guarda solo el SHA-256 del token, vence a las 8 horas y registra el acceso', async () => {
@@ -92,7 +92,7 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
       .get(RUTA_YO)
       .set(conToken(respuesta.body.data.tokenAcceso as string));
     expect(yo.body.data).toMatchObject({
-      id: docenteId,
+      id: Number(docenteId),
       rol: 'docente',
       areas: [expect.any(Number)],
     });
