@@ -74,11 +74,7 @@ void main() {
 
     expect(
       tester.getSemantics(find.text('Mezcla')),
-<<<<<<< HEAD
       isSemantics(
-=======
-      containsSemantics(
->>>>>>> 2d639b88db38cd451b5722dfb5eea03a440f25c3
         isButton: true,
         isSelected: true,
         isInMutuallyExclusiveGroup: true,
