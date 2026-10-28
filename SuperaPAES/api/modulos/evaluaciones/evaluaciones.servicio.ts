@@ -28,6 +28,8 @@ import {
   crearRespuestasServicio,
   type RespuestasServicio,
 } from './evaluaciones.respuestas.servicio.js';
+import { crearProgresoRepositorio } from './evaluaciones.progreso.repositorio.js';
+import { crearProgresoServicio, type ProgresoServicio } from './evaluaciones.progreso.servicio.js';
 import { crearResumenRepositorio } from './evaluaciones.resumen.repositorio.js';
 import { crearResumenServicio, type ResumenServicio } from './evaluaciones.resumen.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
@@ -50,7 +52,8 @@ export interface DependenciasEvaluacionesServicio {
 export type EvaluacionesServicio = SeleccionPractica &
   PracticasServicio &
   RespuestasServicio &
-  ResumenServicio;
+  ResumenServicio &
+  ProgresoServicio;
 
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
@@ -82,6 +85,10 @@ function crearServicioSinReintento(
     ...crearResumenServicio({
       repositorio: crearResumenRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    }),
+    ...crearProgresoServicio({
+      repositorio: crearProgresoRepositorio(dependencias.bd),
+      administracion: dependencias.administracion,
     }),
   };
 }
