@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/modelos/practica_modelo.dart';
@@ -6,6 +7,7 @@ import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
@@ -190,6 +192,49 @@ void main() {
 
       await tocar(tester, find.text('Volver a la pregunta'));
       expect(_elegida(tester, 'B'), isTrue);
+    });
+  });
+
+  group('Fórmulas e imágenes en la pregunta (HU-34.2)', () {
+    testWidgets('el enunciado y las alternativas dibujan sus fórmulas', (
+      tester,
+    ) async {
+      await _empezar(
+        tester,
+        RepositorioPracticaFalso(
+          enunciado: r'Si $\log_2(x) = 5$, ¿cuál es el valor de $x$?',
+          textosAlternativas: const [
+            r'$10$',
+            r'$25$',
+            r'$2^5$',
+            r'$\frac{5}{2}$',
+          ],
+        ),
+      );
+
+      // Dos en el enunciado y una en cada alternativa.
+      expect(find.byType(Math), findsNWidgets(6));
+      expect(find.byType(OpcionAlternativa), findsNWidgets(4));
+    });
+
+    testWidgets('el texto de lectura muestra su imagen, que se puede '
+        'agrandar (esc. 3)', (tester) async {
+      await _empezar(
+        tester,
+        RepositorioPracticaFalso(
+          texto: const TextoDeLectura(
+            titulo: 'Gráfico 1',
+            contenido: 'Ventas de una tienda durante el año.',
+            imagen: '/archivos/grafico-1.png',
+          ),
+        ),
+      );
+
+      await tocar(tester, find.byType(ImagenAmpliable));
+      expect(find.byType(PantallaImagen), findsOne);
+      await tester.tap(find.byTooltip('Volver a la pregunta'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pregunta 1 de 10'), findsOne);
     });
   });
 

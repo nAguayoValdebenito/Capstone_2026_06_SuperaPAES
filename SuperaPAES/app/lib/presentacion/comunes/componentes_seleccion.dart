@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 
 /// Opción con radio (Opción: Normal y Seleccionada), como los cursos de A08.
 class OpcionRadio extends StatelessWidget {
@@ -312,7 +313,8 @@ class OpcionAlternativa extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(top: 3),
-                child: Text(texto, style: TemaSuperaPaes.cuerpo),
+                // Las alternativas también pueden traer fórmulas e imágenes.
+                child: TextoConFormulas(texto),
               ),
             ),
           ],

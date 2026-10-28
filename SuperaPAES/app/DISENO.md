@@ -125,7 +125,17 @@ En `comunes/componentes_seleccion.dart`:
 | ----------------------------------- | ------------------------------------------------------------- |
 | `OpcionRadio(texto:, seleccionada:, onTap:, detalle:)` | Opción con radio, una entre varias (cursos de A08). `detalle` va gris debajo (el contenido elegido en A13). |
 | `SelectorSegmentado(opciones:, seleccionado:, onChanged:)` | Una opción entre pocas, a lo ancho (dificultad de A13). |
-| `OpcionAlternativa(letra:, texto:, seleccionada:, onTap:)` | Alternativa de una pregunta con su letra en un círculo (A17 a A20). |
+| `OpcionAlternativa(letra:, texto:, seleccionada:, onTap:)` | Alternativa de una pregunta con su letra en un círculo (A17 a A20). Su texto admite fórmulas e imágenes. |
+
+En `comunes/formato_pregunta_vista.dart` (HU-34.2):
+
+| Componente                          | Para qué                                                      |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `TextoConFormulas(texto, estilo:)`  | Todo texto de una pregunta (enunciado, alternativa, explicación, texto de lectura): Markdown con fórmulas `$…$` y `$$…$$` en LaTeX e imágenes `![alt](url)`. |
+| `ImagenAmpliable(url:, alternativo:)` | Imagen que se toca para verla en pantalla completa y agrandarla. |
+
+No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las fórmulas se verán como
+`$\frac{x}{2}$`.
 | `TarjetaCasilla(titulo:, marcada:, onTap:, detalle:, etiqueta:)` | Tarjeta con casilla (pruebas de A10).  |
 | `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
 | `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`) o «Sin verificar» (`aviso`). |
