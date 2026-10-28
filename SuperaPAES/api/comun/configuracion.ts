@@ -1,6 +1,13 @@
 // Lectura y validación de las variables de entorno. La API no arranca si falta algo obligatorio.
 // Los parámetros de negocio (cupos, bonos, topes, plazos) no van aquí: viven en contenido.configuracion.
 import { z } from 'zod';
+import {
+  leerConfiguracionCorreo,
+  problemasDeSmtp,
+  type ConfiguracionCorreo,
+} from './configuracion-smtp.js';
+
+export type { ConfiguracionCorreo } from './configuracion-smtp.js';
 
 const textoOpcional = z
   .string()
@@ -160,37 +167,6 @@ function problemasDeProveedores(v: Variables): Problema[] {
   );
 }
 
-const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
-
-function problemasDeSmtp(v: Variables): Problema[] {
-  if (v.PROVEEDOR_CORREO !== 'smtp') return [];
-  const problemas: Problema[] = [];
-  const local = v.SMTP_HOST !== undefined && HOSTS_LOCALES.has(v.SMTP_HOST.toLowerCase());
-
-  if (v.SMTP_TLS === 'none' && !local) {
-    problemas.push(['SMTP_TLS', 'solo puede ser none para localhost']);
-  }
-  if (v.SMTP_TLS === 'implicit' && v.SMTP_PORT !== undefined && v.SMTP_PORT !== 465) {
-    problemas.push(['SMTP_PORT', 'debe ser 465 con SMTP_TLS=implicit']);
-  }
-  if (
-    v.SMTP_TLS === 'starttls' &&
-    v.SMTP_PORT !== undefined &&
-    ![587, 2525].includes(v.SMTP_PORT)
-  ) {
-    problemas.push(['SMTP_PORT', 'debe ser 587 o 2525 con SMTP_TLS=starttls']);
-  }
-
-  const exigeCredenciales = !local || v.SMTP_USUARIO !== undefined || v.SMTP_CLAVE !== undefined;
-  if (exigeCredenciales && v.SMTP_USUARIO === undefined) {
-    problemas.push(['SMTP_USUARIO', 'obligatoria para un servidor SMTP remoto o autenticado']);
-  }
-  if (exigeCredenciales && v.SMTP_CLAVE === undefined) {
-    problemas.push(['SMTP_CLAVE', 'obligatoria para un servidor SMTP remoto o autenticado']);
-  }
-  return problemas;
-}
-
 const esquema = esquemaBase.superRefine((v, ctx) => {
   const problemas = [
     ...problemasDeSecretos(v),
@@ -206,19 +182,6 @@ const esquema = esquemaBase.superRefine((v, ctx) => {
 
 export type ConfiguracionIA =
   { proveedor: 'simulado' } | { proveedor: 'deepseek' | 'gemini'; claveApi: string };
-
-export type ConfiguracionCorreo =
-  | { proveedor: 'consola' }
-  | {
-      proveedor: 'smtp';
-      host: string;
-      puerto: number;
-      tls: 'none' | 'starttls' | 'implicit';
-      usuario: string | undefined;
-      clave: string | undefined;
-      remitente: string;
-      timeoutMs: number;
-    };
 
 export interface ConfiguracionGooglePlay {
   paquete: string;
@@ -289,20 +252,6 @@ function leerConfiguracionIA(v: Variables): ConfiguracionIA {
   if (v.PROVEEDOR_IA === 'simulado') return { proveedor: 'simulado' };
   const claveApi = v.PROVEEDOR_IA === 'gemini' ? v.GEMINI_API_KEY : v.DEEPSEEK_API_KEY;
   return { proveedor: v.PROVEEDOR_IA, claveApi: claveApi ?? '' };
-}
-
-function leerConfiguracionCorreo(v: Variables): ConfiguracionCorreo {
-  if (v.PROVEEDOR_CORREO === 'consola') return { proveedor: 'consola' };
-  return {
-    proveedor: 'smtp',
-    host: v.SMTP_HOST ?? '',
-    puerto: v.SMTP_PORT ?? 0,
-    tls: v.SMTP_TLS ?? 'none',
-    usuario: v.SMTP_USUARIO,
-    clave: v.SMTP_CLAVE,
-    remitente: v.CORREO_REMITENTE ?? '',
-    timeoutMs: v.SMTP_TIMEOUT_MS ?? 10_000,
-  };
 }
 
 function leerConfiguracionPagos(v: Variables): ConfiguracionPagos {
