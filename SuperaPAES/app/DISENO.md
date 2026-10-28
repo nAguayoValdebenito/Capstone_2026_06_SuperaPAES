@@ -21,8 +21,8 @@ diseño es el del prototipo v3 (DAS 7.2 y 7.5) y ya está en el código:
    existe, agrégalo a `componentes.dart`, con su prueba en `test/componentes_test.dart`.
 4. **Sin barra superior.** Los bocetos no tienen `AppBar`. La pantalla parte con un `EnlaceVolver`
    (si se llega desde otra) y un `Encabezado`. Las pestañas de la barra inferior (Inicio, Practicar,
-   Evaluaciones, Progreso y Perfil) tampoco llevan barra superior en sus bocetos. Perfil ya
-   sigue su boceto; las demás usan `comunes/pantalla_base.dart`, que sí la tiene, porque
+   Evaluaciones, Progreso y Perfil) tampoco llevan barra superior en sus bocetos. Inicio y Perfil
+   ya siguen su boceto; las demás usan `comunes/pantalla_base.dart`, que sí la tiene, porque
    todavía son de relleno («En construcción»). Al construir cada una según su boceto, deja de
    usar `PantallaBase`.
 5. **Etiqueta arriba del campo**, no dentro: usa `CampoTexto` o `CampoContrasena`, no un
@@ -90,6 +90,7 @@ Los colores van con `copyWith`, por ejemplo
 | `radioTarjeta`    | 16    | Tarjetas                                        |
 | `altoChip` / `radioChip` | 36 / 18 | Chips                                   |
 | `altoEtiqueta`    | 24    | Etiquetas (radio de la mitad)                   |
+| `altoBarra`       | 8     | Barra del cupo de A12 (radio de la mitad)       |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
 
@@ -97,7 +98,7 @@ Entre los elementos de un formulario van 16 de separación; el diseño de refere
 
 | Componente (en `componentes.dart`) | Para qué                                                       |
 | ---------------------------------- | -------------------------------------------------------------- |
-| `PantallaFormulario(hijos: [...], pie:)` | Estructura de la pantalla: sin barra superior, desplazable, márgenes de 24 y 16 entre hijos. El `pie` queda fijo abajo (el botón principal de A08 a A10). |
+| `PantallaFormulario(hijos: [...], pie:)` | Estructura de la pantalla: sin barra superior, desplazable, márgenes de 24 y 16 entre hijos. El `pie` queda fijo abajo (el botón principal de A08 a A10). Con `alActualizar`, deslizar hacia abajo recarga (A12). |
 | `PieConError(boton:, error:)`      | Pie fijo con el error del botón justo sobre él, para que siempre se vea. |
 | `EnlaceVolver(texto:, destino:)`   | «‹ Inicio». Vuelve atrás; si no hay historial, va a `destino`. |
 | `Encabezado(titulo:, bajada:)`     | Título `h1` y bajada gris. `bajadaRica` para partes en negrita; `centrado` para pantallas con logo. |
@@ -168,7 +169,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A09b     | Paso 2, tope de tres áreas               | `32:1028` | `perfil_estudio/pantalla_paso_areas.dart` |
 | A10      | Perfil, paso 3: tus pruebas              | `33:643`  | `perfil_estudio/pantalla_paso_pruebas.dart` |
 | A11      | Confirmar el curso en marzo              | `33:730`  | `perfil_estudio/hoja_confirmar_curso.dart` |
-| A12      | Inicio                                   | `33:794`  | `inicio/`                             |
+| A12      | Inicio                                   | `33:794`  | `inicio/` (ya sigue el boceto; sin «Práctica sin terminar», «Repasar errores» ni diagnóstico, que llegan con HU-60, HU-39 y HU-36) |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
 
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).

@@ -17,6 +17,7 @@ class PantallaFormulario extends StatelessWidget {
     super.key,
     this.separacion,
     this.pie,
+    this.alActualizar,
   });
 
   final List<Widget> hijos;
@@ -25,29 +26,44 @@ class PantallaFormulario extends StatelessWidget {
   final double? separacion;
   final Widget? pie;
 
+  /// Con esta función, deslizar hacia abajo vuelve a cargar la pantalla
+  /// (Inicio relee el cupo del día).
+  final Future<void> Function()? alActualizar;
+
   @override
   Widget build(BuildContext context) {
     final espacio = separacion ?? 16;
     const margen = TemaSuperaPaes.margenPantalla;
+    final lista = ListView(
+      // Se puede deslizar para actualizar aunque el contenido quepa entero.
+      physics: alActualizar == null
+          ? null
+          : const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        margen,
+        8,
+        margen,
+        pie == null ? margen : espacio,
+      ),
+      children: [
+        for (final (i, hijo) in hijos.indexed) ...[
+          if (i > 0) SizedBox(height: espacio),
+          hijo,
+        ],
+      ],
+    );
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  margen,
-                  8,
-                  margen,
-                  pie == null ? margen : espacio,
+              child: switch (alActualizar) {
+                final actualizar? => RefreshIndicator(
+                  onRefresh: actualizar,
+                  child: lista,
                 ),
-                children: [
-                  for (final (i, hijo) in hijos.indexed) ...[
-                    if (i > 0) SizedBox(height: espacio),
-                    hijo,
-                  ],
-                ],
-              ),
+                null => lista,
+              },
             ),
             if (pie case final abajo?)
               Padding(

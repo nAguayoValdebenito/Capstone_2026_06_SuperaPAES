@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
-import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/nucleo/errores.dart';
-import 'package:supera_paes/presentacion/comunes/en_construccion.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/inicio/aviso_verificar_correo.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/inicio/pruebas_inicio.dart';
+import 'package:supera_paes/presentacion/inicio/tarjeta_cupo.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/hoja_confirmar_curso.dart';
 
-/// Inicio del estudiante. Por ahora muestra el aviso de correo sin verificar
-/// y el estado de la API; al empezar el año escolar, pide confirmar el curso
-/// (A11).
+/// Inicio del estudiante (A12; HU-35, RF-A05, CU-06 paso 1): el saludo con la
+/// racha, el cupo del día, el aviso de correo sin verificar y sus pruebas. Al
+/// empezar el año escolar, pide confirmar el curso (A11).
 class PantallaInicio extends ConsumerStatefulWidget {
   const PantallaInicio({super.key});
 
@@ -25,15 +25,20 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
   /// La hoja de A11 se muestra una vez por apertura de Inicio.
   bool _hojaAbierta = false;
 
-  /// Al volver a la app se lee de nuevo el perfil: si empezó marzo mientras
-  /// estaba en segundo plano, A11 aparece sin reiniciarla.
+  /// Al volver a la app se leen de nuevo el perfil y el cupo: si empezó
+  /// marzo, A11 aparece sin reiniciarla, y si pasó la medianoche, el cupo
+  /// vuelve a estar completo.
   late final AppLifecycleListener _ciclo;
 
   @override
   void initState() {
     super.initState();
     _ciclo = AppLifecycleListener(
-      onResume: () => ref.invalidate(perfilProvider),
+      onResume: () {
+        ref
+          ..invalidate(perfilProvider)
+          ..invalidate(cupoDeHoyProvider);
+      },
     );
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _revisarCurso(ref.read(perfilProvider).value),
@@ -54,55 +59,32 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
     _hojaAbierta = false;
   }
 
+  /// Deslizar hacia abajo relee el cupo y el perfil. Si falla, la tarjeta
+  /// del cupo muestra el error con «Reintentar».
+  Future<void> _actualizar() async {
+    ref
+      ..invalidate(cupoDeHoyProvider)
+      ..invalidate(perfilProvider);
+    try {
+      await ref.read(cupoDeHoyProvider.future);
+    } on Object {
+      return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(perfilProvider, (_, perfil) => _revisarCurso(perfil.value));
-    final salud = ref.watch(estadoSaludProvider);
+    final estudiante = ref.watch(sesionProvider).value?.estudiante;
 
-    final sinVerificar =
-        ref.watch(sesionProvider).value?.estudiante.correoVerificado == false;
-
-    return EnConstruccion(
-      encabezado: sinVerificar ? const AvisoVerificarCorreo() : null,
-      descripcion:
-          'Aquí verás tu resumen de práctica, tu racha y tu cupo del día.',
-      acciones: const [
-        AccionNavegacion('Invitaciones', Rutas.invitaciones),
-        AccionNavegacion('Cupo agotado', Rutas.cupoAgotado),
-      ],
+    return PantallaFormulario(
+      separacion: 14,
+      alActualizar: _actualizar,
       hijos: [
-        const SizedBox(height: 24),
-        Text(
-          'Estado del sistema',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8),
-        salud.when(
-          loading: () => const Text('Consultando la API…'),
-          data: (estado) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('API: ${estado.estado}'),
-              Text('Base de datos: ${estado.baseDeDatos}'),
-            ],
-          ),
-          error: (error, _) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                error is ErrorApi
-                    ? error.mensaje
-                    : 'No se pudo consultar la API.',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () => ref.invalidate(estadoSaludProvider),
-                child: const Text('Reintentar'),
-              ),
-            ],
-          ),
-        ),
+        SaludoInicio(nombre: estudiante?.nombre ?? ''),
+        const TarjetaCupo(),
+        if (estudiante?.correoVerificado == false) const AvisoVerificarCorreo(),
+        const PruebasInicio(),
       ],
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:supera_paes/dominio/entidades/estado_salud.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/presentacion/aplicacion.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
@@ -11,6 +10,7 @@ import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 
 import 'repositorio_cuentas_falso.dart';
+import 'repositorio_cupo_falso.dart';
 import 'repositorio_perfil_falso.dart';
 
 /// Contenedor de la app sin red ni almacén del teléfono. Con `sesion`, la
@@ -19,14 +19,14 @@ ProviderContainer crearContenedor({
   RepositorioCuentasFalso? repositorio,
   RepositorioVerificacionFalso? verificacion,
   RepositorioPerfilFalso? perfil,
+  RepositorioCupoFalso? cupo,
   AlmacenSesionEnMemoria? almacen,
   SesionEstudiante? sesion,
 }) {
   final contenedor = ProviderContainer(
     overrides: [
-      estadoSaludProvider.overrideWith(
-        (ref) async => const EstadoSalud(estado: 'ok', baseDeDatos: 'ok'),
-      ),
+      // Sin `cupo`, el del boceto A12.
+      repositorioCupoProvider.overrideWithValue(cupo ?? RepositorioCupoFalso()),
       repositorioCuentasProvider.overrideWithValue(
         repositorio ?? RepositorioCuentasFalso(),
       ),

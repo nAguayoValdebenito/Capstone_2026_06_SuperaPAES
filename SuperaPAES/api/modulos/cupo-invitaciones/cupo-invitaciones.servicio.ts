@@ -4,6 +4,7 @@
 // Por ejemplo, evaluaciones pide aquí descontar el cupo (RN-01) dentro de su propia transacción, y
 // cuentas pide subir el cupo del día cuando un estudiante verifica su correo.
 import { ErrorNoImplementado } from '../../comun/errores.js';
+import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import {
@@ -11,6 +12,11 @@ import {
   type CoberturaSuscripcion,
   type CupoDiario,
 } from './cupo-invitaciones.cupo.servicio.js';
+import {
+  crearInicioCupo,
+  type CuentaParaInicio,
+  type InicioCupo,
+} from './cupo-invitaciones.inicio.servicio.js';
 import {
   crearCupoInvitacionesRepositorio,
   type CupoInvitacionesRepositorio,
@@ -26,11 +32,15 @@ export interface DependenciasCupoInvitacionesServicio {
   administracion: AdministracionServicio;
   /** RN-04: si una suscripción cubre la prueba, responder no descuenta cupo (módulo suscripciones). */
   suscripciones: CoberturaSuscripcion;
+  /** HU-35.1: el correo verificado y la racha del inicio, que son de la cuenta (módulo cuentas). */
+  cuentas: CuentaParaInicio;
+  /** Hora de Chile que define el día del cupo que muestra el inicio (RN-02). */
+  reloj: Reloj;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearCupoInvitacionesRepositorio(bd). */
   repositorio?: CupoInvitacionesRepositorio;
 }
 
-export interface CupoInvitacionesServicio extends CupoDiario {
+export interface CupoInvitacionesServicio extends CupoDiario, InicioCupo {
   /** Registra el código de quien invitó al estudiante (RN-03). */
   registrarCodigoInvitacion(estudianteId: string, codigo: string): Promise<void>;
   /**
@@ -65,6 +75,12 @@ export function crearCupoInvitacionesServicio(
       repositorio,
       administracion: dependencias.administracion,
       suscripciones: dependencias.suscripciones,
+    }),
+    ...crearInicioCupo({
+      repositorio,
+      administracion: dependencias.administracion,
+      cuentas: dependencias.cuentas,
+      reloj: dependencias.reloj,
     }),
   };
 }

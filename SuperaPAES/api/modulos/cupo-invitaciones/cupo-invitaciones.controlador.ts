@@ -8,6 +8,7 @@ import type { DatosCodigoInvitacion } from './cupo-invitaciones.validadores.js';
 
 export interface CupoInvitacionesControlador {
   registrarCodigo: RequestHandler<Record<string, string>, unknown, DatosCodigoInvitacion>;
+  cupoDeHoy: RequestHandler;
 }
 
 export function crearCupoInvitacionesControlador(
@@ -19,6 +20,10 @@ export function crearCupoInvitacionesControlador(
       const { codigo } = req.body;
       await servicio.registrarCodigoInvitacion(req.estudiante.id, codigo);
       responder(res, { registrado: true }, { estado: 201 });
+    },
+    cupoDeHoy: async (req, res) => {
+      if (!req.estudiante) throw new ErrorNoAutenticado();
+      responder(res, await servicio.cupoDeHoy(req.estudiante.id));
     },
   };
 }
