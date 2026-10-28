@@ -165,6 +165,24 @@ void main() {
     expect(colorDelCirculo('C'), TemaSuperaPaes.exito);
   });
 
+  testWidgets('FilaNavegacion muestra su ícono y su detalle', (tester) async {
+    var tocada = false;
+    await montar(
+      tester,
+      FilaNavegacion(
+        icono: Icons.group_add_outlined,
+        texto: 'Invita a alguien',
+        detalle: '5 preguntas extra por cada invitado.',
+        onTap: () => tocada = true,
+      ),
+    );
+
+    expect(find.byIcon(Icons.group_add_outlined), findsOne);
+    expect(find.text('5 preguntas extra por cada invitado.'), findsOne);
+    await tester.tap(find.text('Invita a alguien'));
+    expect(tocada, isTrue);
+  });
+
   testWidgets('OpcionRadio muestra su detalle bajo el título', (tester) async {
     await montar(
       tester,

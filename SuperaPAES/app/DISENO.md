@@ -142,7 +142,7 @@ No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las f
 | `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`), «Sin verificar» (`aviso`), «Correcta» (`exito`) o «Tu respuesta» fallada (`error`). |
 | `IndicadorPasos(paso:, total:, opcional:, accion:)` | «Paso 2 de 3 · Opcional» con su barra y «Omitir». |
 | `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37).                |
-| `FilaNavegacion(texto:, onTap:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). |
+| `FilaNavegacion(texto:, onTap:, detalle:, icono:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. |
 
 Los botones grandes no necesitan estilo propio: `FilledButton` (principal) y `OutlinedButton`
 (contorno, como «Cerrar sesión») ya salen con 52 de alto, a lo ancho y con radio 14. Las casillas
@@ -197,6 +197,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A19      | Corrección con explicación               | `33:1243` | `correccion/pantalla_correccion.dart` |
 | A19b     | Corrección de una respuesta incorrecta   | `33:1299` | `correccion/pantalla_correccion.dart` |
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
+| A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43) |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
 

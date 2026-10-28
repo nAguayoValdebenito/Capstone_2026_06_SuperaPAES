@@ -39,25 +39,39 @@ class OpcionRadio extends StatelessWidget {
             _Marca(redonda: true, marcada: seleccionada),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(texto, style: TemaSuperaPaes.cuerpoFuerte),
-                  if (detalle case final abajo?) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      abajo,
-                      style: TemaSuperaPaes.pequeno.copyWith(
-                        color: TemaSuperaPaes.textoSecundario,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              child: _TituloConDetalle(texto: texto, detalle: detalle),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Título (Cuerpo fuerte) con un detalle gris opcional debajo, de
+/// [OpcionRadio] y [FilaNavegacion].
+class _TituloConDetalle extends StatelessWidget {
+  const _TituloConDetalle({required this.texto, required this.detalle});
+
+  final String texto;
+  final String? detalle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(texto, style: TemaSuperaPaes.cuerpoFuerte),
+        if (detalle case final abajo?) ...[
+          const SizedBox(height: 2),
+          Text(
+            abajo,
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -596,10 +610,23 @@ class FilaDato extends StatelessWidget {
 /// Fila que lleva a otra pantalla, con «›» a la derecha (Fila), como «Mi
 /// suscripción» en A37. Varias van juntas en [ListaDeFilas].
 class FilaNavegacion extends StatelessWidget {
-  const FilaNavegacion({required this.texto, required this.onTap, super.key});
+  const FilaNavegacion({
+    required this.texto,
+    required this.onTap,
+    super.key,
+    this.detalle,
+    this.icono,
+  });
 
   final String texto;
   final VoidCallback onTap;
+
+  /// Texto gris bajo el título, como «Pasas de 10 a 20 preguntas diarias.»
+  /// en A22.
+  final String? detalle;
+
+  /// Ícono a la izquierda, en un círculo `primarioSuave` (A22).
+  final IconData? icono;
 
   @override
   Widget build(BuildContext context) {
@@ -609,7 +636,21 @@ class FilaNavegacion extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Expanded(child: Text(texto, style: TemaSuperaPaes.cuerpoFuerte)),
+            if (icono case final simbolo?) ...[
+              Container(
+                width: TemaSuperaPaes.altoBotonChico,
+                height: TemaSuperaPaes.altoBotonChico,
+                decoration: const BoxDecoration(
+                  color: TemaSuperaPaes.primarioSuave,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(simbolo, size: 20, color: TemaSuperaPaes.primario),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: _TituloConDetalle(texto: texto, detalle: detalle),
+            ),
             const Icon(
               Icons.chevron_right,
               size: 18,
