@@ -96,6 +96,12 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.alternativaCorrectaId',
     'data.alternativas[].id',
   ],
+  'GET /api/v1/app/evaluaciones/progreso': [
+    'data.pruebas[].pruebaId',
+    'data.pruebas[].ejes[].id',
+    'data.pruebas[].habilidades[].id',
+    'data.pruebas[].ensayos[].id',
+  ],
 };
 
 const MAXIMO_ID = BigInt(Number.MAX_SAFE_INTEGER);

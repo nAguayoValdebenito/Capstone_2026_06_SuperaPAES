@@ -59,6 +59,33 @@ const opcionesPerfil = {
   ],
 };
 
+/** Progreso de HU-38.2 con un eje, una habilidad y un ensayo, para que cada id tenga valores. */
+const grupoProgreso = {
+  respondidas: 10,
+  correctas: 5,
+  aciertoPonderado: 45.7,
+  aciertoPorDificultad: { media: 80, dificil: 20 },
+  aReforzar: true,
+};
+const progreso = {
+  pruebas: [
+    {
+      pruebaId: 2,
+      codigo: 'M1',
+      nombre: 'Competencia Matemática 1',
+      respondidas: 10,
+      correctas: 5,
+      acierto: 50,
+      aciertoPonderado: 45.7,
+      aciertoPorDificultad: { media: 80, dificil: 20 },
+      ejes: [{ id: 3, nombre: 'Números', ...grupoProgreso }],
+      habilidades: [{ id: 7, nombre: 'Resolver problemas', ...grupoProgreso }],
+      semanas: [{ semana: '2026-10-26', respondidas: 10, acierto: 50 }],
+      ensayos: [{ id: '41', cerradaEn: fecha, puntaje: 650 }],
+    },
+  ],
+};
+
 const opcionesPractica = {
   dificultades: [{ id: 1, codigo: 'facil', nombre: 'Fácil', mezcla: 30 }],
   pruebas: [
@@ -157,6 +184,7 @@ export function escenario() {
     ),
     cerrarPractica: vi.fn(() => Promise.resolve(resumenPractica)),
     resumenPractica: vi.fn(() => Promise.resolve(resumenPractica)),
+    obtenerProgreso: vi.fn(() => Promise.resolve(progreso)),
   };
   const preguntas = {
     ...servicios.preguntas,

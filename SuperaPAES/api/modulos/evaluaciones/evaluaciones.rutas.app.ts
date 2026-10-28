@@ -38,6 +38,8 @@ export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Route
     validar({ parametros: esquemaIdPractica }),
     controlador.resumenPractica,
   );
+  // HU-38.2: progreso por prueba, eje y habilidad, ejes a reforzar, semanas y ensayos (A35 y A36).
+  router.get('/progreso', controlador.obtenerProgreso);
   router.post(
     '/:id/items/:item/respuesta',
     validar({ parametros: esquemaIdsItem, cuerpo: esquemaRespuesta }),
