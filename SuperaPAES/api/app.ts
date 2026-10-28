@@ -100,7 +100,7 @@ export interface Dependencias {
    * que por defecto consulta la base por el servicio de administracion.
    */
   verificarCuentaInterna?: VerificarCuentaInterna;
-  /** Solo para pruebas: ejecuta el envío del correo de recuperación de modo que la prueba lo espere. */
+  /** Solo para pruebas: ejecuta los correos de cuentas de modo que la prueba pueda esperarlos. */
   segundoPlano?: (tarea: () => Promise<void>) => void;
   /**
    * Solo para pruebas: reemplaza la respuesta de suscripciones a «¿una suscripción cubre la prueba?»

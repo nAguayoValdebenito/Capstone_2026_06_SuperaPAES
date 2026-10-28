@@ -191,8 +191,7 @@ describe.skipIf(!urlBase)('correo de verificación y enlace con PostgreSQL', () 
     expect(await tokensDe(eva.id)).toHaveLength(1);
     const registro = registrar.mock.calls.map((llamada) => llamada.join(' ')).join('\n');
     expect(registro).toContain('No se pudo enviar el correo de verificación');
-    expect(registro).toContain(eva.id);
-    for (const dato of [fallido.token, fallido.codigo, eva.correo]) {
+    for (const dato of [eva.id, fallido.token, fallido.codigo, eva.correo]) {
       expect(registro).not.toContain(dato);
     }
     entorno.fallarCorreo(false);

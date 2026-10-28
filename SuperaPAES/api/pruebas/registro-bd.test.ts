@@ -115,6 +115,7 @@ describe.skipIf(!urlBase)('registro del estudiante con PostgreSQL', () => {
         { tipo: 'terminos', version: '1.0', en: entorno.ahora() },
       ]);
       expect(await contar('app.token_sesion')).toBe(1);
+      await entorno.esperarSegundoPlano();
       expect(await contar('app.token_correo')).toBe(1);
       expect(entorno.correos.map((c) => c.para)).toEqual(['estudiante@ejemplo.cl']);
     });
@@ -136,6 +137,7 @@ describe.skipIf(!urlBase)('registro del estudiante con PostgreSQL', () => {
 
       expect(respuesta.status).toBe(201);
       expect(await contar('app.estudiante')).toBe(1);
+      await entorno.esperarSegundoPlano();
       expect(await contar('app.token_correo')).toBe(1);
     });
   });
@@ -267,17 +269,20 @@ describe.skipIf(!urlBase)('registro del estudiante con PostgreSQL', () => {
     });
     const servicios = crearServicios(dependencias);
     const secuencia = ['AAAAAA', 'AAAAAA', 'BBBBBB'];
+    const correosPendientes: Array<() => Promise<void>> = [];
     const cuentas = crearCuentasServicio({
       ...dependencias,
       correo: dependencias.proveedores.correo,
       administracion: servicios.administracion,
       cupoInvitaciones: servicios.cupoInvitaciones,
+      segundoPlano: (tarea) => correosPendientes.push(tarea),
       generarCodigoInvitacion: () => secuencia.shift() ?? 'CCCCCC',
     });
     const datos = cuerpo() as Parameters<typeof cuentas.registrarEstudiante>[0];
 
     await cuentas.registrarEstudiante(datos);
     await cuentas.registrarEstudiante({ ...datos, correo: 'segunda@ejemplo.cl' });
+    for (const enviar of correosPendientes) await enviar();
 
     const { rows } = await entorno.bd.query<{ codigo: string }>(
       'SELECT codigo_invitacion AS codigo FROM app.estudiante ORDER BY id',

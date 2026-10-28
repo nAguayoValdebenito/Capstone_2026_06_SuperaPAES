@@ -6,7 +6,7 @@
 import type { Express } from 'express';
 import type { MensajeCorreo, ProveedorCorreo } from '../adaptadores/fabrica.js';
 import type pg from 'pg';
-import { afterAll, beforeAll, beforeEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { crearApp, type Dependencias } from '../app.js';
 import type { OpcionesLimiteIntentos } from '../comun/middleware/limite-intentos.js';
 import { crearPool } from '../db/conexion.js';
@@ -37,7 +37,7 @@ export interface EntornoSesiones {
   correos: MensajeCorreo[];
   /** Hace que el proveedor de correo falle desde ahora (true) o vuelva a funcionar (false). */
   fallarCorreo(fallar: boolean): void;
-  /** Espera las tareas que la API lanzó sin esperarlas (el correo de la recuperación de contraseña). */
+  /** Espera las tareas de correo que la API lanzó sin retrasar sus respuestas. */
   esperarSegundoPlano(): Promise<void>;
 }
 
@@ -129,6 +129,10 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     await pool.end();
     await base.cerrar();
   }, MINUTO);
+
+  afterEach(async () => {
+    await Promise.all([...pendientes]);
+  });
 
   beforeEach(async () => {
     ahora = new Date(Math.floor(Date.now() / 1000) * 1000);

@@ -7,8 +7,9 @@
 - Brevo se configura en Render por el puerto 2525 con STARTTLS obligatorio. Si el servidor no ofrece
   cifrado, el envío falla antes de transmitir credenciales o contenido.
 - Mailpit sigue disponible en localhost:1025 sin TLS ni autenticación.
-- El registro conserva su comportamiento: la respuesta espera el envío del correo de verificación.
-  La recuperación responde 202 y realiza el envío en segundo plano.
+- El registro responde apenas la cuenta y su sesión quedan creadas; el correo de verificación se
+  envía en segundo plano sin cambiar el contrato de la respuesta. La recuperación mantiene el mismo
+  comportamiento asíncrono y responde 202.
 
 ## Variables
 
@@ -31,6 +32,8 @@ pagos, una configuración válida de producción exige 25 variables; tres más s
 - Sin TLS solo se permite `localhost`, `127.0.0.1` o `::1`.
 - TLS implícito exige 465; STARTTLS obligatorio admite 587 y 2525.
 - Los errores y registros no incluyen claves, destinatarios, cuerpos, enlaces ni códigos.
+- Una falla de correo tampoco registra el identificador del estudiante; la cuenta queda creada y el
+  reenvío de verificación continúa disponible.
 - Las pruebas usan un servidor SMTP falso local y credenciales ficticias. No se contacta Gmail ni
   Brevo durante la suite.
 - `PROVEEDOR_CORREO=consola` sigue rechazado en producción y continúa como valor local de Docker.

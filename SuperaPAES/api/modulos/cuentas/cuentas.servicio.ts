@@ -86,10 +86,7 @@ export interface DependenciasCuentasServicio {
   repositorioRecuperacion?: RecuperacionRepositorio;
   /** Solo para pruebas: reemplaza al del perfil del estudiante. */
   repositorioPerfil?: PerfilRepositorio;
-  /**
-   * Ejecuta una tarea sin que la respuesta la espere (el correo de la recuperación). Por defecto la
-   * lanza y sigue; las pruebas lo reemplazan para esperarla.
-   */
+  /** Ejecuta correos sin que la respuesta los espere; las pruebas pueden esperar esas tareas. */
   segundoPlano?: (tarea: () => Promise<void>) => void;
   /** Solo para pruebas: reemplaza al generador del código de invitación propio (RN-33). */
   generarCodigoInvitacion?: () => string;
@@ -317,6 +314,7 @@ async function usuarioConsola({ administracion }: Contexto, id: string): Promise
 /** Verificación del correo y registro, cada uno en su archivo, sobre el mismo contexto. */
 function crearVerificacionYRegistro(dependencias: DependenciasCuentasServicio, contexto: Contexto) {
   const { bd, unidadDeTrabajo, administracion, cupoInvitaciones, reloj } = dependencias;
+  const segundoPlano = dependencias.segundoPlano ?? ((tarea: () => Promise<void>) => void tarea());
   const verificacion = crearVerificacionCorreo({
     repositorio: dependencias.repositorioVerificacion ?? crearVerificacionRepositorio(bd),
     unidadDeTrabajo,
@@ -334,6 +332,7 @@ function crearVerificacionYRegistro(dependencias: DependenciasCuentasServicio, c
     reloj,
     abrirSesionApp: (id, tx) => abrirSesion(contexto, id, { tipo: 'app', dispositivo: null }, tx),
     emitirVerificacion: (id) => verificacion.emitirVerificacion(id),
+    segundoPlano,
     generarCodigo: dependencias.generarCodigoInvitacion ?? generarCodigoInvitacion,
   });
   const recuperacion = crearRecuperacion({
@@ -344,11 +343,7 @@ function crearVerificacionYRegistro(dependencias: DependenciasCuentasServicio, c
     configuracion: dependencias.verificacionCorreo,
     revocarSesionesEstudiante: (id, tx) =>
       contexto.repositorio.revocarSesionesEstudiante(id, reloj(), tx),
-    segundoPlano:
-      dependencias.segundoPlano ??
-      ((tarea) => {
-        void tarea();
-      }),
+    segundoPlano,
   });
   return { ...verificacion, ...registro, ...recuperacion };
 }
