@@ -8,6 +8,7 @@ import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/progreso/estado_progreso.dart';
 
 /// Práctica del estudiante (HU-30): sus rutas exigen sesión, así que van con
 /// el cliente que agrega el token y lo renueva.
@@ -201,7 +202,10 @@ class EstadoPractica extends Notifier<Practica> {
       datos: state.datos,
       correccion: (pregunta: pregunta, correccion: correccion),
     );
-    ref.invalidate(cupoDeHoyProvider);
+    // La respuesta descontó cupo (RN-01) y ya cuenta en el progreso.
+    ref
+      ..invalidate(cupoDeHoyProvider)
+      ..invalidate(progresoProvider);
   }
 
   /// Deja atrás la corrección para pasar a la siguiente pregunta. Quien llama
@@ -217,7 +221,9 @@ class EstadoPractica extends Notifier<Practica> {
     final id = state.enCurso?.id;
     if (id == null) return;
     state = Practica(resumen: await _repositorio.cerrar(id));
-    ref.invalidate(cupoDeHoyProvider);
+    ref
+      ..invalidate(cupoDeHoyProvider)
+      ..invalidate(progresoProvider);
   }
 
   static const String codigoSinPreguntas = 'SIN_PREGUNTAS_SUFICIENTES';
