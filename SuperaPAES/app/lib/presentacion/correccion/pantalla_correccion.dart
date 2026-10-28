@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/presentacion/comunes/en_construccion.dart';
+import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/pregunta/pantalla_pregunta.dart';
 
@@ -31,7 +32,7 @@ class PantallaCorreccion extends ConsumerWidget {
           ),
           if (correccion.explicacion case final explicacion?) ...[
             const SizedBox(height: 8),
-            Text(explicacion),
+            TextoConFormulas(explicacion),
           ],
           const SizedBox(height: 16),
           FilledButton(

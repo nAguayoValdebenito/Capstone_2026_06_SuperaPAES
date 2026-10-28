@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 
 /// Texto de lectura de una pregunta de Competencia Lectora (A20; HU-34
 /// esc. 1): se recorre dentro de su recuadro sin perder la pregunta, y
@@ -29,7 +30,6 @@ class _TarjetaTextoDeLecturaState extends State<TarjetaTextoDeLectura> {
   @override
   Widget build(BuildContext context) {
     final texto = widget.texto;
-    final contenido = texto.contenido ?? '';
     return Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -72,7 +72,7 @@ class _TarjetaTextoDeLecturaState extends State<TarjetaTextoDeLectura> {
               child: SingleChildScrollView(
                 controller: _desplazamiento,
                 padding: const EdgeInsets.only(right: 8),
-                child: Text(contenido, style: TemaSuperaPaes.cuerpo),
+                child: _ContenidoDelTexto(texto: texto),
               ),
             ),
           ),
@@ -107,7 +107,29 @@ class PantallaTextoCompleto extends StatelessWidget {
           ),
         ),
         if (texto.titulo case final titulo?) Encabezado(titulo: titulo),
-        SelectableText(texto.contenido ?? '', style: TemaSuperaPaes.cuerpo),
+        _ContenidoDelTexto(texto: texto),
+      ],
+    );
+  }
+}
+
+/// La imagen del texto (un gráfico o una tabla, si tiene) y su contenido,
+/// con fórmulas e imágenes (HU-34.2).
+class _ContenidoDelTexto extends StatelessWidget {
+  const _ContenidoDelTexto({required this.texto});
+
+  final TextoDeLectura texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (texto.imagen case final imagen?) ...[
+          ImagenAmpliable(url: imagen, alternativo: texto.titulo ?? ''),
+          const SizedBox(height: 10),
+        ],
+        TextoConFormulas(texto.contenido ?? ''),
       ],
     );
   }

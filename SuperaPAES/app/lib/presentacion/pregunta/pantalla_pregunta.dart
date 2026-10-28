@@ -8,6 +8,7 @@ import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
@@ -17,7 +18,7 @@ import 'package:supera_paes/presentacion/pregunta/texto_de_lectura.dart';
 /// CU-06 paso 4, CU-07 paso 1): lo que se practica, el avance, las preguntas
 /// que quedan hoy, el texto, el enunciado y las alternativas. «Responder»
 /// envía la respuesta y abre su corrección; «Terminar» cierra la práctica.
-/// Las fórmulas y las imágenes llegan con HU-34.2.
+/// Las fórmulas y las imágenes se ven con [TextoConFormulas] (HU-34.2).
 class PantallaPregunta extends ConsumerWidget {
   const PantallaPregunta({super.key});
 
@@ -105,7 +106,10 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
           TarjetaTextoDeLectura(texto: texto),
         Semantics(
           header: true,
-          child: Text(pregunta.enunciado, style: TemaSuperaPaes.cuerpoFuerte),
+          child: TextoConFormulas(
+            pregunta.enunciado,
+            estilo: TemaSuperaPaes.cuerpoFuerte,
+          ),
         ),
         for (final alternativa in pregunta.alternativas)
           OpcionAlternativa(

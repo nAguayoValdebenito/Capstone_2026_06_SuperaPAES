@@ -77,7 +77,15 @@ const ResumenPractica resumenDeEjemplo = ResumenPractica(
 /// Repositorio de la práctica sin red: guarda lo que se intentó iniciar y
 /// responde la práctica, salvo mientras queden [erroresAlIniciar].
 class RepositorioPracticaFalso implements RepositorioPractica {
-  RepositorioPracticaFalso({this.texto});
+  RepositorioPracticaFalso({
+    this.texto,
+    this.enunciado = 'Si log2(x) = 5, ¿cuál es el valor de x?',
+    this.textosAlternativas = const ['10', '25', '32', '7'],
+  });
+
+  /// Enunciado y textos de las alternativas A a D de cada pregunta.
+  final String enunciado;
+  final List<String> textosAlternativas;
 
   final List<DatosPractica> iniciadas = [];
   final List<String> cursos = [];
@@ -104,16 +112,11 @@ class RepositorioPracticaFalso implements RepositorioPractica {
     itemId: 1000 + orden,
     orden: orden,
     total: _cantidad,
-    enunciado: 'Si log2(x) = 5, ¿cuál es el valor de x?',
+    enunciado: enunciado,
     texto: texto,
     alternativas: [
-      for (final (i, (letra, valor)) in const [
-        ('A', '10'),
-        ('B', '25'),
-        ('C', '32'),
-        ('D', '7'),
-      ].indexed)
-        AlternativaVisible(id: orden * 10 + i, letra: letra, texto: valor),
+      for (final (i, valor) in textosAlternativas.indexed)
+        AlternativaVisible(id: orden * 10 + i, letra: 'ABCD'[i], texto: valor),
     ],
   );
 
