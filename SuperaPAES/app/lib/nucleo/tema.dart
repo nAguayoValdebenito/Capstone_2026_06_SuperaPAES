@@ -75,6 +75,13 @@ abstract final class TemaSuperaPaes {
   /// Esquinas de arriba de las hojas que suben desde abajo (A11 y A18).
   static const double radioHoja = 24;
 
+  /// Recuadros de un dato chico, como el acierto por dificultad de A35.
+  static const double radioDato = 10;
+
+  /// Barras del avance semana a semana de A35: la más alta mide esto.
+  static const double altoBarraSemana = 88;
+  static const double radioBarraSemana = 6;
+
   // Estilos de texto (estilos «Titulo/…», «Texto/…» y «Boton/…» de Figma).
   static const TextStyle display = TextStyle(
     fontSize: 44,

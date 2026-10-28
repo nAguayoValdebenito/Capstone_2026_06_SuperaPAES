@@ -9,11 +9,13 @@ import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/progreso/estado_progreso.dart';
 
 import 'repositorio_cuentas_falso.dart';
 import 'repositorio_cupo_falso.dart';
 import 'repositorio_perfil_falso.dart';
 import 'repositorio_practica_falso.dart';
+import 'repositorio_progreso_falso.dart';
 
 /// Contenedor de la app sin red ni almacén del teléfono. Con `sesion`, la
 /// app arranca con esa sesión guardada.
@@ -23,6 +25,7 @@ ProviderContainer crearContenedor({
   RepositorioPerfilFalso? perfil,
   RepositorioCupoFalso? cupo,
   RepositorioPracticaFalso? practica,
+  RepositorioProgresoFalso? progreso,
   AlmacenSesionEnMemoria? almacen,
   SesionEstudiante? sesion,
 }) {
@@ -32,6 +35,10 @@ ProviderContainer crearContenedor({
       repositorioCupoProvider.overrideWithValue(cupo ?? RepositorioCupoFalso()),
       repositorioPracticaProvider.overrideWithValue(
         practica ?? RepositorioPracticaFalso(),
+      ),
+      // Sin `progreso`, el del boceto A35.
+      repositorioProgresoProvider.overrideWithValue(
+        progreso ?? RepositorioProgresoFalso(),
       ),
       repositorioCuentasProvider.overrideWithValue(
         repositorio ?? RepositorioCuentasFalso(),

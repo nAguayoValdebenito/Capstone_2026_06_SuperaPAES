@@ -98,6 +98,8 @@ Los colores van con `copyWith`, por ejemplo
 | `altoTextoLectura`| 210   | Alto máximo del texto de lectura en la pregunta (A20) |
 | `altoAvance`      | 6     | Barra del avance de la práctica (A17)           |
 | `radioHoja`       | 24    | Esquinas de arriba de las hojas que suben desde abajo (A11 y A18) |
+| `radioDato`       | 10    | Recuadros de un dato chico, como el acierto por dificultad (A35) |
+| `altoBarraSemana` / `radioBarraSemana` | 88 / 6 | Barra más alta del avance semana a semana y su radio (A35) |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
 
@@ -199,6 +201,8 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
 | A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43) |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
+| A35      | Progreso                                 | `35:1532` | `progreso/` (sin «Historial» ni «Tu puntaje PAES real», que llegan con HU-62 y HU-41) |
+| A36      | Progreso de una prueba sin respuestas    | `35:1664` | `progreso/pantalla_progreso.dart`      |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
 
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).
