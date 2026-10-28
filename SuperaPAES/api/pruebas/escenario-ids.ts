@@ -9,6 +9,7 @@ import {
   paginaBanco,
   preguntaParaEditar,
 } from './escenario-ids-preguntas.js';
+import { cuerpoPuntajes, progresoDePrueba, serviciosPuntajes } from './escenario-ids-estudiante.js';
 import {
   aceptarCualquierSesion,
   crearDependenciasDePrueba,
@@ -59,33 +60,6 @@ const opcionesPerfil = {
   ],
 };
 
-/** Progreso de HU-38.2 con un eje, una habilidad y un ensayo, para que cada id tenga valores. */
-const grupoProgreso = {
-  respondidas: 10,
-  correctas: 5,
-  aciertoPonderado: 45.7,
-  aciertoPorDificultad: { media: 80, dificil: 20 },
-  aReforzar: true,
-};
-const progreso = {
-  pruebas: [
-    {
-      pruebaId: 2,
-      codigo: 'M1',
-      nombre: 'Competencia Matemática 1',
-      respondidas: 10,
-      correctas: 5,
-      acierto: 50,
-      aciertoPonderado: 45.7,
-      aciertoPorDificultad: { media: 80, dificil: 20 },
-      ejes: [{ id: 3, nombre: 'Números', ...grupoProgreso }],
-      habilidades: [{ id: 7, nombre: 'Resolver problemas', ...grupoProgreso }],
-      semanas: [{ semana: '2026-10-26', respondidas: 10, acierto: 50 }],
-      ensayos: [{ id: '41', cerradaEn: fecha, puntaje: 650 }],
-    },
-  ],
-};
-
 const opcionesPractica = {
   dificultades: [{ id: 1, codigo: 'facil', nombre: 'Fácil', mezcla: 30 }],
   pruebas: [
@@ -127,6 +101,7 @@ export function escenario() {
     obtenerPerfil: vi.fn(() => Promise.resolve(perfil)),
     guardarPerfil: vi.fn(() => Promise.resolve(perfil)),
     confirmarCurso: vi.fn(() => Promise.resolve(perfil)),
+    ...serviciosPuntajes(),
   };
   const administracion = {
     ...servicios.administracion,
@@ -184,7 +159,7 @@ export function escenario() {
     ),
     cerrarPractica: vi.fn(() => Promise.resolve(resumenPractica)),
     resumenPractica: vi.fn(() => Promise.resolve(resumenPractica)),
-    obtenerProgreso: vi.fn(() => Promise.resolve(progreso)),
+    obtenerProgreso: vi.fn(() => Promise.resolve(progresoDePrueba)),
   };
   const preguntas = {
     ...servicios.preguntas,
@@ -248,15 +223,21 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   return cuerpoPerfil(ruta);
 }
 
-/** Perfil del estudiante (HU-29.1): guardar todo el perfil o confirmar el curso. */
+/** Perfil del estudiante (HU-29.1) y puntajes PAES (HU-41.1). */
 function cuerpoPerfil(ruta: string): Record<string, unknown> | undefined {
   if (ruta.startsWith('PUT') && ruta.endsWith('/perfil'))
     return { curso: '3M', pruebas: [1, 2, 5], electivoId: 4, pruebaReforzarId: 2 };
   if (ruta.endsWith('/confirmar-curso')) return { curso: '3M' };
-  return undefined;
+  return cuerpoPuntajes(ruta);
 }
 
-const METODOS = { GET: 'get', PATCH: 'patch', PUT: 'put', POST: 'post' } as const;
+const METODOS = {
+  GET: 'get',
+  PATCH: 'patch',
+  PUT: 'put',
+  POST: 'post',
+  DELETE: 'delete',
+} as const;
 
 /** Consulta (?…) que exige cada ruta, por su último tramo. */
 const CONSULTAS: Record<string, Record<string, string>> = {
@@ -265,7 +246,12 @@ const CONSULTAS: Record<string, Record<string, string>> = {
 };
 
 /** Rutas de la app que exigen la sesión del estudiante. */
-const CON_SESION_APP = ['/app/evaluaciones/', '/app/temario/', '/app/cuentas/perfil'];
+const CON_SESION_APP = [
+  '/app/evaluaciones/',
+  '/app/temario/',
+  '/app/cuentas/perfil',
+  '/app/cuentas/puntajes',
+];
 
 async function sesionPara(ruta: string): Promise<Record<string, string>> {
   if (ruta.startsWith(`${PREFIJO}/admin/`))

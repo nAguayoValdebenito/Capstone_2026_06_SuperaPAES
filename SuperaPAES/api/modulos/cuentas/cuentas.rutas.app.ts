@@ -9,6 +9,7 @@ import { Router } from 'express';
 import type { MiddlewareRutas } from '../../comun/middleware/index.js';
 import { validar } from '../../comun/middleware/validacion.js';
 import { crearCuentasControlador, type CuentasControlador } from './cuentas.controlador.js';
+import { montarPuntajes } from './cuentas.puntajes.rutas.js';
 import type { CuentasServicio } from './cuentas.servicio.js';
 import {
   esquemaCodigoVerificacion,
@@ -126,5 +127,6 @@ export function crearRutasAppCuentas(servicio: CuentasServicio, mw: MiddlewareRu
   );
   montarRecuperacion(router, controlador, mw);
   montarPerfil(router, controlador, mw);
+  montarPuntajes(router, servicio, mw);
   return router;
 }
