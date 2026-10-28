@@ -77,11 +77,76 @@ const ResumenPractica resumenDeEjemplo = ResumenPractica(
 /// Repositorio de la práctica sin red: guarda lo que se intentó iniciar y
 /// responde la práctica, salvo mientras queden [erroresAlIniciar].
 class RepositorioPracticaFalso implements RepositorioPractica {
+  RepositorioPracticaFalso({this.texto});
+
   final List<DatosPractica> iniciadas = [];
   final List<String> cursos = [];
 
   /// Errores que responde iniciar, uno por intento, antes de empezar.
   final List<ErrorApi> erroresAlIniciar = [];
+
+  /// Si no es `null`, cada pregunta trae este texto de lectura (A20).
+  final TextoDeLectura? texto;
+
+  /// Si no es `null`, pedir la siguiente pregunta responde este error.
+  ErrorApi? errorAlSiguiente;
+
+  /// Si no es `null`, responder responde este error.
+  ErrorApi? errorAlResponder;
+
+  /// Respuestas enviadas: (ítem, alternativa).
+  final List<(int, int)> respuestas = [];
+  int pedidas = 0;
+  int _cantidad = 10;
+
+  /// La pregunta del boceto A17; la C (32) es la correcta.
+  PreguntaDePractica preguntaNumero(int orden) => PreguntaDePractica(
+    itemId: 1000 + orden,
+    orden: orden,
+    total: _cantidad,
+    enunciado: 'Si log2(x) = 5, ¿cuál es el valor de x?',
+    texto: texto,
+    alternativas: [
+      for (final (i, (letra, valor)) in const [
+        ('A', '10'),
+        ('B', '25'),
+        ('C', '32'),
+        ('D', '7'),
+      ].indexed)
+        AlternativaVisible(id: orden * 10 + i, letra: letra, texto: valor),
+    ],
+  );
+
+  @override
+  Future<PreguntaDePractica> siguiente(int practicaId) async {
+    pedidas++;
+    if (errorAlSiguiente case final error?) throw error;
+    if (respuestas.length >= _cantidad) {
+      throw const ErrorApi(
+        codigo: 'PRACTICA_COMPLETA',
+        mensaje: 'Ya respondiste todas las preguntas.',
+      );
+    }
+    // Mientras no se responda, la misma pregunta (como el servidor).
+    return preguntaNumero(respuestas.length + 1);
+  }
+
+  @override
+  Future<Correccion> responder(
+    int practicaId,
+    int itemId,
+    int alternativaId,
+  ) async {
+    if (errorAlResponder case final error?) throw error;
+    respuestas.add((itemId, alternativaId));
+    final correcta = (itemId - 1000) * 10 + 2;
+    return Correccion(
+      esCorrecta: alternativaId == correcta,
+      alternativaElegidaId: alternativaId,
+      alternativaCorrectaId: correcta,
+      explicacion: 'Si log2(x) = 5, entonces x = 2⁵ = 32.',
+    );
+  }
 
   @override
   Future<OpcionesPractica> opciones(String curso) async {
@@ -93,6 +158,8 @@ class RepositorioPracticaFalso implements RepositorioPractica {
   Future<PracticaIniciada> iniciar(DatosPractica datos) async {
     iniciadas.add(datos);
     if (erroresAlIniciar.isNotEmpty) throw erroresAlIniciar.removeAt(0);
+    _cantidad = datos.cantidad;
+    respuestas.clear();
     return PracticaIniciada(
       id: 41,
       pruebaId: datos.pruebaId,

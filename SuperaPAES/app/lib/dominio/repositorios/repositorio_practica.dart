@@ -11,6 +11,15 @@ abstract interface class RepositorioPractica {
   /// `SIN_PREGUNTAS_SUFICIENTES`; sin cupo, `CUPO_AGOTADO`.
   Future<PracticaIniciada> iniciar(DatosPractica datos);
 
+  /// La pregunta pendiente de la práctica: la que no se respondió todavía o,
+  /// si no hay, una nueva (A17). Sin cupo llega `CUPO_AGOTADO`; con todas
+  /// respondidas, `PRACTICA_COMPLETA`.
+  Future<PreguntaDePractica> siguiente(int practicaId);
+
+  /// Responde la pregunta; la corrige el servidor (RN-06). En la práctica la
+  /// respuesta es definitiva.
+  Future<Correccion> responder(int practicaId, int itemId, int alternativaId);
+
   /// Cierra la práctica y devuelve su resumen (A21).
   Future<ResumenPractica> cerrar(int id);
 }

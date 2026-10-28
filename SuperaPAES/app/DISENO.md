@@ -94,6 +94,9 @@ Los colores van con `copyWith`, por ejemplo
 | `altoBarra`       | 8     | Barra del cupo de A12 (radio de la mitad)       |
 | `altoSegmento` / `radioSegmento` | 36 / 9 | Opción del selector segmentado (A13) |
 | `botonRedondo`    | 44    | Botones «–» y «+» de la cantidad (A13)          |
+| `circuloLetra`    | 28    | Círculo con la letra de cada alternativa (A17)  |
+| `altoTextoLectura`| 210   | Alto máximo del texto de lectura en la pregunta (A20) |
+| `altoAvance`      | 6     | Barra del avance de la práctica (A17)           |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
 
@@ -122,6 +125,7 @@ En `comunes/componentes_seleccion.dart`:
 | ----------------------------------- | ------------------------------------------------------------- |
 | `OpcionRadio(texto:, seleccionada:, onTap:, detalle:)` | Opción con radio, una entre varias (cursos de A08). `detalle` va gris debajo (el contenido elegido en A13). |
 | `SelectorSegmentado(opciones:, seleccionado:, onChanged:)` | Una opción entre pocas, a lo ancho (dificultad de A13). |
+| `OpcionAlternativa(letra:, texto:, seleccionada:, onTap:)` | Alternativa de una pregunta con su letra en un círculo (A17 a A20). |
 | `TarjetaCasilla(titulo:, marcada:, onTap:, detalle:, etiqueta:)` | Tarjeta con casilla (pruebas de A10).  |
 | `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
 | `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`) o «Sin verificar» (`aviso`). |
@@ -177,6 +181,8 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A13      | Personalizar la práctica                 | `33:883`  | `practicar/pantalla_personalizar_practica.dart` |
 | A14      | Elegir eje, contenido o habilidad        | `33:983`  | `practicar/pantalla_elegir_alcance.dart` |
 | A15      | Sin preguntas suficientes                | `33:1059` | `practicar/pantalla_sin_preguntas.dart` |
+| A17      | Pregunta de práctica                     | `33:1134` | `pregunta/pantalla_pregunta.dart` (sin «Avisar un error», que llega con HU-37) |
+| A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
 

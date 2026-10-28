@@ -94,6 +94,34 @@ void main() {
     expect(elegido, 2);
   });
 
+  testWidgets('OpcionAlternativa muestra su letra y marca la elegida', (
+    tester,
+  ) async {
+    var tocada = false;
+    await montar(
+      tester,
+      OpcionAlternativa(
+        letra: 'C',
+        texto: '32',
+        seleccionada: true,
+        onTap: () => tocada = true,
+      ),
+    );
+
+    expect(find.text('C'), findsOne);
+    expect(find.text('32'), findsOne);
+    expect(
+      tester.getSemantics(find.byType(OpcionAlternativa)),
+      isSemantics(isChecked: true),
+    );
+    expect(
+      tester.widget<Text>(find.text('C')).style?.color,
+      TemaSuperaPaes.superficie,
+    );
+    await tester.tap(find.text('32'));
+    expect(tocada, isTrue);
+  });
+
   testWidgets('OpcionRadio muestra su detalle bajo el título', (tester) async {
     await montar(
       tester,

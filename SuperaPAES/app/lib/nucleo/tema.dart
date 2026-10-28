@@ -62,6 +62,16 @@ abstract final class TemaSuperaPaes {
   /// Botones redondos de la cantidad de A13.
   static const double botonRedondo = 44;
 
+  /// Círculo con la letra de cada alternativa (A17 a A20).
+  static const double circuloLetra = 28;
+
+  /// Alto máximo del texto de lectura dentro de la pregunta (A20); el resto
+  /// se recorre ahí mismo o con «Ampliar texto».
+  static const double altoTextoLectura = 210;
+
+  /// Barra del avance de la práctica (A17), como la de los pasos del perfil.
+  static const double altoAvance = 6;
+
   // Estilos de texto (estilos «Titulo/…», «Texto/…» y «Boton/…» de Figma).
   static const TextStyle display = TextStyle(
     fontSize: 44,

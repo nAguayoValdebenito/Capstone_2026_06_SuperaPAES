@@ -2,9 +2,9 @@ import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/ids.dart';
 
-/// Lee y arma el JSON de la práctica (docs/contratos/HU-30.md): GET
-/// /temario/opciones-practica, POST /evaluaciones/practicas y POST
-/// /evaluaciones/practicas/{id}/cerrar.
+/// Lee y arma el JSON de la práctica (docs/contratos/HU-30.md y HU-34.md):
+/// GET /temario/opciones-practica, POST /evaluaciones/practicas, su
+/// siguiente pregunta, la respuesta y el cierre.
 abstract final class PracticaModelo {
   static OpcionConNombre _opcion(Object? valor) {
     final json = valor! as Map<String, dynamic>;
@@ -73,6 +73,41 @@ abstract final class PracticaModelo {
         pruebaId: leerId(json['pruebaId']),
         cantidad: json['cantidad'] as int,
       );
+
+  static PreguntaDePractica pregunta(Map<String, dynamic> json) {
+    final texto = json['texto'] as Map<String, dynamic>?;
+    return PreguntaDePractica(
+      itemId: leerId(json['id']),
+      orden: json['orden'] as int,
+      total: json['total'] as int,
+      enunciado: json['enunciado'] as String,
+      texto: texto == null
+          ? null
+          : TextoDeLectura(
+              titulo: texto['titulo'] as String?,
+              contenido: texto['contenido'] as String?,
+              imagen: texto['imagen'] as String?,
+            ),
+      alternativas: [
+        for (final valor in json['alternativas'] as List<Object?>)
+          _alternativa(valor! as Map<String, dynamic>),
+      ],
+    );
+  }
+
+  static AlternativaVisible _alternativa(Map<String, dynamic> json) =>
+      AlternativaVisible(
+        id: leerId(json['id']),
+        letra: json['letra'] as String,
+        texto: json['texto'] as String,
+      );
+
+  static Correccion correccion(Map<String, dynamic> json) => Correccion(
+    esCorrecta: json['esCorrecta'] == true,
+    alternativaElegidaId: leerId(json['alternativaElegidaId']),
+    alternativaCorrectaId: leerId(json['alternativaCorrectaId']),
+    explicacion: json['explicacion'] as String?,
+  );
 
   static ResumenPractica resumen(Map<String, dynamic> json) {
     final prueba = json['prueba'] as Map<String, dynamic>;

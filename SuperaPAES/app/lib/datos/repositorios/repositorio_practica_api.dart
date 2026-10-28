@@ -16,5 +16,13 @@ class RepositorioPracticaApi implements RepositorioPractica {
       _fuente.iniciar(datos);
 
   @override
+  Future<PreguntaDePractica> siguiente(int practicaId) =>
+      _fuente.siguiente(practicaId);
+
+  @override
+  Future<Correccion> responder(int practicaId, int itemId, int alternativaId) =>
+      _fuente.responder(practicaId, itemId, alternativaId);
+
+  @override
   Future<ResumenPractica> cerrar(int id) => _fuente.cerrar(id);
 }
