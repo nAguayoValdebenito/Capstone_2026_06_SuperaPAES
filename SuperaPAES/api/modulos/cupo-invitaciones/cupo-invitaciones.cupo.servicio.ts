@@ -81,7 +81,11 @@ function rechazoDeSaldo(error: unknown): boolean {
   );
 }
 
-function maximoDelDia(dependencias: DependenciasCupoDiario, correoVerificado: boolean) {
+/** Máximo de un día que todavía no tiene fila, leído de la configuración (RN-01). */
+export function maximoDelDia(
+  dependencias: Pick<DependenciasCupoDiario, 'administracion'>,
+  correoVerificado: boolean,
+) {
   return dependencias.administracion.obtenerParametroEntero(
     correoVerificado ? 'cupo_verificado' : 'cupo_inicial',
   );

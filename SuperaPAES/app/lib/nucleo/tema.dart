@@ -51,6 +51,9 @@ abstract final class TemaSuperaPaes {
   static const double radioChip = 18;
   static const double altoEtiqueta = 24;
 
+  /// Barra del cupo de A12; su radio es la mitad del alto.
+  static const double altoBarra = 8;
+
   // Estilos de texto (estilos «Titulo/…», «Texto/…» y «Boton/…» de Figma).
   static const TextStyle display = TextStyle(
     fontSize: 44,

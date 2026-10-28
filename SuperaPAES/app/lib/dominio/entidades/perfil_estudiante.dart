@@ -70,6 +70,13 @@ class PruebaPerfil {
     ciencias => 'Ciencias',
     _ => codigo,
   };
+
+  /// Nombre de las tarjetas de Inicio (A12): «Matemática M1», «Competencia
+  /// Lectora».
+  String get nombreEnInicio => switch (codigo) {
+    'M1' || 'M2' => 'Matemática $codigo',
+    _ => nombre,
+  };
 }
 
 /// Área de carrera con las pruebas y el electivo que sugiere (RN-25).

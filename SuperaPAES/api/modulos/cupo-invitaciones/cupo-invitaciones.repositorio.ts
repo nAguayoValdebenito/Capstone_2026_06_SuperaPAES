@@ -37,6 +37,11 @@ export interface CupoInvitacionesRepositorio {
   ): Promise<void>;
   /** La fila del día de `ahora`, o null si todavía no existe. */
   leerCupoDelDia(estudianteId: string, ahora: Date, tx?: Ejecutor): Promise<CupoDelDia | null>;
+  /**
+   * Instante de las 00:00 de Chile siguientes a `ahora`, cuando empieza el día de un cupo nuevo
+   * (RN-02). El día que empieza el horario de verano no hay 00:00 y el día empieza a la 01:00.
+   */
+  proximoReinicio(ahora: Date, tx?: Ejecutor): Promise<Date>;
   /** Crea la fila del día de `ahora` con su máximo y cero usadas; si ya existe, no la cambia. */
   crearCupoDelDia(estudianteId: string, ahora: Date, maximo: number, tx?: Ejecutor): Promise<void>;
   /**
@@ -59,7 +64,11 @@ const FECHA_CHILE = "($2::timestamptz AT TIME ZONE 'America/Santiago')::date";
 
 type ConsultasCupoDelDia = Pick<
   CupoInvitacionesRepositorio,
-  'subirMaximoDelDia' | 'leerCupoDelDia' | 'crearCupoDelDia' | 'descontarCupoDelDia'
+  | 'subirMaximoDelDia'
+  | 'leerCupoDelDia'
+  | 'proximoReinicio'
+  | 'crearCupoDelDia'
+  | 'descontarCupoDelDia'
 >;
 type ConsultasSaldoExtra = Pick<
   CupoInvitacionesRepositorio,
@@ -83,6 +92,19 @@ function crearConsultasCupoDelDia(bd: Ejecutor): ConsultasCupoDelDia {
         [estudianteId, ahora],
       );
       return rows[0] ?? null;
+    },
+
+    async proximoReinicio(ahora, tx = bd) {
+      // Un timestamp local que no existe (00:00 al empezar el horario de verano) PostgreSQL lo toma
+      // con la diferencia de antes del cambio: queda en la 01:00 nueva, el primer instante del día.
+      const { rows } = await tx.query<{ instante: Date }>(
+        `SELECT ((($1::timestamptz AT TIME ZONE 'America/Santiago')::date + 1)::timestamp
+                   AT TIME ZONE 'America/Santiago') AS instante`,
+        [ahora],
+      );
+      const instante = rows[0]?.instante;
+      if (!instante) throw new Error('La base no calculó el próximo reinicio del cupo.');
+      return instante;
     },
 
     async crearCupoDelDia(estudianteId, ahora, maximo, tx = bd) {

@@ -31,7 +31,4 @@ abstract final class Configuracion {
   /// Se llama al iniciar la app: así una configuración incompleta se nota de
   /// inmediato.
   static void verificar() => apiUrl;
-
-  /// GET /api/v1/salud: la única ruta que la app usa fuera de /api/v1/app.
-  static String get urlSalud => '$apiUrl/api/v1/salud';
 }

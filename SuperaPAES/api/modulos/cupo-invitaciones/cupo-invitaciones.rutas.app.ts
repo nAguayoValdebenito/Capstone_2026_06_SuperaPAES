@@ -14,6 +14,8 @@ export function crearRutasAppCupoInvitaciones(
   const router = Router();
   const controlador = crearCupoInvitacionesControlador(servicio);
 
+  // HU-35.1: cupo del día, saldo de preguntas extra, próximo reinicio y racha para el inicio (A12).
+  router.get('/cupo', controlador.cupoDeHoy);
   router.post(
     '/invitaciones',
     validar({ cuerpo: esquemaCodigoInvitacion }),

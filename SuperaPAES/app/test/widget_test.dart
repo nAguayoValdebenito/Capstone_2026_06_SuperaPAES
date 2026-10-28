@@ -91,17 +91,6 @@ void main() {
     expect(rutaActual(contenedor), Rutas.perfil);
   });
 
-  testWidgets('Inicio muestra el estado de la API', (tester) async {
-    await iniciarApp(
-      tester,
-      crearContenedor(sesion: sesionDeEjemplo),
-      ruta: Rutas.inicio,
-    );
-
-    expect(find.text('API: ok'), findsOneWidget);
-    expect(find.text('Base de datos: ok'), findsOneWidget);
-  });
-
   group('Configuracion sin API_URL en depuración', () {
     tearDown(() => debugDefaultTargetPlatformOverride = null);
 
