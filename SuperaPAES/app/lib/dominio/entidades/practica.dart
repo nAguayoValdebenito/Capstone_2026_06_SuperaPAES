@@ -105,6 +105,70 @@ class PracticaIniciada {
   final int cantidad;
 }
 
+/// Texto de lectura de una pregunta (Competencia Lectora, A20): su título,
+/// el texto y, si tiene, una imagen (HU-34.2).
+class TextoDeLectura {
+  const TextoDeLectura({this.titulo, this.contenido, this.imagen});
+
+  final String? titulo;
+  final String? contenido;
+  final String? imagen;
+}
+
+/// Una alternativa como la ve el estudiante: sin saber si es la correcta.
+class AlternativaVisible {
+  const AlternativaVisible({
+    required this.id,
+    required this.letra,
+    required this.texto,
+  });
+
+  final int id;
+  final String letra;
+  final String texto;
+}
+
+/// La pregunta pendiente de la práctica (A17 y A20): sin la clave ni la
+/// explicación (RN-06), que llegan al responder.
+class PreguntaDePractica {
+  const PreguntaDePractica({
+    required this.itemId,
+    required this.orden,
+    required this.total,
+    required this.enunciado,
+    required this.alternativas,
+    this.texto,
+  });
+
+  /// Id del ítem de la evaluación, con el que se responde.
+  final int itemId;
+
+  /// Número de la pregunta en la práctica (1 a [total]).
+  final int orden;
+  final int total;
+  final String enunciado;
+  final TextoDeLectura? texto;
+  final List<AlternativaVisible> alternativas;
+
+  bool get esLaUltima => orden >= total;
+}
+
+/// La respuesta corregida por el servidor (RN-06). El detalle de cada
+/// alternativa y su explicación llegan con A19 (HU-32.2).
+class Correccion {
+  const Correccion({
+    required this.esCorrecta,
+    required this.alternativaElegidaId,
+    required this.alternativaCorrectaId,
+    this.explicacion,
+  });
+
+  final bool esCorrecta;
+  final int alternativaElegidaId;
+  final int alternativaCorrectaId;
+  final String? explicacion;
+}
+
 /// Lo que respondió la API cuando no hay preguntas para lo elegido (HU-30
 /// esc. 4): cuántas hay, cuántas se pidieron y qué se puede cambiar.
 class SinPreguntas {

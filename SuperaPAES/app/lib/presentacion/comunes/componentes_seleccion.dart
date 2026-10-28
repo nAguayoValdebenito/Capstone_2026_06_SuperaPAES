@@ -257,6 +257,71 @@ class GrupoChips extends StatelessWidget {
       Wrap(spacing: 8, runSpacing: 8, children: chips);
 }
 
+/// Alternativa de una pregunta (A17 a A20): la letra en un círculo y su
+/// texto. Seleccionada, con borde y fondo `primario`, igual que [OpcionRadio].
+class OpcionAlternativa extends StatelessWidget {
+  const OpcionAlternativa({
+    required this.letra,
+    required this.texto,
+    required this.seleccionada,
+    required this.onTap,
+    super.key,
+  });
+
+  final String letra;
+  final String texto;
+  final bool seleccionada;
+
+  /// `null` mientras se envía la respuesta.
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      checked: seleccionada,
+      label: 'Alternativa $letra',
+      child: _Seleccionable(
+        seleccionada: seleccionada,
+        bordeAncho: seleccionada ? 2 : 1,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        onTap: onTap ?? () {},
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: TemaSuperaPaes.circuloLetra,
+              height: TemaSuperaPaes.circuloLetra,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: seleccionada
+                    ? TemaSuperaPaes.primario
+                    : TemaSuperaPaes.neutroSuave,
+              ),
+              child: Text(
+                letra,
+                style: TemaSuperaPaes.etiqueta.copyWith(
+                  color: seleccionada
+                      ? TemaSuperaPaes.superficie
+                      : TemaSuperaPaes.texto,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text(texto, style: TemaSuperaPaes.cuerpo),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Selector segmentado: una opción entre pocas, a lo ancho, como la
 /// dificultad de A13 (Mezcla, Fácil, Media, Difícil). La activa va en blanco
 /// con el texto en `primario`.

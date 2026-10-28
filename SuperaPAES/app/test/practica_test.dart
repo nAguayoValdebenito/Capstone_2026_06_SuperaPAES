@@ -289,7 +289,9 @@ void main() {
       final (contenedor, _) = await _abrirPracticar(tester);
       await tocar(tester, find.text('Empezar práctica'));
 
-      await tocar(tester, find.textContaining('Terminar práctica'));
+      await tocar(tester, find.text('Terminar'));
+      await tester.tap(find.widgetWithText(TextButton, 'Terminar').last);
+      await tester.pumpAndSettle();
 
       expect(rutaActual(contenedor), Rutas.resumenPractica);
       expect(find.text('Práctica terminada'), findsOne);

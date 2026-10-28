@@ -116,12 +116,34 @@ final borradorPracticaProvider =
 
 /// La práctica en curso, el aviso de A15 o el resumen de A21: uno a la vez.
 class Practica {
-  const Practica({this.enCurso, this.sinPreguntas, this.resumen});
+  const Practica({
+    this.enCurso,
+    this.datos,
+    this.correccion,
+    this.sinPreguntas,
+    this.resumen,
+  });
 
   final PracticaIniciada? enCurso;
+
+  /// Lo que se eligió para la práctica en curso (la línea «M2 · Logaritmos ·
+  /// Mezcla» de A17).
+  final DatosPractica? datos;
+
+  /// La corrección de la última respuesta y si era la última pregunta.
+  final ({Correccion correccion, bool eraLaUltima})? correccion;
   final SinPreguntas? sinPreguntas;
   final ResumenPractica? resumen;
 }
+
+/// La pregunta pendiente de la práctica en curso (A17 y A20); `null` sin
+/// práctica. El servidor entrega la misma mientras no se responda, así que
+/// releerla no avanza la práctica; después de responder se invalida.
+final preguntaActualProvider = FutureProvider<PreguntaDePractica?>((ref) async {
+  final id = ref.watch(practicaProvider.select((p) => p.enCurso?.id));
+  if (id == null) return null;
+  return await ref.watch(repositorioPracticaProvider).siguiente(id);
+});
 
 /// Inicio y cierre de la práctica (CU-06 pasos 3 y 7).
 class EstadoPractica extends Notifier<Practica> {
@@ -138,7 +160,10 @@ class EstadoPractica extends Notifier<Practica> {
   /// `CUPO_AGOTADO`) llegan al llamador como `ErrorApi`.
   Future<bool> iniciar(DatosPractica datos) async {
     try {
-      state = Practica(enCurso: await _repositorio.iniciar(datos));
+      state = Practica(
+        enCurso: await _repositorio.iniciar(datos),
+        datos: datos,
+      );
       return true;
     } on ErrorApi catch (error) {
       if (error.codigo != codigoSinPreguntas) rethrow;
@@ -159,6 +184,31 @@ class EstadoPractica extends Notifier<Practica> {
       );
       return false;
     }
+  }
+
+  /// Responde la pregunta y guarda su corrección; el cupo de hoy se vuelve a
+  /// leer porque la respuesta lo descontó (RN-01).
+  Future<void> responder(PreguntaDePractica pregunta, int alternativaId) async {
+    final enCurso = state.enCurso;
+    if (enCurso == null) return;
+    final correccion = await _repositorio.responder(
+      enCurso.id,
+      pregunta.itemId,
+      alternativaId,
+    );
+    state = Practica(
+      enCurso: enCurso,
+      datos: state.datos,
+      correccion: (correccion: correccion, eraLaUltima: pregunta.esLaUltima),
+    );
+    ref.invalidate(cupoDeHoyProvider);
+  }
+
+  /// Deja atrás la corrección para pasar a la siguiente pregunta. Quien llama
+  /// invalida [preguntaActualProvider]: depende de este estado, así que no
+  /// se puede invalidar desde aquí.
+  void seguir() {
+    state = Practica(enCurso: state.enCurso, datos: state.datos);
   }
 
   /// Cierra la práctica en curso y deja su resumen (HU-30 esc. 5). El cupo

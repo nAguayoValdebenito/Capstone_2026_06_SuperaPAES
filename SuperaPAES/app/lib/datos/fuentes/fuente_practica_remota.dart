@@ -34,6 +34,29 @@ class FuentePracticaRemota {
         ),
       );
 
+  Future<PreguntaDePractica> siguiente(int practicaId) async =>
+      PracticaModelo.pregunta(
+        await publicarObjeto(
+          _dio,
+          '/evaluaciones/practicas/$practicaId/siguiente',
+          null,
+          sinData: 'La API respondió sin la pregunta.',
+        ),
+      );
+
+  Future<Correccion> responder(
+    int practicaId,
+    int itemId,
+    int alternativaId,
+  ) async => PracticaModelo.correccion(
+    await publicarObjeto(
+      _dio,
+      '/evaluaciones/$practicaId/items/$itemId/respuesta',
+      {'alternativaId': alternativaId},
+      sinData: 'La API respondió sin la corrección.',
+    ),
+  );
+
   Future<ResumenPractica> cerrar(int id) async => PracticaModelo.resumen(
     await publicarObjeto(
       _dio,
