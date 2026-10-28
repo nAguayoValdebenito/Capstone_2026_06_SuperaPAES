@@ -45,11 +45,11 @@ solo en Render. La documentación oficial confirma que Brevo admite 2525 como al
 está bloqueado; la integración fuerza STARTTLS para fallar cerrado. La prueba real en Brevo queda como
 compuerta manual antes del despliegue, incluida la recepción en Gmail y Outlook.
 
-## Propuesta para el DAS 1.15
+## Verificación
 
-> En desarrollo, el adaptador permite SMTP sin TLS únicamente hacia localhost para usar Mailpit. La
-> versión publicada usa el relé SMTP de Brevo por el puerto 2525 y exige STARTTLS; también admite TLS
-> implícito por el puerto 465 y STARTTLS por el 587.
+Prueba real con Brevo por el puerto 2525 con STARTTLS: verificación y recuperación entregadas en la bandeja
+
+Documentado en el DAS 1.16, secciones 4.3.3 y 4.5.3
 
 ## Fuera de alcance
 
