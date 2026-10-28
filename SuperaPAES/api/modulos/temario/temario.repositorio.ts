@@ -69,6 +69,31 @@ export interface AreaCarreraPerfil {
   electivoSugeridoId: number | null;
 }
 
+/** Eje activo con los contenidos que el estudiante ya vio según su curso (RN-24). */
+export interface EjePractica {
+  id: number;
+  nombre: string;
+  contenidos: Area[];
+}
+
+/** Prueba activa con lo que se puede elegir para practicar (A13 y A14, HU-30). */
+export interface PruebaPractica {
+  id: number;
+  codigo: string;
+  nombre: string;
+  ejes: EjePractica[];
+  habilidades: Area[];
+}
+
+/** Dificultad que se puede elegir, con su parte en la mezcla equilibrada (RN-09). */
+export interface DificultadPractica {
+  id: number;
+  codigo: string;
+  nombre: string;
+  /** Porcentaje objetivo de esta dificultad en la mezcla (30, 45 y 25). */
+  mezcla: number;
+}
+
 export interface TemarioRepositorio {
   listarAreas(tx?: Ejecutor): Promise<Area[]>;
   alcancePracticaValido(datos: AlcancePractica, tx?: Ejecutor): Promise<boolean>;
@@ -78,6 +103,9 @@ export interface TemarioRepositorio {
   listarCursosPerfil(tx?: Ejecutor): Promise<CursoPerfil[]>;
   listarPruebasPerfil(tx?: Ejecutor): Promise<PruebaPerfil[]>;
   listarAreasCarrera(tx?: Ejecutor): Promise<AreaCarreraPerfil[]>;
+  cursoExiste(curso: string, tx?: Ejecutor): Promise<boolean>;
+  listarPruebasPractica(curso: string, tx?: Ejecutor): Promise<PruebaPractica[]>;
+  listarDificultades(tx?: Ejecutor): Promise<DificultadPractica[]>;
 }
 
 export interface AlcancePractica {
@@ -171,6 +199,37 @@ const AREAS_CARRERA = `
    GROUP BY ac.id
    ORDER BY ac.orden, ac.id`;
 
+/**
+ * Contenidos activos de ejes activos que se enseñan hasta el curso $1, con la misma regla que
+ * contenidoValido: Competencia Lectora no depende del curso y un contenido sin curso se ofrece
+ * siempre. Un eje sin contenidos para ese curso no aparece: no tendría preguntas que practicar.
+ */
+const PRUEBAS_PRACTICA = `
+  SELECT p.id, p.codigo, p.nombre,
+         COALESCE((SELECT json_agg(json_build_object('id', e.id, 'nombre', e.nombre,
+                                                     'contenidos', e.contenidos) ORDER BY e.orden, e.id)
+                     FROM (SELECT ej.id, ej.nombre, ej.orden,
+                                  json_agg(json_build_object('id', c.id, 'nombre', c.nombre)
+                                           ORDER BY c.nombre, c.id) AS contenidos
+                             FROM contenido.eje_tematico ej
+                             JOIN contenido.contenido_tematico c ON c.eje_id = ej.id AND c.activo
+                             LEFT JOIN contenido.nivel_escolar nc ON nc.id = c.nivel_escolar_id
+                            WHERE ej.prueba_id = p.id AND ej.activo
+                              AND (p.codigo = 'CL' OR nc.orden IS NULL
+                                   OR nc.orden <= (SELECT orden FROM contenido.nivel_escolar
+                                                    WHERE codigo = $1))
+                            GROUP BY ej.id) e), '[]') AS ejes,
+         COALESCE((SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre)
+                                   ORDER BY h.codigo, h.id)
+                     FROM contenido.habilidad h WHERE h.prueba_id = p.id), '[]') AS habilidades
+    FROM contenido.prueba p
+   WHERE p.activa
+   ORDER BY p.id`;
+
+/** contenido.dificultad es una lista de opciones sin módulo propio. */
+const DIFICULTADES = `
+  SELECT id, codigo, nombre, mezcla_objetivo AS mezcla FROM contenido.dificultad ORDER BY orden`;
+
 export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
   return {
     async listarAreas(tx = bd) {
@@ -202,7 +261,23 @@ export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
       const { rows } = await tx.query<FilaTipoPregunta>(TIPOS_PREGUNTA);
       return rows;
     },
+    ...crearConsultasOpciones(bd),
+  };
+}
 
+type ConsultasOpciones = Pick<
+  TemarioRepositorio,
+  | 'listarCursosPerfil'
+  | 'listarPruebasPerfil'
+  | 'listarAreasCarrera'
+  | 'cursoExiste'
+  | 'listarPruebasPractica'
+  | 'listarDificultades'
+>;
+
+/** Lo que eligen el perfil (HU-29) y la práctica (HU-30) en la app. */
+function crearConsultasOpciones(bd: Ejecutor): ConsultasOpciones {
+  return {
     async listarCursosPerfil(tx = bd) {
       const { rows } = await tx.query<CursoPerfil>(CURSOS_PERFIL);
       return rows;
@@ -215,6 +290,24 @@ export function crearTemarioRepositorio(bd: Ejecutor): TemarioRepositorio {
 
     async listarAreasCarrera(tx = bd) {
       const { rows } = await tx.query<AreaCarreraPerfil>(AREAS_CARRERA);
+      return rows;
+    },
+
+    cursoExiste(curso, tx = bd) {
+      return existe(
+        tx,
+        'SELECT EXISTS(SELECT 1 FROM contenido.nivel_escolar WHERE codigo=$1) AS valido',
+        [curso],
+      );
+    },
+
+    async listarPruebasPractica(curso, tx = bd) {
+      const { rows } = await tx.query<PruebaPractica>(PRUEBAS_PRACTICA, [curso]);
+      return rows;
+    },
+
+    async listarDificultades(tx = bd) {
+      const { rows } = await tx.query<DificultadPractica>(DIFICULTADES);
       return rows;
     },
   };

@@ -9,6 +9,7 @@ import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 /// Una prueba del perfil como la muestra Inicio.
 typedef PruebaDeInicio = ({int id, String titulo, bool reforzar});
@@ -44,8 +45,8 @@ List<PruebaDeInicio> pruebasDeInicio(
 }
 
 /// «Tus pruebas» de A12 (HU-35 esc. 3): cada prueba del perfil lleva a
-/// practicarla. Repasar errores (HU-39) y el diagnóstico pendiente (HU-36)
-/// llegan con sus historias.
+/// practicarla (A13 con esa prueba elegida). Repasar errores (HU-39) y el
+/// diagnóstico pendiente (HU-36) llegan con sus historias.
 class PruebasInicio extends ConsumerWidget {
   const PruebasInicio({super.key});
 
@@ -76,7 +77,12 @@ class PruebasInicio extends ConsumerWidget {
           )) ...[
             _TarjetaPrueba(
               prueba: prueba,
-              onTap: () => context.go('${Rutas.practicar}?prueba=${prueba.id}'),
+              onTap: () {
+                ref
+                    .read(borradorPracticaProvider.notifier)
+                    .elegirPrueba(prueba.id);
+                context.go(Rutas.practicar);
+              },
             ),
             const SizedBox(height: 14),
           ]

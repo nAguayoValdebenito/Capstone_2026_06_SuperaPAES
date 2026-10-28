@@ -13,11 +13,15 @@ class OpcionRadio extends StatelessWidget {
     required this.seleccionada,
     required this.onTap,
     super.key,
+    this.detalle,
   });
 
   final String texto;
   final bool seleccionada;
   final VoidCallback onTap;
+
+  /// Texto gris bajo el título, como el contenido elegido en A13.
+  final String? detalle;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +37,23 @@ class OpcionRadio extends StatelessWidget {
           children: [
             _Marca(redonda: true, marcada: seleccionada),
             const SizedBox(width: 12),
-            Expanded(child: Text(texto, style: TemaSuperaPaes.cuerpoFuerte)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(texto, style: TemaSuperaPaes.cuerpoFuerte),
+                  if (detalle case final abajo?) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      abajo,
+                      style: TemaSuperaPaes.pequeno.copyWith(
+                        color: TemaSuperaPaes.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -235,6 +255,94 @@ class GrupoChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Wrap(spacing: 8, runSpacing: 8, children: chips);
+}
+
+/// Selector segmentado: una opción entre pocas, a lo ancho, como la
+/// dificultad de A13 (Mezcla, Fácil, Media, Difícil). La activa va en blanco
+/// con el texto en `primario`.
+class SelectorSegmentado<T> extends StatelessWidget {
+  const SelectorSegmentado({
+    required this.opciones,
+    required this.seleccionado,
+    required this.onChanged,
+    super.key,
+  });
+
+  /// Cada opción con su valor y su texto.
+  final List<(T, String)> opciones;
+  final T seleccionado;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: TemaSuperaPaes.neutroSuave,
+        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioCampo),
+      ),
+      child: Row(
+        children: [
+          for (final (i, (valor, texto)) in opciones.indexed) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: _Segmento(
+                texto: texto,
+                activo: valor == seleccionado,
+                onTap: () => onChanged(valor),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Segmento extends StatelessWidget {
+  const _Segmento({
+    required this.texto,
+    required this.activo,
+    required this.onTap,
+  });
+
+  final String texto;
+  final bool activo;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radio = BorderRadius.circular(TemaSuperaPaes.radioSegmento);
+    return Semantics(
+      button: true,
+      selected: activo,
+      inMutuallyExclusiveGroup: true,
+      child: Material(
+        color: activo ? TemaSuperaPaes.superficie : Colors.transparent,
+        borderRadius: radio,
+        child: InkWell(
+          borderRadius: radio,
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(
+              minHeight: TemaSuperaPaes.altoSegmento,
+            ),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              texto,
+              textAlign: TextAlign.center,
+              style: TemaSuperaPaes.etiqueta.copyWith(
+                color: activo
+                    ? TemaSuperaPaes.primario
+                    : TemaSuperaPaes.textoSecundario,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Tonos de [Etiqueta]: primario («Sugerida») y aviso («Sin verificar»).

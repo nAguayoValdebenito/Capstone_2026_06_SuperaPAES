@@ -59,6 +59,19 @@ const opcionesPerfil = {
   ],
 };
 
+const opcionesPractica = {
+  dificultades: [{ id: 1, codigo: 'facil', nombre: 'Fácil', mezcla: 30 }],
+  pruebas: [
+    {
+      id: 3,
+      codigo: 'M2',
+      nombre: 'Competencia Matemática 2',
+      ejes: [{ id: 9, nombre: 'Números', contenidos: [{ id: 120, nombre: 'Logaritmos' }] }],
+      habilidades: [{ id: 14, nombre: 'Resolver problemas' }],
+    },
+  ],
+};
+
 export function escenario() {
   const dependencias = crearDependenciasDePrueba();
   const servicios = aceptarCualquierSesion(crearServicios(dependencias));
@@ -99,6 +112,7 @@ export function escenario() {
     ...servicios.temario,
     listarAreas: vi.fn(() => Promise.resolve([{ id: 4, nombre: 'Biología' }])),
     opcionesPerfil: vi.fn(() => Promise.resolve(opcionesPerfil)),
+    opcionesPractica: vi.fn(() => Promise.resolve(opcionesPractica)),
   };
   const evaluaciones = {
     ...servicios.evaluaciones,
@@ -216,6 +230,12 @@ function cuerpoPerfil(ruta: string): Record<string, unknown> | undefined {
 
 const METODOS = { GET: 'get', PATCH: 'patch', PUT: 'put', POST: 'post' } as const;
 
+/** Consulta (?…) que exige cada ruta, por su último tramo. */
+const CONSULTAS: Record<string, Record<string, string>> = {
+  '/estudiantes': { correo: 'ana@ejemplo.cl' },
+  '/opciones-practica': { curso: '3M' },
+};
+
 /** Rutas de la app que exigen la sesión del estudiante. */
 const CON_SESION_APP = ['/app/evaluaciones/', '/app/temario/', '/app/cuentas/perfil'];
 
@@ -238,7 +258,8 @@ export async function consultarContrato(app: Express, contrato: string) {
     .replace(':item', '84');
   const peticion = request(app)[METODOS[metodo as keyof typeof METODOS]](ruta);
   peticion.set(await sesionPara(ruta));
-  if (ruta.endsWith('/estudiantes')) peticion.query({ correo: 'ana@ejemplo.cl' });
+  const consulta = CONSULTAS[ruta.slice(ruta.lastIndexOf('/'))];
+  if (consulta) peticion.query(consulta);
   const cuerpo = cuerpoPara(contrato);
   if (cuerpo) peticion.send(cuerpo);
   return peticion;

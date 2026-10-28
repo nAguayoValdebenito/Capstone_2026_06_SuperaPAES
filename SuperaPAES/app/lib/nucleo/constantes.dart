@@ -19,6 +19,9 @@ abstract final class Rutas {
   static const String perfil = '/perfil';
 
   // Práctica
+  static const String elegirAlcance = '/practicar/elegir';
+  static const String sinPreguntas = '/practicar/sin-preguntas';
+  static const String resumenPractica = '/practicar/resumen';
   static const String pregunta = '/pregunta';
   static const String correccion = '/correccion';
   static const String cupoAgotado = '/cupo-agotado';
