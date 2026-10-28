@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/verificar_correo/campo_codigo.dart';
 
 import 'apoyo/app_de_prueba.dart';
@@ -56,6 +57,56 @@ void main() {
     await tester.tap(find.byTooltip('Ocultar contraseña'));
     await tester.pump();
     expect(oculta(), isTrue);
+  });
+
+  testWidgets('SelectorSegmentado marca la opción activa y avisa el cambio', (
+    tester,
+  ) async {
+    int? elegido;
+    await montar(
+      tester,
+      SelectorSegmentado<int?>(
+        opciones: const [(null, 'Mezcla'), (1, 'Fácil'), (2, 'Media')],
+        seleccionado: null,
+        onChanged: (valor) => elegido = valor,
+      ),
+    );
+
+    expect(
+      tester.getSemantics(find.text('Mezcla')),
+      isSemantics(
+        isButton: true,
+        isSelected: true,
+        isInMutuallyExclusiveGroup: true,
+        label: 'Mezcla',
+      ),
+    );
+    expect(
+      tester.widget<Text>(find.text('Mezcla')).style?.color,
+      TemaSuperaPaes.primario,
+    );
+    expect(
+      tester.widget<Text>(find.text('Fácil')).style?.color,
+      TemaSuperaPaes.textoSecundario,
+    );
+
+    await tester.tap(find.text('Media'));
+    expect(elegido, 2);
+  });
+
+  testWidgets('OpcionRadio muestra su detalle bajo el título', (tester) async {
+    await montar(
+      tester,
+      OpcionRadio(
+        texto: 'Un contenido',
+        detalle: 'Logaritmos',
+        seleccionada: true,
+        onTap: () {},
+      ),
+    );
+
+    expect(find.text('Un contenido'), findsOne);
+    expect(find.text('Logaritmos'), findsOne);
   });
 
   testWidgets('Aviso pone en negrita el texto destacado', (tester) async {

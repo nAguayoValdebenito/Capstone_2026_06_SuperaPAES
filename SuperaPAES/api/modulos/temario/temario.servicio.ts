@@ -1,6 +1,7 @@
 // Reglas de negocio del módulo temario: áreas, pruebas, habilidades, ejes y contenidos del temario PAES,
 // y las pruebas que sugiere cada área de carrera.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
+import { ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
   type Area,
@@ -8,10 +9,12 @@ import {
   type AlcancePractica,
   crearTemarioRepositorio,
   type CursoPerfil,
+  type DificultadPractica,
   type FilaHabilidad,
   type FilaTemario,
   type FilaTipoPregunta,
   type PruebaPerfil,
+  type PruebaPractica,
   type TemarioRepositorio,
 } from './temario.repositorio.js';
 
@@ -22,6 +25,12 @@ export interface OpcionesPerfil {
   cursos: CursoPerfil[];
   pruebas: PruebaPerfil[];
   areasCarrera: AreaCarreraPerfil[];
+}
+
+/** Lo que muestran las pantallas para personalizar la práctica (A13 y A14, HU-30). */
+export interface OpcionesPractica {
+  dificultades: DificultadPractica[];
+  pruebas: PruebaPractica[];
 }
 
 /** Contenido o habilidad del temario: un id y su nombre. */
@@ -136,7 +145,27 @@ export interface TemarioServicio {
    * áreas de carrera activas con las pruebas y el electivo que sugiere cada una.
    */
   opcionesPerfil(): Promise<OpcionesPerfil>;
+  /**
+   * HU-30 (RF-A06, RN-09, RN-24): dificultades con su parte de la mezcla y pruebas activas con sus
+   * ejes, los contenidos que se enseñan hasta `curso` y sus habilidades. La app manda el curso de su
+   * perfil; al iniciar la práctica, evaluaciones vuelve a validar el alcance con el curso guardado.
+   * Un curso que no existe: 400 VALIDACION con motivo curso_inexistente.
+   */
+  opcionesPractica(curso: string): Promise<OpcionesPractica>;
 }
+
+const cursoInexistente = () =>
+  new ErrorValidacion(
+    [
+      {
+        lugar: 'consulta',
+        ruta: 'curso',
+        mensaje: 'El curso indicado no existe.',
+        motivo: 'curso_inexistente',
+      },
+    ],
+    'El curso indicado no existe.',
+  );
 
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
   const repositorio = dependencias.repositorio ?? crearTemarioRepositorio(dependencias.bd);
@@ -154,5 +183,12 @@ export function crearTemarioServicio(dependencias: DependenciasTemarioServicio):
       pruebas: await repositorio.listarPruebasPerfil(),
       areasCarrera: await repositorio.listarAreasCarrera(),
     }),
+    opcionesPractica: async (curso) => {
+      if (!(await repositorio.cursoExiste(curso))) throw cursoInexistente();
+      return {
+        dificultades: await repositorio.listarDificultades(),
+        pruebas: await repositorio.listarPruebasPractica(curso),
+      };
+    },
   };
 }

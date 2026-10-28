@@ -11,7 +11,6 @@
         "modulos/privacidad/privacidad.validadores.ts",
         "modulos/revision/revision.validadores.ts",
         "modulos/suscripciones/suscripciones.validadores.ts",
-        "modulos/temario/temario.validadores.ts",
         "eslint.reglas-arquitectura.d.ts"
       ]
     },

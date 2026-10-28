@@ -14,7 +14,10 @@ import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_areas.dart
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_curso.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_pruebas.dart';
 import 'package:supera_paes/presentacion/planes/pantalla_planes.dart';
-import 'package:supera_paes/presentacion/practicar/pantalla_practicar.dart';
+import 'package:supera_paes/presentacion/practicar/pantalla_elegir_alcance.dart';
+import 'package:supera_paes/presentacion/practicar/pantalla_personalizar_practica.dart';
+import 'package:supera_paes/presentacion/practicar/pantalla_resumen_practica.dart';
+import 'package:supera_paes/presentacion/practicar/pantalla_sin_preguntas.dart';
 import 'package:supera_paes/presentacion/pregunta/pantalla_pregunta.dart';
 import 'package:supera_paes/presentacion/privacidad/pantalla_privacidad.dart';
 import 'package:supera_paes/presentacion/progreso/pantalla_progreso.dart';
@@ -91,10 +94,10 @@ const List<Seccion> secciones = [
     esPestana: true,
   ),
   Seccion(
-    'Elegir práctica',
+    'Personaliza tu práctica',
     Rutas.practicar,
     Icons.edit_outlined,
-    PantallaElegirPractica.new,
+    PantallaPersonalizarPractica.new,
     esPestana: true,
     etiquetaPestana: 'Practicar',
   ),
@@ -119,7 +122,26 @@ const List<Seccion> secciones = [
     PantallaPerfil.new,
     esPestana: true,
   ),
-  // Práctica
+  // Práctica (HU-30): elegir qué practicar, sin preguntas suficientes y
+  // resumen
+  Seccion(
+    'Elegir eje, contenido o habilidad',
+    Rutas.elegirAlcance,
+    Icons.list_alt,
+    PantallaElegirAlcance.new,
+  ),
+  Seccion(
+    'Sin preguntas suficientes',
+    Rutas.sinPreguntas,
+    Icons.search_off,
+    PantallaSinPreguntas.new,
+  ),
+  Seccion(
+    'Resumen de la práctica',
+    Rutas.resumenPractica,
+    Icons.flag_outlined,
+    PantallaResumenPractica.new,
+  ),
   Seccion(
     'Pregunta',
     Rutas.pregunta,

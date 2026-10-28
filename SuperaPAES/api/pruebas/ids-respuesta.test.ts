@@ -22,6 +22,7 @@ describe('contrato central de ids', () => {
       'PUT /api/v1/app/cuentas/perfil → data.pruebas[], data.electivoId, data.pruebaReforzarId, data.areasCarrera[]',
       'POST /api/v1/app/cuentas/perfil/confirmar-curso → data.pruebas[], data.electivoId, data.pruebaReforzarId, data.areasCarrera[]',
       'GET /api/v1/app/temario/opciones-perfil → data.pruebas[].id, data.pruebas[].electivos[].id, data.areasCarrera[].id, data.areasCarrera[].pruebasSugeridas[], data.areasCarrera[].electivoSugeridoId',
+      'GET /api/v1/app/temario/opciones-practica → data.dificultades[].id, data.pruebas[].id, data.pruebas[].ejes[].id, data.pruebas[].ejes[].contenidos[].id, data.pruebas[].habilidades[].id',
       'POST /api/v1/admin/cuentas/ingreso → data.usuario.id',
       'GET /api/v1/admin/cuentas/yo → data.id, data.areas[]',
       'GET /api/v1/admin/cuentas/estudiantes → data[].id',

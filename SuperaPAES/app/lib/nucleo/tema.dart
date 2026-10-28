@@ -54,6 +54,14 @@ abstract final class TemaSuperaPaes {
   /// Barra del cupo de A12; su radio es la mitad del alto.
   static const double altoBarra = 8;
 
+  /// Opción activa del selector segmentado (la dificultad de A13), dentro de
+  /// un fondo de radio [radioCampo] con relleno 4.
+  static const double radioSegmento = 9;
+  static const double altoSegmento = 36;
+
+  /// Botones redondos de la cantidad de A13.
+  static const double botonRedondo = 44;
+
   // Estilos de texto (estilos «Titulo/…», «Texto/…» y «Boton/…» de Figma).
   static const TextStyle display = TextStyle(
     fontSize: 44,
@@ -63,6 +71,14 @@ abstract final class TemaSuperaPaes {
   );
   static const TextStyle h1 = TextStyle(
     fontSize: 26,
+    fontWeight: FontWeight.w800,
+    height: 1.2,
+    color: texto,
+  );
+
+  /// Titulo/Número: la cantidad de A13 y los datos de A21.
+  static const TextStyle numero = TextStyle(
+    fontSize: 22,
     fontWeight: FontWeight.w800,
     height: 1.2,
     color: texto,

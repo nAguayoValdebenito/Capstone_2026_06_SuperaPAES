@@ -24,6 +24,7 @@ class ErrorApi implements Exception {
     required this.mensaje,
     this.estadoHttp,
     this.problemas = const [],
+    this.datos,
   });
 
   /// Traduce un error de dio al formato común.
@@ -50,6 +51,10 @@ class ErrorApi implements Exception {
   /// Problemas por campo de un error `VALIDACION`; vacío en los demás.
   final List<ProblemaDeCampo> problemas;
 
+  /// `detalles` cuando es un objeto y no una lista de problemas, como
+  /// `{ disponibles, solicitadas, opciones }` de `SIN_PREGUNTAS_SUFICIENTES`.
+  final Map<String, dynamic>? datos;
+
   /// Lee `error` de un cuerpo con el formato común; `null` si no trae error.
   static ErrorApi? desdeCuerpo(Object? cuerpo, {int? estadoHttp}) {
     if (cuerpo is! Map<String, dynamic>) return null;
@@ -63,6 +68,10 @@ class ErrorApi implements Exception {
       mensaje: mensaje,
       estadoHttp: estadoHttp,
       problemas: _leerProblemas(error['detalles']),
+      datos: switch (error['detalles']) {
+        final Map<String, dynamic> datos => datos,
+        _ => null,
+      },
     );
   }
 

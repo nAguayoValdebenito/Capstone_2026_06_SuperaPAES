@@ -39,6 +39,9 @@ describe('áreas de especialidad del temario', () => {
         listarCursosPerfil: () => Promise.resolve([]),
         listarPruebasPerfil: () => Promise.resolve([]),
         listarAreasCarrera: () => Promise.resolve([]),
+        cursoExiste: () => Promise.resolve(true),
+        listarPruebasPractica: () => Promise.resolve([]),
+        listarDificultades: () => Promise.resolve([]),
       },
     });
     const conAreas = crearAppDePrueba({}, { temario });
