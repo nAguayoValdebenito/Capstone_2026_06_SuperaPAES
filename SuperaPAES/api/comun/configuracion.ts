@@ -8,10 +8,20 @@ const textoOpcional = z
   .optional()
   .transform((valor) => (valor === '' ? undefined : valor));
 
+const secretoOpcional = z
+  .string()
+  .optional()
+  .transform((valor) => (valor === '' ? undefined : valor));
+
 /** Puerto TCP; un valor vacío cuenta como no definido. */
 const puerto = z.preprocess(
   (valor) => (typeof valor === 'string' && valor.trim() === '' ? undefined : valor),
   z.coerce.number().int().min(1).max(65535).optional(),
+);
+
+const milisegundos = z.preprocess(
+  (valor) => (typeof valor === 'string' && valor.trim() === '' ? undefined : valor),
+  z.coerce.number().int().min(100).max(60_000).optional(),
 );
 
 const SECRETO_MINIMO = 32;
@@ -37,7 +47,17 @@ const esquemaBase = z.object({
   PROVEEDOR_CORREO: z.enum(['consola', 'smtp']).default('consola'),
   SMTP_HOST: textoOpcional,
   SMTP_PORT: puerto,
-  CORREO_REMITENTE: textoOpcional,
+  SMTP_TLS: z.preprocess(
+    (valor) => (valor === '' ? undefined : valor),
+    z.enum(['none', 'starttls', 'implicit']).optional(),
+  ),
+  SMTP_USUARIO: textoOpcional,
+  SMTP_CLAVE: secretoOpcional,
+  CORREO_REMITENTE: z.preprocess(
+    (valor) => (valor === '' ? undefined : valor),
+    z.email().optional(),
+  ),
+  SMTP_TIMEOUT_MS: milisegundos,
   PROVEEDOR_PAGOS: z.enum(['simulado', 'tiendas']).default('simulado'),
   GOOGLE_PLAY_PAQUETE: textoOpcional,
   GOOGLE_PLAY_CUENTA_SERVICIO: textoOpcional,
@@ -61,7 +81,7 @@ const EXIGIDAS_POR_PROVEEDOR: [(v: Variables) => boolean, string, (keyof Variabl
   [
     (v) => v.PROVEEDOR_CORREO === 'smtp',
     'PROVEEDOR_CORREO=smtp',
-    ['SMTP_HOST', 'SMTP_PORT', 'CORREO_REMITENTE'],
+    ['SMTP_HOST', 'SMTP_PORT', 'SMTP_TLS', 'CORREO_REMITENTE'],
   ],
   [
     (v) => v.PROVEEDOR_PAGOS === 'tiendas',
@@ -140,12 +160,44 @@ function problemasDeProveedores(v: Variables): Problema[] {
   );
 }
 
+const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+function problemasDeSmtp(v: Variables): Problema[] {
+  if (v.PROVEEDOR_CORREO !== 'smtp') return [];
+  const problemas: Problema[] = [];
+  const local = v.SMTP_HOST !== undefined && HOSTS_LOCALES.has(v.SMTP_HOST.toLowerCase());
+
+  if (v.SMTP_TLS === 'none' && !local) {
+    problemas.push(['SMTP_TLS', 'solo puede ser none para localhost']);
+  }
+  if (v.SMTP_TLS === 'implicit' && v.SMTP_PORT !== undefined && v.SMTP_PORT !== 465) {
+    problemas.push(['SMTP_PORT', 'debe ser 465 con SMTP_TLS=implicit']);
+  }
+  if (
+    v.SMTP_TLS === 'starttls' &&
+    v.SMTP_PORT !== undefined &&
+    ![587, 2525].includes(v.SMTP_PORT)
+  ) {
+    problemas.push(['SMTP_PORT', 'debe ser 587 o 2525 con SMTP_TLS=starttls']);
+  }
+
+  const exigeCredenciales = !local || v.SMTP_USUARIO !== undefined || v.SMTP_CLAVE !== undefined;
+  if (exigeCredenciales && v.SMTP_USUARIO === undefined) {
+    problemas.push(['SMTP_USUARIO', 'obligatoria para un servidor SMTP remoto o autenticado']);
+  }
+  if (exigeCredenciales && v.SMTP_CLAVE === undefined) {
+    problemas.push(['SMTP_CLAVE', 'obligatoria para un servidor SMTP remoto o autenticado']);
+  }
+  return problemas;
+}
+
 const esquema = esquemaBase.superRefine((v, ctx) => {
   const problemas = [
     ...problemasDeSecretos(v),
     ...problemasDeConsola(v),
     ...problemasDeProduccion(v),
     ...problemasDeProveedores(v),
+    ...problemasDeSmtp(v),
   ];
   for (const [variable, mensaje] of problemas) {
     ctx.addIssue({ code: 'custom', path: [variable], message: mensaje });
@@ -156,7 +208,17 @@ export type ConfiguracionIA =
   { proveedor: 'simulado' } | { proveedor: 'deepseek' | 'gemini'; claveApi: string };
 
 export type ConfiguracionCorreo =
-  { proveedor: 'consola' } | { proveedor: 'smtp'; host: string; puerto: number; remitente: string };
+  | { proveedor: 'consola' }
+  | {
+      proveedor: 'smtp';
+      host: string;
+      puerto: number;
+      tls: 'none' | 'starttls' | 'implicit';
+      usuario: string | undefined;
+      clave: string | undefined;
+      remitente: string;
+      timeoutMs: number;
+    };
 
 export interface ConfiguracionGooglePlay {
   paquete: string;
@@ -235,7 +297,11 @@ function leerConfiguracionCorreo(v: Variables): ConfiguracionCorreo {
     proveedor: 'smtp',
     host: v.SMTP_HOST ?? '',
     puerto: v.SMTP_PORT ?? 0,
+    tls: v.SMTP_TLS ?? 'none',
+    usuario: v.SMTP_USUARIO,
+    clave: v.SMTP_CLAVE,
     remitente: v.CORREO_REMITENTE ?? '',
+    timeoutMs: v.SMTP_TIMEOUT_MS ?? 10_000,
   };
 }
 
