@@ -142,12 +142,24 @@ class RepositorioPracticaFalso implements RepositorioPractica {
   ) async {
     if (errorAlResponder case final error?) throw error;
     respuestas.add((itemId, alternativaId));
-    final correcta = (itemId - 1000) * 10 + 2;
+    final pregunta = preguntaNumero(itemId - 1000);
+    final correcta = pregunta.alternativas[2].id;
     return Correccion(
       esCorrecta: alternativaId == correcta,
       alternativaElegidaId: alternativaId,
       alternativaCorrectaId: correcta,
       explicacion: 'Si log2(x) = 5, entonces x = 2⁵ = 32.',
+      alternativas: [
+        for (final a in pregunta.alternativas)
+          AlternativaCorregida(
+            id: a.id,
+            letra: a.letra,
+            texto: a.texto,
+            explicacion: a.id == correcta
+                ? 'Es 2⁵.'
+                : 'La ${a.letra} no cumple que log2(x) = 5.',
+          ),
+      ],
     );
   }
 

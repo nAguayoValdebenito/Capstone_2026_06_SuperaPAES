@@ -107,6 +107,19 @@ abstract final class PracticaModelo {
     alternativaElegidaId: leerId(json['alternativaElegidaId']),
     alternativaCorrectaId: leerId(json['alternativaCorrectaId']),
     explicacion: json['explicacion'] as String?,
+    alternativas: [
+      for (final valor in json['alternativas'] as List<Object?>? ?? const [])
+        _alternativaCorregida(valor! as Map<String, dynamic>),
+    ],
+  );
+
+  static AlternativaCorregida _alternativaCorregida(
+    Map<String, dynamic> json,
+  ) => AlternativaCorregida(
+    id: leerId(json['id']),
+    letra: json['letra'] as String,
+    texto: json['texto'] as String,
+    explicacion: json['explicacion'] as String?,
   );
 
   static ResumenPractica resumen(Map<String, dynamic> json) {

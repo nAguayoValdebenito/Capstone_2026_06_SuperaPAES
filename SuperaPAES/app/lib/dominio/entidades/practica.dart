@@ -153,20 +153,45 @@ class PreguntaDePractica {
   bool get esLaUltima => orden >= total;
 }
 
-/// La respuesta corregida por el servidor (RN-06). El detalle de cada
-/// alternativa y su explicación llegan con A19 (HU-32.2).
+/// Una alternativa ya corregida, con por qué es o no es la correcta.
+class AlternativaCorregida {
+  const AlternativaCorregida({
+    required this.id,
+    required this.letra,
+    required this.texto,
+    this.explicacion,
+  });
+
+  final int id;
+  final String letra;
+  final String texto;
+  final String? explicacion;
+}
+
+/// La respuesta corregida por el servidor (RN-06): la app no conoce la
+/// correcta antes de responder (A19 y A19b, HU-32 esc. 1 y 2).
 class Correccion {
   const Correccion({
     required this.esCorrecta,
     required this.alternativaElegidaId,
     required this.alternativaCorrectaId,
     this.explicacion,
+    this.alternativas = const [],
   });
 
   final bool esCorrecta;
   final int alternativaElegidaId;
   final int alternativaCorrectaId;
+
+  /// Explicación de la respuesta correcta.
   final String? explicacion;
+  final List<AlternativaCorregida> alternativas;
+
+  /// La alternativa que eligió el estudiante, si viene en la corrección.
+  AlternativaCorregida? get elegida => [
+    for (final a in alternativas)
+      if (a.id == alternativaElegidaId) a,
+  ].firstOrNull;
 }
 
 /// Lo que respondió la API cuando no hay preguntas para lo elegido (HU-30

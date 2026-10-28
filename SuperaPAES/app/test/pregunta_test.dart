@@ -40,6 +40,13 @@ Finder _alternativa(String letra) => find.byWidgetPredicate(
 bool _elegida(WidgetTester tester, String letra) =>
     tester.widget<OpcionAlternativa>(_alternativa(letra)).seleccionada;
 
+/// «Responder» y «Confirmar» en la hoja de A18.
+Future<void> _responder(WidgetTester tester) async {
+  await tocar(tester, find.text('Responder'));
+  await tester.tap(find.text('Confirmar'));
+  await tester.pumpAndSettle();
+}
+
 FilledButton _boton(WidgetTester tester, String texto) =>
     tester.widget<FilledButton>(find.widgetWithText(FilledButton, texto));
 
@@ -71,11 +78,11 @@ void main() {
       await tocar(tester, _alternativa('C'));
       expect(_elegida(tester, 'C'), isTrue);
       expect(_elegida(tester, 'B'), isFalse);
-      await tocar(tester, find.text('Responder'));
+      await _responder(tester);
 
       expect(repositorio.respuestas, [(1001, 12)]);
       expect(rutaActual(contenedor), Rutas.correccion);
-      expect(find.text('Respuesta correcta.'), findsOne);
+      expect(find.text('Respuesta correcta'), findsOne);
       expect(find.text('Si log2(x) = 5, entonces x = 2⁵ = 32.'), findsOne);
 
       await tocar(tester, find.text('Siguiente pregunta'));
@@ -94,8 +101,8 @@ void main() {
       for (var orden = 1; orden <= 5; orden++) {
         expect(find.text('Pregunta $orden de 5'), findsOne);
         await tocar(tester, _alternativa('A'));
-        await tocar(tester, find.text('Responder'));
-        expect(find.text('Respuesta incorrecta.'), findsOne);
+        await _responder(tester);
+        expect(find.text('Respuesta incorrecta'), findsOne);
         if (orden < 5) await tocar(tester, find.text('Siguiente pregunta'));
       }
 
@@ -132,7 +139,7 @@ void main() {
       final contenedor = await _empezar(tester, repositorio);
 
       await tocar(tester, _alternativa('A'));
-      await tocar(tester, find.text('Responder'));
+      await _responder(tester);
 
       expect(find.text('Ya respondiste esta pregunta.'), findsOne);
       expect(rutaActual(contenedor), Rutas.pregunta);

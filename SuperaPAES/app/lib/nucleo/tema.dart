@@ -72,6 +72,9 @@ abstract final class TemaSuperaPaes {
   /// Barra del avance de la práctica (A17), como la de los pasos del perfil.
   static const double altoAvance = 6;
 
+  /// Esquinas de arriba de las hojas que suben desde abajo (A11 y A18).
+  static const double radioHoja = 24;
+
   // Estilos de texto (estilos «Titulo/…», «Texto/…» y «Boton/…» de Figma).
   static const TextStyle display = TextStyle(
     fontSize: 44,
