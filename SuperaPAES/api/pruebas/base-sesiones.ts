@@ -24,6 +24,8 @@ export interface EntornoSesiones {
   crearAppConLimite(limite: OpcionesLimiteIntentos): Express;
   /** App nueva sobre la misma base con dependencias cambiadas (por ejemplo, cubrePrueba). */
   crearAppCon(cambios: Partial<Dependencias>): Express;
+  /** App nueva sobre la misma base que usa un proveedor de correo real de integración. */
+  crearAppConCorreo(correo: ProveedorCorreo): Express;
   /** Hora del reloj de la app. */
   ahora(): Date;
   avanzarSegundos(segundos: number): void;
@@ -75,7 +77,10 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     pendientes.add(ejecucion);
   };
 
-  const crearAppSobreElPool = (cambios: Partial<Dependencias> = {}) => {
+  const crearAppSobreElPool = (
+    cambios: Partial<Dependencias> = {},
+    correo: ProveedorCorreo = buzon.proveedor,
+  ) => {
     const dependencias = crearDependenciasDePrueba({
       bd: pool,
       unidadDeTrabajo: crearUnidadDeTrabajo(pool),
@@ -86,7 +91,7 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     delete dependencias.verificarCuentaInterna;
     return crearApp({
       ...dependencias,
-      proveedores: { ...dependencias.proveedores, correo: buzon.proveedor },
+      proveedores: { ...dependencias.proveedores, correo },
       segundoPlano,
     });
   };
@@ -100,6 +105,7 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
       crearAppConLimite: (limiteIntentos: OpcionesLimiteIntentos) =>
         crearAppSobreElPool({ limiteIntentos }),
       crearAppCon: crearAppSobreElPool,
+      crearAppConCorreo: (correo: ProveedorCorreo) => crearAppSobreElPool({}, correo),
       correos: buzon.correos,
       fallarCorreo: buzon.fallar,
       esperarSegundoPlano: async () => {
