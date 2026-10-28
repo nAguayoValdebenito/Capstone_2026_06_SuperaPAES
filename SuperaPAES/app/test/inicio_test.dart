@@ -5,8 +5,8 @@ import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
-import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/inicio/pruebas_inicio.dart';
+import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
@@ -146,20 +146,23 @@ void main() {
 
       await tocar(tester, find.text('Reforzar'));
 
-      final uri = contenedor.read(enrutadorProvider).state.uri;
-      expect(uri.path, Rutas.practicar);
-      expect(uri.queryParameters['prueba'], '2');
+      expect(rutaActual(contenedor), Rutas.practicar);
+      expect(contenedor.read(borradorPracticaProvider).pruebaId, 2);
     });
 
-    testWidgets('tocar otra prueba también abre su práctica', (tester) async {
+    testWidgets('tocar otra prueba también abre su práctica, aunque se toque '
+        'dos veces', (tester) async {
       final contenedor = crearContenedor(sesion: sesionDeEjemplo);
       await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
 
       await tocar(tester, find.text('Competencia Lectora'));
+      expect(rutaActual(contenedor), Rutas.practicar);
+      expect(contenedor.read(borradorPracticaProvider).pruebaId, 1);
 
-      final uri = contenedor.read(enrutadorProvider).state.uri;
-      expect(uri.path, Rutas.practicar);
-      expect(uri.queryParameters['prueba'], '1');
+      contenedor.read(borradorPracticaProvider.notifier).elegirPrueba(5);
+      await ir(tester, contenedor, Rutas.inicio);
+      await tocar(tester, find.text('Competencia Lectora'));
+      expect(contenedor.read(borradorPracticaProvider).pruebaId, 1);
     });
 
     testWidgets('relee el cupo al volver a la app y al deslizar hacia abajo', (

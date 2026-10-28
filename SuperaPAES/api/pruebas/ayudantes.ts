@@ -7,6 +7,7 @@ import { firmarToken } from '../comun/jwt.js';
 import { relojDelSistema } from '../comun/reloj.js';
 import type { RolCuentaInterna } from '../comun/roles.js';
 import { DURACION_TOKEN_ACCESO_SEGUNDOS } from '../modulos/cuentas/cuentas.servicio.js';
+import type { PruebaTemario, TemarioServicio } from '../modulos/temario/index.js';
 
 export const SECRETO_DE_PRUEBA = 'secreto-de-prueba-con-mas-de-32-caracteres';
 export const SECRETO_APP_DE_PRUEBA = `${SECRETO_DE_PRUEBA}-app`;
@@ -95,6 +96,17 @@ export function cuerpoRegistro(cambios: Record<string, unknown> = {}): Record<st
 
 export function cuerpoIngreso(cambios: Record<string, unknown> = {}): Record<string, unknown> {
   return { correo: 'ana@ejemplo.cl', contrasena: 'clave', ...cambios };
+}
+
+/** Temario sin base para las pruebas de preguntas: entrega `temario` y nada de la app. */
+export function temarioEnMemoria(temario: PruebaTemario[]): TemarioServicio {
+  return {
+    listarAreas: () => Promise.resolve([]),
+    alcancePracticaValido: () => Promise.resolve(true),
+    listarTemario: () => Promise.resolve(temario),
+    opcionesPerfil: () => Promise.resolve({ cursos: [], pruebas: [], areasCarrera: [] }),
+    opcionesPractica: () => Promise.resolve({ dificultades: [], pruebas: [] }),
+  };
 }
 
 // Forma común de error de la API: { data: null, error: { codigo, mensaje }, meta: null }.

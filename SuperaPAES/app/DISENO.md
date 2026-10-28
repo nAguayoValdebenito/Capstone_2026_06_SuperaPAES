@@ -21,8 +21,8 @@ diseño es el del prototipo v3 (DAS 7.2 y 7.5) y ya está en el código:
    existe, agrégalo a `componentes.dart`, con su prueba en `test/componentes_test.dart`.
 4. **Sin barra superior.** Los bocetos no tienen `AppBar`. La pantalla parte con un `EnlaceVolver`
    (si se llega desde otra) y un `Encabezado`. Las pestañas de la barra inferior (Inicio, Practicar,
-   Evaluaciones, Progreso y Perfil) tampoco llevan barra superior en sus bocetos. Inicio y Perfil
-   ya siguen su boceto; las demás usan `comunes/pantalla_base.dart`, que sí la tiene, porque
+   Evaluaciones, Progreso y Perfil) tampoco llevan barra superior en sus bocetos. Inicio, Practicar y
+   Perfil ya siguen su boceto; las demás usan `comunes/pantalla_base.dart`, que sí la tiene, porque
    todavía son de relleno («En construcción»). Al construir cada una según su boceto, deja de
    usar `PantallaBase`.
 5. **Etiqueta arriba del campo**, no dentro: usa `CampoTexto` o `CampoContrasena`, no un
@@ -63,6 +63,7 @@ usan Figtree 800, que no está empaquetada: se ve con la más gruesa disponible.
 | --------------- | ------------- | ----------------------------------------------- |
 | `display`       | 44, 800       | Números grandes (puntaje, resultado)            |
 | `h1`            | 26, 800       | Título de la pantalla (va en `Encabezado`)      |
+| `numero`        | 22, 800       | Cantidad de A13 y datos de A21 (Titulo/Número)  |
 | `h2`            | 17, 700       | Título de sección o de tarjeta                  |
 | `cuerpo`        | 15, 400       | Texto normal, bajadas y lo que se escribe en un campo |
 | `cuerpoFuerte`  | 15, 600       | Texto normal destacado                          |
@@ -91,6 +92,8 @@ Los colores van con `copyWith`, por ejemplo
 | `altoChip` / `radioChip` | 36 / 18 | Chips                                   |
 | `altoEtiqueta`    | 24    | Etiquetas (radio de la mitad)                   |
 | `altoBarra`       | 8     | Barra del cupo de A12 (radio de la mitad)       |
+| `altoSegmento` / `radioSegmento` | 36 / 9 | Opción del selector segmentado (A13) |
+| `botonRedondo`    | 44    | Botones «–» y «+» de la cantidad (A13)          |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
 
@@ -117,7 +120,8 @@ En `comunes/componentes_seleccion.dart`:
 
 | Componente                          | Para qué                                                      |
 | ----------------------------------- | ------------------------------------------------------------- |
-| `OpcionRadio(texto:, seleccionada:, onTap:)` | Opción con radio, una entre varias (cursos de A08).  |
+| `OpcionRadio(texto:, seleccionada:, onTap:, detalle:)` | Opción con radio, una entre varias (cursos de A08). `detalle` va gris debajo (el contenido elegido en A13). |
+| `SelectorSegmentado(opciones:, seleccionado:, onChanged:)` | Una opción entre pocas, a lo ancho (dificultad de A13). |
 | `TarjetaCasilla(titulo:, marcada:, onTap:, detalle:, etiqueta:)` | Tarjeta con casilla (pruebas de A10).  |
 | `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
 | `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`) o «Sin verificar» (`aviso`). |
@@ -170,6 +174,10 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A10      | Perfil, paso 3: tus pruebas              | `33:643`  | `perfil_estudio/pantalla_paso_pruebas.dart` |
 | A11      | Confirmar el curso en marzo              | `33:730`  | `perfil_estudio/hoja_confirmar_curso.dart` |
 | A12      | Inicio                                   | `33:794`  | `inicio/` (ya sigue el boceto; sin «Práctica sin terminar», «Repasar errores» ni diagnóstico, que llegan con HU-60, HU-39 y HU-36) |
+| A13      | Personalizar la práctica                 | `33:883`  | `practicar/pantalla_personalizar_practica.dart` |
+| A14      | Elegir eje, contenido o habilidad        | `33:983`  | `practicar/pantalla_elegir_alcance.dart` |
+| A15      | Sin preguntas suficientes                | `33:1059` | `practicar/pantalla_sin_preguntas.dart` |
+| A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
 
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).

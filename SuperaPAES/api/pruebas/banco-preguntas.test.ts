@@ -8,8 +8,8 @@ import type {
   PreguntasRepositorio,
 } from '../modulos/preguntas/preguntas.repositorio.js';
 import { crearPreguntasServicio } from '../modulos/preguntas/index.js';
-import type { PruebaTemario, TemarioServicio } from '../modulos/temario/index.js';
-import { crearAppDePrueba, errorConFormato, tokenAdmin } from './ayudantes.js';
+import type { PruebaTemario } from '../modulos/temario/index.js';
+import { crearAppDePrueba, errorConFormato, temarioEnMemoria, tokenAdmin } from './ayudantes.js';
 
 const RUTA = '/api/v1/admin/preguntas';
 
@@ -90,12 +90,7 @@ function escenario(filas: FilaBanco[] = [fila()], total = filas.length) {
     listarEstados: () => Promise.resolve(ESTADOS),
     listarDificultades: () => Promise.resolve(DIFICULTADES),
   };
-  const temario: TemarioServicio = {
-    listarAreas: () => Promise.resolve([]),
-    alcancePracticaValido: () => Promise.resolve(true),
-    listarTemario: () => Promise.resolve(TEMARIO),
-    opcionesPerfil: () => Promise.resolve({ cursos: [], pruebas: [], areasCarrera: [] }),
-  };
+  const temario = temarioEnMemoria(TEMARIO);
   const preguntas = crearPreguntasServicio({
     bd: { query: () => Promise.reject(new Error('sin base')) },
     unidadDeTrabajo: { enTransaccion: () => Promise.reject(new Error('sin base')) },

@@ -34,6 +34,13 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.areasCarrera[].pruebasSugeridas[]',
     'data.areasCarrera[].electivoSugeridoId',
   ],
+  'GET /api/v1/app/temario/opciones-practica': [
+    'data.dificultades[].id',
+    'data.pruebas[].id',
+    'data.pruebas[].ejes[].id',
+    'data.pruebas[].ejes[].contenidos[].id',
+    'data.pruebas[].habilidades[].id',
+  ],
   'POST /api/v1/admin/cuentas/ingreso': ['data.usuario.id'],
   'GET /api/v1/admin/cuentas/yo': ['data.id', 'data.areas[]'],
   'GET /api/v1/admin/cuentas/estudiantes': ['data[].id'],

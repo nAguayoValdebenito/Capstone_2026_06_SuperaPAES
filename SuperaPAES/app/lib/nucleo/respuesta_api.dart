@@ -29,17 +29,20 @@ Future<Map<String, dynamic>> publicarObjeto(
 }) => pedirObjeto(dio, 'POST', ruta, cuerpo: cuerpo, sinData: sinData);
 
 /// Como [publicarObjeto], con cualquier método (`GET`, `PUT`, `POST`...).
+/// `consulta` va en la dirección (`?curso=3M`).
 Future<Map<String, dynamic>> pedirObjeto(
   Dio dio,
   String metodo,
   String ruta, {
   required String sinData,
   Map<String, Object?>? cuerpo,
+  Map<String, Object?>? consulta,
 }) async {
   try {
     final respuesta = await dio.request<Object?>(
       ruta,
       data: cuerpo,
+      queryParameters: consulta,
       options: Options(method: metodo),
     );
     final data = leerData(respuesta.data, estadoHttp: respuesta.statusCode);

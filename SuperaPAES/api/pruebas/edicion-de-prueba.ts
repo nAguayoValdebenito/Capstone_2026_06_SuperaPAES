@@ -8,8 +8,8 @@ import type {
 import { crearPreguntasServicio } from '../modulos/preguntas/index.js';
 import type { PreguntasRepositorio } from '../modulos/preguntas/preguntas.repositorio.js';
 import type { DatosPregunta } from '../modulos/preguntas/preguntas.validadores.js';
-import type { PruebaTemario, TemarioServicio } from '../modulos/temario/index.js';
-import { crearAppDePrueba } from './ayudantes.js';
+import type { PruebaTemario } from '../modulos/temario/index.js';
+import { crearAppDePrueba, temarioEnMemoria } from './ayudantes.js';
 
 export const RUTA_PREGUNTAS = '/api/v1/admin/preguntas';
 
@@ -155,12 +155,7 @@ const LISTAS: PreguntasRepositorio = {
 export function escenarioEdicion() {
   const { repositorio, ponerEtapa } = repositorioEnMemoria();
   const auditoria = { registrarAuditoria: vi.fn(() => Promise.resolve()) };
-  const temario: TemarioServicio = {
-    listarAreas: () => Promise.resolve([]),
-    alcancePracticaValido: () => Promise.resolve(true),
-    listarTemario: () => Promise.resolve(TEMARIO),
-    opcionesPerfil: () => Promise.resolve({ cursos: [], pruebas: [], areasCarrera: [] }),
-  };
+  const temario = temarioEnMemoria(TEMARIO);
   const preguntas = crearPreguntasServicio({
     bd: { query: () => Promise.reject(new Error('sin base')) },
     unidadDeTrabajo: {

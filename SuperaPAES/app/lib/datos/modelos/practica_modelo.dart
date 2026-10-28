@@ -1,0 +1,101 @@
+import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
+import 'package:supera_paes/dominio/entidades/practica.dart';
+import 'package:supera_paes/nucleo/ids.dart';
+
+/// Lee y arma el JSON de la práctica (docs/contratos/HU-30.md): GET
+/// /temario/opciones-practica, POST /evaluaciones/practicas y POST
+/// /evaluaciones/practicas/{id}/cerrar.
+abstract final class PracticaModelo {
+  static OpcionConNombre _opcion(Object? valor) {
+    final json = valor! as Map<String, dynamic>;
+    return (id: leerId(json['id']), nombre: json['nombre'] as String);
+  }
+
+  static List<OpcionConNombre> _opciones(Object? lista) => [
+    for (final valor in lista! as List<Object?>) _opcion(valor),
+  ];
+
+  static OpcionesPractica opciones(Map<String, dynamic> json) =>
+      OpcionesPractica(
+        dificultades: [
+          for (final valor in json['dificultades'] as List<Object?>)
+            _dificultad(valor! as Map<String, dynamic>),
+        ],
+        pruebas: [
+          for (final valor in json['pruebas'] as List<Object?>)
+            _prueba(valor! as Map<String, dynamic>),
+        ],
+      );
+
+  static Dificultad _dificultad(Map<String, dynamic> json) => Dificultad(
+    id: leerId(json['id']),
+    codigo: json['codigo'] as String,
+    nombre: json['nombre'] as String,
+    mezcla: json['mezcla'] as int,
+  );
+
+  static PruebaPractica _prueba(Map<String, dynamic> json) => PruebaPractica(
+    id: leerId(json['id']),
+    codigo: json['codigo'] as String,
+    ejes: [
+      for (final valor in json['ejes'] as List<Object?>)
+        _eje(valor! as Map<String, dynamic>),
+    ],
+    habilidades: _opciones(json['habilidades']),
+  );
+
+  static EjePractica _eje(Map<String, dynamic> json) => EjePractica(
+    id: leerId(json['id']),
+    nombre: json['nombre'] as String,
+    contenidos: _opciones(json['contenidos']),
+  );
+
+  /// Cuerpo de POST /evaluaciones/practicas: un solo alcance y, sin
+  /// dificultad, la mezcla.
+  static Map<String, Object?> datos(DatosPractica datos) {
+    final campoAlcance = switch (datos.alcance.tipo) {
+      TipoAlcance.prueba => null,
+      TipoAlcance.eje => 'ejeId',
+      TipoAlcance.contenido => 'contenidoId',
+      TipoAlcance.habilidad => 'habilidadId',
+    };
+    return {
+      'pruebaId': datos.pruebaId,
+      ?campoAlcance: datos.alcance.id,
+      'dificultadId': ?datos.dificultadId,
+      'cantidad': datos.cantidad,
+    };
+  }
+
+  static PracticaIniciada iniciada(Map<String, dynamic> json) =>
+      PracticaIniciada(
+        id: leerId(json['id']),
+        pruebaId: leerId(json['pruebaId']),
+        cantidad: json['cantidad'] as int,
+      );
+
+  static ResumenPractica resumen(Map<String, dynamic> json) {
+    final prueba = json['prueba'] as Map<String, dynamic>;
+    final alcance = json['alcance'] as Map<String, dynamic>;
+    final dificultad = json['dificultad'] as Map<String, dynamic>;
+    return ResumenPractica(
+      id: leerId(json['id']),
+      prueba: nombreDePrueba(
+        prueba['codigo'] as String,
+        prueba['nombre'] as String,
+      ),
+      alcance: Alcance(
+        TipoAlcance.values.byName(alcance['tipo'] as String),
+        id: leerId(alcance['id']),
+        nombre: alcance['nombre'] as String,
+      ),
+      dificultad: dificultad['nombre'] as String,
+      cantidad: json['cantidad'] as int,
+      correctas: json['correctas'] as int,
+      incorrectas: json['incorrectas'] as int,
+      omitidas: json['omitidas'] as int,
+      porcentaje: (json['porcentaje'] as num).toDouble(),
+      tiempoUsadoSeg: json['tiempoUsadoSeg'] as int,
+    );
+  }
+}

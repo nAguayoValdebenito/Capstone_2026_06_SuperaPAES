@@ -12,9 +12,9 @@ import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
-  test('las 21 pantallas de la app están declaradas una sola vez', () {
-    expect(secciones, hasLength(21));
-    expect(secciones.map((s) => s.ruta).toSet(), hasLength(21));
+  test('las 24 pantallas de la app están declaradas una sola vez', () {
+    expect(secciones, hasLength(24));
+    expect(secciones.map((s) => s.ruta).toSet(), hasLength(24));
     // Barra inferior del DAS 7.4: Planes pasa a Perfil.
     expect(pestanas.map((s) => s.etiquetaPestana ?? s.titulo), [
       'Inicio',
@@ -58,15 +58,13 @@ void main() {
   });
 
   testWidgets('la barra inferior cambia de pestaña', (tester) async {
-    await iniciarApp(
-      tester,
-      crearContenedor(sesion: sesionDeEjemplo),
-      ruta: Rutas.inicio,
-    );
+    final contenedor = crearContenedor(sesion: sesionDeEjemplo);
+    await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
 
     await tester.tap(find.text('Practicar'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Elegir práctica'), findsOneWidget);
+    expect(rutaActual(contenedor), Rutas.practicar);
+    expect(find.text('Personaliza tu práctica'), findsOneWidget);
 
     await tester.tap(find.text('Evaluaciones').last);
     await tester.pumpAndSettle();
