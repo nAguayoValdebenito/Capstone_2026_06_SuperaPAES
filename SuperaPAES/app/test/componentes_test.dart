@@ -122,6 +122,49 @@ void main() {
     expect(tocada, isTrue);
   });
 
+  testWidgets('OpcionAlternativa corregida: verde o rojo con su etiqueta', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      const Column(
+        children: [
+          OpcionAlternativa(
+            letra: 'B',
+            texto: '25',
+            seleccionada: true,
+            onTap: null,
+            resultado: ResultadoAlternativa.incorrecta,
+            etiqueta: 'Tu respuesta',
+          ),
+          OpcionAlternativa(
+            letra: 'C',
+            texto: '32',
+            seleccionada: false,
+            onTap: null,
+            resultado: ResultadoAlternativa.correcta,
+            etiqueta: 'Correcta',
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text('Tu respuesta'), findsOne);
+    expect(find.text('Correcta'), findsOne);
+    Color? colorDelCirculo(String letra) {
+      final circulo = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(letra), matching: find.byType(Container))
+            .first,
+      );
+      final decoracion = circulo.decoration! as BoxDecoration;
+      return decoracion.color;
+    }
+
+    expect(colorDelCirculo('B'), TemaSuperaPaes.error);
+    expect(colorDelCirculo('C'), TemaSuperaPaes.exito);
+  });
+
   testWidgets('OpcionRadio muestra su detalle bajo el título', (tester) async {
     await montar(
       tester,

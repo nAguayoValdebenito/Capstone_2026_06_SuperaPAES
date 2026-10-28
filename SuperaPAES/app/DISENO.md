@@ -97,6 +97,7 @@ Los colores van con `copyWith`, por ejemplo
 | `circuloLetra`    | 28    | Círculo con la letra de cada alternativa (A17)  |
 | `altoTextoLectura`| 210   | Alto máximo del texto de lectura en la pregunta (A20) |
 | `altoAvance`      | 6     | Barra del avance de la práctica (A17)           |
+| `radioHoja`       | 24    | Esquinas de arriba de las hojas que suben desde abajo (A11 y A18) |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
 
@@ -125,7 +126,7 @@ En `comunes/componentes_seleccion.dart`:
 | ----------------------------------- | ------------------------------------------------------------- |
 | `OpcionRadio(texto:, seleccionada:, onTap:, detalle:)` | Opción con radio, una entre varias (cursos de A08). `detalle` va gris debajo (el contenido elegido en A13). |
 | `SelectorSegmentado(opciones:, seleccionado:, onChanged:)` | Una opción entre pocas, a lo ancho (dificultad de A13). |
-| `OpcionAlternativa(letra:, texto:, seleccionada:, onTap:)` | Alternativa de una pregunta con su letra en un círculo (A17 a A20). Su texto admite fórmulas e imágenes. |
+| `OpcionAlternativa(letra:, texto:, seleccionada:, onTap:, resultado:, etiqueta:)` | Alternativa de una pregunta con su letra en un círculo (A17 a A20). Su texto admite fórmulas e imágenes. Corregida (A19), `resultado` la pinta verde o roja y `etiqueta` dice «Tu respuesta» o «Correcta». |
 
 En `comunes/formato_pregunta_vista.dart` (HU-34.2):
 
@@ -138,7 +139,7 @@ No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las f
 `$\frac{x}{2}$`.
 | `TarjetaCasilla(titulo:, marcada:, onTap:, detalle:, etiqueta:)` | Tarjeta con casilla (pruebas de A10).  |
 | `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
-| `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`) o «Sin verificar» (`aviso`). |
+| `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`), «Sin verificar» (`aviso`), «Correcta» (`exito`) o «Tu respuesta» fallada (`error`). |
 | `IndicadorPasos(paso:, total:, opcional:, accion:)` | «Paso 2 de 3 · Opcional» con su barra y «Omitir». |
 | `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37).                |
 | `FilaNavegacion(texto:, onTap:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). |
@@ -192,6 +193,9 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A14      | Elegir eje, contenido o habilidad        | `33:983`  | `practicar/pantalla_elegir_alcance.dart` |
 | A15      | Sin preguntas suficientes                | `33:1059` | `practicar/pantalla_sin_preguntas.dart` |
 | A17      | Pregunta de práctica                     | `33:1134` | `pregunta/pantalla_pregunta.dart` (sin «Avisar un error», que llega con HU-37) |
+| A18      | Confirmar respuesta                      | `33:1187` | `pregunta/hoja_confirmar_respuesta.dart` |
+| A19      | Corrección con explicación               | `33:1243` | `correccion/pantalla_correccion.dart` |
+| A19b     | Corrección de una respuesta incorrecta   | `33:1299` | `correccion/pantalla_correccion.dart` |
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |

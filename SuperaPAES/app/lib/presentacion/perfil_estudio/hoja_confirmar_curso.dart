@@ -27,7 +27,9 @@ Future<void> mostrarConfirmarCurso(
   backgroundColor: TemaSuperaPaes.superficie,
   barrierColor: TemaSuperaPaes.texto.withValues(alpha: 0.9),
   shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    borderRadius: BorderRadius.vertical(
+      top: Radius.circular(TemaSuperaPaes.radioHoja),
+    ),
   ),
   builder: (context) => HojaConfirmarCurso(perfil: perfil),
 );

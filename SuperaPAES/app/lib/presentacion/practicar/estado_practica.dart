@@ -130,8 +130,8 @@ class Practica {
   /// Mezcla» de A17).
   final DatosPractica? datos;
 
-  /// La corrección de la última respuesta y si era la última pregunta.
-  final ({Correccion correccion, bool eraLaUltima})? correccion;
+  /// La última pregunta respondida con su corrección (A19 y A19b).
+  final ({PreguntaDePractica pregunta, Correccion correccion})? correccion;
   final SinPreguntas? sinPreguntas;
   final ResumenPractica? resumen;
 }
@@ -199,7 +199,7 @@ class EstadoPractica extends Notifier<Practica> {
     state = Practica(
       enCurso: enCurso,
       datos: state.datos,
-      correccion: (correccion: correccion, eraLaUltima: pregunta.esLaUltima),
+      correccion: (pregunta: pregunta, correccion: correccion),
     );
     ref.invalidate(cupoDeHoyProvider);
   }

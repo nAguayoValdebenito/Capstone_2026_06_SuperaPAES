@@ -128,27 +128,33 @@ class _Seleccionable extends StatelessWidget {
     required this.padding,
     required this.onTap,
     required this.child,
+    this.colores,
   });
 
   final bool seleccionada;
   final double bordeAncho;
   final EdgeInsets padding;
-  final VoidCallback onTap;
+
+  /// `null`: no se puede tocar (una alternativa ya corregida).
+  final VoidCallback? onTap;
   final Widget child;
+
+  /// Fondo y borde propios, como el verde de la alternativa correcta.
+  final (Color, Color)? colores;
 
   @override
   Widget build(BuildContext context) {
     final forma = BorderRadius.circular(TemaSuperaPaes.radioBoton);
+    final (fondo, borde) =
+        colores ??
+        (seleccionada
+            ? (TemaSuperaPaes.primarioSuave, TemaSuperaPaes.primario)
+            : (TemaSuperaPaes.superficie, TemaSuperaPaes.borde));
     return Material(
-      color: seleccionada
-          ? TemaSuperaPaes.primarioSuave
-          : TemaSuperaPaes.superficie,
+      color: fondo,
       shape: RoundedRectangleBorder(
         borderRadius: forma,
-        side: BorderSide(
-          color: seleccionada ? TemaSuperaPaes.primario : TemaSuperaPaes.borde,
-          width: bordeAncho,
-        ),
+        side: BorderSide(color: borde, width: bordeAncho),
       ),
       child: InkWell(
         borderRadius: forma,
@@ -258,8 +264,13 @@ class GrupoChips extends StatelessWidget {
       Wrap(spacing: 8, runSpacing: 8, children: chips);
 }
 
+/// Cómo quedó una alternativa en la corrección (A19 y A19b).
+enum ResultadoAlternativa { correcta, incorrecta }
+
 /// Alternativa de una pregunta (A17 a A20): la letra en un círculo y su
 /// texto. Seleccionada, con borde y fondo `primario`, igual que [OpcionRadio].
+/// En la corrección, la correcta va en verde y la elegida incorrecta en rojo,
+/// con su [etiqueta] («Tu respuesta», «Correcta»).
 class OpcionAlternativa extends StatelessWidget {
   const OpcionAlternativa({
     required this.letra,
@@ -267,26 +278,47 @@ class OpcionAlternativa extends StatelessWidget {
     required this.seleccionada,
     required this.onTap,
     super.key,
+    this.resultado,
+    this.etiqueta,
   });
 
   final String letra;
   final String texto;
   final bool seleccionada;
 
-  /// `null` mientras se envía la respuesta.
+  /// `null` mientras se envía la respuesta o ya corregida.
   final VoidCallback? onTap;
+  final ResultadoAlternativa? resultado;
+  final String? etiqueta;
 
   @override
   Widget build(BuildContext context) {
+    final (fondo, color) = switch (resultado) {
+      ResultadoAlternativa.correcta => (
+        TemaSuperaPaes.exitoSuave,
+        TemaSuperaPaes.exito,
+      ),
+      ResultadoAlternativa.incorrecta => (
+        TemaSuperaPaes.errorSuave,
+        TemaSuperaPaes.error,
+      ),
+      null when seleccionada => (
+        TemaSuperaPaes.primarioSuave,
+        TemaSuperaPaes.primario,
+      ),
+      null => (TemaSuperaPaes.superficie, TemaSuperaPaes.borde),
+    };
+    final marcada = seleccionada || resultado != null;
     return Semantics(
       inMutuallyExclusiveGroup: true,
       checked: seleccionada,
-      label: 'Alternativa $letra',
+      label: ['Alternativa $letra', ?etiqueta].join(', '),
       child: _Seleccionable(
         seleccionada: seleccionada,
-        bordeAncho: seleccionada ? 2 : 1,
+        bordeAncho: marcada ? 2 : 1,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        onTap: onTap ?? () {},
+        onTap: onTap,
+        colores: (fondo, color),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -296,14 +328,12 @@ class OpcionAlternativa extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: seleccionada
-                    ? TemaSuperaPaes.primario
-                    : TemaSuperaPaes.neutroSuave,
+                color: marcada ? color : TemaSuperaPaes.neutroSuave,
               ),
               child: Text(
                 letra,
                 style: TemaSuperaPaes.etiqueta.copyWith(
-                  color: seleccionada
+                  color: marcada
                       ? TemaSuperaPaes.superficie
                       : TemaSuperaPaes.texto,
                 ),
@@ -317,6 +347,15 @@ class OpcionAlternativa extends StatelessWidget {
                 child: TextoConFormulas(texto),
               ),
             ),
+            if (etiqueta case final texto?) ...[
+              const SizedBox(width: 8),
+              Etiqueta(
+                texto: texto,
+                tono: resultado == ResultadoAlternativa.incorrecta
+                    ? TonoEtiqueta.error
+                    : TonoEtiqueta.exito,
+              ),
+            ],
           ],
         ),
       ),
@@ -412,8 +451,9 @@ class _Segmento extends StatelessWidget {
   }
 }
 
-/// Tonos de [Etiqueta]: primario («Sugerida») y aviso («Sin verificar»).
-enum TonoEtiqueta { primario, aviso }
+/// Tonos de [Etiqueta]: primario («Sugerida»), aviso («Sin verificar»),
+/// éxito («Correcta») y error («Tu respuesta» incorrecta).
+enum TonoEtiqueta { primario, aviso, exito, error }
 
 /// Etiqueta (Texto/Pequeño fuerte sobre fondo suave, radio 12).
 class Etiqueta extends StatelessWidget {
@@ -436,6 +476,14 @@ class Etiqueta extends StatelessWidget {
       TonoEtiqueta.aviso => (
         TemaSuperaPaes.avisoSuave,
         TemaSuperaPaes.avisoTexto,
+      ),
+      TonoEtiqueta.exito => (
+        TemaSuperaPaes.superficie,
+        TemaSuperaPaes.exitoTexto,
+      ),
+      TonoEtiqueta.error => (
+        TemaSuperaPaes.superficie,
+        TemaSuperaPaes.errorTexto,
       ),
     };
     // Sin `alignment`: así mide lo que su texto (13 × 1,4 + 6 ≈ 24 de alto)
