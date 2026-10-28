@@ -51,7 +51,16 @@ describe('FabricaProveedores: IA', () => {
 });
 
 describe('FabricaProveedores: correo', () => {
-  const smtp = { proveedor: 'smtp' as const, host: 'localhost', puerto: 1025, remitente: 'a@b.cl' };
+  const smtp = {
+    proveedor: 'smtp' as const,
+    host: 'localhost',
+    puerto: 1025,
+    tls: 'none' as const,
+    usuario: undefined,
+    clave: undefined,
+    remitente: 'a@b.cl',
+    timeoutMs: 10_000,
+  };
 
   it.each([
     [{ proveedor: 'consola' as const }, 'consola'],

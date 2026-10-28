@@ -161,8 +161,16 @@ Proveedores (se eligen con variables de entorno, ver `api/.env.example`):
 
 Por defecto `PROVEEDOR_CORREO=consola`: no envía nada. Para ver los correos como los recibiría una
 persona, instala **Mailpit** (opcional, https://mailpit.axllent.org), ejecútalo y usa en `api/.env`
-`PROVEEDOR_CORREO=smtp`, `SMTP_HOST=localhost` y `SMTP_PORT=1025`. Los correos se ven en
-http://localhost:8025.
+`PROVEEDOR_CORREO=smtp`, `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_TLS=none` y una dirección
+ficticia en `CORREO_REMITENTE`. No necesita usuario ni clave. Los correos se ven en
+http://localhost:8025. El arranque normal con `npm run dev` y `PROVEEDOR_CORREO=consola` no cambia.
+
+Para usar un servidor SMTP real, completa también `SMTP_USUARIO`, `SMTP_CLAVE` y una dirección
+verificada en `CORREO_REMITENTE`. Usa `SMTP_TLS=implicit` con el puerto 465 o
+`SMTP_TLS=starttls` con 587 o 2525. La API obliga a cifrar toda conexión remota. En Render se usa
+2525 con STARTTLS porque los puertos SMTP habituales están bloqueados; la contraseña debe ser una
+clave SMTP del proveedor, no la contraseña de la cuenta ni una clave de API. Nunca guardes esos
+valores en el repositorio.
 
 ## App de estudiantes
 

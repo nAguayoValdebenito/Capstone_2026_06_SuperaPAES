@@ -29,6 +29,16 @@ const tiendas = {
   APP_STORE_ENTORNO: 'sandbox',
 };
 
+const smtpBrevo = {
+  PROVEEDOR_CORREO: 'smtp',
+  SMTP_HOST: 'smtp.ejemplo.cl',
+  SMTP_PORT: '2525',
+  SMTP_TLS: 'starttls',
+  SMTP_USUARIO: 'usuario-smtp',
+  SMTP_CLAVE: 'clave-smtp-de-prueba',
+  CORREO_REMITENTE: 'no-responder@ejemplo.cl',
+};
+
 describe('leerConfiguracion', () => {
   it('arranca con las tres variables obligatorias y usa proveedores simulados', () => {
     const config = leerConfiguracion(minimas);
@@ -55,8 +65,64 @@ describe('leerConfiguracion', () => {
 
   it('exige los datos de SMTP solo si el correo es smtp', () => {
     expect(() => leerConfiguracion({ ...minimas, PROVEEDOR_CORREO: 'smtp' })).toThrow(
-      /SMTP_HOST[\s\S]*SMTP_PORT[\s\S]*CORREO_REMITENTE/,
+      /SMTP_HOST[\s\S]*SMTP_PORT[\s\S]*SMTP_TLS[\s\S]*CORREO_REMITENTE/,
     );
+  });
+
+  it('arma la configuración de Brevo con STARTTLS obligatorio y un timeout acotado', () => {
+    const config = leerConfiguracion({ ...minimas, ...smtpBrevo, SMTP_TIMEOUT_MS: '7500' });
+
+    expect(config.correo).toEqual({
+      proveedor: 'smtp',
+      host: 'smtp.ejemplo.cl',
+      puerto: 2525,
+      tls: 'starttls',
+      usuario: 'usuario-smtp',
+      clave: 'clave-smtp-de-prueba',
+      remitente: 'no-responder@ejemplo.cl',
+      timeoutMs: 7500,
+    });
+  });
+
+  it('permite Mailpit sin TLS ni credenciales solo en localhost', () => {
+    const config = leerConfiguracion({
+      ...minimas,
+      PROVEEDOR_CORREO: 'smtp',
+      SMTP_HOST: 'localhost',
+      SMTP_PORT: '1025',
+      SMTP_TLS: 'none',
+      CORREO_REMITENTE: 'no-responder@ejemplo.cl',
+    });
+
+    expect(config.correo).toMatchObject({
+      proveedor: 'smtp',
+      tls: 'none',
+      usuario: undefined,
+      clave: undefined,
+      timeoutMs: 10_000,
+    });
+  });
+
+  it.each([
+    ['servidor remoto sin TLS', { ...smtpBrevo, SMTP_TLS: 'none' }, /SMTP_TLS[\s\S]*localhost/],
+    ['TLS implícito fuera de 465', { ...smtpBrevo, SMTP_TLS: 'implicit' }, /SMTP_PORT[\s\S]*465/],
+    [
+      'STARTTLS fuera de 587 o 2525',
+      { ...smtpBrevo, SMTP_PORT: '25' },
+      /SMTP_PORT[\s\S]*587[\s\S]*2525/,
+    ],
+    ['usuario sin clave', { ...smtpBrevo, SMTP_CLAVE: undefined }, /SMTP_CLAVE/],
+    ['clave sin usuario', { ...smtpBrevo, SMTP_USUARIO: undefined }, /SMTP_USUARIO/],
+  ])('rechaza %s', (_caso, smtp, mensaje) => {
+    expect(() => leerConfiguracion({ ...minimas, ...smtp })).toThrow(mensaje);
+  });
+
+  it('no incluye la clave SMTP en un error de configuración', () => {
+    const clave = 'clave-smtp-que-no-debe-aparecer';
+
+    expect(() =>
+      leerConfiguracion({ ...minimas, ...smtpBrevo, SMTP_CLAVE: clave, SMTP_TLS: 'none' }),
+    ).toThrowError(expect.not.stringContaining(clave));
   });
 
   it('con PROVEEDOR_PAGOS=tiendas exige todas las variables de Google Play y la App Store', () => {
@@ -111,8 +177,11 @@ describe('leerConfiguracion', () => {
       CORS_ORIGENES: 'https://consola.superapaes.cl',
       PROVEEDOR_CORREO: 'smtp',
       SMTP_HOST: 'smtp.ejemplo.cl',
-      SMTP_PORT: '587',
-      CORREO_REMITENTE: 'Supera PAES <no-responder@ejemplo.cl>',
+      SMTP_PORT: '2525',
+      SMTP_TLS: 'starttls',
+      SMTP_USUARIO: 'usuario-smtp',
+      SMTP_CLAVE: 'clave-smtp-de-prueba',
+      CORREO_REMITENTE: 'no-responder@ejemplo.cl',
       PROVEEDOR_IA: 'deepseek',
       DEEPSEEK_API_KEY: 'clave',
     };

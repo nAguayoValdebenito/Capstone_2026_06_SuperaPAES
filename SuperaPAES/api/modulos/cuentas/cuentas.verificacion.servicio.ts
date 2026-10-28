@@ -191,9 +191,8 @@ async function emitir(
     );
     return { enviado: true, yaVerificado: false };
   } catch (error) {
-    // Solo el id y el tipo de error: el mensaje del proveedor puede traer el correo del estudiante.
+    // Solo el tipo de error: el mensaje del proveedor puede traer datos del estudiante.
     registro.error('No se pudo enviar el correo de verificación', {
-      estudianteId,
       error: error instanceof Error ? error.name : 'desconocido',
     });
     return { enviado: false, yaVerificado: false };

@@ -39,6 +39,8 @@ export interface DependenciasRegistro {
   abrirSesionApp(estudianteId: string, tx: Ejecutor): Promise<Tokens>;
   /** Emite el correo de verificación después de confirmar (cuentas.verificacion.servicio.ts). */
   emitirVerificacion(estudianteId: string): Promise<unknown>;
+  /** Ejecuta el envío sin retrasar la respuesta del registro. */
+  segundoPlano(tarea: () => Promise<void>): void;
   generarCodigo(): string;
 }
 
@@ -153,16 +155,17 @@ async function registrar(
   comprobarDocumentos(vigentes, datos.documentosAceptados);
   const hashContrasena = await cifrarContrasena(datos.contrasena);
   const cuenta = await crearConCodigoPropio(dependencias, datos, hashContrasena);
-  try {
-    // Si el correo no sale, emitirVerificacion no falla: el estudiante lo pide de nuevo desde la app.
-    await dependencias.emitirVerificacion(cuenta.estudiante.id);
-  } catch (error) {
-    // Solo el id y el tipo de error: nunca el correo ni la contraseña.
-    registro.error('No se pudo emitir el correo de verificación del registro', {
-      estudianteId: cuenta.estudiante.id,
-      error: error instanceof Error ? error.name : 'desconocido',
-    });
-  }
+  dependencias.segundoPlano(async () => {
+    try {
+      // Si el correo no sale, la cuenta queda creada y el estudiante puede pedir el reenvío.
+      await dependencias.emitirVerificacion(cuenta.estudiante.id);
+    } catch (error) {
+      // Solo el tipo de error: nunca identificadores, correo, contraseña, enlace ni código.
+      registro.error('No se pudo emitir el correo de verificación del registro', {
+        error: error instanceof Error ? error.name : 'desconocido',
+      });
+    }
+  });
   return cuenta;
 }
 

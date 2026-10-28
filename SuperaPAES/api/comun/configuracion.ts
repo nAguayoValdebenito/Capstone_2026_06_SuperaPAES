@@ -1,6 +1,13 @@
 // Lectura y validación de las variables de entorno. La API no arranca si falta algo obligatorio.
 // Los parámetros de negocio (cupos, bonos, topes, plazos) no van aquí: viven en contenido.configuracion.
 import { z } from 'zod';
+import {
+  leerConfiguracionCorreo,
+  problemasDeSmtp,
+  type ConfiguracionCorreo,
+} from './configuracion-smtp.js';
+
+export type { ConfiguracionCorreo } from './configuracion-smtp.js';
 
 const textoOpcional = z
   .string()
@@ -8,10 +15,20 @@ const textoOpcional = z
   .optional()
   .transform((valor) => (valor === '' ? undefined : valor));
 
+const secretoOpcional = z
+  .string()
+  .optional()
+  .transform((valor) => (valor === '' ? undefined : valor));
+
 /** Puerto TCP; un valor vacío cuenta como no definido. */
 const puerto = z.preprocess(
   (valor) => (typeof valor === 'string' && valor.trim() === '' ? undefined : valor),
   z.coerce.number().int().min(1).max(65535).optional(),
+);
+
+const milisegundos = z.preprocess(
+  (valor) => (typeof valor === 'string' && valor.trim() === '' ? undefined : valor),
+  z.coerce.number().int().min(100).max(60_000).optional(),
 );
 
 const SECRETO_MINIMO = 32;
@@ -37,7 +54,17 @@ const esquemaBase = z.object({
   PROVEEDOR_CORREO: z.enum(['consola', 'smtp']).default('consola'),
   SMTP_HOST: textoOpcional,
   SMTP_PORT: puerto,
-  CORREO_REMITENTE: textoOpcional,
+  SMTP_TLS: z.preprocess(
+    (valor) => (valor === '' ? undefined : valor),
+    z.enum(['none', 'starttls', 'implicit']).optional(),
+  ),
+  SMTP_USUARIO: textoOpcional,
+  SMTP_CLAVE: secretoOpcional,
+  CORREO_REMITENTE: z.preprocess(
+    (valor) => (valor === '' ? undefined : valor),
+    z.email().optional(),
+  ),
+  SMTP_TIMEOUT_MS: milisegundos,
   PROVEEDOR_PAGOS: z.enum(['simulado', 'tiendas']).default('simulado'),
   GOOGLE_PLAY_PAQUETE: textoOpcional,
   GOOGLE_PLAY_CUENTA_SERVICIO: textoOpcional,
@@ -61,7 +88,7 @@ const EXIGIDAS_POR_PROVEEDOR: [(v: Variables) => boolean, string, (keyof Variabl
   [
     (v) => v.PROVEEDOR_CORREO === 'smtp',
     'PROVEEDOR_CORREO=smtp',
-    ['SMTP_HOST', 'SMTP_PORT', 'CORREO_REMITENTE'],
+    ['SMTP_HOST', 'SMTP_PORT', 'SMTP_TLS', 'CORREO_REMITENTE'],
   ],
   [
     (v) => v.PROVEEDOR_PAGOS === 'tiendas',
@@ -146,6 +173,7 @@ const esquema = esquemaBase.superRefine((v, ctx) => {
     ...problemasDeConsola(v),
     ...problemasDeProduccion(v),
     ...problemasDeProveedores(v),
+    ...problemasDeSmtp(v),
   ];
   for (const [variable, mensaje] of problemas) {
     ctx.addIssue({ code: 'custom', path: [variable], message: mensaje });
@@ -154,9 +182,6 @@ const esquema = esquemaBase.superRefine((v, ctx) => {
 
 export type ConfiguracionIA =
   { proveedor: 'simulado' } | { proveedor: 'deepseek' | 'gemini'; claveApi: string };
-
-export type ConfiguracionCorreo =
-  { proveedor: 'consola' } | { proveedor: 'smtp'; host: string; puerto: number; remitente: string };
 
 export interface ConfiguracionGooglePlay {
   paquete: string;
@@ -227,16 +252,6 @@ function leerConfiguracionIA(v: Variables): ConfiguracionIA {
   if (v.PROVEEDOR_IA === 'simulado') return { proveedor: 'simulado' };
   const claveApi = v.PROVEEDOR_IA === 'gemini' ? v.GEMINI_API_KEY : v.DEEPSEEK_API_KEY;
   return { proveedor: v.PROVEEDOR_IA, claveApi: claveApi ?? '' };
-}
-
-function leerConfiguracionCorreo(v: Variables): ConfiguracionCorreo {
-  if (v.PROVEEDOR_CORREO === 'consola') return { proveedor: 'consola' };
-  return {
-    proveedor: 'smtp',
-    host: v.SMTP_HOST ?? '',
-    puerto: v.SMTP_PORT ?? 0,
-    remitente: v.CORREO_REMITENTE ?? '',
-  };
 }
 
 function leerConfiguracionPagos(v: Variables): ConfiguracionPagos {

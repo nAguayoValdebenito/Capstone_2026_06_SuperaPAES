@@ -6,7 +6,7 @@
 import type { Express } from 'express';
 import type { MensajeCorreo, ProveedorCorreo } from '../adaptadores/fabrica.js';
 import type pg from 'pg';
-import { afterAll, beforeAll, beforeEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { crearApp, type Dependencias } from '../app.js';
 import type { OpcionesLimiteIntentos } from '../comun/middleware/limite-intentos.js';
 import { crearPool } from '../db/conexion.js';
@@ -24,6 +24,8 @@ export interface EntornoSesiones {
   crearAppConLimite(limite: OpcionesLimiteIntentos): Express;
   /** App nueva sobre la misma base con dependencias cambiadas (por ejemplo, cubrePrueba). */
   crearAppCon(cambios: Partial<Dependencias>): Express;
+  /** App nueva sobre la misma base que usa un proveedor de correo real de integración. */
+  crearAppConCorreo(correo: ProveedorCorreo): Express;
   /** Hora del reloj de la app. */
   ahora(): Date;
   avanzarSegundos(segundos: number): void;
@@ -35,7 +37,7 @@ export interface EntornoSesiones {
   correos: MensajeCorreo[];
   /** Hace que el proveedor de correo falle desde ahora (true) o vuelva a funcionar (false). */
   fallarCorreo(fallar: boolean): void;
-  /** Espera las tareas que la API lanzó sin esperarlas (el correo de la recuperación de contraseña). */
+  /** Espera las tareas de correo que la API lanzó sin retrasar sus respuestas. */
   esperarSegundoPlano(): Promise<void>;
 }
 
@@ -75,7 +77,10 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     pendientes.add(ejecucion);
   };
 
-  const crearAppSobreElPool = (cambios: Partial<Dependencias> = {}) => {
+  const crearAppSobreElPool = (
+    cambios: Partial<Dependencias> = {},
+    correo: ProveedorCorreo = buzon.proveedor,
+  ) => {
     const dependencias = crearDependenciasDePrueba({
       bd: pool,
       unidadDeTrabajo: crearUnidadDeTrabajo(pool),
@@ -86,7 +91,7 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     delete dependencias.verificarCuentaInterna;
     return crearApp({
       ...dependencias,
-      proveedores: { ...dependencias.proveedores, correo: buzon.proveedor },
+      proveedores: { ...dependencias.proveedores, correo },
       segundoPlano,
     });
   };
@@ -100,6 +105,7 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
       crearAppConLimite: (limiteIntentos: OpcionesLimiteIntentos) =>
         crearAppSobreElPool({ limiteIntentos }),
       crearAppCon: crearAppSobreElPool,
+      crearAppConCorreo: (correo: ProveedorCorreo) => crearAppSobreElPool({}, correo),
       correos: buzon.correos,
       fallarCorreo: buzon.fallar,
       esperarSegundoPlano: async () => {
@@ -123,6 +129,10 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     await pool.end();
     await base.cerrar();
   }, MINUTO);
+
+  afterEach(async () => {
+    await Promise.all([...pendientes]);
+  });
 
   beforeEach(async () => {
     ahora = new Date(Math.floor(Date.now() / 1000) * 1000);

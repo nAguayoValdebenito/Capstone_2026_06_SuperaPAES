@@ -26,6 +26,12 @@ describe('configuración de Docker', () => {
       'JWT_SECRETO_APP',
       'URL_CONSOLA',
       'CLAVE_CODIGO_CORREO',
+      'SMTP_HOST',
+      'SMTP_PORT',
+      'SMTP_TLS',
+      'SMTP_USUARIO',
+      'SMTP_CLAVE',
+      'CORREO_REMITENTE',
     ]) {
       expect(variables, `falta ${nombre} en .env.docker.example`).toHaveProperty(nombre);
     }
@@ -44,5 +50,21 @@ describe('configuración de Docker', () => {
     expect(configuracion.ia.proveedor).toBe('simulado');
     expect(configuracion.correo.proveedor).toBe('consola');
     expect(configuracion.pagos.proveedor).toBe('simulado');
+
+    const smtpLocal = leerConfiguracion({
+      ...variables,
+      // Valores locales ficticios para comprobar que el mismo ejemplo permite activar Mailpit.
+      // secretlint-disable-next-line
+      DATABASE_URL: 'postgres://supera:prueba@db:5432/supera_paes',
+      JWT_SECRETO_CONSOLA: SECRETO_DE_PRUEBA,
+      JWT_SECRETO_APP: SECRETO_APP_DE_PRUEBA,
+      CLAVE_CODIGO_CORREO: CLAVE_CODIGO_DE_PRUEBA,
+      PROVEEDOR_CORREO: 'smtp',
+      SMTP_HOST: 'localhost',
+      SMTP_PORT: '1025',
+      SMTP_TLS: 'none',
+      CORREO_REMITENTE: 'no-responder@ejemplo.cl',
+    });
+    expect(smtpLocal.correo).toMatchObject({ proveedor: 'smtp', tls: 'none' });
   });
 });
