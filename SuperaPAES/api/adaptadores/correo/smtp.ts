@@ -26,7 +26,8 @@ export class ProveedorCorreoSmtp implements ProveedorCorreo {
       secure: tls === 'implicit',
       requireTLS: tls === 'starttls',
       ignoreTLS: tls === 'none',
-      auth: usuario !== undefined && clave !== undefined ? { user: usuario, pass: clave } : undefined,
+      auth:
+        usuario !== undefined && clave !== undefined ? { user: usuario, pass: clave } : undefined,
       connectionTimeout: timeoutMs,
       greetingTimeout: timeoutMs,
       socketTimeout: timeoutMs,

@@ -106,7 +106,11 @@ describe('leerConfiguracion', () => {
   it.each([
     ['servidor remoto sin TLS', { ...smtpBrevo, SMTP_TLS: 'none' }, /SMTP_TLS[\s\S]*localhost/],
     ['TLS implícito fuera de 465', { ...smtpBrevo, SMTP_TLS: 'implicit' }, /SMTP_PORT[\s\S]*465/],
-    ['STARTTLS fuera de 587 o 2525', { ...smtpBrevo, SMTP_PORT: '25' }, /SMTP_PORT[\s\S]*587[\s\S]*2525/],
+    [
+      'STARTTLS fuera de 587 o 2525',
+      { ...smtpBrevo, SMTP_PORT: '25' },
+      /SMTP_PORT[\s\S]*587[\s\S]*2525/,
+    ],
     ['usuario sin clave', { ...smtpBrevo, SMTP_CLAVE: undefined }, /SMTP_CLAVE/],
     ['clave sin usuario', { ...smtpBrevo, SMTP_USUARIO: undefined }, /SMTP_USUARIO/],
   ])('rechaza %s', (_caso, smtp, mensaje) => {
