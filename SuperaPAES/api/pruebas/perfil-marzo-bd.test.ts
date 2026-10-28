@@ -3,7 +3,7 @@
 // app: aquí el reloj recorre varios años escolares y los bordes del 28/02 (o 29/02) y el 01/03.
 // En marzo Chile está en horario de verano (UTC-3); en julio, en horario de invierno (UTC-4).
 import { describe, expect, it } from 'vitest';
-import { exigirBaseEnCi, urlBase } from './base-temporal.js';
+import { exigirBaseEnCi, MINUTO, urlBase } from './base-temporal.js';
 import { prepararPerfil } from './perfil-de-prueba.js';
 
 /** Mediodía del 27/10/2026 en Chile: año escolar 2026. */
@@ -50,36 +50,41 @@ describe.skipIf(!urlBase)('cambio de curso en marzo, hora de Chile (HU-29.3)', (
     return (respuesta.body.data as { debeConfirmarCurso: boolean }).debeConfirmarCurso;
   }
 
-  it('de 1° medio a egresado: sube un curso cada marzo y se confirma una vez por año', async () => {
-    const estudiante = await estudianteA(OCTUBRE_2026);
-    await guardar(estudiante.sesion, perfilSalud('1M'));
+  // Ocho ingresos con bcrypt: unos 3 s solo y más de 5 s en la CI, junto a las otras bases temporales.
+  it(
+    'de 1° medio a egresado: sube un curso cada marzo y se confirma una vez por año',
+    async () => {
+      const estudiante = await estudianteA(OCTUBRE_2026);
+      await guardar(estudiante.sesion, perfilSalud('1M'));
 
-    const recorrido: [number, CursoDeHoy, boolean][] = [];
-    for (const [anio, curso] of [
-      [2027, '2M'],
-      [2028, '3M'],
-      [2029, '4M'],
-    ] as const) {
-      const marzo = await cursoA(estudiante, inicioDeMarzo(anio));
-      recorrido.push([anio, marzo, await confirmarA(estudiante, inicioDeMarzo(anio), { curso })]);
-    }
-    // En 2030 egresó: se le pide confirmar una vez más (al confirmar todavía estaba en 4° medio).
-    const egreso = await cursoA(estudiante, inicioDeMarzo(2030));
-    const confirmado = await confirmarA(estudiante, inicioDeMarzo(2030), {
-      curso: 'EG',
-      anioEgreso: 2029,
-    });
-    const despues = await cursoA(estudiante, inicioDeMarzo(2031));
+      const recorrido: [number, CursoDeHoy, boolean][] = [];
+      for (const [anio, curso] of [
+        [2027, '2M'],
+        [2028, '3M'],
+        [2029, '4M'],
+      ] as const) {
+        const marzo = await cursoA(estudiante, inicioDeMarzo(anio));
+        recorrido.push([anio, marzo, await confirmarA(estudiante, inicioDeMarzo(anio), { curso })]);
+      }
+      // En 2030 egresó: se le pide confirmar una vez más (al confirmar todavía estaba en 4° medio).
+      const egreso = await cursoA(estudiante, inicioDeMarzo(2030));
+      const confirmado = await confirmarA(estudiante, inicioDeMarzo(2030), {
+        curso: 'EG',
+        anioEgreso: 2029,
+      });
+      const despues = await cursoA(estudiante, inicioDeMarzo(2031));
 
-    expect(recorrido).toEqual([
-      [2027, { curso: '2M', debeConfirmarCurso: true }, false],
-      [2028, { curso: '3M', debeConfirmarCurso: true }, false],
-      [2029, { curso: '4M', debeConfirmarCurso: true }, false],
-    ]);
-    expect(egreso).toEqual({ curso: 'EG', debeConfirmarCurso: true });
-    expect(confirmado).toBe(false);
-    expect(despues).toEqual({ curso: 'EG', debeConfirmarCurso: false });
-  });
+      expect(recorrido).toEqual([
+        [2027, { curso: '2M', debeConfirmarCurso: true }, false],
+        [2028, { curso: '3M', debeConfirmarCurso: true }, false],
+        [2029, { curso: '4M', debeConfirmarCurso: true }, false],
+      ]);
+      expect(egreso).toEqual({ curso: 'EG', debeConfirmarCurso: true });
+      expect(confirmado).toBe(false);
+      expect(despues).toEqual({ curso: 'EG', debeConfirmarCurso: false });
+    },
+    MINUTO,
+  );
 
   it('año bisiesto: a las 23:59 del 29/02 sigue el año escolar anterior; a las 00:00 del 01/03 cambia', async () => {
     const estudiante = await estudianteA(new Date('2027-10-27T15:00:00.000Z'));
