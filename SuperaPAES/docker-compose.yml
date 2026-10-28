@@ -48,6 +48,13 @@ services:
       URL_CONSOLA: ${URL_CONSOLA:-http://localhost:8080}
       PROVEEDOR_IA: ${PROVEEDOR_IA:-simulado}
       PROVEEDOR_CORREO: ${PROVEEDOR_CORREO:-consola}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_TLS: ${SMTP_TLS:-}
+      SMTP_USUARIO: ${SMTP_USUARIO:-}
+      SMTP_CLAVE: ${SMTP_CLAVE:-}
+      CORREO_REMITENTE: ${CORREO_REMITENTE:-}
+      SMTP_TIMEOUT_MS: ${SMTP_TIMEOUT_MS:-10000}
       PROVEEDOR_PAGOS: ${PROVEEDOR_PAGOS:-simulado}
     ports:
       - '127.0.0.1:3000:3000'
