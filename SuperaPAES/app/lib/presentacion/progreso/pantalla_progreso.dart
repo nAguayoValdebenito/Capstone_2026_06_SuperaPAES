@@ -5,15 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/progreso.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/inicio/pruebas_inicio.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/progreso/estado_progreso.dart';
 import 'package:supera_paes/presentacion/progreso/tarjetas_progreso.dart';
+import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
 
 /// Pestaña Progreso (A35 y A36; HU-38.3, RF-A10, CU-08): por cada prueba del
 /// perfil, el acierto con su detalle por dificultad, los ejes (en Lectora,
@@ -72,7 +73,13 @@ class _PantallaProgresoState extends ConsumerState<PantallaProgreso> {
             ],
           ),
         ...switch ((progreso, elegida)) {
-          (AsyncError(:final error), _) => [_ErrorProgreso(error: error)],
+          (AsyncError(:final error), _) => [
+            ErrorConReintento(
+              error: error,
+              mensaje: 'No se pudo cargar tu progreso.',
+              alReintentar: () => ref.invalidate(progresoProvider),
+            ),
+          ],
           (AsyncData(value: final ProgresoEstudiante datos), final prueba?) =>
             _contenido(datos.prueba(prueba.id), prueba, nombres),
           (AsyncData(), null) => [const SizedBox.shrink()],
@@ -104,7 +111,10 @@ class _PantallaProgresoState extends ConsumerState<PantallaProgreso> {
       if (progreso.semanas.isNotEmpty)
         TarjetaSemanas(semanas: progreso.semanas),
       if (progreso.ensayos.isNotEmpty)
-        TarjetaEnsayos(ensayos: progreso.ensayos),
+        TarjetaEnsayos(
+          ensayos: progreso.ensayos,
+          puntajeReal: ref.watch(puntajesProvider).value?.dePrueba(prueba.id),
+        ),
     ];
   }
 }
@@ -156,32 +166,6 @@ class _SinRespuestas extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ErrorProgreso extends ConsumerWidget {
-  const _ErrorProgreso({required this.error});
-
-  final Object error;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Aviso(
-          tono: TonoAviso.error,
-          texto: error is ErrorApi
-              ? (error as ErrorApi).mensaje
-              : 'No se pudo cargar tu progreso.',
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton(
-          onPressed: () => ref.invalidate(progresoProvider),
-          child: const Text('Reintentar'),
-        ),
-      ],
     );
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/dominio/entidades/progreso.dart';
+import 'package:supera_paes/dominio/entidades/puntajes_paes.dart';
+import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
@@ -292,15 +295,27 @@ class TarjetaSemanas extends StatelessWidget {
   }
 }
 
-/// «Ensayos completos» con la fecha y el puntaje estimado de cada uno (RN-23).
-/// El puntaje PAES real llega con HU-41.
+/// «Ensayos completos» con la fecha y el puntaje estimado de cada uno (RN-23)
+/// y, para compararlos, el puntaje PAES real que declaró (HU-41 esc. 2,
+/// RF-A17) o «Cargar», que abre A41.
 class TarjetaEnsayos extends StatelessWidget {
-  const TarjetaEnsayos({required this.ensayos, super.key});
+  const TarjetaEnsayos({
+    required this.ensayos,
+    required this.puntajeReal,
+    super.key,
+  });
 
   final List<EnsayoProgreso> ensayos;
 
+  /// El más reciente de la prueba; `null` si no lo cargó.
+  final PuntajePaes? puntajeReal;
+
   @override
   Widget build(BuildContext context) {
+    final secundario = TemaSuperaPaes.pequeno.copyWith(
+      color: TemaSuperaPaes.textoSecundario,
+    );
+    final real = puntajeReal;
     return Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -316,15 +331,42 @@ class TarjetaEnsayos extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '${fechaLarga(ensayo.cerradaEn)} · Puntaje estimado',
-                    style: TemaSuperaPaes.pequeno.copyWith(
-                      color: TemaSuperaPaes.textoSecundario,
-                    ),
+                    style: secundario,
                   ),
                 ),
                 Text('${ensayo.puntaje}', style: TemaSuperaPaes.pequenoFuerte),
               ],
             ),
           ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tu puntaje PAES real',
+                      style: TemaSuperaPaes.pequenoFuerte,
+                    ),
+                    Text(
+                      real == null
+                          ? 'Aún no lo cargas'
+                          : 'Admisión ${real.anioAdmision}',
+                      style: secundario,
+                    ),
+                  ],
+                ),
+              ),
+              if (real != null)
+                Text('${real.puntaje}', style: TemaSuperaPaes.pequenoFuerte)
+              else
+                BotonChico(
+                  texto: 'Cargar',
+                  onPressed: () => context.push(Rutas.puntajes),
+                ),
+            ],
+          ),
         ],
       ),
     );

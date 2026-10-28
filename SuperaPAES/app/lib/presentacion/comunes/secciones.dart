@@ -21,6 +21,7 @@ import 'package:supera_paes/presentacion/practicar/pantalla_sin_preguntas.dart';
 import 'package:supera_paes/presentacion/pregunta/pantalla_pregunta.dart';
 import 'package:supera_paes/presentacion/privacidad/pantalla_privacidad.dart';
 import 'package:supera_paes/presentacion/progreso/pantalla_progreso.dart';
+import 'package:supera_paes/presentacion/puntajes/pantalla_puntajes.dart';
 import 'package:supera_paes/presentacion/recuperar_contrasena/pantalla_recuperar_contrasena.dart';
 import 'package:supera_paes/presentacion/repaso/pantalla_repaso.dart';
 import 'package:supera_paes/presentacion/terminos/pantalla_terminos.dart';
@@ -179,6 +180,12 @@ const List<Seccion> secciones = [
     Rutas.misDatos,
     Icons.shield_outlined,
     PantallaMisDatos.new,
+  ),
+  Seccion(
+    'Mis puntajes PAES',
+    Rutas.puntajes,
+    Icons.emoji_events_outlined,
+    PantallaPuntajes.new,
   ),
   // Perfil de estudio (HU-29): bienvenida, edición y corrección del curso
   Seccion(
