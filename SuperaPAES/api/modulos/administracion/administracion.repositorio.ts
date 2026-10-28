@@ -80,6 +80,8 @@ export interface AdministracionRepositorio {
   registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
   /** De cada tipo obligatorio, la versión con mayor vigente_desde que ya empezó a la hora `ahora`. */
   documentosLegalesVigentes(ahora: Date, tx?: Ejecutor): Promise<DocumentoLegalVigente[]>;
+  /** La versión vigente del permiso de puntajes, que es opcional (RN-16); null si no hay. */
+  permisoPuntajesVigente(ahora: Date, tx?: Ejecutor): Promise<DocumentoLegalVigente | null>;
   /** Valor (JSON) de un parámetro de contenido.configuracion, o undefined si la clave no existe. */
   leerParametro(clave: string, tx?: Ejecutor): Promise<unknown>;
   /**
@@ -184,6 +186,15 @@ const DOCUMENTOS_VIGENTES = `
    WHERE t.obligatorio AND d.vigente_desde <= $1
    ORDER BY t.id, d.vigente_desde DESC`;
 
+const PERMISO_PUNTAJES_VIGENTE = `
+  SELECT d.id, t.codigo AS tipo, t.nombre, d.version, d.contenido AS texto,
+         d.vigente_desde AS "vigenteDesde"
+    FROM contenido.documento_legal d
+    JOIN contenido.tipo_documento_legal t ON t.id = d.tipo_documento_legal_id
+   WHERE t.codigo = 'puntajes' AND d.vigente_desde <= $1
+   ORDER BY d.vigente_desde DESC
+   LIMIT 1`;
+
 const ADMINISTRADORES_ACTIVOS = `
   SELECT u.id::text AS id FROM contenido.usuario_interno u JOIN contenido.rol r ON r.id = u.rol_id
    WHERE r.codigo = 'admin' AND u.activo
@@ -225,6 +236,11 @@ function cambiosYAuditoria(bd: Ejecutor): CambiosYAuditoria {
     async documentosLegalesVigentes(ahora, tx = bd) {
       const { rows } = await tx.query<DocumentoLegalVigente>(DOCUMENTOS_VIGENTES, [ahora]);
       return rows;
+    },
+
+    async permisoPuntajesVigente(ahora, tx = bd) {
+      const { rows } = await tx.query<DocumentoLegalVigente>(PERMISO_PUNTAJES_VIGENTE, [ahora]);
+      return rows[0] ?? null;
     },
 
     async leerParametro(clave, tx = bd) {

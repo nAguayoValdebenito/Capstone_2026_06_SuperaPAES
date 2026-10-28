@@ -9,6 +9,13 @@ const CAMPOS_PERFIL = [
   'data.areasCarrera[]',
 ] as const;
 
+/** Ids de los puntajes PAES (HU-41.1): la versión vigente del permiso y cada puntaje con su prueba. */
+const CAMPOS_PUNTAJES = [
+  'data.permiso.documento.id',
+  'data.puntajes[].id',
+  'data.puntajes[].pruebaId',
+] as const;
+
 /** Ids de la pregunta que se crea o edita en la consola (HU-12.1), con sus alternativas. */
 const CAMPOS_PREGUNTA = [
   'data.id',
@@ -27,6 +34,11 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
   'GET /api/v1/app/cuentas/perfil': CAMPOS_PERFIL,
   'PUT /api/v1/app/cuentas/perfil': CAMPOS_PERFIL,
   'POST /api/v1/app/cuentas/perfil/confirmar-curso': CAMPOS_PERFIL,
+  'GET /api/v1/app/cuentas/puntajes': CAMPOS_PUNTAJES,
+  'PUT /api/v1/app/cuentas/puntajes': CAMPOS_PUNTAJES,
+  'POST /api/v1/app/cuentas/puntajes/permiso': CAMPOS_PUNTAJES,
+  'DELETE /api/v1/app/cuentas/puntajes/permiso': CAMPOS_PUNTAJES,
+  'DELETE /api/v1/app/cuentas/puntajes/:id': CAMPOS_PUNTAJES,
   'GET /api/v1/app/temario/opciones-perfil': [
     'data.pruebas[].id',
     'data.pruebas[].electivos[].id',

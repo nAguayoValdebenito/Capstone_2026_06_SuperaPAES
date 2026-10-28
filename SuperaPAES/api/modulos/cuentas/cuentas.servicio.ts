@@ -20,7 +20,7 @@ import {
   type DuenoSesion,
 } from './cuentas.repositorio.js';
 import { comprobarCredenciales, hashDeRelleno } from './cuentas.credenciales.js';
-import { crearInicioCuenta, type InicioCuenta } from './cuentas.inicio.servicio.js';
+import { crearCuentaEnLaApp, type CuentaEnLaApp } from './cuentas.app.servicio.js';
 import {
   crearPerfilPracticaRepositorio,
   type EstadoCuentaCupo,
@@ -128,10 +128,10 @@ export interface UsuarioConsola extends UsuarioDeSesion {
 }
 
 /**
- * Incluye la verificación del correo, la recuperación de la contraseña, el perfil del estudiante y lo
- * que muestra el inicio de la app.
+ * Incluye la verificación del correo, la recuperación de la contraseña, el perfil del estudiante, lo
+ * que muestra el inicio de la app y los puntajes PAES declarados.
  */
-export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfil, InicioCuenta {
+export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfil, CuentaEnLaApp {
   /** HU-29.1, contrato mínimo para iniciar una práctica. Con bloquear, serializa inicios sobre el
    * estudiante dentro de la transacción del módulo consumidor. */
   obtenerPerfilPractica(
@@ -387,6 +387,6 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
     ...crearVerificacionYRegistro(dependencias, contexto),
     ...crearPerfil(dependencias),
-    ...crearInicioCuenta(dependencias.bd),
+    ...crearCuentaEnLaApp(dependencias),
   };
 }

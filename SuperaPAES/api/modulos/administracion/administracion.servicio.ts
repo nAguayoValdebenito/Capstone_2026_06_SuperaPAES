@@ -78,6 +78,8 @@ export interface AdministracionServicio {
    * vigente_desde que ya empezó. La usan el registro y las páginas /terminos y /privacidad.
    */
   documentosLegalesVigentes(ahora: Date): Promise<DocumentoLegalVigente[]>;
+  /** RN-16: la versión vigente del permiso de puntajes (A41); null si no hay. */
+  permisoPuntajesVigente(ahora: Date): Promise<DocumentoLegalVigente | null>;
 }
 
 interface Contexto {
@@ -307,6 +309,7 @@ export function crearAdministracionServicio(
     cuentaInternaVigente: (id, rol) => cuentaVigente(contexto, id, rol),
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
     documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),
+    permisoPuntajesVigente: (ahora) => contexto.repositorio.permisoPuntajesVigente(ahora),
     obtenerParametroEntero: async (clave) => {
       const valor = await contexto.repositorio.leerParametro(clave);
       if (typeof valor !== 'number' || !Number.isInteger(valor)) {
