@@ -18,29 +18,15 @@ export interface ResumenPractica {
   omitidas: number;
   porcentaje: number;
   tiempoUsadoSeg: number;
-  ejes: { id: number; nombre: string; preguntas: number; correctas: number }[];
-  habilidades: { id: number; nombre: string; preguntas: number; correctas: number }[];
+  ejes: ResultadoDeGrupo[];
+  habilidades: ResultadoDeGrupo[];
 }
 
-const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
-  jsonb_build_object('id', p.id, 'codigo', p.codigo, 'nombre', p.nombre) AS prueba,
-  CASE
-    WHEN e.eje_id IS NOT NULL THEN
-      jsonb_build_object('tipo', 'eje', 'id', ej.id, 'nombre', ej.nombre)
-    WHEN e.contenido_id IS NOT NULL THEN
-      jsonb_build_object('tipo', 'contenido', 'id', c.id, 'nombre', c.nombre)
-    WHEN e.habilidad_id IS NOT NULL THEN
-      jsonb_build_object('tipo', 'habilidad', 'id', h.id, 'nombre', h.nombre)
-    ELSE jsonb_build_object('tipo', 'prueba', 'id', p.id, 'nombre', p.nombre)
-  END AS alcance,
-  jsonb_build_object(
-    'id', d.id, 'codigo', COALESCE(d.codigo, 'mezcla'),
-    'nombre', COALESCE(d.nombre, 'Mezcla')
-  ) AS dificultad,
-  e.cantidad_preguntas AS cantidad, r.puntuables AS respondidas,
-  r.correctas, r.incorrectas, r.omitidas, r.porcentaje::float8 AS porcentaje,
-  r.tiempo_usado_seg AS "tiempoUsadoSeg",
-  COALESCE((
+/**
+ * Columnas `ejes` y `habilidades` del resultado guardado de la evaluación `e` (A21 y A30): preguntas y
+ * correctas de cada uno, los ejes en su orden del temario.
+ */
+export const RESULTADO_POR_EJE_Y_HABILIDAD = `COALESCE((
     SELECT jsonb_agg(
       jsonb_build_object(
         'id', re.eje_id, 'nombre', eje.nombre,
@@ -61,7 +47,35 @@ const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
     FROM app.resultado_habilidad rh
     JOIN contenido.habilidad hab ON hab.id=rh.habilidad_id
     WHERE rh.evaluacion_id=e.id
-  ), '[]'::jsonb) AS habilidades
+  ), '[]'::jsonb) AS habilidades`;
+
+/** Preguntas y correctas de un eje o una habilidad en el resultado guardado. */
+export interface ResultadoDeGrupo {
+  id: number;
+  nombre: string;
+  preguntas: number;
+  correctas: number;
+}
+
+const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
+  jsonb_build_object('id', p.id, 'codigo', p.codigo, 'nombre', p.nombre) AS prueba,
+  CASE
+    WHEN e.eje_id IS NOT NULL THEN
+      jsonb_build_object('tipo', 'eje', 'id', ej.id, 'nombre', ej.nombre)
+    WHEN e.contenido_id IS NOT NULL THEN
+      jsonb_build_object('tipo', 'contenido', 'id', c.id, 'nombre', c.nombre)
+    WHEN e.habilidad_id IS NOT NULL THEN
+      jsonb_build_object('tipo', 'habilidad', 'id', h.id, 'nombre', h.nombre)
+    ELSE jsonb_build_object('tipo', 'prueba', 'id', p.id, 'nombre', p.nombre)
+  END AS alcance,
+  jsonb_build_object(
+    'id', d.id, 'codigo', COALESCE(d.codigo, 'mezcla'),
+    'nombre', COALESCE(d.nombre, 'Mezcla')
+  ) AS dificultad,
+  e.cantidad_preguntas AS cantidad, r.puntuables AS respondidas,
+  r.correctas, r.incorrectas, r.omitidas, r.porcentaje::float8 AS porcentaje,
+  r.tiempo_usado_seg AS "tiempoUsadoSeg",
+  ${RESULTADO_POR_EJE_Y_HABILIDAD}
  FROM app.evaluacion e
  JOIN contenido.tipo_evaluacion t ON t.id=e.tipo_evaluacion_id
  JOIN contenido.prueba p ON p.id=e.prueba_id

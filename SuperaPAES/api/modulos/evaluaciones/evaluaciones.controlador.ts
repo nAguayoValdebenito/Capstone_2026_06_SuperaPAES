@@ -11,6 +11,8 @@ export interface EvaluacionesControlador {
   siguientePregunta: RequestHandler;
   cerrarPractica: RequestHandler;
   resumenPractica: RequestHandler;
+  obtenerResultado: RequestHandler;
+  obtenerRevision: RequestHandler;
   responderPregunta: RequestHandler<Record<string, string>, unknown, DatosRespuestaPregunta>;
   obtenerProgreso: RequestHandler;
 }
@@ -35,6 +37,12 @@ export function crearEvaluacionesControlador(
     },
     resumenPractica: async (req, res) => {
       responder(res, await servicio.resumenPractica(estudianteDe(req), String(req.params.id)));
+    },
+    obtenerResultado: async (req, res) => {
+      responder(res, await servicio.obtenerResultado(estudianteDe(req), String(req.params.id)));
+    },
+    obtenerRevision: async (req, res) => {
+      responder(res, await servicio.obtenerRevision(estudianteDe(req), String(req.params.id)));
     },
     responderPregunta: async (req, res) => {
       const datos = {

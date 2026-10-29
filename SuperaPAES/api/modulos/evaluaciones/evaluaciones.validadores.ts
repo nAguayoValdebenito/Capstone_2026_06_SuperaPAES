@@ -28,6 +28,8 @@ export const esquemaInicioPractica = z
   });
 
 export const esquemaIdPractica = z.object({ id: idDeRuta });
+/** GET /evaluaciones/{id}/resultado y /revision (HU-61.1), de cualquier tipo de evaluación. */
+export const esquemaIdEvaluacion = z.object({ id: idDeRuta });
 /** POST /evaluaciones/{id}/items/{item}/respuesta (DAS 1.13, Figura 17). */
 export const esquemaIdsItem = z.object({ id: idDeRuta, item: idDeRuta });
 // No es strictObject a propósito: un campo de más (por ejemplo esCorrecta) se descarta y nunca se usa.
