@@ -1,4 +1,4 @@
-// Puntajes PAES declarados contra PostgreSQL real (HU-41.1, RF-A17, RN-16, CU-14a, CP-26): sin el
+// Puntajes PAES declarados contra PostgreSQL real (HU-41.1, RF-A17, RN-16, CU-14a, CP-25): sin el
 // permiso no se guarda nada; con él, el puntaje queda como declarado y uno fuera de 100 a 1.000 se
 // rechaza; al retirar el permiso los puntajes se borran. Carga las semillas, con el permiso de puntajes.
 import request from 'supertest';
@@ -53,7 +53,7 @@ describe.skipIf(!urlBase)('puntajes PAES con PostgreSQL (HU-41.1)', () => {
     return rows;
   }
 
-  it('sin el permiso muestra el permiso vigente y no guarda ningún puntaje (CP-26 paso 1)', async () => {
+  it('sin el permiso muestra el permiso vigente y no guarda ningún puntaje (CP-25 paso 1)', async () => {
     const { id, sesion } = await estudianteA(OCTUBRE_2026);
 
     const inicial = await leer(sesion);
@@ -74,7 +74,7 @@ describe.skipIf(!urlBase)('puntajes PAES con PostgreSQL (HU-41.1)', () => {
     expect(await filas(id)).toEqual([]);
   });
 
-  it('con el permiso guarda el puntaje como declarado y cargarlo otra vez lo corrige (CP-26 paso 2)', async () => {
+  it('con el permiso guarda el puntaje como declarado y cargarlo otra vez lo corrige (CP-25 paso 2)', async () => {
     const { id, sesion } = await conPermiso();
 
     const primero = await cargar(sesion, {
@@ -108,7 +108,7 @@ describe.skipIf(!urlBase)('puntajes PAES con PostgreSQL (HU-41.1)', () => {
     ['una admisión anterior a la PAES', { anioAdmision: 2022 }, 'anioAdmision', 'anio_invalido'],
     ['una prueba que no existe', { pruebaId: 999 }, 'pruebaId', 'prueba_inexistente'],
   ] as const)(
-    'rechaza %s con su motivo y no guarda nada (CP-26 paso 3)',
+    'rechaza %s con su motivo y no guarda nada (CP-25 paso 3)',
     async (_caso, cambios, ruta, motivo) => {
       const { id, sesion } = await conPermiso();
 

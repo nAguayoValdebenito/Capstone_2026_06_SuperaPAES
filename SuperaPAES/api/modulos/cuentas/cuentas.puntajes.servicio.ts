@@ -1,4 +1,4 @@
-// HU-41.1 (RF-A17, RN-16, CU-14a, CP-26): puntajes PAES reales que declara el estudiante. Son opcionales
+// HU-41.1 (RF-A17, RN-16, CU-14a, CP-25): puntajes PAES reales que declara el estudiante. Son opcionales
 // y solo se guardan con el permiso de puntajes vigente, que se da aparte de los términos. Retirar el
 // permiso borra los puntajes. cuentas.servicio.ts lo expone en su servicio.
 import {
@@ -49,7 +49,7 @@ export interface Puntajes {
   retirarPermisoPuntajes(estudianteId: string): Promise<PuntajesPaes>;
   /**
    * Guarda el puntaje de una prueba y un año de admisión; si ya estaba, lo corrige. Sin el permiso,
-   * 403 SIN_PERMISO (CP-26). Prueba que no existe o año futuro: 400 VALIDACION con su motivo.
+   * 403 SIN_PERMISO (CP-25). Prueba que no existe o año futuro: 400 VALIDACION con su motivo.
    */
   guardarPuntaje(estudianteId: string, datos: DatosPuntaje): Promise<PuntajesPaes>;
   /** Borra un puntaje propio; si no existe o es de otro estudiante, 404. */

@@ -4,8 +4,13 @@
 // Cada endpoint: router.<metodo>(ruta, validar(...), controlador.<accion>), con
 // crearPrivacidadControlador(servicio).
 import { Router } from 'express';
+import { crearPrivacidadControlador } from './privacidad.controlador.js';
 import type { PrivacidadServicio } from './privacidad.servicio.js';
 
-export function crearRutasAppPrivacidad(_servicio: PrivacidadServicio): Router {
-  return Router();
+export function crearRutasAppPrivacidad(servicio: PrivacidadServicio): Router {
+  const router = Router();
+  const controlador = crearPrivacidadControlador(servicio);
+  // HU-07.1: «Descargar mis datos» (A39).
+  router.get('/mis-datos', controlador.exportarDatos);
+  return router;
 }

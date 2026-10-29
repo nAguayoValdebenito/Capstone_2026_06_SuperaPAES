@@ -6,7 +6,6 @@
     "api": {
       "ignore": [
         "modulos/generador/generador.controlador.ts",
-        "modulos/privacidad/privacidad.controlador.ts",
         "modulos/generador/generador.validadores.ts",
         "modulos/privacidad/privacidad.validadores.ts",
         "modulos/revision/revision.validadores.ts",

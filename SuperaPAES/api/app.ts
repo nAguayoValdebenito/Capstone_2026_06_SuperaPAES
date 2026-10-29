@@ -152,6 +152,7 @@ function crearSuscripcionesYCupo(
 /** Crea los servicios en orden de dependencia: cada módulo recibe los servicios que usa. */
 export function crearServicios(dependencias: Dependencias): Servicios {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
+  const conReloj = { ...base, reloj: dependencias.reloj };
   const { ia, correo } = dependencias.proveedores;
 
   // Al desactivar una cuenta interna, administracion cierra sus sesiones, que son de cuentas. Cuentas
@@ -168,12 +169,11 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     (id, ahora) => cuentas.estadoParaInicio(id, ahora),
   );
   const cuentas = crearCuentasServicio({
-    ...base,
+    ...conReloj,
     correo,
     administracion,
     cupoInvitaciones,
     jwt: dependencias.jwt,
-    reloj: dependencias.reloj,
     verificacionCorreo: dependencias.verificacionCorreo,
     ...(dependencias.segundoPlano && { segundoPlano: dependencias.segundoPlano }),
   });
@@ -182,16 +182,15 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
   const revision = crearRevisionServicio({ ...base, administracion, preguntas });
   const evaluaciones = crearEvaluacionesServicio({
-    ...base,
+    ...conReloj,
     cuentas,
     temario,
     cupoInvitaciones,
     preguntas,
     suscripciones,
     administracion,
-    reloj: dependencias.reloj,
   });
-  const privacidad = crearPrivacidadServicio({ ...base, cuentas });
+  const privacidad = crearPrivacidadServicio({ ...conReloj, cuentas, evaluaciones });
 
   return {
     administracion,

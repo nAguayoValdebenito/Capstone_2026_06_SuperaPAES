@@ -9,7 +9,12 @@ import {
   paginaBanco,
   preguntaParaEditar,
 } from './escenario-ids-preguntas.js';
-import { cuerpoPuntajes, progresoDePrueba, serviciosPuntajes } from './escenario-ids-estudiante.js';
+import {
+  cuerpoPuntajes,
+  privacidadDePrueba,
+  progresoDePrueba,
+  serviciosPuntajes,
+} from './escenario-ids-estudiante.js';
 import {
   aceptarCualquierSesion,
   crearDependenciasDePrueba,
@@ -176,6 +181,7 @@ export function escenario() {
     temario,
     preguntas,
     evaluaciones,
+    privacidad: privacidadDePrueba,
   });
   return { app, cuentas, administracion, evaluaciones };
 }
@@ -251,6 +257,7 @@ const CON_SESION_APP = [
   '/app/temario/',
   '/app/cuentas/perfil',
   '/app/cuentas/puntajes',
+  '/app/privacidad/',
 ];
 
 async function sesionPara(ruta: string): Promise<Record<string, string>> {
