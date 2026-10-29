@@ -12,7 +12,7 @@ const grupoProgreso = {
   aciertoPorDificultad: { media: 80, dificil: 20 },
   aReforzar: true,
 };
-export const progresoDePrueba = {
+const progresoDePrueba = {
   pruebas: [
     {
       pruebaId: 2,
@@ -30,6 +30,42 @@ export const progresoDePrueba = {
     },
   ],
 };
+
+/** Resultado de HU-61.1 de un mini-ensayo, con un eje y una habilidad (ids de la base en texto). */
+const resultado = {
+  id: '41',
+  tipo: { codigo: 'mini_ensayo', nombre: 'Mini-ensayo' },
+  prueba: { id: 2, codigo: 'M1', nombre: 'Competencia Matemática 1' },
+  ejes: [{ id: 3, nombre: 'Números', preguntas: 6, correctas: 5 }],
+  habilidades: [{ id: 7, nombre: 'Resolver problemas', preguntas: 6, correctas: 5 }],
+};
+
+/** Revisión de HU-61.1 con una pregunta respondida. */
+const revision = {
+  id: '41',
+  preguntas: [
+    {
+      orden: 1,
+      preguntaId: '900',
+      eje: { id: 3, nombre: 'Números' },
+      alternativaElegidaId: '102',
+      alternativaCorrectaId: '101',
+      alternativas: [
+        { id: 101, letra: 'A' },
+        { id: 102, letra: 'B' },
+      ],
+    },
+  ],
+};
+
+/** Progreso (HU-38.2), resultado y revisión (HU-61.1) del servicio de evaluaciones. */
+export function serviciosEvaluacionesEstudiante() {
+  return {
+    obtenerProgreso: vi.fn(() => Promise.resolve(progresoDePrueba)),
+    obtenerResultado: vi.fn(() => Promise.resolve(resultado as never)),
+    obtenerRevision: vi.fn(() => Promise.resolve(revision as never)),
+  };
+}
 
 /** Puntajes de HU-41.1 con el permiso dado y un puntaje (sus ids llegan como texto de la base). */
 const puntajes = {

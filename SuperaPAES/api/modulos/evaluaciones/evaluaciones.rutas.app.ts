@@ -9,6 +9,7 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearEvaluacionesControlador } from './evaluaciones.controlador.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import {
+  esquemaIdEvaluacion,
   esquemaIdPractica,
   esquemaIdsItem,
   esquemaInicioPractica,
@@ -40,6 +41,17 @@ export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Route
   );
   // HU-38.2: progreso por prueba, eje y habilidad, ejes a reforzar, semanas y ensayos (A35 y A36).
   router.get('/progreso', controlador.obtenerProgreso);
+  // HU-61.1: resultado y revisión pregunta por pregunta de cualquier evaluación cerrada (A30 a A33).
+  router.get(
+    '/:id/resultado',
+    validar({ parametros: esquemaIdEvaluacion }),
+    controlador.obtenerResultado,
+  );
+  router.get(
+    '/:id/revision',
+    validar({ parametros: esquemaIdEvaluacion }),
+    controlador.obtenerRevision,
+  );
   router.post(
     '/:id/items/:item/respuesta',
     validar({ parametros: esquemaIdsItem, cuerpo: esquemaRespuesta }),

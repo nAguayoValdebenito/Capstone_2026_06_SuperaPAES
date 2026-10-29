@@ -48,6 +48,8 @@ describe('contrato central de ids', () => {
       'POST /api/v1/app/evaluaciones/practicas/:id/cerrar → data.id, data.prueba.id, data.alcance.id, data.dificultad.id, data.ejes[].id, data.habilidades[].id',
       'GET /api/v1/app/evaluaciones/practicas/:id/resumen → data.id, data.prueba.id, data.alcance.id, data.dificultad.id, data.ejes[].id, data.habilidades[].id',
       'POST /api/v1/app/evaluaciones/:id/items/:item/respuesta → data.alternativaElegidaId, data.alternativaCorrectaId, data.alternativas[].id',
+      'GET /api/v1/app/evaluaciones/:id/resultado → data.id, data.prueba.id, data.ejes[].id, data.habilidades[].id',
+      'GET /api/v1/app/evaluaciones/:id/revision → data.id, data.preguntas[].preguntaId, data.preguntas[].eje.id, data.preguntas[].alternativaElegidaId, data.preguntas[].alternativaCorrectaId, data.preguntas[].alternativas[].id',
       'GET /api/v1/app/privacidad/mis-datos → data.cuenta.id, data.perfil.pruebas[], data.perfil.electivoId, data.perfil.pruebaReforzarId, data.perfil.areasCarrera[], data.evaluaciones[].id, data.evaluaciones[].respuestas[].preguntaId, data.puntajes[].id, data.puntajes[].pruebaId',
       'GET /api/v1/app/evaluaciones/progreso → data.pruebas[].pruebaId, data.pruebas[].ejes[].id, data.pruebas[].habilidades[].id, data.pruebas[].ensayos[].id',
     ]);

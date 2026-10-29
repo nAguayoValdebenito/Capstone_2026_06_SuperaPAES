@@ -36,6 +36,11 @@ import {
 } from './evaluaciones.exportacion.servicio.js';
 import { crearResumenRepositorio } from './evaluaciones.resumen.repositorio.js';
 import { crearResumenServicio, type ResumenServicio } from './evaluaciones.resumen.servicio.js';
+import { crearResultadoRepositorio } from './evaluaciones.resultado.repositorio.js';
+import {
+  crearResultadoServicio,
+  type ResultadoServicio,
+} from './evaluaciones.resultado.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 
 export interface DependenciasEvaluacionesServicio {
@@ -57,6 +62,7 @@ export type EvaluacionesServicio = SeleccionPractica &
   PracticasServicio &
   RespuestasServicio &
   ResumenServicio &
+  ResultadoServicio &
   ProgresoServicio &
   ExportacionEvaluaciones;
 
@@ -89,6 +95,10 @@ function crearServicioSinReintento(
     }),
     ...crearResumenServicio({
       repositorio: crearResumenRepositorio(),
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    }),
+    ...crearResultadoServicio({
+      repositorio: crearResultadoRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
     }),
     ...crearExportacionEvaluaciones(dependencias.bd),

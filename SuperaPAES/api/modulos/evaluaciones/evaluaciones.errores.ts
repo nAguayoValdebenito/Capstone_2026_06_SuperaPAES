@@ -31,6 +31,18 @@ export const evaluacionCerrada = () =>
 export const evaluacionAbierta = () =>
   new ErrorAplicacion(409, 'EVALUACION_ABIERTA', 'Cierra la práctica para ver su resumen.');
 
+/** HU-61.1: la evaluación no existe o es de otro estudiante (cualquier tipo, no solo la práctica). */
+export const evaluacionInexistente = () =>
+  new ErrorAplicacion(404, 'EVALUACION_NO_ENCONTRADA', 'La evaluación solicitada no existe.');
+
+/** HU-61.1: el resultado y la revisión solo existen después de entregar o cerrar. */
+export const evaluacionSinEntregar = () =>
+  new ErrorAplicacion(
+    409,
+    'EVALUACION_ABIERTA',
+    'Esta evaluación sigue abierta: termínala para ver su resultado.',
+  );
+
 export const practicaCompleta = () =>
   new ErrorAplicacion(
     409,
