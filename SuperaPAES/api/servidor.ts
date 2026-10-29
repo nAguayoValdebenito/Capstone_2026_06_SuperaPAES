@@ -15,7 +15,9 @@ function iniciar(): void {
     bd: pool,
     unidadDeTrabajo: crearUnidadDeTrabajo(pool),
     comprobarBaseDeDatos: () => comprobarBaseDeDatos(pool),
-    proveedores: FabricaProveedores.crear(config, relojDelSistema),
+    proveedores: FabricaProveedores.crear(config, relojDelSistema, () =>
+      servicios.administracion.obtenerParametroTexto('modelo_ia'),
+    ),
     reloj: relojDelSistema,
     jwt: config.jwt,
     verificacionCorreo: config.verificacionCorreo,

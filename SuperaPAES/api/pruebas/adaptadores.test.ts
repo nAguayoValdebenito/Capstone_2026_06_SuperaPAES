@@ -3,6 +3,9 @@ import { FabricaProveedores } from '../adaptadores/fabrica.js';
 import { PasarelaPagoSimulada } from '../adaptadores/pagos/simulado.js';
 import { ErrorNoImplementado, ErrorSolicitudInvalida } from '../comun/errores.js';
 import { relojDelSistema } from '../comun/reloj.js';
+import { sobreDeepSeek, sobreGemini } from './ia-fixtures.js';
+
+const leerModelo = () => Promise.resolve('modelo-de-prueba');
 
 const solicitud = {
   instruccion: 'Devuelve una pregunta de ecuaciones en JSON.',
@@ -14,13 +17,14 @@ describe('FabricaProveedores: IA', () => {
     [{ proveedor: 'deepseek' as const, claveApi: 'clave' }, 'deepseek'],
     [{ proveedor: 'gemini' as const, claveApi: 'clave', modelo: 'modelo-prueba' }, 'gemini'],
   ])('devuelve el proveedor indicado (%j)', (config, nombre) => {
-    expect(FabricaProveedores.ia(config).nombre).toBe(nombre);
+    expect(FabricaProveedores.ia(config, leerModelo).nombre).toBe(nombre);
   });
 
   it('el proveedor simulado devuelve una pregunta fija con 4 alternativas y una correcta', async () => {
-    const resultado = await FabricaProveedores.ia({ proveedor: 'simulado' }).generarPreguntas(
-      solicitud,
-    );
+    const resultado = await FabricaProveedores.ia(
+      { proveedor: 'simulado' },
+      leerModelo,
+    ).generarPreguntas(solicitud);
 
     expect(resultado.preguntas).toHaveLength(1);
     const [pregunta] = resultado.preguntas;
@@ -33,17 +37,20 @@ describe('FabricaProveedores: IA', () => {
   });
 
   it.each(['deepseek', 'gemini'] as const)(
-    'el proveedor %s aún no está implementado',
+    'el proveedor %s devuelve el contrato común con HTTP sustituido',
     async (p) => {
       const proveedor = FabricaProveedores.ia(
         p === 'gemini'
           ? { proveedor: p, claveApi: 'clave', modelo: 'modelo-prueba' }
           : { proveedor: p, claveApi: 'clave' },
+        leerModelo,
       );
-
-      await expect(proveedor.generarPreguntas(solicitud)).rejects.toBeInstanceOf(
-        ErrorNoImplementado,
-      );
+      const fetchFalso = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(Response.json(p === 'deepseek' ? sobreDeepSeek() : sobreGemini()));
+      const resultado = await proveedor.generarPreguntas(solicitud);
+      expect(resultado).toMatchObject({ proveedor: p, preguntas: expect.any(Array) as unknown[] });
+      expect(fetchFalso).toHaveBeenCalledTimes(1);
     },
   );
 });
@@ -128,6 +135,7 @@ describe('FabricaProveedores: pagos', () => {
         pagos: tiendas,
       },
       relojDelSistema,
+      leerModelo,
     );
 
     expect(proveedores.ia.nombre).toBe('simulado');

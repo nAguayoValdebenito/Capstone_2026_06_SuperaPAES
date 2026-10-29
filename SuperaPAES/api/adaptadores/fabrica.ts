@@ -31,22 +31,26 @@ export interface Proveedores {
 }
 
 export const FabricaProveedores = {
-  crear(config: Pick<Configuracion, 'ia' | 'correo' | 'pagos'>, reloj: Reloj): Proveedores {
+  crear(
+    config: Pick<Configuracion, 'ia' | 'correo' | 'pagos'>,
+    reloj: Reloj,
+    obtenerModeloPrincipal: () => Promise<string>,
+  ): Proveedores {
     return {
-      ia: FabricaProveedores.ia(config.ia),
+      ia: FabricaProveedores.ia(config.ia, obtenerModeloPrincipal),
       correo: FabricaProveedores.correo(config.correo),
       pagos: FabricaProveedores.pagos(config.pagos, reloj),
     };
   },
 
-  ia(config: ConfiguracionIA): ProveedorIA {
+  ia(config: ConfiguracionIA, obtenerModeloPrincipal: () => Promise<string>): ProveedorIA {
     switch (config.proveedor) {
       case 'simulado':
         return new ProveedorIASimulado();
       case 'deepseek':
-        return new ProveedorIADeepSeek(config.claveApi);
+        return new ProveedorIADeepSeek({ claveApi: config.claveApi, obtenerModeloPrincipal });
       case 'gemini':
-        return new ProveedorIAGemini(config.claveApi);
+        return new ProveedorIAGemini(config);
     }
   },
 

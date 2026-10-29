@@ -28,6 +28,7 @@ export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): 
         pagos: { proveedor: 'simulado' },
       },
       relojDelSistema,
+      () => Promise.resolve('modelo-de-prueba'),
     ),
     reloj: relojDelSistema,
     jwt: { secretoConsola: SECRETO_DE_PRUEBA, secretoApp: SECRETO_APP_DE_PRUEBA },
