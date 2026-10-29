@@ -32,6 +32,9 @@ describe('configuración de Docker', () => {
       'SMTP_USUARIO',
       'SMTP_CLAVE',
       'CORREO_REMITENTE',
+      'DEEPSEEK_API_KEY',
+      'GEMINI_API_KEY',
+      'GEMINI_MODELO',
     ]) {
       expect(variables, `falta ${nombre} en .env.docker.example`).toHaveProperty(nombre);
     }
@@ -50,6 +53,26 @@ describe('configuración de Docker', () => {
     expect(configuracion.ia.proveedor).toBe('simulado');
     expect(configuracion.correo.proveedor).toBe('consola');
     expect(configuracion.pagos.proveedor).toBe('simulado');
+    expect(variables['DEEPSEEK_API_KEY']).toBe('');
+    expect(variables['GEMINI_API_KEY']).toBe('');
+
+    const iaReal = leerConfiguracion({
+      ...variables,
+      ...{
+        DATABASE_URL: 'postgres://supera:prueba@db:5432/supera_paes', // secretlint-disable-line
+        JWT_SECRETO_CONSOLA: SECRETO_DE_PRUEBA,
+        JWT_SECRETO_APP: SECRETO_APP_DE_PRUEBA,
+        CLAVE_CODIGO_CORREO: CLAVE_CODIGO_DE_PRUEBA,
+      },
+      PROVEEDOR_IA: 'deepseek',
+      DEEPSEEK_API_KEY: 'clave-principal-ficticia',
+      GEMINI_API_KEY: 'respaldo-ficticio',
+    });
+    expect(iaReal.ia).toEqual({
+      proveedor: 'deepseek',
+      claveApi: 'clave-principal-ficticia',
+      respaldo: { claveApi: 'respaldo-ficticio', modelo: 'gemini-3.5-flash-lite' },
+    });
 
     const smtpLocal = leerConfiguracion({
       ...variables,

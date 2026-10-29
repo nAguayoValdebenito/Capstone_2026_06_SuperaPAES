@@ -16,9 +16,16 @@ export const LIMITES_IA = {
 
 export interface PresupuestoIA {
   restantes: number;
+  venceEn: number;
 }
 
-export const crearPresupuestoIA = (): PresupuestoIA => ({ restantes: LIMITES_IA.maxReintentos });
+export const crearPresupuestoIA = (): PresupuestoIA => ({
+  restantes: LIMITES_IA.maxReintentos,
+  venceEn:
+    Date.now() +
+    (LIMITES_IA.maxReintentos + 1) * (LIMITES_IA.cabecerasMs + LIMITES_IA.cuerpoMs) +
+    LIMITES_IA.maxReintentos * LIMITES_IA.esperaReintentoMs,
+});
 
 export class ErrorContenidoVacio extends ErrorIARespuestaInvalida {}
 class ErrorRedOProveedor extends ErrorIANoDisponible {}
@@ -31,9 +38,26 @@ interface PeticionIA<T> {
   interpretar(datos: unknown): T;
 }
 
-async function intentar<T>(peticion: PeticionIA<T>): Promise<T> {
+function comprobarEstado(respuesta: Response, proveedor: PeticionIA<unknown>['proveedor']): void {
+  const campos = { proveedor, estadoHttp: respuesta.status };
+  if (respuesta.ok) {
+    registro.info('El proveedor de IA respondió', campos);
+    return;
+  }
+  registro.error('El proveedor de IA rechazó la solicitud', campos);
+  if (proveedor === 'deepseek' && respuesta.status === 402) throw new ErrorIASaldoAgotado();
+  if (respuesta.status >= 500) throw new ErrorRedOProveedor();
+  throw new ErrorIANoDisponible();
+}
+
+async function intentar<T>(peticion: PeticionIA<T>, presupuesto: PresupuestoIA): Promise<T> {
+  const restante = presupuesto.venceEn - Date.now();
+  if (restante <= 0) throw new ErrorIANoDisponible();
   const controlador = new AbortController();
-  let temporizador = setTimeout(() => controlador.abort(), LIMITES_IA.cabecerasMs);
+  let temporizador = setTimeout(
+    () => controlador.abort(),
+    Math.min(restante, LIMITES_IA.cabecerasMs),
+  );
   try {
     const respuesta = await fetch(peticion.url, {
       method: 'POST',
@@ -43,16 +67,11 @@ async function intentar<T>(peticion: PeticionIA<T>): Promise<T> {
       redirect: 'error',
     });
     clearTimeout(temporizador);
-    temporizador = setTimeout(() => controlador.abort(), LIMITES_IA.cuerpoMs);
-    const campos = { proveedor: peticion.proveedor, estadoHttp: respuesta.status };
-    if (!respuesta.ok) {
-      registro.error('El proveedor de IA rechazó la solicitud', campos);
-      if (peticion.proveedor === 'deepseek' && respuesta.status === 402)
-        throw new ErrorIASaldoAgotado();
-      if (respuesta.status >= 500) throw new ErrorRedOProveedor();
-      throw new ErrorIANoDisponible();
-    }
-    registro.info('El proveedor de IA respondió', campos);
+    temporizador = setTimeout(
+      () => controlador.abort(),
+      Math.max(0, Math.min(presupuesto.venceEn - Date.now(), LIMITES_IA.cuerpoMs)),
+    );
+    comprobarEstado(respuesta, peticion.proveedor);
     const texto = await respuesta.text();
     let datos: unknown;
     try {
@@ -81,7 +100,7 @@ export async function solicitarIA<T>(
 ): Promise<T> {
   for (;;) {
     try {
-      return await intentar(peticion);
+      return await intentar(peticion, presupuesto);
     } catch (error) {
       const reintentable =
         error instanceof ErrorRedOProveedor || error instanceof ErrorContenidoVacio;
@@ -92,7 +111,12 @@ export async function solicitarIA<T>(
           : new ErrorIANoDisponible();
       }
       presupuesto.restantes -= 1;
-      await new Promise<void>((resolver) => setTimeout(resolver, LIMITES_IA.esperaReintentoMs));
+      await new Promise<void>((resolver) =>
+        setTimeout(
+          resolver,
+          Math.max(0, Math.min(presupuesto.venceEn - Date.now(), LIMITES_IA.esperaReintentoMs)),
+        ),
+      );
     }
   }
 }
