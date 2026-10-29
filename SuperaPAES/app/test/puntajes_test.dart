@@ -35,7 +35,7 @@ Future<void> _cargar(WidgetTester tester, String anio, String puntaje) async {
 
 void main() {
   group('Mis puntajes PAES (A41)', () {
-    testWidgets('sin el permiso no deja cargar puntajes (CP-26 paso 1)', (
+    testWidgets('sin el permiso no deja cargar puntajes (CP-25 paso 1)', (
       tester,
     ) async {
       await _abrir(tester, RepositorioPuntajesFalso());
@@ -84,7 +84,7 @@ void main() {
       expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
     });
 
-    testWidgets('con el permiso guarda el puntaje y lo muestra (CP-26 paso '
+    testWidgets('con el permiso guarda el puntaje y lo muestra (CP-25 paso '
         '2)', (tester) async {
       await _abrir(
         tester,
@@ -118,7 +118,7 @@ void main() {
         'Ingresa un año de admisión desde 2023.',
       ),
     ]) {
-      testWidgets('rechaza $caso sin enviarlo (CP-26 paso 3)', (tester) async {
+      testWidgets('rechaza $caso sin enviarlo (CP-25 paso 3)', (tester) async {
         final repo = RepositorioPuntajesFalso(
           estado: PuntajesPaes(permiso: _conM1.permiso, puntajes: const []),
         );
