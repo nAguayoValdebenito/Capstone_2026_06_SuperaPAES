@@ -6,6 +6,7 @@ export class ProveedorIASimulado implements ProveedorIA {
 
   generarPreguntas(): Promise<ResultadoGeneracion> {
     return Promise.resolve({
+      proveedor: 'simulado',
       modelo: 'simulado',
       tokensUsados: 0,
       costoUsd: 0,

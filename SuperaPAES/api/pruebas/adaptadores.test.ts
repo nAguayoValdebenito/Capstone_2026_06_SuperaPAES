@@ -5,20 +5,14 @@ import { ErrorNoImplementado, ErrorSolicitudInvalida } from '../comun/errores.js
 import { relojDelSistema } from '../comun/reloj.js';
 
 const solicitud = {
-  contenido: {
-    nombre: 'Ecuaciones lineales',
-    descriptores: 'Resolver ecuaciones de primer grado.',
-  },
-  tipoPregunta: 'seleccion_multiple' as const,
-  cantidad: 1,
-  conTexto: false,
+  instruccion: 'Devuelve una pregunta de ecuaciones en JSON.',
 };
 
 describe('FabricaProveedores: IA', () => {
   it.each([
     [{ proveedor: 'simulado' as const }, 'simulado'],
     [{ proveedor: 'deepseek' as const, claveApi: 'clave' }, 'deepseek'],
-    [{ proveedor: 'gemini' as const, claveApi: 'clave' }, 'gemini'],
+    [{ proveedor: 'gemini' as const, claveApi: 'clave', modelo: 'modelo-prueba' }, 'gemini'],
   ])('devuelve el proveedor indicado (%j)', (config, nombre) => {
     expect(FabricaProveedores.ia(config).nombre).toBe(nombre);
   });
@@ -41,7 +35,11 @@ describe('FabricaProveedores: IA', () => {
   it.each(['deepseek', 'gemini'] as const)(
     'el proveedor %s aún no está implementado',
     async (p) => {
-      const proveedor = FabricaProveedores.ia({ proveedor: p, claveApi: 'clave' });
+      const proveedor = FabricaProveedores.ia(
+        p === 'gemini'
+          ? { proveedor: p, claveApi: 'clave', modelo: 'modelo-prueba' }
+          : { proveedor: p, claveApi: 'clave' },
+      );
 
       await expect(proveedor.generarPreguntas(solicitud)).rejects.toBeInstanceOf(
         ErrorNoImplementado,
