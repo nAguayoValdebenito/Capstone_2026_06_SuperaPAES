@@ -206,6 +206,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A35      | Progreso                                 | `35:1532` | `progreso/` (sin «Historial», que llega con HU-62) |
 | A36      | Progreso de una prueba sin respuestas    | `35:1664` | `progreso/pantalla_progreso.dart`      |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
+| A39      | Mis datos y privacidad                   | por anotar | `mis_datos/` (descarga y puntajes; sin «Solicitudes sobre mis datos», «Borrar mi cuenta» ni los términos aceptados, que llegan con HU-09 y HU-08) |
 | A41      | Puntajes PAES                            | `36:1574` | `puntajes/` (el interruptor del permiso abre una hoja con el permiso completo) |
 
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).
