@@ -51,17 +51,24 @@ class OpcionRadio extends StatelessWidget {
 /// Título (Cuerpo fuerte) con un detalle gris opcional debajo, de
 /// [OpcionRadio] y [FilaNavegacion].
 class _TituloConDetalle extends StatelessWidget {
-  const _TituloConDetalle({required this.texto, required this.detalle});
+  const _TituloConDetalle({
+    required this.texto,
+    required this.detalle,
+    this.color,
+  });
 
   final String texto;
   final String? detalle;
+
+  /// Color del título; por defecto, el del texto.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(texto, style: TemaSuperaPaes.cuerpoFuerte),
+        Text(texto, style: TemaSuperaPaes.cuerpoFuerte.copyWith(color: color)),
         if (detalle case final abajo?) ...[
           const SizedBox(height: 2),
           Text(
@@ -616,6 +623,7 @@ class FilaNavegacion extends StatelessWidget {
     super.key,
     this.detalle,
     this.icono,
+    this.peligro = false,
   });
 
   final String texto;
@@ -628,6 +636,10 @@ class FilaNavegacion extends StatelessWidget {
   /// Ícono a la izquierda, en un círculo `primarioSuave` (A22).
   final IconData? icono;
 
+  /// Acción que no se deshace, como «Borrar mi cuenta» en A39: el título y
+  /// el ícono van en rojo, y el ícono sin círculo.
+  final bool peligro;
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -636,7 +648,10 @@ class FilaNavegacion extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            if (icono case final simbolo?) ...[
+            if (icono case final simbolo? when peligro) ...[
+              Icon(simbolo, size: 22, color: TemaSuperaPaes.error),
+              const SizedBox(width: 12),
+            ] else if (icono case final simbolo?) ...[
               Container(
                 width: TemaSuperaPaes.altoBotonChico,
                 height: TemaSuperaPaes.altoBotonChico,
@@ -649,7 +664,11 @@ class FilaNavegacion extends StatelessWidget {
               const SizedBox(width: 12),
             ],
             Expanded(
-              child: _TituloConDetalle(texto: texto, detalle: detalle),
+              child: _TituloConDetalle(
+                texto: texto,
+                detalle: detalle,
+                color: peligro ? TemaSuperaPaes.error : null,
+              ),
             ),
             const Icon(
               Icons.chevron_right,

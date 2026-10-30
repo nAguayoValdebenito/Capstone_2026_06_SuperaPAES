@@ -5,7 +5,11 @@
 import type { AvisoEntrante, PasarelasPorTienda, Tienda } from '../../adaptadores/fabrica.js';
 import { ErrorNoImplementado } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
-import type { SuscripcionesRepositorio } from './suscripciones.repositorio.js';
+import {
+  crearSuscripcionesRepositorio,
+  type SuscripcionesRepositorio,
+  type SuscripcionVigente,
+} from './suscripciones.repositorio.js';
 
 export interface DependenciasSuscripcionesServicio {
   bd: Ejecutor;
@@ -33,12 +37,18 @@ export interface SuscripcionesServicio {
    * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta).
    */
   cubrePrueba(estudianteId: string, pruebaId: number, tx: Ejecutor): Promise<boolean>;
+  /**
+   * RN-34: la suscripción activa o en mora del estudiante, que la tienda sigue cobrando; `null` si
+   * no tiene. La pide privacidad antes de borrar la cuenta (HU-08.2, A42b).
+   */
+  vigenteDe(estudianteId: string): Promise<SuscripcionVigente | null>;
 }
 
 // Esqueleto: el procesamiento de avisos se implementa en el sprint de suscripciones.
 export function crearSuscripcionesServicio(
-  _dependencias: DependenciasSuscripcionesServicio,
+  dependencias: DependenciasSuscripcionesServicio,
 ): SuscripcionesServicio {
+  const repositorio = dependencias.repositorio ?? crearSuscripcionesRepositorio(dependencias.bd);
   return {
     recibirAviso: (tienda) =>
       Promise.reject(
@@ -47,5 +57,6 @@ export function crearSuscripcionesServicio(
     // TEMPORAL hasta HU-44: todavía no hay suscripciones, así que ninguna cubre una prueba. HU-44 la
     // reemplaza por la consulta de app.suscripcion y app.suscripcion_prueba (estado activa o en mora).
     cubrePrueba: () => Promise.resolve(false),
+    vigenteDe: (estudianteId) => repositorio.vigenteDe(estudianteId),
   };
 }

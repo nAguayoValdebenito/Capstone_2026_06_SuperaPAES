@@ -12,6 +12,8 @@ export function crearRutasAppPrivacidad(servicio: PrivacidadServicio): Router {
   const controlador = crearPrivacidadControlador(servicio);
   // HU-07.1: «Descargar mis datos» (A39).
   router.get('/mis-datos', controlador.exportarDatos);
+  // HU-08.2: la suscripción vigente que avisa A42b antes de borrar (RN-34).
+  router.get('/cuenta', controlador.antesDeBorrar);
   // HU-08.1: «Borrar mi cuenta» (A42 y A42b).
   router.delete('/cuenta', controlador.borrarCuenta);
   return router;

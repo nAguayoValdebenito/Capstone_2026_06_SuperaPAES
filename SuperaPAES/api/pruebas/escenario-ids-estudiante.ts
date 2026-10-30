@@ -94,6 +94,7 @@ const datosDelEstudiante = {
 export const privacidadDePrueba = {
   exportarDatos: vi.fn(() => Promise.resolve(datosDelEstudiante as never)),
   borrarCuenta: vi.fn(() => Promise.resolve({ eliminadaEn: fecha })),
+  antesDeBorrar: vi.fn(() => Promise.resolve({ suscripcionVigente: null })),
 };
 
 /** Las rutas de los puntajes del servicio de cuentas, que responden todas lo mismo. */
