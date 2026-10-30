@@ -37,6 +37,12 @@ export interface PrivacidadServicio {
    * (acceso y portabilidad). Nunca la contraseña ni datos de otros estudiantes.
    */
   exportarDatos(estudianteId: string): Promise<DatosDelEstudiante>;
+  /**
+   * HU-08.1 (RF-A18, RNF-09, CU-14 paso 6): borra la cuenta del estudiante de la sesión, aunque tenga
+   * una suscripción vigente (RN-34; el aviso lo da la app). Sus evaluaciones y respuestas quedan
+   * seudonimizadas y su sesión se cierra.
+   */
+  borrarCuenta(estudianteId: string): Promise<{ eliminadaEn: Date }>;
 }
 
 export function crearPrivacidadServicio(
@@ -57,5 +63,6 @@ export function crearPrivacidadServicio(
         puntajes,
       };
     },
+    borrarCuenta: (estudianteId) => cuentas.eliminarCuenta(estudianteId),
   };
 }

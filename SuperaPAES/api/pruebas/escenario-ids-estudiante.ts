@@ -88,11 +88,12 @@ const datosDelEstudiante = {
 };
 
 /**
- * El servicio de privacidad con la descarga de datos. Solo trae los campos que el inventario de ids
+ * El servicio de privacidad con la descarga de datos y el borrado de la cuenta. Solo trae los campos que el inventario de ids
  * revisa, así que no cumple todo el tipo del servicio.
  */
 export const privacidadDePrueba = {
   exportarDatos: vi.fn(() => Promise.resolve(datosDelEstudiante as never)),
+  borrarCuenta: vi.fn(() => Promise.resolve({ eliminadaEn: fecha })),
 };
 
 /** Las rutas de los puntajes del servicio de cuentas, que responden todas lo mismo. */
