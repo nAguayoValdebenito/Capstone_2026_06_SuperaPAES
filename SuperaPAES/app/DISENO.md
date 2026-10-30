@@ -121,6 +121,8 @@ Entre los elementos de un formulario van 16 de separación; el diseño de refere
 | `BotonTexto(child:, onPressed:)`   | Botón de texto a lo ancho, como «Reenviar enlace».             |
 | `CargandoEnBoton()`                | Indicador dentro de un botón mientras se envía.                |
 | `PieConEnlace(pregunta:, enlace:, onPressed:)` | «¿No tienes cuenta? **Crea una**».                 |
+| `DatoResumen(valor:, texto:)`      | Número grande con su texto debajo, en un tercio de una `Row` («15 correctas» de A21 y A30). |
+| `AlternativaCorregidaVista(...)` y `ExplicacionCorreccion(...)` (en `correccion/partes_correccion.dart`) | Alternativa ya corregida y la tarjeta «Explicación» con «Por qué la B no es correcta» (A19 y A33). |
 | `HojaConfirmacion(titulo:, contenido:, confirmar:, cancelar:)` y `confirmarEnHoja(context, hoja)` (en `hoja_confirmacion.dart`) | Hoja que sube desde abajo con un botón que confirma y otro que vuelve (A18, A41); devuelve `true` si confirma. |
 | `ErrorConReintento(error:, mensaje:, alReintentar:)` (en `error_con_reintento.dart`) | Lo que no se pudo cargar, con «Reintentar» (Progreso, A41). |
 
@@ -203,6 +205,10 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
 | A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43) |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
+| A30      | Resultado de mini-ensayo                 | por anotar | `resultado/pantalla_resultado.dart` (sin «Ir al historial», que llega con HU-62) |
+| A32      | Resultado de ensayo completo             | por anotar | `resultado/pantalla_resultado.dart` (el puntaje con el año y el proceso de la tabla) |
+| A32b     | Ensayo sin tabla de conversión           | por anotar | `resultado/pantalla_resultado.dart` |
+| A33      | Revisión pregunta por pregunta           | por anotar | `resultado/pantalla_revision.dart` (alternativas y explicación de `correccion/partes_correccion.dart`) |
 | A35      | Progreso                                 | `35:1532` | `progreso/` (sin «Historial», que llega con HU-62) |
 | A36      | Progreso de una prueba sin respuestas    | `35:1664` | `progreso/pantalla_progreso.dart`      |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |

@@ -27,6 +27,10 @@ abstract final class Rutas {
   static const String cupoAgotado = '/cupo-agotado';
   static const String repaso = '/repaso';
 
+  // Resultado y revisión de una evaluación (HU-61)
+  static const String resultado = '/evaluaciones/resultado';
+  static const String revision = '/evaluaciones/revision';
+
   // Desde Perfil
   static const String planes = '/planes';
   static const String invitaciones = '/invitaciones';

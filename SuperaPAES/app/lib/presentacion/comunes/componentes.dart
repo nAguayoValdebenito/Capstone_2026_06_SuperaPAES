@@ -420,6 +420,32 @@ class Aviso extends StatelessWidget {
   }
 }
 
+/// Un número grande con su texto debajo, en un tercio del ancho: «7
+/// correctas» de A21 y A30. Va dentro de una `Row`.
+class DatoResumen extends StatelessWidget {
+  const DatoResumen({required this.valor, required this.texto, super.key});
+
+  final String valor;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(valor, style: TemaSuperaPaes.numero),
+          Text(
+            texto,
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Tarjeta blanca con borde (radio 16, relleno 16), como los recuadros de A12
 /// y A05.
 class Tarjeta extends StatelessWidget {

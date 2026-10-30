@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
-import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
+import 'package:supera_paes/presentacion/correccion/partes_correccion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/pregunta/partes_pregunta.dart';
 import 'package:supera_paes/presentacion/pregunta/texto_de_lectura.dart';
@@ -59,8 +58,18 @@ class PantallaCorreccion extends ConsumerWidget {
           estilo: TemaSuperaPaes.cuerpoFuerte,
         ),
         for (final alternativa in pregunta.alternativas)
-          _alternativaCorregida(alternativa, correccion),
-        _Explicacion(correccion: correccion),
+          AlternativaCorregidaVista(
+            id: alternativa.id,
+            letra: alternativa.letra,
+            texto: alternativa.texto,
+            correctaId: correccion.alternativaCorrectaId,
+            elegidaId: correccion.alternativaElegidaId,
+          ),
+        ExplicacionCorreccion(
+          acerto: correccion.esCorrecta,
+          explicacion: correccion.explicacion,
+          elegida: correccion.elegida,
+        ),
       ],
       pie: FilledButton(
         onPressed: pregunta.esLaUltima
@@ -71,69 +80,6 @@ class PantallaCorreccion extends ConsumerWidget {
                 context.go(Rutas.pregunta);
               },
         child: Text(pregunta.esLaUltima ? 'Ver resumen' : 'Siguiente pregunta'),
-      ),
-    );
-  }
-
-  /// La correcta en verde («Tu respuesta» si la eligió, «Correcta» si no) y
-  /// la elegida incorrecta en rojo; las demás quedan igual.
-  static Widget _alternativaCorregida(
-    AlternativaVisible alternativa,
-    Correccion correccion,
-  ) {
-    final esLaCorrecta = alternativa.id == correccion.alternativaCorrectaId;
-    final esLaElegida = alternativa.id == correccion.alternativaElegidaId;
-    return OpcionAlternativa(
-      letra: alternativa.letra,
-      texto: alternativa.texto,
-      seleccionada: esLaElegida,
-      onTap: null,
-      resultado: esLaCorrecta
-          ? ResultadoAlternativa.correcta
-          : esLaElegida
-          ? ResultadoAlternativa.incorrecta
-          : null,
-      etiqueta: esLaElegida
-          ? 'Tu respuesta'
-          : esLaCorrecta
-          ? 'Correcta'
-          : null,
-    );
-  }
-}
-
-/// «Explicación» de la respuesta correcta y, si falló, por qué la
-/// alternativa elegida no era la correcta (HU-32 esc. 2).
-class _Explicacion extends StatelessWidget {
-  const _Explicacion({required this.correccion});
-
-  final Correccion correccion;
-
-  @override
-  Widget build(BuildContext context) {
-    final elegida = correccion.elegida;
-    final porQueNo = correccion.esCorrecta ? null : elegida?.explicacion;
-    final explicacion = correccion.explicacion;
-    if (explicacion == null && porQueNo == null) return const SizedBox.shrink();
-    return Tarjeta(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (explicacion != null) ...[
-            const Text('Explicación', style: TemaSuperaPaes.etiqueta),
-            const SizedBox(height: 6),
-            TextoConFormulas(explicacion),
-          ],
-          if (porQueNo != null) ...[
-            if (explicacion != null) const SizedBox(height: 14),
-            Text(
-              'Por qué la ${elegida!.letra} no es correcta',
-              style: TemaSuperaPaes.etiqueta,
-            ),
-            const SizedBox(height: 6),
-            TextoConFormulas(porQueNo),
-          ],
-        ],
       ),
     );
   }

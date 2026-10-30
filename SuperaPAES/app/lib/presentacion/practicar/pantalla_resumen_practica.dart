@@ -7,10 +7,11 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 /// Resumen de la práctica (A21; HU-30 esc. 5, CU-06 paso 7): aciertos,
 /// incorrectas y tiempo; las incorrectas pasan al repaso y la práctica queda
-/// en el historial. «Ver la revisión» llega con HU-61.
+/// en el historial. «Ver la revisión» abre A33 (HU-61).
 class PantallaResumenPractica extends ConsumerWidget {
   const PantallaResumenPractica({super.key});
 
@@ -33,6 +34,13 @@ class PantallaResumenPractica extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (resumen != null) ...[
+            OutlinedButton(
+              onPressed: () => abrirRevision(context, ref, resumen.id),
+              child: const Text('Ver la revisión'),
+            ),
+            const SizedBox(height: 8),
+          ],
           FilledButton(
             onPressed: () => context.go(Rutas.practicar),
             child: const Text('Practicar de nuevo'),
@@ -98,9 +106,12 @@ class PantallaResumenPractica extends ConsumerWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                _Dato(valor: '${resumen.correctas}', texto: 'correctas'),
-                _Dato(valor: '${resumen.incorrectas}', texto: 'incorrectas'),
-                _Dato(
+                DatoResumen(valor: '${resumen.correctas}', texto: 'correctas'),
+                DatoResumen(
+                  valor: '${resumen.incorrectas}',
+                  texto: 'incorrectas',
+                ),
+                DatoResumen(
                   valor: tiempoDePractica(resumen.tiempoUsadoSeg),
                   texto: 'tiempo',
                 ),
@@ -139,28 +150,3 @@ class PantallaResumenPractica extends ConsumerWidget {
 /// «12 min», o los segundos si fue menos de un minuto.
 String tiempoDePractica(int segundos) =>
     segundos < 60 ? '$segundos s' : '${(segundos / 60).round()} min';
-
-/// Un número grande con su texto debajo, en un tercio del ancho.
-class _Dato extends StatelessWidget {
-  const _Dato({required this.valor, required this.texto});
-
-  final String valor;
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(valor, style: TemaSuperaPaes.numero),
-          Text(
-            texto,
-            style: TemaSuperaPaes.pequeno.copyWith(
-              color: TemaSuperaPaes.textoSecundario,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
