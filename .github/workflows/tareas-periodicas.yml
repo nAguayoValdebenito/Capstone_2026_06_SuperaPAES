@@ -1,0 +1,36 @@
+name: Tareas periódicas
+
+# Cada hora llama a la ruta protegida de la API (DAS 4.3.3, api/comun/tareas.ts), que cierra y corrige
+# las evaluaciones con el tiempo cumplido y cierra las prácticas sin actividad (RN-19, RN-21).
+# Necesita dos secretos del repositorio: API_URL (por ejemplo https://<api>.onrender.com) y
+# CLAVE_TAREAS (la misma variable de la API en Render). Sin ellos, el flujo avisa y no falla.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: tareas-periodicas
+  cancel-in-progress: false
+
+jobs:
+  tareas:
+    name: Cerrar evaluaciones vencidas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Llamar a la API
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          CLAVE_TAREAS: ${{ secrets.CLAVE_TAREAS }}
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$CLAVE_TAREAS" ]; then
+            echo "::notice::Faltan los secretos API_URL o CLAVE_TAREAS: no se llamó a la API."
+            exit 0
+          fi
+          # La API en Render puede estar dormida: el primer intento la despierta.
+          curl --fail-with-body --silent --show-error --max-time 90 --retry 2 --retry-all-errors \
+            -X POST "${API_URL%/}/api/v1/tareas/periodicas" \
+            -H "Authorization: Bearer $CLAVE_TAREAS"

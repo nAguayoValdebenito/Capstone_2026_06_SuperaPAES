@@ -41,6 +41,8 @@ export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Route
   );
   // HU-38.2: progreso por prueba, eje y habilidad, ejes a reforzar, semanas y ensayos (A35 y A36).
   router.get('/progreso', controlador.obtenerProgreso);
+  // HU-60.1: la evaluación sin terminar para retomarla (A12 y A29); cierra la vencida o inactiva.
+  router.get('/abierta', controlador.evaluacionAbierta);
   // HU-61.1: resultado y revisión pregunta por pregunta de cualquier evaluación cerrada (A30 a A33).
   router.get(
     '/:id/resultado',

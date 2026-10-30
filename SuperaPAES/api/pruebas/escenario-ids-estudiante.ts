@@ -58,9 +58,19 @@ const revision = {
   ],
 };
 
-/** Progreso (HU-38.2), resultado y revisión (HU-61.1) del servicio de evaluaciones. */
+/** La evaluación abierta (HU-60.1) y la que se cerró al consultarla; sus ids llegan como texto. */
+const abiertaDePrueba = {
+  abierta: { id: '41', prueba: { id: 1, codigo: 'M1', nombre: 'Matemática M1' } },
+  cerrada: { id: '40', tipo: { codigo: 'practica', nombre: 'Práctica' }, estado: 'abandonada' },
+};
+
+/**
+ * Progreso (HU-38.2), resultado y revisión (HU-61.1) y evaluación abierta (HU-60.1) del servicio de
+ * evaluaciones.
+ */
 export function serviciosEvaluacionesEstudiante() {
   return {
+    evaluacionAbierta: vi.fn(() => Promise.resolve(abiertaDePrueba as never)),
     obtenerProgreso: vi.fn(() => Promise.resolve(progresoDePrueba)),
     obtenerResultado: vi.fn(() => Promise.resolve(resultado as never)),
     obtenerRevision: vi.fn(() => Promise.resolve(revision as never)),

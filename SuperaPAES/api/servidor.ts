@@ -21,6 +21,7 @@ function iniciar(): void {
     verificacionCorreo: config.verificacionCorreo,
     corsOrigenes: config.corsOrigenes,
     registrarPeticiones: config.entorno !== 'test',
+    ...(config.claveTareas && { claveTareas: config.claveTareas }),
   };
   const servicios = crearServicios(dependencias);
   const app = crearApp(dependencias, servicios);
@@ -40,7 +41,11 @@ function iniciar(): void {
         correo: config.correo.proveedor,
         pagos: config.pagos.proveedor,
       },
+      tareasPeriodicas: config.claveTareas ? 'activas' : 'sin CLAVE_TAREAS',
     });
+    if (!config.claveTareas && config.entorno === 'production') {
+      registro.error('Falta CLAVE_TAREAS: nada cierra las evaluaciones vencidas cada hora.');
+    }
   });
 
   const detener = (senal: string) => {
