@@ -6,7 +6,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { exigirClave, LARGO_MINIMO_CLAVE } from '../db/cifrado.js';
 import { encontrarHerramienta, ocultarSecretos, partesSensibles } from '../db/procesos.js';
-import { nombresDeCopia } from '../db/copia-de-respaldo.js';
+import { entornoLibpq, nombresDeCopia } from '../db/copia-de-respaldo.js';
 
 // Dirección inventada para las pruebas, sin ningún servidor real. secretlint-disable-next-line
 const URL_FALSA = 'postgres://usuario_falso:clave_falsa_123@ep-falso.example.cl:6543/base_falsa';
@@ -120,5 +120,20 @@ describe('comando reintegrar: rechazos antes de conectarse', () => {
     expect(codigo).toBe(1);
     expect(salida).toContain('URL_ORIGEN y URL_DESTINO son la misma base');
     for (const parte of secretas) expect(salida).not.toContain(parte);
+  });
+});
+
+describe('conexión de pg_dump y pg_restore', () => {
+  it('con TLS exige verify-full y usa los certificados raíz del sistema si no se indicó otro', () => {
+    expect(entornoLibpq(URL_FALSA, true, {})).toMatchObject({
+      PGSSLMODE: 'verify-full',
+      PGSSLROOTCERT: 'system',
+      PGHOST: 'ep-falso.example.cl',
+      PGPORT: '6543',
+    });
+    expect(entornoLibpq(URL_FALSA, true, { PGSSLROOTCERT: '/etc/ssl/ca.pem' })).not.toHaveProperty(
+      'PGSSLROOTCERT',
+    );
+    expect(entornoLibpq(URL_FALSA, false, {})).toMatchObject({ PGSSLMODE: 'disable' });
   });
 });

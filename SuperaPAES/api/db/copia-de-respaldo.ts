@@ -60,6 +60,19 @@ export function herramientaPostgres(nombre: 'pg_dump' | 'pg_restore'): string {
   return encontrarHerramienta(nombre, process.env, process.platform, existsSync);
 }
 
+/**
+ * Variables de libpq para pg_dump y pg_restore. Con TLS (Neon) se exige verify-full, que necesita
+ * certificados raíz: si no se indicó PGSSLROOTCERT, se usan los del sistema (libpq 16 o superior).
+ */
+export function entornoLibpq(
+  url: string,
+  ssl: boolean,
+  entorno: Record<string, string | undefined> = process.env,
+): Record<string, string> {
+  const variables = entornoPsql(url, ssl);
+  return ssl && !entorno['PGSSLROOTCERT'] ? { ...variables, PGSSLROOTCERT: 'system' } : variables;
+}
+
 /** Falla si el volcado está vacío o no trae las tablas de los esquemas app y contenido. */
 export async function verificarVolcado(archivo: string): Promise<void> {
   const { size } = await stat(archivo);
@@ -123,7 +136,7 @@ export async function respaldar(opciones: OpcionesRespaldo): Promise<CopiaCifrad
     await ejecutarProceso(
       herramientaPostgres('pg_dump'),
       ['--format=custom', '--no-owner', '--no-privileges', '--file', volcado],
-      { entorno: entornoPsql(url, ssl), sensibles: partesSensibles(url) },
+      { entorno: entornoLibpq(url, ssl), sensibles: partesSensibles(url) },
     );
     await verificarVolcado(volcado);
     const cantidades = path.join(temporal, 'cantidades.json');

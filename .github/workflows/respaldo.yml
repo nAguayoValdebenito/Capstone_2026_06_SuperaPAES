@@ -1,0 +1,77 @@
+name: Respaldo diario
+
+# Respaldo diario cifrado de la base publicada (TEC-08.1, RNF-07, DAS 4.5.5): pg_dump 18 sobre Neon,
+# cifrado con GnuPG (AES-256) y guardado 30 días como artefacto. El repositorio es público: cualquier
+# usuario con sesión en GitHub puede descargar el artefacto, así que la única protección es el cifrado
+# con CLAVE_RESPALDO (al menos 32 caracteres aleatorios). Nada de este flujo imprime la dirección de la
+# base, la clave ni datos de la base. Se ejecuta cada día y también a mano (Actions → Respaldo diario →
+# Run workflow). Si falla, GitHub avisa por correo a quien lo configuró.
+on:
+  schedule:
+    # 07:30 UTC: 03:30 o 04:30 en Chile, con poco uso.
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: respaldo-diario
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: SuperaPAES
+
+jobs:
+  respaldo:
+    name: Respaldo cifrado de la base publicada
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: SuperaPAES/.nvmrc
+          cache: npm
+          cache-dependency-path: SuperaPAES/package-lock.json
+      - run: npm ci -w api --include-workspace-root
+      # pg_dump debe ser de la misma versión mayor que Neon (PostgreSQL 18).
+      - name: Cliente de PostgreSQL 18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-18
+      # GitHub oculta los secretos completos; el servidor, el usuario y el nombre de la base son partes
+      # de DATABASE_URL y se ocultan aparte, por si un mensaje de error los nombra.
+      - name: Ocultar las partes de la dirección de la base
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo "::error::Falta el secreto DATABASE_URL."; exit 1; fi
+          node -e '
+            let u;
+            try { u = new URL(process.env.DATABASE_URL); } catch { process.exit(1); }
+            for (const v of [u.hostname, u.username, u.pathname.slice(1)]) {
+              if (v) console.log(`::add-mask::${decodeURIComponent(v)}`);
+            }
+          ' || { echo "::error::DATABASE_URL no es una dirección de PostgreSQL válida."; exit 1; }
+      - name: Respaldo cifrado
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_SSL: "true"
+          CLAVE_RESPALDO: ${{ secrets.CLAVE_RESPALDO }}
+          CARPETA_RESPALDO: ${{ runner.temp }}/respaldo
+          PG_DUMP: /usr/lib/postgresql/18/bin/pg_dump
+          PG_RESTORE: /usr/lib/postgresql/18/bin/pg_restore
+        run: npm run respaldar -w api
+      - name: Guardar la copia cifrada (30 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-${{ github.run_id }}
+          path: ${{ runner.temp }}/respaldo/*.gpg
+          retention-days: 30
+          if-no-files-found: error
+          # La copia ya viene cifrada y comprimida.
+          compression-level: 0

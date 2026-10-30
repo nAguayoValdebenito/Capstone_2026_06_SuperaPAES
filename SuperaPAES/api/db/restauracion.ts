@@ -9,11 +9,11 @@ import pg from 'pg';
 import { descifrarArchivo, exigirClave } from './cifrado.js';
 import { type DatosConexion, opcionesConexion } from './conexion.js';
 import { ejecutarProceso, ErrorOperacion, partesSensibles } from './procesos.js';
-import { entornoPsql } from './prueba-modelo.js';
 import {
   type Cantidades,
   type CantidadesDelRespaldo,
   contarDatos,
+  entornoLibpq,
   herramientaPostgres,
 } from './copia-de-respaldo.js';
 import type { Ejecutor } from './transaccion.js';
@@ -122,7 +122,7 @@ export async function restaurarRespaldo(
   try {
     const volcado = path.join(temporal, 'base.dump');
     await descifrarArchivo(opciones.archivo, volcado, clave);
-    const entorno = entornoPsql(url, ssl);
+    const entorno = entornoLibpq(url, ssl);
     await ejecutarProceso(
       herramientaPostgres('pg_restore'),
       [
