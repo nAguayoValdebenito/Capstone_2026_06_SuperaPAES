@@ -1,3 +1,4 @@
+import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 
 /// Contrato de la práctica del estudiante de la sesión (HU-30, CU-06). Las
@@ -22,4 +23,9 @@ abstract interface class RepositorioPractica {
 
   /// Cierra la práctica y devuelve su resumen (A21).
   Future<ResumenPractica> cerrar(int id);
+
+  /// La evaluación sin terminar, para retomarla (HU-60, A12 y A29). Si
+  /// venció o era una práctica sin actividad, el servidor la cierra y la
+  /// informa como cerrada.
+  Future<ConsultaEvaluacionAbierta> evaluacionAbierta();
 }

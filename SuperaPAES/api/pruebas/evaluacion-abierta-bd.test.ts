@@ -61,6 +61,9 @@ describe.skipIf(!urlBase)('evaluación abierta y tareas periódicas con PostgreS
       id: Number(primera.practicaId),
       tipo: { codigo: 'practica' },
       prueba: { id: base.pruebaId, codigo: 'M1' },
+      // El encabezado de A17 al retomar: lo que se eligió practicar.
+      alcance: { tipo: 'prueba', id: base.pruebaId },
+      dificultad: { codigo: 'media' },
       cantidad: 5,
       respondidas: 2,
       venceEn: null,

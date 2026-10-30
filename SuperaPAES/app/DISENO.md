@@ -118,6 +118,7 @@ Entre los elementos de un formulario van 16 de separación; el diseño de refere
 | `Aviso(tono:, texto:, destacado:)` | Recuadro con ícono. Tonos de `TonoAviso`: `info`, `aviso`, `error`, `exito`, `neutro` y `primario`. Con `textoRico`, la negrita puede ir en medio (A09b). |
 | `Tarjeta(child:)`                  | Recuadro blanco con borde, radio 16 y relleno 16.              |
 | `BotonChico(texto:, onPressed:)`   | Botón de 40 dentro de un aviso o de una fila.                  |
+| `IconoEnCirculo(icono:, fondo:, color:)` | Ícono de 24 en un círculo de 48 sobre el título: el basurero de A42 y el reloj de A29. |
 | `BotonTexto(child:, onPressed:)`   | Botón de texto a lo ancho, como «Reenviar enlace».             |
 | `CargandoEnBoton()`                | Indicador dentro de un botón mientras se envía.                |
 | `PieConEnlace(pregunta:, enlace:, onPressed:)` | «¿No tienes cuenta? **Crea una**».                 |
@@ -194,7 +195,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A09b     | Paso 2, tope de tres áreas               | `32:1028` | `perfil_estudio/pantalla_paso_areas.dart` |
 | A10      | Perfil, paso 3: tus pruebas              | `33:643`  | `perfil_estudio/pantalla_paso_pruebas.dart` |
 | A11      | Confirmar el curso en marzo              | `33:730`  | `perfil_estudio/hoja_confirmar_curso.dart` |
-| A12      | Inicio                                   | `33:794`  | `inicio/` (ya sigue el boceto; sin «Práctica sin terminar», «Repasar errores» ni diagnóstico, que llegan con HU-60, HU-39 y HU-36) |
+| A12      | Inicio                                   | `33:794`  | `inicio/` (con «Práctica sin terminar» en `evaluacion_sin_terminar.dart`, con «Seguir» como `BotonChico`; sin «Repasar errores» ni diagnóstico, que llegan con HU-39 y HU-36) |
 | A13      | Personalizar la práctica                 | `33:883`  | `practicar/pantalla_personalizar_practica.dart` |
 | A14      | Elegir eje, contenido o habilidad        | `33:983`  | `practicar/pantalla_elegir_alcance.dart` |
 | A15      | Sin preguntas suficientes                | `33:1059` | `practicar/pantalla_sin_preguntas.dart` |
@@ -205,6 +206,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
 | A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43) |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
+| A29      | Retomar una evaluación                   | por anotar | `inicio/hoja_retomar_evaluacion.dart` (sin «Entregar ahora» hasta la HU-40.1; «Continuar» lleva a Evaluaciones hasta que el paso 27 conecte A27) |
 | A30      | Resultado de mini-ensayo                 | por anotar | `resultado/pantalla_resultado.dart` (sin «Ir al historial», que llega con HU-62) |
 | A32      | Resultado de ensayo completo             | por anotar | `resultado/pantalla_resultado.dart` (el puntaje con el año y el proceso de la tabla) |
 | A32b     | Ensayo sin tabla de conversión           | por anotar | `resultado/pantalla_resultado.dart` |

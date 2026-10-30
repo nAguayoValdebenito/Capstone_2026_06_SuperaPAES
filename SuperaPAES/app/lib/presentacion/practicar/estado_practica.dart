@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supera_paes/datos/fuentes/fuente_practica_remota.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_practica_api.dart';
+import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_practica.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -17,6 +18,20 @@ final repositorioPracticaProvider = Provider<RepositorioPractica>(
     FuentePracticaRemota(ref.watch(clienteHttpConSesionProvider)),
   ),
 );
+
+/// La evaluación sin terminar (HU-60): Inicio ofrece seguir la práctica
+/// (A12) o retomar la evaluación con tiempo (A29); `null` sin sesión. Se
+/// vuelve a leer al volver a la app, al deslizar en Inicio y al empezar,
+/// responder o cerrar una práctica.
+final evaluacionAbiertaProvider = FutureProvider<ConsultaEvaluacionAbierta?>((
+  ref,
+) async {
+  final estudianteId = ref.watch(
+    sesionProvider.select((sesion) => sesion.value?.estudiante.id),
+  );
+  if (estudianteId == null) return null;
+  return await ref.watch(repositorioPracticaProvider).evaluacionAbierta();
+});
 
 /// Dificultades y lo que se puede practicar de cada prueba, con los
 /// contenidos del curso del perfil (RN-24); `null` sin curso.
@@ -165,6 +180,8 @@ class EstadoPractica extends Notifier<Practica> {
         enCurso: await _repositorio.iniciar(datos),
         datos: datos,
       );
+      // La práctica nueva cerró la que estaba abierta (RN-19).
+      ref.invalidate(evaluacionAbiertaProvider);
       return true;
     } on ErrorApi catch (error) {
       if (error.codigo != codigoSinPreguntas) rethrow;
@@ -202,10 +219,12 @@ class EstadoPractica extends Notifier<Practica> {
       datos: state.datos,
       correccion: (pregunta: pregunta, correccion: correccion),
     );
-    // La respuesta descontó cupo (RN-01) y ya cuenta en el progreso.
+    // La respuesta descontó cupo (RN-01), ya cuenta en el progreso y suma
+    // una respondida en «Práctica sin terminar».
     ref
       ..invalidate(cupoDeHoyProvider)
-      ..invalidate(progresoProvider);
+      ..invalidate(progresoProvider)
+      ..invalidate(evaluacionAbiertaProvider);
   }
 
   /// Deja atrás la corrección para pasar a la siguiente pregunta. Quien llama
@@ -223,7 +242,15 @@ class EstadoPractica extends Notifier<Practica> {
     state = Practica(resumen: await _repositorio.cerrar(id));
     ref
       ..invalidate(cupoDeHoyProvider)
-      ..invalidate(progresoProvider);
+      ..invalidate(progresoProvider)
+      ..invalidate(evaluacionAbiertaProvider);
+  }
+
+  /// Sigue la práctica sin terminar donde quedó (HU-60, CU-28): A17 pide la
+  /// pregunta pendiente, que el servidor entrega igual mientras no se
+  /// responda.
+  void retomar(EvaluacionAbierta abierta) {
+    state = Practica(enCurso: abierta.practica, datos: abierta.datos);
   }
 
   static const String codigoSinPreguntas = 'SIN_PREGUNTAS_SUFICIENTES';

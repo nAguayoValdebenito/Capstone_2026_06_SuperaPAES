@@ -469,6 +469,34 @@ class Tarjeta extends StatelessWidget {
   }
 }
 
+/// Ícono de 24 en un círculo de 48, sobre el título de una pantalla o una
+/// hoja: el basurero de A42 o el reloj de A29.
+class IconoEnCirculo extends StatelessWidget {
+  const IconoEnCirculo({
+    required this.icono,
+    required this.fondo,
+    required this.color,
+    super.key,
+  });
+
+  final IconData icono;
+  final Color fondo;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+        child: Icon(icono, size: 24, color: color),
+      ),
+    );
+  }
+}
+
 /// Botón chico (Botón chico: 40 de alto, radio 10, Boton/Normal), para los
 /// botones dentro de un aviso o una fila.
 class BotonChico extends StatelessWidget {
