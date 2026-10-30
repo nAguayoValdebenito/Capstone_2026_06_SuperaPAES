@@ -169,3 +169,23 @@ export async function crearAviso(
   );
   return rows[0]?.id ?? '';
 }
+
+/** Diagnóstico de M1 abierto (evaluación con tiempo), sin preguntas todavía. Devuelve su id. */
+export async function crearDiagnosticoAbierto(bd: Ejecutor, estudianteId: string): Promise<string> {
+  const { rows } = await bd.query<{ id: string }>(
+    `INSERT INTO app.evaluacion (estudiante_id, tipo_evaluacion_id, unica_por_anio_escolar, prueba_id,
+       estructura_id, anio_escolar, cantidad_preguntas, duracion_min, estado_evaluacion_id, iniciada_en, vence_en)
+     SELECT $1, t.id, t.unica_por_anio_escolar, s.prueba_id, s.id, 0, s.cantidad_min, s.duracion_min, e.id,
+            now(), now() + s.duracion_min * INTERVAL '1 minute'
+       FROM contenido.tipo_evaluacion t
+       JOIN contenido.estructura_evaluacion s ON s.tipo_evaluacion_id = t.id
+       JOIN contenido.prueba p ON p.id = s.prueba_id
+       CROSS JOIN contenido.estado_evaluacion e
+      WHERE t.codigo = 'diagnostico' AND p.codigo = 'M1' AND e.codigo = 'en_curso'
+     RETURNING id::text`,
+    [estudianteId],
+  );
+  const id = rows[0]?.id;
+  if (!id) throw new Error('Falta la estructura del diagnóstico de M1.');
+  return id;
+}

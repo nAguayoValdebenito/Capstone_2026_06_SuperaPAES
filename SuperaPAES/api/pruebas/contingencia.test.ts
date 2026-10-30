@@ -1,5 +1,8 @@
 // TEC-08: piezas de los scripts de contingencia que no necesitan una base: ocultar secretos en la
-// salida, encontrar pg_dump, pg_restore y gpg, exigir una clave larga y nombrar las copias del día.
+// salida, encontrar pg_dump, pg_restore y gpg, exigir una clave larga, nombrar las copias del día y
+// los rechazos del comando reintegrar antes de conectarse.
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { exigirClave, LARGO_MINIMO_CLAVE } from '../db/cifrado.js';
 import { encontrarHerramienta, ocultarSecretos, partesSensibles } from '../db/procesos.js';
@@ -75,5 +78,47 @@ describe('nombres de las copias', () => {
       respaldo: 'supera-paes-2026-10-30.dump.gpg',
       cantidades: 'supera-paes-2026-10-30.cantidades.json.gpg',
     });
+  });
+});
+
+describe('comando reintegrar: rechazos antes de conectarse', () => {
+  const reintegrar = (entorno: Record<string, string>) => {
+    const resultado = spawnSync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        path.join(import.meta.dirname, '../db/scripts/reintegrar.ts'),
+        '--aplicar',
+      ],
+      {
+        cwd: path.join(import.meta.dirname, '..'),
+        env: { ...process.env, DATABASE_SSL: 'false', ...entorno },
+        encoding: 'utf8',
+      },
+    );
+    return { codigo: resultado.status, salida: `${resultado.stdout}${resultado.stderr}` };
+  };
+  const secretas = ['usuario_falso', 'clave_falsa_123', 'ep-falso.example.cl', 'base_falsa'];
+
+  it('exige DESDE en ISO 8601 con zona', () => {
+    const { codigo, salida } = reintegrar({
+      DESDE: '2026-11-02 14:30',
+      URL_ORIGEN: URL_FALSA,
+      URL_DESTINO: URL_FALSA,
+    });
+    expect(codigo).toBe(1);
+    expect(salida).toContain('DESDE debe ser el momento de recuperación en ISO 8601 con zona');
+  });
+
+  it('se niega si el origen y el destino son la misma base, sin mostrar la dirección', () => {
+    const { codigo, salida } = reintegrar({
+      DESDE: '2026-10-01T10:00:00-03:00',
+      URL_ORIGEN: URL_FALSA,
+      URL_DESTINO: URL_FALSA,
+    });
+    expect(codigo).toBe(1);
+    expect(salida).toContain('URL_ORIGEN y URL_DESTINO son la misma base');
+    for (const parte of secretas) expect(salida).not.toContain(parte);
   });
 });
