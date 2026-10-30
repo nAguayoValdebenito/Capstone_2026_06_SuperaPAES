@@ -1,0 +1,64 @@
+name: Incidente
+description: Bitácora de incidentes de la versión publicada (DAS 4.5.5). Se abre al detectar la falla y se cierra con la causa y la acción que evita que se repita.
+title: "Incidente: "
+labels: ["incidente"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Este repositorio es público.** No escribas datos personales (nombres, correos, identificadores de compra de las tiendas), direcciones de bases de datos, claves ni tokens. Usa solo los ids internos y las cantidades que entregan los comandos de `SuperaPAES/operaciones/contingencia.md`.
+  - type: input
+    id: hora
+    attributes:
+      label: Hora de detección
+      description: Fecha y hora de Chile en que se detectó la falla, con su zona. Por ejemplo, 2026-11-02 14:30 (UTC-3).
+    validations:
+      required: true
+  - type: dropdown
+    id: servicio
+    attributes:
+      label: Servicio afectado
+      multiple: true
+      options:
+        - API (Render)
+        - Base de datos (Neon)
+        - Consola (Vercel)
+        - Correo (Brevo)
+        - IA (DeepSeek o Gemini)
+        - Tiendas (Google Play o App Store)
+        - GitHub Actions
+        - Clave o secreto expuesto
+        - Otro
+    validations:
+      required: true
+  - type: textarea
+    id: causa
+    attributes:
+      label: Causa
+      description: Qué falló y por qué, si ya se sabe. Si aún no se sabe, escribe «en revisión» y complétala al cerrar.
+    validations:
+      required: true
+  - type: textarea
+    id: datos
+    attributes:
+      label: Datos afectados
+      description: Qué datos y cuántos (cuentas, evaluaciones, respuestas, suscripciones), con ids internos y sin datos personales. Si hubo acceso a datos personales, indícalo (Ley 21.719).
+    validations:
+      required: true
+  - type: textarea
+    id: accion
+    attributes:
+      label: Acción realizada
+      description: Pasos con su hora. En una recuperación, la hora de suspensión en Render, el momento de recuperación (DESDE), el resultado de la simulación y de la reintegración, y los ids que quedaron fuera.
+    validations:
+      required: true
+  - type: input
+    id: reapertura
+    attributes:
+      label: Hora de reapertura
+      description: Hora en que /api/v1/salud/vivo volvió a responder 200 (meta, menos de 4 horas desde la detección).
+  - type: textarea
+    id: prevencion
+    attributes:
+      label: Qué evita que se repita
+      description: Se completa al cerrar el incidente.
