@@ -20,24 +20,27 @@ class SaludoInicio extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final racha = ref.watch(cupoDeHoyProvider).value?.racha;
     final primerNombre = nombre.trim().split(RegExp(r'\s+')).first;
-    return Row(
+    // Wrap: con letra grande, la racha baja a otra línea (RNF-12).
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hola,',
-                style: TemaSuperaPaes.cuerpo.copyWith(
-                  color: TemaSuperaPaes.textoSecundario,
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Hola,',
+              style: TemaSuperaPaes.cuerpo.copyWith(
+                color: TemaSuperaPaes.textoSecundario,
               ),
-              Semantics(
-                header: true,
-                child: Text(primerNombre, style: TemaSuperaPaes.h1),
-              ),
-            ],
-          ),
+            ),
+            Semantics(
+              header: true,
+              child: Text(primerNombre, style: TemaSuperaPaes.h1),
+            ),
+          ],
         ),
         if (racha != null) _Racha(dias: racha),
       ],
@@ -67,10 +70,14 @@ class _Racha extends StatelessWidget {
             color: TemaSuperaPaes.aviso,
           ),
           const SizedBox(width: 6),
-          Text(
-            'Racha: $dias ${dias == 1 ? 'día' : 'días'}',
-            style: TemaSuperaPaes.pequenoFuerte.copyWith(
-              color: TemaSuperaPaes.avisoTexto,
+          // Flexible: con letra muy grande el texto se parte en vez de
+          // desbordarse.
+          Flexible(
+            child: Text(
+              'Racha: $dias ${dias == 1 ? 'día' : 'días'}',
+              style: TemaSuperaPaes.pequenoFuerte.copyWith(
+                color: TemaSuperaPaes.avisoTexto,
+              ),
             ),
           ),
         ],

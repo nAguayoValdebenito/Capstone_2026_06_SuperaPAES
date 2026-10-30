@@ -7,6 +7,7 @@ import type { PrivacidadServicio } from './privacidad.servicio.js';
 
 export interface PrivacidadControlador {
   exportarDatos: RequestHandler;
+  borrarCuenta: RequestHandler;
 }
 
 /** Estudiante de la sesión de la app. Lo deja la autenticación de /app. */
@@ -21,6 +22,9 @@ export function crearPrivacidadControlador(servicio: PrivacidadServicio): Privac
       // Son datos personales: ni el navegador ni un proxy deben guardarlos.
       res.set('Cache-Control', 'no-store');
       responder(res, await servicio.exportarDatos(estudianteDe(req)));
+    },
+    borrarCuenta: async (req, res) => {
+      responder(res, await servicio.borrarCuenta(estudianteDe(req)));
     },
   };
 }
