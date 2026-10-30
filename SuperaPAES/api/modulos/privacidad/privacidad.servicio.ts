@@ -5,6 +5,7 @@ import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { CuentasServicio } from '../cuentas/index.js';
 import type { EvaluacionesServicio } from '../evaluaciones/index.js';
+import type { SuscripcionesServicio } from '../suscripciones/index.js';
 import type { PrivacidadRepositorio } from './privacidad.repositorio.js';
 
 export interface DependenciasPrivacidadServicio {
@@ -13,6 +14,8 @@ export interface DependenciasPrivacidadServicio {
   cuentas: CuentasServicio;
   /** La descarga de datos pide las evaluaciones con sus respuestas (HU-07.1). */
   evaluaciones: Pick<EvaluacionesServicio, 'exportarEvaluaciones'>;
+  /** Antes de borrar la cuenta, la app avisa de la suscripción vigente (HU-08.2, RN-34). */
+  suscripciones: Pick<SuscripcionesServicio, 'vigenteDe'>;
   /** Hora actual, para las reglas que dependen del tiempo. */
   reloj: Reloj;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearPrivacidadRepositorio(bd). */
@@ -30,6 +33,12 @@ export interface DatosDelEstudiante extends Cuenta {
   puntajes: Awaited<ReturnType<CuentasServicio['obtenerPuntajes']>>['puntajes'];
 }
 
+/** Lo que la app muestra antes de borrar la cuenta (A42 y A42b). */
+export interface AntesDeBorrar {
+  /** La suscripción activa o en mora que la tienda sigue cobrando; `null` si no hay (A42). */
+  suscripcionVigente: Awaited<ReturnType<SuscripcionesServicio['vigenteDe']>>;
+}
+
 export interface PrivacidadServicio {
   /**
    * HU-07.1 (RF-A18, CU-14 3.a, CP-26): la cuenta, los documentos aceptados, el perfil, las
@@ -43,12 +52,17 @@ export interface PrivacidadServicio {
    * seudonimizadas y su sesión se cierra.
    */
   borrarCuenta(estudianteId: string): Promise<{ eliminadaEn: Date }>;
+  /**
+   * HU-08.2 (CU-14 paso 4 y alternativo 4.a): con una suscripción activa o en mora, la app muestra
+   * A42b, que avisa que la tienda seguirá cobrando (RN-34).
+   */
+  antesDeBorrar(estudianteId: string): Promise<AntesDeBorrar>;
 }
 
 export function crearPrivacidadServicio(
   dependencias: DependenciasPrivacidadServicio,
 ): PrivacidadServicio {
-  const { cuentas, evaluaciones, reloj } = dependencias;
+  const { cuentas, evaluaciones, suscripciones, reloj } = dependencias;
   return {
     exportarDatos: async (estudianteId) => {
       const generadoEn = reloj();
@@ -64,5 +78,8 @@ export function crearPrivacidadServicio(
       };
     },
     borrarCuenta: (estudianteId) => cuentas.eliminarCuenta(estudianteId),
+    antesDeBorrar: async (estudianteId) => ({
+      suscripcionVigente: await suscripciones.vigenteDe(estudianteId),
+    }),
   };
 }

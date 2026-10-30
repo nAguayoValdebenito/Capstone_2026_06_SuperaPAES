@@ -36,6 +36,7 @@ abstract final class Rutas {
   static const String invitaciones = '/invitaciones';
   static const String misDatos = '/mis-datos';
   static const String puntajes = '/mis-datos/puntajes';
+  static const String borrarCuenta = '/mis-datos/borrar-cuenta';
 
   // Perfil de estudio (HU-29): la bienvenida y la edición en tres pasos.
   static const String perfilCurso = '/perfil-de-estudio/curso';

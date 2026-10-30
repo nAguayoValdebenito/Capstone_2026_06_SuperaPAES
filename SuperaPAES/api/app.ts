@@ -190,7 +190,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     suscripciones,
     administracion,
   });
-  const privacidad = crearPrivacidadServicio({ ...conReloj, cuentas, evaluaciones });
+  const privacidad = crearPrivacidadServicio({ ...conReloj, cuentas, evaluaciones, suscripciones });
 
   return {
     administracion,

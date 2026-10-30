@@ -36,6 +36,7 @@ ProviderContainer crearContenedor({
   RepositorioMisDatosFalso? misDatos,
   RepositorioResultadosFalso? resultados,
   CompartirArchivo? compartir,
+  AbrirEnlace? abrirEnlace,
   AlmacenSesionEnMemoria? almacen,
   SesionEstudiante? sesion,
 }) {
@@ -63,6 +64,8 @@ ProviderContainer crearContenedor({
       ),
       // Sin `compartir`, el menú Compartir no hace nada.
       compartirArchivoProvider.overrideWithValue(compartir ?? (_) async {}),
+      // Sin `abrirEnlace`, ningún enlace sale de la app.
+      abrirEnlaceProvider.overrideWithValue(abrirEnlace ?? (_) async => true),
       repositorioCuentasProvider.overrideWithValue(
         repositorio ?? RepositorioCuentasFalso(),
       ),

@@ -148,7 +148,7 @@ No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las f
 | `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`), «Sin verificar» (`aviso`), «Correcta» (`exito`) o «Tu respuesta» fallada (`error`). |
 | `IndicadorPasos(paso:, total:, opcional:, accion:)` | «Paso 2 de 3 · Opcional» con su barra y «Omitir». |
 | `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37).                |
-| `FilaNavegacion(texto:, onTap:, detalle:, icono:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. |
+| `FilaNavegacion(texto:, onTap:, detalle:, icono:, peligro:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. Con `peligro`, el título y el ícono van en rojo y sin círculo («Borrar mi cuenta» en A39). |
 
 Los botones grandes no necesitan estilo propio: `FilledButton` (principal) y `OutlinedButton`
 (contorno, como «Cerrar sesión») ya salen con 52 de alto, a lo ancho y con radio 14. Las casillas
@@ -212,8 +212,10 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A35      | Progreso                                 | `35:1532` | `progreso/` (sin «Historial», que llega con HU-62) |
 | A36      | Progreso de una prueba sin respuestas    | `35:1664` | `progreso/pantalla_progreso.dart`      |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
-| A39      | Mis datos y privacidad                   | por anotar | `mis_datos/` (descarga y puntajes; sin «Solicitudes sobre mis datos», «Borrar mi cuenta» ni los términos aceptados, que llegan con HU-09 y HU-08) |
+| A39      | Mis datos y privacidad                   | por anotar | `mis_datos/` (descarga, puntajes y «Borrar mi cuenta»; sin «Solicitudes sobre mis datos» ni los términos aceptados, que llegan con HU-09) |
 | A41      | Puntajes PAES                            | `36:1574` | `puntajes/` (el interruptor del permiso abre una hoja con el permiso completo) |
+| A42      | Borrar mi cuenta                         | por anotar | `mis_datos/pantalla_borrar_cuenta.dart` |
+| A42b     | Borrar mi cuenta con una suscripción vigente | por anotar | `mis_datos/pantalla_borrar_cuenta.dart` (también ofrece descargar los datos, como pide CU-14 paso 4, y «Cancelar» es el mismo botón con borde de A42) |
 
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).
 Agrega su fila aquí cuando las construyas.

@@ -69,8 +69,9 @@ void main() {
         findsOne,
       );
       expect(find.text('Sin permiso · opcional'), findsOne);
-      // Llegan con HU-08 y HU-09.
-      expect(find.text('Borrar mi cuenta'), findsNothing);
+      expect(find.text('Borrar mi cuenta'), findsOne);
+      expect(find.text('Esta acción no se puede deshacer.'), findsOne);
+      // Llega con HU-09.
       expect(find.text('Solicitudes sobre mis datos'), findsNothing);
 
       // «Perfil» también es una pestaña de la barra inferior.
