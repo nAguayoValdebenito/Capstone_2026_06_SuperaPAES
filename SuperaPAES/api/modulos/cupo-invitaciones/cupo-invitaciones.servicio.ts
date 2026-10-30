@@ -18,6 +18,11 @@ import {
   type InicioCupo,
 } from './cupo-invitaciones.inicio.servicio.js';
 import {
+  crearInvitaciones,
+  type CuentaParaInvitar,
+  type Invitaciones,
+} from './cupo-invitaciones.invitaciones.servicio.js';
+import {
   crearCupoInvitacionesRepositorio,
   type CupoInvitacionesRepositorio,
   type NuevaInvitacion,
@@ -32,15 +37,20 @@ export interface DependenciasCupoInvitacionesServicio {
   administracion: AdministracionServicio;
   /** RN-04: si una suscripción cubre la prueba, responder no descuenta cupo (módulo suscripciones). */
   suscripciones: CoberturaSuscripcion;
-  /** HU-35.1: el correo verificado y la racha del inicio, que son de la cuenta (módulo cuentas). */
-  cuentas: CuentaParaInicio;
+  /**
+   * HU-35.1: el correo verificado y la racha del inicio; HU-46.1: el código de invitación. Son de la
+   * cuenta (módulo cuentas).
+   */
+  cuentas: CuentaParaInicio & CuentaParaInvitar;
+  /** Dirección pública de la consola: el link de invitación lleva a su página /invitar (RN-33). */
+  urlConsola: string;
   /** Hora de Chile que define el día del cupo que muestra el inicio (RN-02). */
   reloj: Reloj;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearCupoInvitacionesRepositorio(bd). */
   repositorio?: CupoInvitacionesRepositorio;
 }
 
-export interface CupoInvitacionesServicio extends CupoDiario, InicioCupo {
+export interface CupoInvitacionesServicio extends CupoDiario, InicioCupo, Invitaciones {
   /** Registra el código de quien invitó al estudiante (RN-03). */
   registrarCodigoInvitacion(estudianteId: string, codigo: string): Promise<void>;
   /**
@@ -81,6 +91,11 @@ export function crearCupoInvitacionesServicio(
       administracion: dependencias.administracion,
       cuentas: dependencias.cuentas,
       reloj: dependencias.reloj,
+    }),
+    ...crearInvitaciones({
+      repositorio,
+      cuentas: dependencias.cuentas,
+      urlConsola: dependencias.urlConsola,
     }),
   };
 }
