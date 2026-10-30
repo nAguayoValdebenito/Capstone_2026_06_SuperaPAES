@@ -79,10 +79,10 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
 
   @override
   Widget build(BuildContext context) {
-    final suscripcion = ref.watch(suscripcionVigenteProvider);
+    final estado = ref.watch(estadoDeLaCuentaProvider);
     // Sin saber si hay una suscripción vigente, no se puede avisar (RN-34).
-    final revisada = suscripcion is AsyncData<SuscripcionVigente?>;
-    final vigente = revisada ? suscripcion.value : null;
+    final revisada = estado is AsyncData<EstadoDeLaCuenta>;
+    final vigente = revisada ? estado.value.suscripcionVigente : null;
     final confirmada = _entiendoPerdida && (vigente == null || _entiendoTienda);
     return PantallaFormulario(
       separacion: 14,
@@ -99,14 +99,13 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
               'evaluaciones y respuestas quedan seudonimizadas, sin tu nombre '
               'ni tu correo, solo para estadísticas. No se puede deshacer.',
         ),
-        ...switch (suscripcion) {
-          AsyncData(value: final datos?) => _suscripcion(datos),
-          AsyncData() => const <Widget>[],
+        ...switch (estado) {
+          AsyncData() => [if (vigente != null) ..._suscripcion(vigente)],
           AsyncError(error: final fallo) => [
             ErrorConReintento(
               error: fallo,
               mensaje: 'No se pudo revisar si tienes una suscripción.',
-              alReintentar: () => ref.invalidate(suscripcionVigenteProvider),
+              alReintentar: () => ref.invalidate(estadoDeLaCuentaProvider),
             ),
           ],
           _ => const [Center(child: CircularProgressIndicator())],

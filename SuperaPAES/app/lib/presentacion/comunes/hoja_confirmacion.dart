@@ -41,8 +41,9 @@ class HojaConfirmacion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Con letra grande, la hoja se desplaza en vez de cortarse (RNF-12).
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           TemaSuperaPaes.margenPantalla,
           24,

@@ -8,9 +8,9 @@ abstract interface class RepositorioMisDatos {
   /// Todos sus datos, como los guarda el servidor.
   Future<ArchivoMisDatos> descargar();
 
-  /// La suscripción que la tienda sigue cobrando, o `null` si no tiene
-  /// (HU-08.2): con ella, A42b avisa antes de borrar (RN-34).
-  Future<SuscripcionVigente?> suscripcionVigente();
+  /// Los términos aceptados (A39) y la suscripción que la tienda sigue
+  /// cobrando (HU-08.2): con ella, A42b avisa antes de borrar (RN-34).
+  Future<EstadoDeLaCuenta> estadoDeLaCuenta();
 
   /// Borra la cuenta (HU-08.1). La API cierra la sesión: después, solo queda
   /// olvidarla en el teléfono.

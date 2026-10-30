@@ -21,7 +21,7 @@ import { registrarPeticiones } from './comun/middleware/registro-peticiones.js';
 import type { ConfiguracionVerificacionCorreo } from './comun/configuracion.js';
 import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
-import { crearRutasTareas } from './comun/tareas.js';
+import { crearRutasTareas } from './trabajos/tareas-periodicas.js';
 import type { Ejecutor, UnidadDeTrabajo } from './db/transaccion.js';
 import {
   crearAdministracionServicio,

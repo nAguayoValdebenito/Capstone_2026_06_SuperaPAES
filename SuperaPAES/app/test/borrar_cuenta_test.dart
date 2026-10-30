@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/fuentes/fuente_mis_datos_remota.dart';
 import 'package:supera_paes/datos/modelos/mis_datos_modelo.dart';
 import 'package:supera_paes/dominio/entidades/archivo_mis_datos.dart';
+import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -48,7 +49,7 @@ void main() {
       expect(enMora.tienda, Tienda.appStore);
     });
 
-    test('pide la suscripción con GET y borra con DELETE en '
+    test('pide el estado de la cuenta con GET y borra con DELETE en '
         '/privacidad/cuenta', () async {
       final adaptador = AdaptadorHttpFalso(
         (peticion) => respuestaOk(
@@ -60,17 +61,35 @@ void main() {
                     'periodicidad': 'mensual',
                     'tienda': 'google_play',
                   },
+                  'documentosAceptados': [
+                    {
+                      'documento': 'terminos',
+                      'version': '1.0',
+                      'aceptadoEn': '2026-10-21T21:00:00.000Z',
+                    },
+                    // Un tipo que la app no conoce se omite.
+                    {
+                      'documento': 'otro',
+                      'version': '1.0',
+                      'aceptadoEn': '2026-10-21T21:00:00.000Z',
+                    },
+                  ],
                 }
               : {'eliminadaEn': '2026-10-30T18:00:00.000Z'},
         ),
       );
       final fuente = FuenteMisDatosRemota(Dio()..httpClientAdapter = adaptador);
 
-      final suscripcion = await fuente.suscripcionVigente();
+      final estado = await fuente.estadoDeLaCuenta();
       await fuente.borrarCuenta();
 
-      expect(suscripcion?.tienda, Tienda.googlePlay);
-      expect(suscripcion?.enMora, isFalse);
+      expect(estado.suscripcionVigente?.tienda, Tienda.googlePlay);
+      expect(estado.suscripcionVigente?.enMora, isFalse);
+      expect(
+        estado.documentosAceptados.single.tipo,
+        TipoDocumentoLegal.terminos,
+      );
+      expect(estado.documentosAceptados.single.version, '1.0');
       expect(
         [for (final p in adaptador.peticiones) '${p.method} ${p.path}'],
         ['GET /privacidad/cuenta', 'DELETE /privacidad/cuenta'],
@@ -285,7 +304,7 @@ void main() {
     testWidgets('si no se pudo revisar la suscripción, no deja borrar hasta '
         'reintentar', (tester) async {
       final repo = RepositorioMisDatosFalso(suscripcion: suscripcionDePrueba)
-        ..errorSuscripcion = _sinConexion;
+        ..errorEstado = _sinConexion;
       await iniciarApp(
         tester,
         crearContenedor(sesion: sesionDeEjemplo, misDatos: repo),
@@ -299,7 +318,7 @@ void main() {
       );
       expect(_sePuedeBorrar(tester), isFalse);
 
-      repo.errorSuscripcion = null;
+      repo.errorEstado = null;
       await tocar(tester, find.text('Reintentar'));
 
       // La lista construye lo que se ve: hay que llegar hasta la casilla.

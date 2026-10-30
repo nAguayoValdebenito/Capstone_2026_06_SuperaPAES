@@ -20,8 +20,8 @@ class FuenteMisDatosRemota {
     ),
   );
 
-  Future<SuscripcionVigente?> suscripcionVigente() async =>
-      MisDatosModelo.suscripcion(
+  Future<EstadoDeLaCuenta> estadoDeLaCuenta() async =>
+      MisDatosModelo.estadoDeLaCuenta(
         await pedirObjeto(
           _dio,
           'GET',

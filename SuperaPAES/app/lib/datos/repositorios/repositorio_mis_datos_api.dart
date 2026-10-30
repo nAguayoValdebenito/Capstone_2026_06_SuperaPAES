@@ -13,8 +13,7 @@ class RepositorioMisDatosApi implements RepositorioMisDatos {
   Future<ArchivoMisDatos> descargar() => _fuente.descargar();
 
   @override
-  Future<SuscripcionVigente?> suscripcionVigente() =>
-      _fuente.suscripcionVigente();
+  Future<EstadoDeLaCuenta> estadoDeLaCuenta() => _fuente.estadoDeLaCuenta();
 
   @override
   Future<void> borrarCuenta() => _fuente.borrarCuenta();
