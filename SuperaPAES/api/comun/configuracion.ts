@@ -48,6 +48,11 @@ const esquemaBase = z.object({
   URL_CONSOLA: z.url({ protocol: /^https?$/ }).transform((valor) => valor.replace(/\/+$/, '')),
   /** Clave del HMAC-SHA-256 con que se guarda el código de 6 dígitos del correo de verificación (RN-32). */
   CLAVE_CODIGO_CORREO: z.string().min(SECRETO_MINIMO),
+  /**
+   * Clave de la ruta de tareas periódicas (DAS 4.3.3), que llama cada hora un flujo de GitHub Actions.
+   * Sin ella, la ruta no existe y nada cierra las evaluaciones vencidas hasta que se consulten.
+   */
+  CLAVE_TAREAS: secretoOpcional.pipe(z.string().min(SECRETO_MINIMO).optional()),
   PROVEEDOR_IA: z.enum(['simulado', 'deepseek', 'gemini']).default('simulado'),
   DEEPSEEK_API_KEY: textoOpcional,
   GEMINI_API_KEY: textoOpcional,
@@ -135,6 +140,10 @@ function problemasDeSecretos(v: Variables): Problema[] {
   if ([v.JWT_SECRETO_CONSOLA, v.JWT_SECRETO_APP].includes(v.CLAVE_CODIGO_CORREO)) {
     problemas.push(['CLAVE_CODIGO_CORREO', 'debe ser distinta de los secretos JWT']);
   }
+  const otros = [v.JWT_SECRETO_CONSOLA, v.JWT_SECRETO_APP, v.CLAVE_CODIGO_CORREO];
+  if (v.CLAVE_TAREAS !== undefined && otros.includes(v.CLAVE_TAREAS)) {
+    problemas.push(['CLAVE_TAREAS', 'debe ser distinta de los demás secretos']);
+  }
   return problemas;
 }
 
@@ -216,6 +225,8 @@ export interface Configuracion {
   corsOrigenes: string[];
   jwt: { secretoConsola: string; secretoApp: string };
   verificacionCorreo: ConfiguracionVerificacionCorreo;
+  /** Clave de la ruta de tareas periódicas; sin ella, la ruta no se monta. */
+  claveTareas: string | undefined;
   ia: ConfiguracionIA;
   correo: ConfiguracionCorreo;
   pagos: ConfiguracionPagos;
@@ -241,6 +252,7 @@ export function leerConfiguracion(
       .filter(Boolean),
     jwt: { secretoConsola: v.JWT_SECRETO_CONSOLA, secretoApp: v.JWT_SECRETO_APP },
     verificacionCorreo: { urlConsola: v.URL_CONSOLA, claveCodigo: v.CLAVE_CODIGO_CORREO },
+    claveTareas: v.CLAVE_TAREAS,
     ia: leerConfiguracionIA(v),
     correo: leerConfiguracionCorreo(v),
     pagos: leerConfiguracionPagos(v),

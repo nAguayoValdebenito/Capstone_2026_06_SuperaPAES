@@ -21,6 +21,7 @@ import { registrarPeticiones } from './comun/middleware/registro-peticiones.js';
 import type { ConfiguracionVerificacionCorreo } from './comun/configuracion.js';
 import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
+import { crearRutasTareas } from './comun/tareas.js';
 import type { Ejecutor, UnidadDeTrabajo } from './db/transaccion.js';
 import {
   crearAdministracionServicio,
@@ -94,6 +95,8 @@ export interface Dependencias {
   verificacionCorreo: ConfiguracionVerificacionCorreo;
   corsOrigenes: string[];
   registrarPeticiones: boolean;
+  /** Clave de la ruta de tareas periódicas (DAS 4.3.3); sin ella, la ruta no se monta. */
+  claveTareas?: string;
   limiteIntentos?: OpcionesLimiteIntentos;
   /**
    * Solo para pruebas: reemplaza la comprobación de la cuenta interna en cada petición de la consola,
@@ -281,6 +284,12 @@ export function crearApp(
 
   app.use(`${PREFIJO_API}/salud`, crearRutasSalud(dependencias.comprobarBaseDeDatos));
   app.use(`${PREFIJO_API}/webhooks`, crearRutasWebhooksSuscripciones(servicios.suscripciones));
+  if (dependencias.claveTareas) {
+    app.use(
+      `${PREFIJO_API}/tareas`,
+      crearRutasTareas(dependencias.claveTareas, servicios.evaluaciones),
+    );
+  }
   app.use(`${PREFIJO_API}/app`, crearRouterApp(servicios, mw));
   app.use(`${PREFIJO_API}/admin`, crearRouterAdmin(servicios, mw));
 

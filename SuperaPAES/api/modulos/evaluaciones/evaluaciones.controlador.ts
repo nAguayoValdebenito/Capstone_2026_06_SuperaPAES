@@ -15,6 +15,7 @@ export interface EvaluacionesControlador {
   obtenerRevision: RequestHandler;
   responderPregunta: RequestHandler<Record<string, string>, unknown, DatosRespuestaPregunta>;
   obtenerProgreso: RequestHandler;
+  evaluacionAbierta: RequestHandler;
 }
 
 function estudianteDe(req: Request): string {
@@ -54,6 +55,9 @@ export function crearEvaluacionesControlador(
     },
     obtenerProgreso: async (req, res) => {
       responder(res, await servicio.obtenerProgreso(estudianteDe(req)));
+    },
+    evaluacionAbierta: async (req, res) => {
+      responder(res, await servicio.evaluacionAbierta(estudianteDe(req)));
     },
   };
 }
