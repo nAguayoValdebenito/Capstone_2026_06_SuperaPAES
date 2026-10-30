@@ -256,17 +256,21 @@ class _Cantidad extends ConsumerWidget {
                   : null,
             ),
             const SizedBox(width: 12),
-            Column(
-              children: [
-                Text('$cantidad', style: TemaSuperaPaes.numero),
-                Text(
-                  'de ${BorradorPractica.cantidadMinima} a '
-                  '${BorradorPractica.cantidadMaxima}',
-                  style: TemaSuperaPaes.pequeno.copyWith(
-                    color: TemaSuperaPaes.textoSecundario,
+            // Flexible: con letra grande, «de 5 a 20» baja de línea (RNF-12).
+            Flexible(
+              child: Column(
+                children: [
+                  Text('$cantidad', style: TemaSuperaPaes.numero),
+                  Text(
+                    'de ${BorradorPractica.cantidadMinima} a '
+                    '${BorradorPractica.cantidadMaxima}',
+                    textAlign: TextAlign.center,
+                    style: TemaSuperaPaes.pequeno.copyWith(
+                      color: TemaSuperaPaes.textoSecundario,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(width: 12),
             _BotonRedondo(

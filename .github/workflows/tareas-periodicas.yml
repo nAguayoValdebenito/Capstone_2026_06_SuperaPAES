@@ -1,6 +1,6 @@
 name: Tareas periódicas
 
-# Cada hora llama a la ruta protegida de la API (DAS 4.3.3, api/comun/tareas.ts), que cierra y corrige
+# Cada hora llama a la ruta protegida de la API (DAS 4.3.3, api/trabajos/tareas-periodicas.ts), que cierra y corrige
 # las evaluaciones con el tiempo cumplido y cierra las prácticas sin actividad (RN-19, RN-21).
 # Necesita dos secretos del repositorio: API_URL (por ejemplo https://<api>.onrender.com) y
 # CLAVE_TAREAS (la misma variable de la API en Render). Sin ellos, el flujo avisa y no falla.

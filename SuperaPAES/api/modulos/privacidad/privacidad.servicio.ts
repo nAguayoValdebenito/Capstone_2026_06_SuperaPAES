@@ -33,10 +33,33 @@ export interface DatosDelEstudiante extends Cuenta {
   puntajes: Awaited<ReturnType<CuentasServicio['obtenerPuntajes']>>['puntajes'];
 }
 
-/** Lo que la app muestra antes de borrar la cuenta (A42 y A42b). */
-export interface AntesDeBorrar {
+type Consentimiento = Cuenta['consentimientos'][number];
+
+/** La versión vigente que el estudiante aceptó de un documento legal obligatorio. */
+export interface DocumentoAceptado {
+  documento: 'terminos' | 'privacidad';
+  version: string;
+  aceptadoEn: Date;
+}
+
+/** Mis datos (A39) y «Borrar mi cuenta» (A42 y A42b). */
+export interface EstadoDeLaCuenta {
   /** La suscripción activa o en mora que la tienda sigue cobrando; `null` si no hay (A42). */
   suscripcionVigente: Awaited<ReturnType<SuscripcionesServicio['vigenteDe']>>;
+  /** Términos y privacidad, la última versión aceptada sin revocar de cada uno (CU-14 paso 2). */
+  documentosAceptados: DocumentoAceptado[];
+}
+
+const OBLIGATORIOS: readonly DocumentoAceptado['documento'][] = ['terminos', 'privacidad'];
+
+/** De cada documento obligatorio, el último consentimiento sin revocar (vienen por fecha). */
+function documentosAceptados(consentimientos: Consentimiento[]): DocumentoAceptado[] {
+  return OBLIGATORIOS.flatMap((documento) => {
+    const ultimo = consentimientos
+      .filter((c) => c.documento === documento && c.revocadoEn === null)
+      .at(-1);
+    return ultimo ? [{ documento, version: ultimo.version, aceptadoEn: ultimo.aceptadoEn }] : [];
+  });
 }
 
 export interface PrivacidadServicio {
@@ -53,10 +76,11 @@ export interface PrivacidadServicio {
    */
   borrarCuenta(estudianteId: string): Promise<{ eliminadaEn: Date }>;
   /**
-   * HU-08.2 (CU-14 paso 4 y alternativo 4.a): con una suscripción activa o en mora, la app muestra
-   * A42b, que avisa que la tienda seguirá cobrando (RN-34).
+   * CU-14 paso 2: las versiones aceptadas de los términos y de la privacidad, que muestra Mis datos
+   * (A39). HU-08.2 (CU-14 paso 4 y alternativo 4.a): con una suscripción activa o en mora, la app
+   * muestra A42b, que avisa que la tienda seguirá cobrando (RN-34).
    */
-  antesDeBorrar(estudianteId: string): Promise<AntesDeBorrar>;
+  estadoDeLaCuenta(estudianteId: string): Promise<EstadoDeLaCuenta>;
 }
 
 export function crearPrivacidadServicio(
@@ -78,8 +102,12 @@ export function crearPrivacidadServicio(
       };
     },
     borrarCuenta: (estudianteId) => cuentas.eliminarCuenta(estudianteId),
-    antesDeBorrar: async (estudianteId) => ({
-      suscripcionVigente: await suscripciones.vigenteDe(estudianteId),
-    }),
+    estadoDeLaCuenta: async (estudianteId) => {
+      const { consentimientos } = await cuentas.exportarCuenta(estudianteId);
+      return {
+        suscripcionVigente: await suscripciones.vigenteDe(estudianteId),
+        documentosAceptados: documentosAceptados(consentimientos),
+      };
+    },
   };
 }

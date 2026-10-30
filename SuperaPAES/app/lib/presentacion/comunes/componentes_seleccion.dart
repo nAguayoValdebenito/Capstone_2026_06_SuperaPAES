@@ -312,8 +312,23 @@ class OpcionAlternativa extends StatelessWidget {
   final ResultadoAlternativa? resultado;
   final String? etiqueta;
 
+  /// Desde esta escala de letra, la [etiqueta] baja bajo el texto: al lado no
+  /// cabe (RNF-12).
+  static const double escalaParaApilar = 1.3;
+
   @override
   Widget build(BuildContext context) {
+    final apilar =
+        MediaQuery.textScalerOf(context).scale(1) >= escalaParaApilar;
+    final etiquetaVista = switch (etiqueta) {
+      final texto? => Etiqueta(
+        texto: texto,
+        tono: resultado == ResultadoAlternativa.incorrecta
+            ? TonoEtiqueta.error
+            : TonoEtiqueta.exito,
+      ),
+      null => null,
+    };
     final (fondo, color) = switch (resultado) {
       ResultadoAlternativa.correcta => (
         TemaSuperaPaes.exitoSuave,
@@ -364,18 +379,23 @@ class OpcionAlternativa extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(top: 3),
-                // Las alternativas también pueden traer fórmulas e imágenes.
-                child: TextoConFormulas(texto),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Las alternativas también pueden traer fórmulas e
+                    // imágenes.
+                    TextoConFormulas(texto),
+                    if (etiquetaVista != null && apilar) ...[
+                      const SizedBox(height: 6),
+                      etiquetaVista,
+                    ],
+                  ],
+                ),
               ),
             ),
-            if (etiqueta case final texto?) ...[
+            if (etiquetaVista != null && !apilar) ...[
               const SizedBox(width: 8),
-              Etiqueta(
-                texto: texto,
-                tono: resultado == ResultadoAlternativa.incorrecta
-                    ? TonoEtiqueta.error
-                    : TonoEtiqueta.exito,
-              ),
+              etiquetaVista,
             ],
           ],
         ),

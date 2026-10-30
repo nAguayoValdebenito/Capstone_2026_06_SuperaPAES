@@ -1,7 +1,7 @@
 // Borrado de la cuenta contra PostgreSQL real (HU-08.1, RF-A18, RNF-09, CU-14 paso 6, CP-34): no quedan el
 // nombre, el correo, el perfil ni los puntajes; las evaluaciones y sus respuestas quedan seudonimizadas;
 // la sesión se cierra, y nada de otro estudiante cambia. Antes de borrar, la app consulta la suscripción
-// que la tienda sigue cobrando (HU-08.2, RN-34).
+// que la tienda sigue cobrando (HU-08.2, RN-34); Mis datos, los términos aceptados (CU-14 paso 2).
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
@@ -19,7 +19,7 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
 
   const borrar = (token: string) =>
     request(entorno.app).delete(RUTA_BORRAR).set('Authorization', `Bearer ${token}`);
-  const antesDeBorrar = (token: string) =>
+  const estadoDeLaCuenta = (token: string) =>
     request(entorno.app).get(RUTA_BORRAR).set('Authorization', `Bearer ${token}`);
 
   /** Una suscripción del plan en la tienda, con el estado indicado (la vigencia la pone la base). */
@@ -146,10 +146,10 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
     const ana = await base.sesion('ana@ejemplo.cl');
     await suscribir(ana.id, 'Una prueba anual', 'cancelada', 'app_store');
 
-    const respuesta = await antesDeBorrar(ana.token);
+    const respuesta = await estadoDeLaCuenta(ana.token);
 
     expect(respuesta.status).toBe(200);
-    expect(respuesta.body.data).toEqual({ suscripcionVigente: null });
+    expect(respuesta.body.data).toEqual({ suscripcionVigente: null, documentosAceptados: [] });
   });
 
   it('avisa la suscripción activa o en mora, solo la propia, y aun así deja borrar (RN-34, A42b)', async () => {
@@ -158,13 +158,13 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
     const beto = await base.sesion('beto@ejemplo.cl');
     await suscribir(beto.id, 'Una prueba anual', 'en_mora', 'app_store');
 
-    expect((await antesDeBorrar(ana.token)).body.data.suscripcionVigente).toEqual({
+    expect((await estadoDeLaCuenta(ana.token)).body.data.suscripcionVigente).toEqual({
       estado: 'activa',
       plan: 'Todas las pruebas',
       periodicidad: 'mensual',
       tienda: 'google_play',
     });
-    expect((await antesDeBorrar(beto.token)).body.data.suscripcionVigente).toEqual({
+    expect((await estadoDeLaCuenta(beto.token)).body.data.suscripcionVigente).toEqual({
       estado: 'en_mora',
       plan: 'Una prueba',
       periodicidad: 'anual',
@@ -178,6 +178,36 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
       [ana.id],
     );
     expect(rows).toHaveLength(1);
+  });
+
+  it('entrega la última versión aceptada y vigente de los términos y la privacidad (CU-14 paso 2)', async () => {
+    const ana = await base.sesion('ana@ejemplo.cl');
+    const aceptar = (documento: string, haceDias: number, revocadoHaceDias: number | null = null) =>
+      entorno.bd.query(
+        `INSERT INTO app.consentimiento (estudiante_id, documento_legal_id, aceptado_en, revocado_en)
+         SELECT $1, d.id, now() - $3 * INTERVAL '1 day', now() - $4 * INTERVAL '1 day'
+           FROM contenido.documento_legal d
+           JOIN contenido.tipo_documento_legal t ON t.id = d.tipo_documento_legal_id
+          WHERE t.codigo = $2 AND d.version = '1.0'`,
+        [ana.id, documento, haceDias, revocadoHaceDias],
+      );
+    await aceptar('terminos', 9);
+    await aceptar('privacidad', 9, 5);
+    await aceptar('privacidad', 2);
+    await aceptar('puntajes', 1);
+
+    const { documentosAceptados } = (await estadoDeLaCuenta(ana.token)).body.data as {
+      documentosAceptados: { documento: string; version: string; aceptadoEn: string }[];
+    };
+
+    expect(documentosAceptados.map(({ documento, version }) => [documento, version])).toEqual([
+      ['terminos', '1.0'],
+      ['privacidad', '1.0'],
+    ]);
+    const dias = documentosAceptados.map(({ aceptadoEn }) =>
+      Math.round((Date.now() - new Date(aceptadoEn).getTime()) / 86_400_000),
+    );
+    expect(dias).toEqual([9, 2]);
   });
 
   it('sin sesión responde 401 y no borra nada', async () => {

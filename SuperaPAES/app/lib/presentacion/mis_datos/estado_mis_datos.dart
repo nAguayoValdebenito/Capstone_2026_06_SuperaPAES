@@ -73,11 +73,12 @@ mixin DescargaDeMisDatos<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   }
 }
 
-/// La suscripción que la tienda sigue cobrando (A42b). Se vuelve a pedir cada
-/// vez que se abre «Borrar mi cuenta»: pudo comprarse o cancelarse entre medio.
-final FutureProvider<SuscripcionVigente?> suscripcionVigenteProvider =
-    FutureProvider.autoDispose<SuscripcionVigente?>(
-      (ref) => ref.watch(repositorioMisDatosProvider).suscripcionVigente(),
+/// Los términos aceptados (A39) y la suscripción que la tienda sigue cobrando
+/// (A42b). Se vuelve a pedir cada vez que se abre una de las dos: la
+/// suscripción pudo comprarse o cancelarse entre medio.
+final FutureProvider<EstadoDeLaCuenta> estadoDeLaCuentaProvider =
+    FutureProvider.autoDispose<EstadoDeLaCuenta>(
+      (ref) => ref.watch(repositorioMisDatosProvider).estadoDeLaCuenta(),
     );
 
 /// Abre un enlace fuera de la app; `false` si no pudo. Las pruebas lo

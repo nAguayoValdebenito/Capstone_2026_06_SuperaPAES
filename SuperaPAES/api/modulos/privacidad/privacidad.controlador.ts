@@ -8,7 +8,7 @@ import type { PrivacidadServicio } from './privacidad.servicio.js';
 export interface PrivacidadControlador {
   exportarDatos: RequestHandler;
   borrarCuenta: RequestHandler;
-  antesDeBorrar: RequestHandler;
+  estadoDeLaCuenta: RequestHandler;
 }
 
 /** Estudiante de la sesión de la app. Lo deja la autenticación de /app. */
@@ -27,8 +27,8 @@ export function crearPrivacidadControlador(servicio: PrivacidadServicio): Privac
     borrarCuenta: async (req, res) => {
       responder(res, await servicio.borrarCuenta(estudianteDe(req)));
     },
-    antesDeBorrar: async (req, res) => {
-      responder(res, await servicio.antesDeBorrar(estudianteDe(req)));
+    estadoDeLaCuenta: async (req, res) => {
+      responder(res, await servicio.estadoDeLaCuenta(estudianteDe(req)));
     },
   };
 }
