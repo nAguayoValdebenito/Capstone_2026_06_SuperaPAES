@@ -1,3 +1,4 @@
+import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_practica.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -102,6 +103,10 @@ class RepositorioPracticaFalso implements RepositorioPractica {
   /// Si no es `null`, responder responde este error.
   ErrorApi? errorAlResponder;
 
+  /// Lo que responde GET /evaluaciones/abierta; sin nada abierto por defecto.
+  ConsultaEvaluacionAbierta consultaAbierta = const ConsultaEvaluacionAbierta();
+  int consultasAbierta = 0;
+
   /// Respuestas enviadas: (ítem, alternativa).
   final List<(int, int)> respuestas = [];
   int pedidas = 0;
@@ -184,4 +189,22 @@ class RepositorioPracticaFalso implements RepositorioPractica {
 
   @override
   Future<ResumenPractica> cerrar(int id) async => resumenDeEjemplo;
+
+  @override
+  Future<ConsultaEvaluacionAbierta> evaluacionAbierta() async {
+    consultasAbierta++;
+    return consultaAbierta;
+  }
+
+  /// Sigue la práctica abierta como la dejó el servidor: con `respondidas`
+  /// ya respondidas, la siguiente es la que viene.
+  void retomarCon(EvaluacionAbierta abierta) {
+    _cantidad = abierta.cantidad;
+    respuestas
+      ..clear()
+      ..addAll([
+        for (var orden = 1; orden <= abierta.respondidas; orden++)
+          (1000 + orden, 0),
+      ]);
+  }
 }

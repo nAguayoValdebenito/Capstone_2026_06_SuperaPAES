@@ -57,9 +57,11 @@ export interface ResultadoDeGrupo {
   correctas: number;
 }
 
-const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
-  jsonb_build_object('id', p.id, 'codigo', p.codigo, 'nombre', p.nombre) AS prueba,
-  CASE
+/**
+ * Columnas `alcance` y `dificultad` de la práctica `e` de la prueba `p` (A17, A21 y retomar), con
+ * [JOINS_ALCANCE]: el eje, contenido o habilidad elegido, o toda la prueba, y la dificultad o la mezcla.
+ */
+export const ALCANCE_Y_DIFICULTAD = `CASE
     WHEN e.eje_id IS NOT NULL THEN
       jsonb_build_object('tipo', 'eje', 'id', ej.id, 'nombre', ej.nombre)
     WHEN e.contenido_id IS NOT NULL THEN
@@ -71,7 +73,16 @@ const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
   jsonb_build_object(
     'id', d.id, 'codigo', COALESCE(d.codigo, 'mezcla'),
     'nombre', COALESCE(d.nombre, 'Mezcla')
-  ) AS dificultad,
+  ) AS dificultad`;
+
+export const JOINS_ALCANCE = `LEFT JOIN contenido.eje_tematico ej ON ej.id=e.eje_id
+ LEFT JOIN contenido.contenido_tematico c ON c.id=e.contenido_id
+ LEFT JOIN contenido.habilidad h ON h.id=e.habilidad_id
+ LEFT JOIN contenido.dificultad d ON d.id=e.dificultad_id`;
+
+const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
+  jsonb_build_object('id', p.id, 'codigo', p.codigo, 'nombre', p.nombre) AS prueba,
+  ${ALCANCE_Y_DIFICULTAD},
   e.cantidad_preguntas AS cantidad, r.puntuables AS respondidas,
   r.correctas, r.incorrectas, r.omitidas, r.porcentaje::float8 AS porcentaje,
   r.tiempo_usado_seg AS "tiempoUsadoSeg",
@@ -80,10 +91,7 @@ const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
  JOIN contenido.tipo_evaluacion t ON t.id=e.tipo_evaluacion_id
  JOIN contenido.prueba p ON p.id=e.prueba_id
  JOIN app.resultado_evaluacion r ON r.evaluacion_id=e.id
- LEFT JOIN contenido.eje_tematico ej ON ej.id=e.eje_id
- LEFT JOIN contenido.contenido_tematico c ON c.id=e.contenido_id
- LEFT JOIN contenido.habilidad h ON h.id=e.habilidad_id
- LEFT JOIN contenido.dificultad d ON d.id=e.dificultad_id
+ ${JOINS_ALCANCE}
  WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo='practica'`;
 
 const consultasResumen = {

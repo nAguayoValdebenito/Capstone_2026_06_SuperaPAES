@@ -60,7 +60,12 @@ const revision = {
 
 /** La evaluación abierta (HU-60.1) y la que se cerró al consultarla; sus ids llegan como texto. */
 const abiertaDePrueba = {
-  abierta: { id: '41', prueba: { id: 1, codigo: 'M1', nombre: 'Matemática M1' } },
+  abierta: {
+    id: '41',
+    prueba: { id: 1, codigo: 'M1', nombre: 'Matemática M1' },
+    alcance: { tipo: 'eje', id: 2, nombre: 'Álgebra y funciones' },
+    dificultad: { id: 2, codigo: 'media', nombre: 'Media' },
+  },
   cerrada: { id: '40', tipo: { codigo: 'practica', nombre: 'Práctica' }, estado: 'abandonada' },
 };
 

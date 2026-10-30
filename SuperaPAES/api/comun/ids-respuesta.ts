@@ -125,6 +125,8 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
   'GET /api/v1/app/evaluaciones/abierta': [
     'data.abierta.id',
     'data.abierta.prueba.id',
+    'data.abierta.alcance.id',
+    'data.abierta.dificultad.id',
     'data.cerrada.id',
   ],
   'GET /api/v1/app/privacidad/mis-datos': [

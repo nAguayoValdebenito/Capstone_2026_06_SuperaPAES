@@ -91,7 +91,11 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
           texto: 'Mis datos y privacidad',
           destino: Rutas.misDatos,
         ),
-        const _IconoBorrar(),
+        const IconoEnCirculo(
+          icono: Icons.delete_outline,
+          fondo: TemaSuperaPaes.errorSuave,
+          color: TemaSuperaPaes.error,
+        ),
         const Encabezado(
           titulo: '¿Borrar tu cuenta?',
           bajada:
@@ -200,31 +204,6 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
         child: Text('Abrir mis suscripciones en $tienda'),
       ),
     ];
-  }
-}
-
-/// El basurero en un círculo rojo suave (A42).
-class _IconoBorrar extends StatelessWidget {
-  const _IconoBorrar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: const BoxDecoration(
-          color: TemaSuperaPaes.errorSuave,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.delete_outline,
-          size: 24,
-          color: TemaSuperaPaes.error,
-        ),
-      ),
-    );
   }
 }
 

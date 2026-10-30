@@ -1,6 +1,11 @@
 // Evaluación abierta del estudiante, para retomarla donde quedó (HU-60.1, CU-28, RF-A22), y cierre
 // periódico de las vencidas y de las prácticas sin actividad con app.cerrar_vencidas (RN-19, RN-21).
 import type { Ejecutor } from '../../db/transaccion.js';
+import {
+  ALCANCE_Y_DIFICULTAD,
+  JOINS_ALCANCE,
+  type ResumenPractica,
+} from './evaluaciones.resumen.repositorio.js';
 
 interface Codigo {
   codigo: string;
@@ -12,6 +17,9 @@ export interface EvaluacionParaRetomar {
   id: string;
   tipo: Codigo;
   prueba: Codigo & { id: number };
+  /** Lo que se eligió practicar: el encabezado de A17 al retomar. */
+  alcance: ResumenPractica['alcance'];
+  dificultad: ResumenPractica['dificultad'];
   cantidad: number;
   respondidas: number;
   iniciadaEn: Date;
@@ -32,6 +40,7 @@ export interface FilaAbierta extends EvaluacionParaRetomar {
 const ABIERTA = `SELECT e.id::text AS id,
   jsonb_build_object('codigo', t.codigo, 'nombre', t.nombre) AS tipo,
   jsonb_build_object('id', p.id, 'codigo', p.codigo, 'nombre', p.nombre) AS prueba,
+  ${ALCANCE_Y_DIFICULTAD},
   e.cantidad_preguntas AS cantidad,
   (SELECT COUNT(*)::int FROM app.evaluacion_item i
     WHERE i.evaluacion_id = e.id AND i.respondida_en IS NOT NULL) AS respondidas,
@@ -44,6 +53,7 @@ const ABIERTA = `SELECT e.id::text AS id,
  FROM app.evaluacion e
  JOIN contenido.tipo_evaluacion t ON t.id = e.tipo_evaluacion_id
  JOIN contenido.prueba p ON p.id = e.prueba_id
+ ${JOINS_ALCANCE}
  WHERE e.estudiante_id = $1 AND e.cerrada_en IS NULL
  FOR UPDATE OF e`;
 
