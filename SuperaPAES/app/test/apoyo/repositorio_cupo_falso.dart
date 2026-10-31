@@ -14,12 +14,17 @@ final CupoDeHoy cupoDeEjemplo = CupoDeHoy(
   racha: 5,
 );
 
-/// Las invitaciones del boceto A38: K7P2QX, 3 registrados y 1 verificado.
+/// Las invitaciones del boceto A38: K7P2QX, 3 registrados, 1 verificado,
+/// 5 preguntas ganadas y en el saldo, y 1 de 10 premiadas este mes.
 const ResumenInvitaciones invitacionesDeEjemplo = ResumenInvitaciones(
   codigo: 'K7P2QX',
   link: 'https://consola.superapaes.cl/invitar/K7P2QX',
   registrados: 3,
   verificados: 1,
+  preguntasGanadas: 5,
+  saldoExtra: 5,
+  premiadasMes: 1,
+  topeMes: 10,
 );
 
 /// Repositorio del cupo sin red: responde [cupo] o, si no es `null`,

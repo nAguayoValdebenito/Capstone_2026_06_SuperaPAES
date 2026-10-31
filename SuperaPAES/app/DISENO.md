@@ -148,7 +148,7 @@ No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las f
 | `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
 | `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`), «Sin verificar» (`aviso`), «Correcta» (`exito`) o «Tu respuesta» fallada (`error`). |
 | `IndicadorPasos(paso:, total:, opcional:, accion:)` | «Paso 2 de 3 · Opcional» con su barra y «Omitir». |
-| `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37).                |
+| `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37). Una etiqueta larga baja de línea y ocupa a lo más la mitad. |
 | `FilaNavegacion(texto:, onTap:, detalle:, icono:, peligro:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. Con `peligro`, el título y el ícono van en rojo y sin círculo («Borrar mi cuenta» en A39). |
 
 Los botones grandes no necesitan estilo propio: `FilledButton` (principal) y `OutlinedButton`
@@ -214,7 +214,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A35      | Progreso                                 | `35:1532` | `progreso/` (sin «Historial», que llega con HU-62) |
 | A36      | Progreso de una prueba sin respuestas    | `35:1664` | `progreso/pantalla_progreso.dart`      |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
-| A38      | Invitar                                  | por anotar | `invitaciones/` (link, código, compartir, registrados y verificados; las preguntas ganadas, el saldo y el tope del mes llegan con HU-47.2) |
+| A38      | Invitar                                  | por anotar | `invitaciones/` (link, código, compartir, registrados, verificados y preguntas ganadas, y el saldo y el tope del mes con `FilaDato`) |
 | A39      | Mis datos y privacidad                   | por anotar | `mis_datos/` (descarga, puntajes y «Borrar mi cuenta»; sin «Solicitudes sobre mis datos» ni los términos aceptados, que llegan con HU-09) |
 | A41      | Puntajes PAES                            | `36:1574` | `puntajes/` (el interruptor del permiso abre una hoja con el permiso completo) |
 | A42      | Borrar mi cuenta                         | por anotar | `mis_datos/pantalla_borrar_cuenta.dart` |
