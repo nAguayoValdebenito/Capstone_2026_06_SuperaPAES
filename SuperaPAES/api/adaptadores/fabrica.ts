@@ -69,7 +69,7 @@ export const FabricaProveedores = {
       case 'tiendas':
         return {
           google_play: new PasarelaGooglePlay(config.googlePlay, { reloj }),
-          app_store: new PasarelaAppStore(config.appStore),
+          app_store: new PasarelaAppStore(config.appStore, { reloj }),
         };
     }
   },

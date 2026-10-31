@@ -9,12 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { importPKCS8, SignJWT } from 'jose';
 import { z } from 'zod';
 import type { ConfiguracionGooglePlay } from '../../comun/configuracion.js';
-import {
-  ErrorCompraNoValida,
-  ErrorNoImplementado,
-  ErrorTiendaNoDisponible,
-} from '../../comun/errores.js';
-import { registro } from '../../comun/registro.js';
+import { ErrorCompraNoValida, ErrorNoImplementado } from '../../comun/errores.js';
 import { relojDelSistema, type Reloj } from '../../comun/reloj.js';
 import {
   clienteHttpFetch,
@@ -28,6 +23,7 @@ import type {
   PasarelaPago,
   SuscripcionEnTienda,
 } from './pasarela.js';
+import { leerJson, noDisponible, pedirATienda } from './respuestas-tienda.js';
 
 const API = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications';
 const ALCANCE = 'https://www.googleapis.com/auth/androidpublisher';
@@ -75,24 +71,6 @@ interface CuentaServicio {
 export interface DependenciasGooglePlay {
   http?: ClienteHttp;
   reloj?: Reloj;
-}
-
-/** Registra la causa (sin datos de la compra ni secretos) y responde 503 TIENDA_NO_DISPONIBLE. */
-function noDisponible(causa: string, campos: Record<string, unknown> = {}) {
-  registro.error(`Google Play no disponible: ${causa}`, { tienda: 'google_play', ...campos });
-  return new ErrorTiendaNoDisponible();
-}
-
-function leerJson<T>(respuesta: RespuestaHttp, esquema: z.ZodType<T>, que: string): T {
-  let datos: unknown;
-  try {
-    datos = JSON.parse(respuesta.cuerpo);
-  } catch {
-    throw noDisponible(`${que} no es JSON`);
-  }
-  const resultado = esquema.safeParse(datos);
-  if (!resultado.success) throw noDisponible(`${que} no tiene la forma esperada`);
-  return resultado.data;
 }
 
 /**
@@ -165,8 +143,10 @@ export class PasarelaGooglePlay implements PasarelaPago {
     });
     if ([400, 404, 410].includes(respuesta.estado)) throw new ErrorCompraNoValida('no_encontrada');
     if (respuesta.estado !== 200)
-      throw noDisponible('la consulta de la compra falló', { estadoHttp: respuesta.estado });
-    const compra = leerJson(respuesta, esquemaCompra, 'la compra');
+      throw noDisponible('google_play', 'la consulta de la compra falló', {
+        estadoHttp: respuesta.estado,
+      });
+    const compra = leerJson('google_play', respuesta, esquemaCompra, 'la compra');
     return aCompraVerificada(idCompraTienda, compra, this.reloj());
   }
 
@@ -182,7 +162,9 @@ export class PasarelaGooglePlay implements PasarelaPago {
       cuerpo: '{}',
     });
     if (respuesta.estado !== 200 && respuesta.estado !== 204)
-      throw noDisponible('la confirmación de la compra falló', { estadoHttp: respuesta.estado });
+      throw noDisponible('google_play', 'la confirmación de la compra falló', {
+        estadoHttp: respuesta.estado,
+      });
   }
 
   consultarSuscripcion(): Promise<SuscripcionEnTienda> {
@@ -205,13 +187,8 @@ export class PasarelaGooglePlay implements PasarelaPago {
     });
   }
 
-  /** Una red caída o una tienda que tarda más del tiempo límite es una tienda no disponible. */
-  private async pedir(peticion: PeticionHttp): Promise<RespuestaHttp> {
-    try {
-      return await this.http(peticion);
-    } catch (error) {
-      throw noDisponible('no respondió', { error: error instanceof Error ? error.name : 'otro' });
-    }
+  private pedir(peticion: PeticionHttp): Promise<RespuestaHttp> {
+    return pedirATienda('google_play', this.http, peticion);
   }
 
   private async tokenDeAcceso(): Promise<string> {
@@ -228,8 +205,10 @@ export class PasarelaGooglePlay implements PasarelaPago {
       }).toString(),
     });
     if (respuesta.estado !== 200)
-      throw noDisponible('rechazó la cuenta de servicio', { estadoHttp: respuesta.estado });
-    const token = leerJson(respuesta, esquemaToken, 'el token de acceso');
+      throw noDisponible('google_play', 'rechazó la cuenta de servicio', {
+        estadoHttp: respuesta.estado,
+      });
+    const token = leerJson('google_play', respuesta, esquemaToken, 'el token de acceso');
     this.token = { valor: token.access_token, venceEn: ahora + token.expires_in * 1000 };
     return token.access_token;
   }
@@ -248,7 +227,7 @@ export class PasarelaGooglePlay implements PasarelaPago {
       };
       return this.cuenta;
     } catch {
-      throw noDisponible('la cuenta de servicio no es válida');
+      throw noDisponible('google_play', 'la cuenta de servicio no es válida');
     }
   }
 }
