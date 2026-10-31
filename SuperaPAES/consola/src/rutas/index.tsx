@@ -5,6 +5,7 @@ import { useSesion } from '../estado/contexto-sesion';
 import { PaginaIngreso } from '../paginas/ingreso/PaginaIngreso';
 import { PaginaInvitar } from '../paginas/invitar/PaginaInvitar';
 import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada';
+import { PaginaPregunta } from '../paginas/pregunta/PaginaPregunta';
 import { PaginaRestablecerContrasena } from '../paginas/restablecer-contrasena/PaginaRestablecerContrasena';
 import { RutaProtegida } from './RutaProtegida';
 import { INICIO_POR_ROL, SECCIONES } from './secciones';
@@ -31,6 +32,18 @@ export function RutasConsola() {
             element={
               <RutaProtegida roles={roles}>
                 <Pagina />
+              </RutaProtegida>
+            }
+          />
+        ))}
+        {/* C03 (HU-12.3): crear o editar una pregunta. Se abre desde el banco; no va en el menú. */}
+        {['/banco/nueva', '/banco/:id'].map((ruta) => (
+          <Route
+            key={ruta}
+            path={ruta}
+            element={
+              <RutaProtegida roles={['admin']}>
+                <PaginaPregunta />
               </RutaProtegida>
             }
           />

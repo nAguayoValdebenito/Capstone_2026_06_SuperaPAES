@@ -1,5 +1,6 @@
 // Panel de crear o editar una cuenta interna (C10, CU-23). Al crear, el administrador escribe la
 // contraseña inicial y la entrega a la persona fuera del sistema; al editar puede asignar una nueva.
+import { MensajeError } from '../../componentes/MensajeError';
 import { useFormularioCuenta } from '../../estado/formulario-cuenta';
 import { ROLES_CUENTA_INTERNA, type Area, type CuentaInterna } from '../../tipos';
 import { REQUISITOS_CONTRASENA } from '../../utilidades/contrasena';
@@ -14,15 +15,6 @@ interface Propiedades {
 }
 
 type Formulario = ReturnType<typeof useFormularioCuenta>;
-
-function MensajeError({ id, texto }: { id: string; texto: string | undefined }) {
-  if (!texto) return null;
-  return (
-    <p id={id} className="campo__error" role="alert">
-      {texto}
-    </p>
-  );
-}
 
 function CampoAreas({ areas, formulario }: { areas: readonly Area[]; formulario: Formulario }) {
   const { campos, errores, alternarArea } = formulario;
