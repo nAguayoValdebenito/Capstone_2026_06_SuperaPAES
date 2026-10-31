@@ -18,9 +18,15 @@ import {
   esquemaInicioPractica,
   esquemaRespuesta,
   esquemaInicioMini,
+  esquemaDisponibilidadDiagnostico,
 } from './evaluaciones.validadores.js';
 
 function registrarConTiempo(router: Router, controlador: EvaluacionesControlador) {
+  router.get(
+    '/diagnosticos/disponibilidad',
+    validar({ consulta: esquemaDisponibilidadDiagnostico }),
+    controlador.disponibilidadDiagnostico,
+  );
   router.post(
     '/:id/entregar',
     validar({ parametros: esquemaIdEvaluacion }),
@@ -30,6 +36,11 @@ function registrarConTiempo(router: Router, controlador: EvaluacionesControlador
     '/mini-ensayos',
     validar({ cuerpo: esquemaInicioMini }),
     controlador.iniciarMiniEnsayo,
+  );
+  router.post(
+    '/diagnosticos',
+    validar({ cuerpo: esquemaInicioMini }),
+    controlador.iniciarDiagnostico,
   );
 }
 

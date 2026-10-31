@@ -7,6 +7,7 @@ import type {
 
 const consultasEstructura = {
   async leer(
+    tipo: 'mini_ensayo' | 'diagnostico',
     pruebaId: number,
     nivelId: number | null,
     tx: Ejecutor,
@@ -16,8 +17,8 @@ const consultasEstructura = {
          s.duracion_min AS "duracionMin",s.textos FROM contenido.estructura_evaluacion s
          JOIN contenido.tipo_evaluacion t ON t.id=s.tipo_evaluacion_id
          JOIN contenido.prueba p ON p.id=s.prueba_id
-         WHERE t.codigo='mini_ensayo' AND s.prueba_id=$1 AND s.activa AND p.activa`,
-      [pruebaId],
+         WHERE t.codigo=$2 AND s.prueba_id=$1 AND s.activa AND p.activa`,
+      [pruebaId, tipo],
     );
     const estructura = rows[0];
     if (!estructura) return null;
