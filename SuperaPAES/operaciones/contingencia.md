@@ -34,7 +34,14 @@ conecta a GitHub, Neon ni Render.
      de Neon, Connect con «Connection pooling» desactivado). pg_dump necesita la conexión directa.
    - `CLAVE_RESPALDO`: la clave del paso 1.
 
-3. **Etiqueta de la bitácora:**
+3. **Variable `RESPALDO_ACTIVO`** (Settings → Secrets and variables → Actions → pestaña Variables →
+   New repository variable). La ejecución **programada** del respaldo solo corre cuando vale `true`;
+   mientras no exista o tenga otro valor, el flujo diario se omite sin fallar. Se activa cuando los
+   dos secretos ya están creados y una ejecución manual salió bien. La ejecución **manual** corre
+   siempre, con o sin la variable. Si falta `DATABASE_URL` o `CLAVE_RESPALDO`, el flujo falla al
+   inicio con el mensaje «Faltan los secretos del repositorio» y los nombra.
+
+4. **Etiqueta de la bitácora:**
 
    ```powershell
    gh label create incidente --repo nAguayoValdebenito/Capstone_2026_06_SuperaPAES --color B60205 --description "Bitácora de incidentes de la versión publicada (DAS 4.5.5)"
@@ -42,18 +49,18 @@ conecta a GitHub, Neon ni Render.
 
    Comprobar con `gh label list --repo nAguayoValdebenito/Capstone_2026_06_SuperaPAES`.
 
-4. **Permisos de Actions** (Settings → Actions → General):
+5. **Permisos de Actions** (Settings → Actions → General):
    - «Actions permissions» debe permitir las acciones de GitHub (`actions/checkout`,
      `actions/setup-node` y `actions/upload-artifact`).
    - «Workflow permissions» puede quedar en solo lectura: el flujo declara `contents: read`.
    - «Artifact and log retention» debe ser de 30 días o más (el flujo pide 30).
 
-5. **Avisos de falla.** Cuando una ejecución programada falla, GitHub avisa por correo a la última
+6. **Avisos de falla.** Cuando una ejecución programada falla, GitHub avisa por correo a la última
    persona que modificó el horario (`cron`) del flujo; conviene que sea el responsable del despliegue. En un repositorio público, GitHub **desactiva los flujos programados después de
    60 días sin actividad** en el repositorio: si eso pasa, volver a activarlo en Actions → Respaldo
    diario → Enable workflow.
 
-6. **Herramientas en el computador** (para restaurar y reintegrar):
+7. **Herramientas en el computador** (para restaurar y reintegrar):
    - PostgreSQL 18 (pg_dump y pg_restore en `C:\Program Files\PostgreSQL\18\bin`).
    - GnuPG: Git for Windows ya lo trae en `C:\Program Files\Git\usr\bin\gpg.exe`.
    - Si alguno está en otra ruta, se indica con `$env:PG_DUMP`, `$env:PG_RESTORE` o `$env:GPG`.
@@ -61,7 +68,8 @@ conecta a GitHub, Neon ni Render.
 ## 2. El respaldo diario
 
 El flujo `.github/workflows/respaldo.yml` (Actions → **Respaldo diario**) corre cada día a las 07:30
-UTC (03:30 o 04:30 en Chile) y hace lo siguiente:
+UTC (03:30 o 04:30 en Chile), solo si la variable `RESPALDO_ACTIVO` vale `true` (sección 1), y a mano
+siempre. Comprueba primero que existan los dos secretos y luego hace lo siguiente:
 
 1. Instala el cliente de PostgreSQL 18, la misma versión mayor que Neon.
 2. Ejecuta `pg_dump` en formato personalizado sobre `DATABASE_URL` y revisa que el volcado no esté
