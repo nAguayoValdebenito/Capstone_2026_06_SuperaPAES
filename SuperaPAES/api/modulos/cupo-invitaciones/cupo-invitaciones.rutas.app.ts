@@ -16,6 +16,8 @@ export function crearRutasAppCupoInvitaciones(
 
   // HU-35.1: cupo del día, saldo de preguntas extra, próximo reinicio y racha para el inicio (A12).
   router.get('/cupo', controlador.cupoDeHoy);
+  // HU-46.1: el código propio, el link de invitación, los registrados y los verificados (A38).
+  router.get('/invitaciones', controlador.misInvitaciones);
   router.post(
     '/invitaciones',
     validar({ cuerpo: esquemaCodigoInvitacion }),

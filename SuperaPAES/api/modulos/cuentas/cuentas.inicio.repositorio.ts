@@ -23,6 +23,15 @@ const ESTADO_INICIO = `
 
 export function crearInicioRepositorio(bd: Ejecutor) {
   return {
+    /** El código propio de invitación (RN-33); null si la cuenta no existe o se eliminó. */
+    async codigoInvitacion(estudianteId: string, tx: Ejecutor = bd): Promise<string | null> {
+      const { rows } = await tx.query<{ codigo: string }>(
+        `SELECT codigo_invitacion AS codigo FROM app.estudiante
+          WHERE id = $1 AND eliminado_en IS NULL`,
+        [estudianteId],
+      );
+      return rows[0]?.codigo ?? null;
+    },
     async estadoParaInicio(
       estudianteId: string,
       ahora: Date,

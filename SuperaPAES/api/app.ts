@@ -132,7 +132,8 @@ export interface Servicios {
 function crearSuscripcionesYCupo(
   dependencias: Dependencias,
   administracion: AdministracionServicio,
-  estadoParaInicio: CuentasServicio['estadoParaInicio'],
+  /** Cuentas se crea después (usa cupo-invitaciones): solo se pide al llamar. */
+  cuentas: () => Pick<CuentasServicio, 'estadoParaInicio' | 'codigoInvitacion'>,
 ): Pick<Servicios, 'suscripciones' | 'cupoInvitaciones'> {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const suscripciones = crearSuscripcionesServicio({
@@ -146,7 +147,11 @@ function crearSuscripcionesYCupo(
     ...base,
     administracion,
     suscripciones: { cubrePrueba },
-    cuentas: { estadoParaInicio },
+    cuentas: {
+      estadoParaInicio: (id, ahora) => cuentas().estadoParaInicio(id, ahora),
+      codigoInvitacion: (id) => cuentas().codigoInvitacion(id),
+    },
+    urlConsola: dependencias.verificacionCorreo.urlConsola,
     reloj: dependencias.reloj,
   });
   return { suscripciones, cupoInvitaciones };
@@ -164,12 +169,12 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     ...base,
     revocarSesionesUsuarioInterno: (id, tx) => cuentas.revocarSesionesUsuarioInterno(id, tx),
   });
-  // El inicio del cupo lee la racha de cuentas, que se crea después porque usa cupo-invitaciones: la
-  // función solo se llama una vez creados los dos.
+  // El inicio del cupo lee la racha de cuentas y las invitaciones, el código; cuentas se crea después
+  // porque usa cupo-invitaciones: las funciones solo se llaman una vez creados los dos.
   const { suscripciones, cupoInvitaciones } = crearSuscripcionesYCupo(
     dependencias,
     administracion,
-    (id, ahora) => cuentas.estadoParaInicio(id, ahora),
+    () => cuentas,
   );
   const cuentas = crearCuentasServicio({
     ...conReloj,
