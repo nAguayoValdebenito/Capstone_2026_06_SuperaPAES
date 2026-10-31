@@ -52,6 +52,11 @@ describe.skipIf(!urlBase)('invitaciones con PostgreSQL (HU-46.1)', () => {
       link: `${URL_CONSOLA_DE_PRUEBA}/invitar/${codigo}`,
       registrados: 3,
       verificados: 1,
+      // Invitaciones armadas en la base, sin bono: lo que se gana se prueba en bono-invitacion-bd.
+      preguntasGanadas: 0,
+      saldoExtra: 0,
+      premiadasMes: 0,
+      topeMes: 10,
     });
     expect(codigo).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
   });

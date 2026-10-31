@@ -17,6 +17,8 @@ import {
   type CuentaParaInicio,
   type InicioCupo,
 } from './cupo-invitaciones.inicio.servicio.js';
+import { crearBonoRepositorio } from './cupo-invitaciones.bono.repositorio.js';
+import { crearBonoInvitacion, type BonoInvitacion } from './cupo-invitaciones.bono.servicio.js';
 import {
   crearInvitaciones,
   type CuentaParaInvitar,
@@ -50,7 +52,8 @@ export interface DependenciasCupoInvitacionesServicio {
   repositorio?: CupoInvitacionesRepositorio;
 }
 
-export interface CupoInvitacionesServicio extends CupoDiario, InicioCupo, Invitaciones {
+export interface CupoInvitacionesServicio
+  extends CupoDiario, InicioCupo, Invitaciones, BonoInvitacion {
   /** Registra el código de quien invitó al estudiante (RN-03). */
   registrarCodigoInvitacion(estudianteId: string, codigo: string): Promise<void>;
   /**
@@ -72,6 +75,7 @@ export function crearCupoInvitacionesServicio(
   dependencias: DependenciasCupoInvitacionesServicio,
 ): CupoInvitacionesServicio {
   const repositorio = dependencias.repositorio ?? crearCupoInvitacionesRepositorio(dependencias.bd);
+  const bono = crearBonoRepositorio(dependencias.bd);
   return {
     // Esqueleto: se implementa con su historia de usuario.
     registrarCodigoInvitacion: () =>
@@ -94,8 +98,16 @@ export function crearCupoInvitacionesServicio(
     }),
     ...crearInvitaciones({
       repositorio,
+      bono,
+      administracion: dependencias.administracion,
       cuentas: dependencias.cuentas,
       urlConsola: dependencias.urlConsola,
+      reloj: dependencias.reloj,
+    }),
+    ...crearBonoInvitacion({
+      repositorio: bono,
+      administracion: dependencias.administracion,
+      cuentas: dependencias.cuentas,
     }),
   };
 }
