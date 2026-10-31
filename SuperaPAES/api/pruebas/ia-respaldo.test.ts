@@ -17,6 +17,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Genera avanzando los temporizadores (reintentos) y exige IA_RESPUESTA_INVALIDA. */
+async function fallaConRespuestaInvalida(): Promise<void> {
+  const espera = expect(crear().generarPreguntas(solicitudIa)).rejects.toMatchObject({
+    codigo: 'IA_RESPUESTA_INVALIDA',
+  });
+  await Promise.all([vi.runAllTimersAsync(), espera]);
+}
+
 const crear = (conRespaldo = true) =>
   FabricaProveedores.ia(
     {
@@ -92,10 +100,7 @@ describe('respaldo exclusivo de DeepSeek por falta de saldo', () => {
     fetchFalso.mockImplementation(() =>
       Promise.resolve(Response.json(sobreDeepSeek('no es JSON'))),
     );
-    const espera = expect(crear().generarPreguntas(solicitudIa)).rejects.toMatchObject({
-      codigo: 'IA_RESPUESTA_INVALIDA',
-    });
-    await Promise.all([vi.runAllTimersAsync(), espera]);
+    await fallaConRespuestaInvalida();
     // Un JSON no analizable se reintenta una vez, siempre con DeepSeek: el respaldo es solo para el 402.
     expect(fetchFalso).toHaveBeenCalledTimes(2);
     expect(
@@ -109,10 +114,7 @@ describe('respaldo exclusivo de DeepSeek por falta de saldo', () => {
       .mockResolvedValueOnce(Response.json(sobreDeepSeek('{')))
       .mockResolvedValueOnce(new Response('', { status: 402 }))
       .mockResolvedValueOnce(Response.json(sobreGemini('{')));
-    const espera = expect(crear().generarPreguntas(solicitudIa)).rejects.toMatchObject({
-      codigo: 'IA_RESPUESTA_INVALIDA',
-    });
-    await Promise.all([vi.runAllTimersAsync(), espera]);
+    await fallaConRespuestaInvalida();
     expect(fetchFalso).toHaveBeenCalledTimes(3);
     expect(fetchFalso.mock.calls[2]?.[0]).toMatch(
       /^https:\/\/generativelanguage\.googleapis\.com\//u,
