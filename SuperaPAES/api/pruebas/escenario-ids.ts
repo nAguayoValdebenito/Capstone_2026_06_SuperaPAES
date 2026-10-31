@@ -8,6 +8,7 @@ import {
   cuerpoPuntajes,
   privacidadDePrueba,
   serviciosEvaluacionesEstudiante,
+  suscripcionesDePrueba,
   serviciosPuntajes,
 } from './escenario-ids-estudiante.js';
 import {
@@ -170,6 +171,7 @@ export function escenario() {
     preguntas,
     evaluaciones,
     privacidad: privacidadDePrueba,
+    suscripciones: { ...servicios.suscripciones, ...suscripcionesDePrueba },
   });
   return { app, cuentas, administracion, evaluaciones };
 }
@@ -246,6 +248,7 @@ const CON_SESION_APP = [
   '/app/cuentas/perfil',
   '/app/cuentas/puntajes',
   '/app/privacidad/',
+  '/app/suscripciones/',
 ];
 
 async function sesionPara(ruta: string): Promise<Record<string, string>> {
