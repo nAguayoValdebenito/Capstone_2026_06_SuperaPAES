@@ -8,6 +8,11 @@ import {
   crearExportacionRepositorio,
   type CuentaExportada,
 } from './cuentas.exportacion.repositorio.js';
+import {
+  crearEstadoCuentaApp,
+  type DependenciasEstadoCuenta,
+  type EstadoCuentaApp,
+} from './cuentas.estado.servicio.js';
 import { crearInicioCuenta, type InicioCuenta } from './cuentas.inicio.servicio.js';
 import { crearPuntajes, type EntradaPuntajes, type Puntajes } from './cuentas.puntajes.servicio.js';
 
@@ -31,19 +36,27 @@ export interface EliminacionCuenta {
   eliminarCuenta(estudianteId: string): Promise<{ eliminadaEn: Date }>;
 }
 
-export type CuentaEnLaApp = InicioCuenta & Puntajes & ExportacionCuenta & EliminacionCuenta;
+export type CuentaEnLaApp = InicioCuenta &
+  Puntajes &
+  ExportacionCuenta &
+  EliminacionCuenta &
+  EstadoCuentaApp;
 
-export function crearCuentaEnLaApp(entrada: EntradaPuntajes): CuentaEnLaApp {
+export function crearCuentaEnLaApp(
+  entrada: EntradaPuntajes & Pick<DependenciasEstadoCuenta, 'cupoInvitaciones'>,
+): CuentaEnLaApp {
   const exportacion = crearExportacionRepositorio(entrada.bd);
   const eliminacion = crearEliminacionRepositorio();
+  const exportarCuenta: ExportacionCuenta['exportarCuenta'] = async (estudianteId) => {
+    const cuenta = await exportacion.cuenta(estudianteId);
+    if (!cuenta) throw new ErrorNoEncontrado('La cuenta no existe.');
+    return { cuenta, consentimientos: await exportacion.consentimientos(estudianteId) };
+  };
   return {
     ...crearInicioCuenta(entrada.bd),
     ...crearPuntajes(entrada),
-    exportarCuenta: async (estudianteId) => {
-      const cuenta = await exportacion.cuenta(estudianteId);
-      if (!cuenta) throw new ErrorNoEncontrado('La cuenta no existe.');
-      return { cuenta, consentimientos: await exportacion.consentimientos(estudianteId) };
-    },
+    exportarCuenta,
+    ...crearEstadoCuentaApp({ exportarCuenta, cupoInvitaciones: entrada.cupoInvitaciones }),
     eliminarCuenta: (estudianteId) =>
       entrada.unidadDeTrabajo.enTransaccion(async (tx) => {
         const eliminadaEn = entrada.reloj();

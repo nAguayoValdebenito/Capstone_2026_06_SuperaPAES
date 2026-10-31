@@ -5,3 +5,4 @@
 export { crearRutasAppCuentas } from './cuentas.rutas.app.js';
 export { crearRutasAdminCuentas } from './cuentas.rutas.admin.js';
 export { crearCuentasServicio, type CuentasServicio } from './cuentas.servicio.js';
+export type { DocumentoAceptado } from './cuentas.estado.servicio.js';
