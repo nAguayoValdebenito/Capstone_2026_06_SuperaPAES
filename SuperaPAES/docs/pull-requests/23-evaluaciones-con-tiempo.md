@@ -55,7 +55,7 @@ Ejecutada en Windows con Node y PostgreSQL 18, usando una base local de pruebas 
 | Comprobación                       | Resultado                                                       |
 | ---------------------------------- | --------------------------------------------------------------- |
 | `npm run lint`                     | TypeScript, ESLint y Prettier sin errores                       |
-| `npm run test` con `CI=true`       | API: 931 pasadas; consola: 115 pasadas; ningún fallo ni omisión |
+| `npm run test` con `CI=true`       | API: 934 pasadas; consola: 115 pasadas; ningún fallo ni omisión |
 | `npm run build`                    | API y consola correctas                                         |
 | `npm audit --audit-level=moderate` | 0 vulnerabilidades                                              |
 | `npm run codigo-muerto`            | Knip sin hallazgos                                              |
@@ -66,7 +66,7 @@ Ejecutada en Windows con Node y PostgreSQL 18, usando una base local de pruebas 
 | `git diff --check`                 | Sin errores                                                     |
 
 La primera corrida sin `CI` dio 883 pruebas de API pasadas y omitió las 48 comprobaciones
-`exigirBaseEnCi`. La corrida final con `CI=true` ejecutó las 931, incluidas las aserciones de la
+`exigirBaseEnCi`. La corrida final con `CI=true` ejecutó las 934, incluidas las aserciones de la
 revisión tras el inicio por HTTP, sin omisiones. Las pruebas con PostgreSQL sí se ejecutaron.
 Madge avisa que omite la dependencia externa `react-router` en la consola; no detecta ciclos.
 No se modifican sus exclusiones ni los límites de calidad.
@@ -91,9 +91,9 @@ ese tipo; no implementa su inicio. Las preguntas de prueba son sintéticas, sin 
   enunciado, alternativas y explicaciones después de reeditar una pregunta. Sin embargo,
   `pregunta_version.copia` conserva solo `texto_estimulo_id`: tanto `v_item_evaluacion` como la
   revisión leen título, contenido e imagen de la fila actual de `contenido.texto_estimulo`.
-  No hay versionado ni protección de inmutabilidad de esa fila en el modelo actual. Falta garantizar
-  el texto de lectura tal como lo vio el estudiante si se edita después (criterio 2 de HU-61).
+  Hoy no existe una ruta ni un servicio que actualice esa tabla; solo se insertan textos. Tampoco hay
+  versionado ni protección de inmutabilidad en el modelo actual. Antes de agregar una edición se debe
+  aplicar la regla «un texto ya usado en una evaluación no se edita; se crea uno nuevo». Falta garantizar
+  el texto de lectura tal como lo vio el estudiante si en el futuro se permite editarlo (criterio 2 de HU-61).
   Se informa esta limitación previa sin alterar el modelo en este trabajo. HU-61.2 sigue siendo
   la implementación separada de las pantallas.
-
-Descripción preparada para revisión local. Sin push ni creación de PR.
