@@ -8,6 +8,8 @@ import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones
 
 export interface EvaluacionesControlador {
   iniciarMiniEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  iniciarDiagnostico: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  disponibilidadDiagnostico: RequestHandler;
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
   siguientePregunta: RequestHandler;
   cerrarPractica: RequestHandler;
@@ -25,10 +27,29 @@ function estudianteDe(req: Request): string {
   return req.estudiante.id;
 }
 
+function controladoresDiagnostico(servicio: EvaluacionesServicio) {
+  const iniciarDiagnostico: EvaluacionesControlador['iniciarDiagnostico'] = async (req, res) => {
+    responder(res, await servicio.iniciarDiagnostico(estudianteDe(req), req.body.pruebaId), {
+      estado: 201,
+    });
+  };
+  const disponibilidadDiagnostico: EvaluacionesControlador['disponibilidadDiagnostico'] = async (
+    req,
+    res,
+  ) => {
+    responder(
+      res,
+      await servicio.disponibilidadDiagnostico(estudianteDe(req), Number(req.query.pruebaId)),
+    );
+  };
+  return { iniciarDiagnostico, disponibilidadDiagnostico };
+}
+
 export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
   return {
+    ...controladoresDiagnostico(servicio),
     entregarEvaluacion: async (req, res) => {
       responder(res, await servicio.entregarEvaluacion(estudianteDe(req), String(req.params.id)));
     },

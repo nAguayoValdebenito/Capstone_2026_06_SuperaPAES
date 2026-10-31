@@ -82,6 +82,13 @@ function crearMini(dependencias: DependenciasEvaluacionesServicio) {
   });
 }
 
+function crearProgreso(dependencias: DependenciasEvaluacionesServicio) {
+  return crearProgresoServicio({
+    repositorio: crearProgresoRepositorio(dependencias.bd),
+    administracion: dependencias.administracion,
+  });
+}
+
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
 ): EvaluacionesServicio {
@@ -91,6 +98,7 @@ function crearServicioSinReintento(
     reloj: dependencias.reloj,
     azar: dependencias.azar ?? Math.random,
   });
+  const progreso = crearProgreso(dependencias);
   return {
     ...seleccion,
     ...crearMini(dependencias),
@@ -118,12 +126,10 @@ function crearServicioSinReintento(
     ...crearResultadoServicio({
       repositorio: crearResultadoRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
+      progreso,
     }),
     ...crearExportacionEvaluaciones(dependencias.bd),
-    ...crearProgresoServicio({
-      repositorio: crearProgresoRepositorio(dependencias.bd),
-      administracion: dependencias.administracion,
-    }),
+    ...progreso,
     ...crearAbiertaServicio({
       repositorio: crearAbiertaRepositorio(dependencias.bd),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
