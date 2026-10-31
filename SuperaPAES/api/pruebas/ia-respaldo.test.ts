@@ -89,11 +89,34 @@ describe('respaldo exclusivo de DeepSeek por falta de saldo', () => {
   );
 
   it('JSON inválido no activa el respaldo', async () => {
-    fetchFalso.mockResolvedValue(Response.json(sobreDeepSeek('no es JSON')));
-    await expect(crear().generarPreguntas(solicitudIa)).rejects.toMatchObject({
+    fetchFalso.mockImplementation(() =>
+      Promise.resolve(Response.json(sobreDeepSeek('no es JSON'))),
+    );
+    const espera = expect(crear().generarPreguntas(solicitudIa)).rejects.toMatchObject({
       codigo: 'IA_RESPUESTA_INVALIDA',
     });
-    expect(fetchFalso).toHaveBeenCalledTimes(1);
+    await Promise.all([vi.runAllTimersAsync(), espera]);
+    // Un JSON no analizable se reintenta una vez, siempre con DeepSeek: el respaldo es solo para el 402.
+    expect(fetchFalso).toHaveBeenCalledTimes(2);
+    expect(
+      fetchFalso.mock.calls.every(([url]) => url === 'https://api.deepseek.com/chat/completions'),
+    ).toBe(true);
+  });
+
+  it('el reintento de un JSON inválido consume el único del presupuesto compartido con el respaldo', async () => {
+    // DeepSeek: JSON roto (consume el reintento), luego 402; Gemini responde roto y ya no hay reintento.
+    fetchFalso
+      .mockResolvedValueOnce(Response.json(sobreDeepSeek('{')))
+      .mockResolvedValueOnce(new Response('', { status: 402 }))
+      .mockResolvedValueOnce(Response.json(sobreGemini('{')));
+    const espera = expect(crear().generarPreguntas(solicitudIa)).rejects.toMatchObject({
+      codigo: 'IA_RESPUESTA_INVALIDA',
+    });
+    await Promise.all([vi.runAllTimersAsync(), espera]);
+    expect(fetchFalso).toHaveBeenCalledTimes(3);
+    expect(fetchFalso.mock.calls[2]?.[0]).toMatch(
+      /^https:\/\/generativelanguage\.googleapis\.com\//u,
+    );
   });
 
   it('dos contenidos vacíos fallan sin Gemini', async () => {

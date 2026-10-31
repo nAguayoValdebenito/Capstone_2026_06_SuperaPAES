@@ -1,7 +1,7 @@
 // Validación técnica compartida; las reglas pedagógicas pertenecen a HU-17.1.
 import { z } from 'zod';
 import { ErrorIARespuestaInvalida, ErrorIANoDisponible } from '../../comun/errores.js';
-import { ErrorContenidoVacio } from './http.js';
+import { ErrorContenidoVacio, ErrorJsonNoAnalizable } from './http.js';
 import type { PreguntaPropuesta, ResultadoGeneracion } from './proveedor.js';
 
 const esquemaPreguntas = z.object({
@@ -38,7 +38,8 @@ export function leerPreguntas(texto: string | null): PreguntaPropuesta[] {
   try {
     datos = JSON.parse(texto) as unknown;
   } catch {
-    throw new ErrorIARespuestaInvalida();
+    // El mensaje no incluye el texto del modelo. Se reintenta una vez (ver ErrorContenidoReintentable).
+    throw new ErrorJsonNoAnalizable();
   }
   return leerSobre(esquemaPreguntas, datos).preguntas;
 }

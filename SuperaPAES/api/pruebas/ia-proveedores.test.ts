@@ -100,7 +100,9 @@ describe.each(['deepseek', 'gemini'] as const)('IA %s', (nombre) => {
     expect(resultado).not.toHaveProperty('usoTokens');
   });
 
-  it.each(['no es json', '{', '{}', '{"preguntas":[{"enunciado":123}]}'])(
+  // 'no es json' y '{' ya no están aquí: un JSON no analizable se reintenta (ver más abajo). Un JSON válido
+  // con la forma equivocada sigue sin reintento: el modelo respondió algo coherente.
+  it.each(['{}', '{"preguntas":[{"enunciado":123}]}'])(
     'rechaza contenido inválido sin reintento: %s',
     async (contenido) => {
       fetchFalso.mockResolvedValue(Response.json(sobre(contenido)));
@@ -130,6 +132,36 @@ describe.each(['deepseek', 'gemini'] as const)('IA %s', (nombre) => {
     await Promise.all([vi.runAllTimersAsync(), espera]);
     expect(fetchFalso).toHaveBeenCalledTimes(2);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  // Forma exacta de un fallo real de Gemini (HTTP 200, finishReason STOP): sin la comilla de apertura de
+  // "alternativas", con un `$` en su lugar.
+  const jsonConComillaPerdida = '{"preguntas":[{"enunciado":"x",$alternativas":[]}]}';
+
+  it.each(['no es json', '{', jsonConComillaPerdida])(
+    'reintenta un JSON no analizable una vez y luego entrega el resultado: %s',
+    async (malformado) => {
+      fetchFalso
+        .mockResolvedValueOnce(Response.json(sobre(malformado)))
+        .mockResolvedValueOnce(Response.json(sobre()));
+      const espera = expect(
+        proveedorReal(nombre).generarPreguntas(solicitudIa),
+      ).resolves.toMatchObject({ preguntas: [preguntaIa] });
+      await Promise.all([vi.runAllTimersAsync(), espera]);
+      expect(fetchFalso).toHaveBeenCalledTimes(2);
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
+  it('dos JSON no analizables terminan con respuesta inválida tras un único reintento', async () => {
+    fetchFalso.mockImplementation(() =>
+      Promise.resolve(Response.json(sobre(jsonConComillaPerdida))),
+    );
+    const espera = expect(
+      proveedorReal(nombre).generarPreguntas(solicitudIa),
+    ).rejects.toMatchObject({ codigo: 'IA_RESPUESTA_INVALIDA', estadoHttp: 502 });
+    await Promise.all([vi.runAllTimersAsync(), espera]);
+    expect(fetchFalso).toHaveBeenCalledTimes(2);
   });
 
   it('dos contenidos vacíos terminan con respuesta inválida', async () => {
