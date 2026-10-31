@@ -162,6 +162,12 @@ describe.each(['deepseek', 'gemini'] as const)('IA %s', (nombre) => {
     ).rejects.toMatchObject({ codigo: 'IA_RESPUESTA_INVALIDA', estadoHttp: 502 });
     await Promise.all([vi.runAllTimersAsync(), espera]);
     expect(fetchFalso).toHaveBeenCalledTimes(2);
+    // Ni el texto del modelo ni las claves llegan a los registros.
+    const registrado = JSON.stringify(
+      (['log', 'error', 'info'] as const).map((nivel) => vi.spyOn(console, nivel).mock.calls),
+    );
+    expect(registrado).not.toContain('alternativas');
+    expect(registrado).not.toMatch(/clave-(deepseek|gemini)-ficticia/u);
   });
 
   it('dos contenidos vacíos terminan con respuesta inválida', async () => {
