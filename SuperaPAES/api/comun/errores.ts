@@ -157,6 +157,13 @@ export class ErrorCompraNoValida extends ErrorAplicacion {
   }
 }
 
+/** HU-43.1, 409 COMPRA_YA_REGISTRADA: la compra ya está ligada a otra suscripción o cuenta. */
+export class ErrorCompraYaRegistrada extends ErrorAplicacion {
+  constructor() {
+    super(409, 'COMPRA_YA_REGISTRADA', 'Esta compra ya está registrada en otra suscripción.');
+  }
+}
+
 /**
  * HU-43.1, 503 TIENDA_NO_DISPONIBLE: la tienda respondió con error, tardó más de 10 s o la API no pudo
  * autenticarse con ella. La suscripción queda igual y se puede reintentar.

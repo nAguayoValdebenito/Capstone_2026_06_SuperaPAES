@@ -5,10 +5,11 @@ import type { Tienda } from '../../adaptadores/fabrica.js';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { SuscripcionesServicio } from './suscripciones.servicio.js';
-import type { DatosNuevaSuscripcion } from './suscripciones.validadores.js';
+import type { DatosCompra, DatosNuevaSuscripcion } from './suscripciones.validadores.js';
 
 export interface SuscripcionesControlador {
   crearSuscripcion: RequestHandler<Record<string, string>, unknown, DatosNuevaSuscripcion>;
+  validarCompra: RequestHandler<Record<string, string>, unknown, DatosCompra>;
   avisoGooglePlay: RequestHandler;
   avisoAppStore: RequestHandler;
 }
@@ -36,6 +37,12 @@ export function crearSuscripcionesControlador(
     crearSuscripcion: async (req, res) => {
       const { suscripcion, creada } = await servicio.crearPendiente(estudianteDe(req), req.body);
       responder(res, suscripcion, { estado: creada ? 201 : 200 });
+    },
+    validarCompra: async (req, res) => {
+      responder(
+        res,
+        await servicio.validarCompra(estudianteDe(req), String(req.params.id), req.body),
+      );
     },
     avisoGooglePlay: recibir('google_play'),
     avisoAppStore: recibir('app_store'),

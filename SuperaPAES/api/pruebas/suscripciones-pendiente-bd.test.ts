@@ -7,7 +7,11 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
 import { prepararPracticas } from './base-practicas.js';
 import { errorConFormato } from './ayudantes.js';
-import { insertarSuscripcion } from './suscripciones-de-prueba.js';
+import {
+  historialDe,
+  insertarSuscripcion,
+  suscripcionGuardada,
+} from './suscripciones-de-prueba.js';
 
 const RUTA = '/api/v1/app/suscripciones';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -28,38 +32,8 @@ describe.skipIf(!urlBase)('suscripción pendiente con PostgreSQL (HU-43.1, CU-12
   const crear = (token: string, cuerpo: Record<string, unknown>) =>
     request(entorno.app).post(RUTA).set('Authorization', `Bearer ${token}`).send(cuerpo);
 
-  /** La suscripción tal como quedó en la base, con su prueba elegida. */
-  async function guardada(id: number) {
-    const { rows } = await entorno.bd.query<Record<string, unknown>>(
-      `SELECT e.codigo AS estado, s.vigente, s.plan_id AS "planId", c.codigo AS tienda,
-              s.id_compra_tienda AS "idCompraTienda", s.creado_en AS "creadoEn",
-              (SELECT array_agg(prueba_id) FROM app.suscripcion_prueba WHERE suscripcion_id = s.id)
-                AS pruebas
-         FROM app.suscripcion s
-         JOIN contenido.estado_suscripcion e ON e.id = s.estado_suscripcion_id
-         JOIN contenido.canal_venta c ON c.id = s.canal_venta_id
-        WHERE s.id = $1`,
-      [id],
-    );
-    return rows[0];
-  }
-
-  /** El historial de la suscripción, en orden. */
-  async function historial(id: number) {
-    const { rows } = await entorno.bd.query<Record<string, unknown>>(
-      `SELECT ea.codigo AS "estadoAnterior", en.codigo AS "estadoNuevo",
-              h.plan_anterior_id AS "planAnterior", h.plan_nuevo_id AS "planNuevo",
-              o.codigo AS origen, h.creado_en AS "creadoEn"
-         FROM app.suscripcion_evento h
-         LEFT JOIN contenido.estado_suscripcion ea ON ea.id = h.estado_anterior_id
-         JOIN contenido.estado_suscripcion en ON en.id = h.estado_nuevo_id
-         JOIN contenido.origen_evento o ON o.id = h.origen_evento_id
-        WHERE h.suscripcion_id = $1
-        ORDER BY h.creado_en, h.id`,
-      [id],
-    );
-    return rows;
-  }
+  const guardada = (id: number) => suscripcionGuardada(entorno.bd, id);
+  const historial = (id: number) => historialDe(entorno.bd, id);
 
   async function cuantasDe(estudianteId: string): Promise<number> {
     const { rows } = await entorno.bd.query<{ n: number }>(
@@ -94,6 +68,8 @@ describe.skipIf(!urlBase)('suscripción pendiente con PostgreSQL (HU-43.1, CU-12
       planId,
       tienda: 'google_play',
       idCompraTienda: null,
+      inicio: null,
+      periodoFin: null,
       creadoEn: entorno.ahora(),
       pruebas: null,
     });

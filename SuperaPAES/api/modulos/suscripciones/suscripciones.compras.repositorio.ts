@@ -46,7 +46,7 @@ const PLAN_EN_TIENDA = `
     JOIN contenido.canal_venta c ON c.id = pt.canal_venta_id
    WHERE pl.id = $1 AND c.codigo = $2 AND pl.activo`;
 
-const SUSCRIPCION = `
+export const SUSCRIPCION = `
   SELECT s.id::text AS id, s.estudiante_id::text AS "estudianteId", e.codigo AS estado,
          s.plan_id AS "planId", c.codigo AS tienda, pt.id_producto AS "idProducto",
          s.id_compra_tienda AS "idCompraTienda", s.periodo_fin AS "periodoFin",

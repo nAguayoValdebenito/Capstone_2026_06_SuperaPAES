@@ -8,6 +8,11 @@ import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
 import { crearComprasServicio, type ComprasServicio } from './suscripciones.compras.servicio.js';
+import { crearValidacionRepositorio } from './suscripciones.validacion.repositorio.js';
+import {
+  crearValidacionServicio,
+  type ValidacionServicio,
+} from './suscripciones.validacion.servicio.js';
 import {
   crearSuscripcionesRepositorio,
   type SuscripcionesRepositorio,
@@ -29,7 +34,7 @@ const NOMBRE_TIENDA: Record<Tienda, string> = {
   app_store: 'la App Store',
 };
 
-export interface SuscripcionesServicio extends ComprasServicio {
+export interface SuscripcionesServicio extends ComprasServicio, ValidacionServicio {
   /**
    * Verifica y procesa un aviso de una tienda (RN-17): se registra una sola vez en
    * app.evento_pasarela y cada cambio de estado o de plan queda en app.suscripcion_evento, con el
@@ -53,13 +58,18 @@ export function crearSuscripcionesServicio(
   dependencias: DependenciasSuscripcionesServicio,
 ): SuscripcionesServicio {
   const repositorio = dependencias.repositorio ?? crearSuscripcionesRepositorio(dependencias.bd);
-  const compras = crearComprasServicio({
-    unidadDeTrabajo: dependencias.unidadDeTrabajo,
-    reloj: dependencias.reloj,
-    repositorio: crearComprasRepositorio(dependencias.bd),
+  const comprasRepositorio = crearComprasRepositorio(dependencias.bd);
+  const base = { unidadDeTrabajo: dependencias.unidadDeTrabajo, reloj: dependencias.reloj };
+  const compras = crearComprasServicio({ ...base, repositorio: comprasRepositorio });
+  const validacion = crearValidacionServicio({
+    ...base,
+    pagos: dependencias.pagos,
+    compras: comprasRepositorio,
+    validacion: crearValidacionRepositorio(dependencias.bd),
   });
   return {
     ...compras,
+    ...validacion,
     recibirAviso: (tienda) =>
       Promise.reject(
         new ErrorNoImplementado(`El procesamiento de avisos de ${NOMBRE_TIENDA[tienda]}`),
