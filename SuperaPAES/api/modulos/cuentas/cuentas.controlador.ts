@@ -34,7 +34,7 @@ type ControladorVerificacion = Pick<
 /** Perfil del estudiante (HU-29.1). */
 type ControladorPerfil = Pick<
   CuentasControlador,
-  'obtenerPerfil' | 'guardarPerfil' | 'confirmarCurso'
+  'obtenerPerfil' | 'estadoDeLaCuenta' | 'guardarPerfil' | 'confirmarCurso'
 >;
 
 /** Cinco minutos: una versión nueva de los términos tarda a lo más eso en verse (RN-30). */
@@ -58,6 +58,7 @@ export interface CuentasControlador {
   buscarEstudiantes: RequestHandler;
   confirmarCorreo: RequestHandler;
   obtenerPerfil: RequestHandler;
+  estadoDeLaCuenta: RequestHandler;
   guardarPerfil: ConCuerpo<DatosPerfil>;
   confirmarCurso: ConCuerpo<DatosCurso>;
 }
@@ -128,6 +129,9 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
 
 function crearControladorPerfil(servicio: CuentasServicio): ControladorPerfil {
   return {
+    estadoDeLaCuenta: async (req, res) => {
+      responder(res, await servicio.estadoDeLaCuenta(estudianteDe(req)));
+    },
     obtenerPerfil: async (req, res) => {
       responder(res, await servicio.obtenerPerfil(estudianteDe(req)));
     },

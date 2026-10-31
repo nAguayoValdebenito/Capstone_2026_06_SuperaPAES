@@ -66,6 +66,7 @@ describe.skipIf(!urlBase)('correo SMTP de cuentas con PostgreSQL', () => {
         usuario: undefined,
         clave: undefined,
         remitente: 'no-responder@ejemplo.cl',
+        remitenteNombre: 'Supera PAES',
         timeoutMs: 2_000,
       }),
     );
@@ -143,6 +144,7 @@ describe.skipIf(!urlBase)('correo SMTP de cuentas con PostgreSQL', () => {
         usuario: undefined,
         clave: undefined,
         remitente: 'no-responder@ejemplo.cl',
+        remitenteNombre: 'Supera PAES',
         timeoutMs: 150,
       }),
     );

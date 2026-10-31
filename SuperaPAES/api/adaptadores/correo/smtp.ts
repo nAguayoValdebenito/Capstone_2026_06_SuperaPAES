@@ -19,7 +19,8 @@ export class ProveedorCorreoSmtp implements ProveedorCorreo {
   constructor(private readonly opciones: OpcionesSmtp) {}
 
   async enviar(mensaje: MensajeCorreo): Promise<void> {
-    const { host, puerto, tls, usuario, clave, remitente, timeoutMs } = this.opciones;
+    const { host, puerto, tls, usuario, clave, remitente, remitenteNombre, timeoutMs } =
+      this.opciones;
     const transporte = nodemailer.createTransport({
       host,
       port: puerto,
@@ -35,7 +36,7 @@ export class ProveedorCorreoSmtp implements ProveedorCorreo {
 
     try {
       await transporte.sendMail({
-        from: { name: 'Supera PAES', address: remitente },
+        from: { name: remitenteNombre, address: remitente },
         to: mensaje.para,
         subject: mensaje.asunto,
         text: mensaje.texto,

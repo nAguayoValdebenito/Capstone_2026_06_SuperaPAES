@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:supera_paes/datos/modelos/practica_modelo.dart';
+import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
 
@@ -65,4 +66,14 @@ class FuentePracticaRemota {
       sinData: _sinResumen,
     ),
   );
+
+  Future<ConsultaEvaluacionAbierta> evaluacionAbierta() async =>
+      PracticaModelo.evaluacionAbierta(
+        await pedirObjeto(
+          _dio,
+          'GET',
+          '/evaluaciones/abierta',
+          sinData: 'La API respondió sin la evaluación abierta.',
+        ),
+      );
 }

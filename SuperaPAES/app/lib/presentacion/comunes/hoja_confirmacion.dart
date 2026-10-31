@@ -3,25 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 
-/// Abre la hoja que sube desde abajo (A18, A41) sobre la barra inferior y
-/// devuelve `true` si el estudiante confirma; cerrarla o «cancelar» es
-/// `false`.
-Future<bool> confirmarEnHoja(BuildContext context, Widget hoja) async {
-  final confirmo = await showModalBottomSheet<bool>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: TemaSuperaPaes.superficie,
-    barrierColor: TemaSuperaPaes.texto.withValues(alpha: 0.5),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(TemaSuperaPaes.radioHoja),
+/// Abre la hoja que sube desde abajo (A18, A29, A41) sobre la barra
+/// inferior y devuelve lo que la hoja entregue al cerrarse; `null` si se
+/// cierra sin elegir.
+Future<T?> mostrarHoja<T>(BuildContext context, Widget hoja) =>
+    showModalBottomSheet<T>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: TemaSuperaPaes.superficie,
+      barrierColor: TemaSuperaPaes.texto.withValues(alpha: 0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(TemaSuperaPaes.radioHoja),
+        ),
       ),
-    ),
-    builder: (contexto) => hoja,
-  );
-  return confirmo ?? false;
-}
+      builder: (contexto) => hoja,
+    );
+
+/// Como [mostrarHoja]: `true` si el estudiante confirma; cerrarla o
+/// «cancelar» es `false`.
+Future<bool> confirmarEnHoja(BuildContext context, Widget hoja) async =>
+    await mostrarHoja<bool>(context, hoja) ?? false;
 
 /// Hoja con un título, su contenido, el botón que confirma y el que vuelve
 /// atrás.
@@ -41,8 +44,9 @@ class HojaConfirmacion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Con letra grande, la hoja se desplaza en vez de cortarse (RNF-12).
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           TemaSuperaPaes.margenPantalla,
           24,

@@ -173,7 +173,7 @@ describe.skipIf(!urlBase)('responder una pregunta con PostgreSQL (CP-20)', () =>
     expect((await r.itemGuardado(pregunta.itemId))?.alternativaId).toBeNull();
   });
 
-  it('un ítem de una evaluación que no es práctica da 404 por ahora', async () => {
+  it('un ítem con tiempo guarda la respuesta sin corregir ni descontar cupo (HU-40.1)', async () => {
     const { id, token } = await base.sesion();
     const diagnostico = await base.crearEvaluacionAbierta('diagnostico', id, base.pruebaId);
     const { rows } = await entorno.bd.query<{ id: string }>(
@@ -186,8 +186,11 @@ describe.skipIf(!urlBase)('responder una pregunta con PostgreSQL (CP-20)', () =>
 
     const respuesta = await r.responderCon(token, pregunta);
 
-    expect(respuesta.status).toBe(404);
-    expect(respuesta.body.error.codigo).toBe('ITEM_NO_ENCONTRADO');
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.data).not.toHaveProperty('esCorrecta');
+    expect(respuesta.body.data).not.toHaveProperty('alternativaCorrectaId');
+    expect((await r.itemGuardado(pregunta.itemId))?.esCorrecta).toBeNull();
+    expect((await r.itemGuardado(pregunta.itemId))?.consumo).toBeNull();
   });
 
   it('sin sesión o con la sesión de la consola, la ruta responde NO_AUTENTICADO', async () => {

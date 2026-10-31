@@ -4,6 +4,7 @@
 // Por ejemplo, evaluaciones pide aquí descontar el cupo (RN-01) dentro de su propia transacción, y
 // cuentas pide subir el cupo del día cuando un estudiante verifica su correo.
 import { ErrorNoImplementado } from '../../comun/errores.js';
+import { crearUsosGratis, type UsosGratis } from './cupo-invitaciones.usos.servicio.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
@@ -17,6 +18,13 @@ import {
   type CuentaParaInicio,
   type InicioCupo,
 } from './cupo-invitaciones.inicio.servicio.js';
+import { crearBonoRepositorio } from './cupo-invitaciones.bono.repositorio.js';
+import { crearBonoInvitacion, type BonoInvitacion } from './cupo-invitaciones.bono.servicio.js';
+import {
+  crearInvitaciones,
+  type CuentaParaInvitar,
+  type Invitaciones,
+} from './cupo-invitaciones.invitaciones.servicio.js';
 import {
   crearCupoInvitacionesRepositorio,
   type CupoInvitacionesRepositorio,
@@ -32,15 +40,21 @@ export interface DependenciasCupoInvitacionesServicio {
   administracion: AdministracionServicio;
   /** RN-04: si una suscripción cubre la prueba, responder no descuenta cupo (módulo suscripciones). */
   suscripciones: CoberturaSuscripcion;
-  /** HU-35.1: el correo verificado y la racha del inicio, que son de la cuenta (módulo cuentas). */
-  cuentas: CuentaParaInicio;
+  /**
+   * HU-35.1: el correo verificado y la racha del inicio; HU-46.1: el código de invitación. Son de la
+   * cuenta (módulo cuentas).
+   */
+  cuentas: CuentaParaInicio & CuentaParaInvitar;
+  /** Dirección pública de la consola: el link de invitación lleva a su página /invitar (RN-33). */
+  urlConsola: string;
   /** Hora de Chile que define el día del cupo que muestra el inicio (RN-02). */
   reloj: Reloj;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearCupoInvitacionesRepositorio(bd). */
   repositorio?: CupoInvitacionesRepositorio;
 }
 
-export interface CupoInvitacionesServicio extends CupoDiario, InicioCupo {
+export interface CupoInvitacionesServicio
+  extends CupoDiario, InicioCupo, Invitaciones, BonoInvitacion, UsosGratis {
   /** Registra el código de quien invitó al estudiante (RN-03). */
   registrarCodigoInvitacion(estudianteId: string, codigo: string): Promise<void>;
   /**
@@ -62,7 +76,9 @@ export function crearCupoInvitacionesServicio(
   dependencias: DependenciasCupoInvitacionesServicio,
 ): CupoInvitacionesServicio {
   const repositorio = dependencias.repositorio ?? crearCupoInvitacionesRepositorio(dependencias.bd);
+  const bono = crearBonoRepositorio(dependencias.bd);
   return {
+    ...crearUsosGratis(dependencias.suscripciones),
     // Esqueleto: se implementa con su historia de usuario.
     registrarCodigoInvitacion: () =>
       Promise.reject(new ErrorNoImplementado('El registro de códigos de invitación')),
@@ -81,6 +97,19 @@ export function crearCupoInvitacionesServicio(
       administracion: dependencias.administracion,
       cuentas: dependencias.cuentas,
       reloj: dependencias.reloj,
+    }),
+    ...crearInvitaciones({
+      repositorio,
+      bono,
+      administracion: dependencias.administracion,
+      cuentas: dependencias.cuentas,
+      urlConsola: dependencias.urlConsola,
+      reloj: dependencias.reloj,
+    }),
+    ...crearBonoInvitacion({
+      repositorio: bono,
+      administracion: dependencias.administracion,
+      cuentas: dependencias.cuentas,
     }),
   };
 }

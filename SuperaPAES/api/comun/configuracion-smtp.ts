@@ -8,6 +8,7 @@ export interface VariablesSmtp {
   SMTP_USUARIO?: string | undefined;
   SMTP_CLAVE?: string | undefined;
   CORREO_REMITENTE?: string | undefined;
+  CORREO_REMITENTE_NOMBRE?: string | undefined;
   SMTP_TIMEOUT_MS?: number | undefined;
 }
 
@@ -21,8 +22,13 @@ export type ConfiguracionCorreo =
       usuario: string | undefined;
       clave: string | undefined;
       remitente: string;
+      /** Nombre visible del From (DAS 2.5), aparte de la dirección. */
+      remitenteNombre: string;
       timeoutMs: number;
     };
+
+/** Nombre visible de los correos cuando CORREO_REMITENTE_NOMBRE no se define (DAS 2.5). */
+export const NOMBRE_REMITENTE_POR_DEFECTO = 'Supera PAES';
 
 type ProblemaSmtp = [keyof VariablesSmtp, string];
 
@@ -73,6 +79,7 @@ export function leerConfiguracionCorreo(v: VariablesSmtp): ConfiguracionCorreo {
     usuario: v.SMTP_USUARIO,
     clave: v.SMTP_CLAVE,
     remitente: v.CORREO_REMITENTE ?? '',
+    remitenteNombre: v.CORREO_REMITENTE_NOMBRE ?? NOMBRE_REMITENTE_POR_DEFECTO,
     timeoutMs: v.SMTP_TIMEOUT_MS ?? 10_000,
   };
 }

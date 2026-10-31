@@ -68,8 +68,8 @@ export const FabricaProveedores = {
         };
       case 'tiendas':
         return {
-          google_play: new PasarelaGooglePlay(config.googlePlay),
-          app_store: new PasarelaAppStore(config.appStore),
+          google_play: new PasarelaGooglePlay(config.googlePlay, { reloj }),
+          app_store: new PasarelaAppStore(config.appStore, { reloj }),
         };
     }
   },

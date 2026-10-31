@@ -2,6 +2,7 @@
 // base al cerrar (calcular_resultado); la revisión sale de v_revision_evaluacion, con la versión de cada
 // pregunta que vio el estudiante.
 import type { Ejecutor } from '../../db/transaccion.js';
+import { crearCierreRepositorio } from './evaluaciones.cierre.repositorio.js';
 import {
   RESULTADO_POR_EJE_Y_HABILIDAD,
   type ResultadoDeGrupo,
@@ -118,11 +119,17 @@ const consultasResultado = {
          FROM app.evaluacion WHERE id=$1 AND estudiante_id=$2 FOR UPDATE`,
       [id, estudianteId],
     );
-    return rows[0] ?? null;
+    const fila = rows[0];
+    if (!fila) return null;
+    const tiempo = await tx.query<{ vencida: boolean }>(
+      'SELECT COALESCE(vence_en<=clock_timestamp(),false) AS vencida FROM app.evaluacion WHERE id=$1',
+      [id],
+    );
+    return { ...fila, vencida: tiempo.rows[0]!.vencida };
   },
   /** RN-21: la base la cierra con su hora de término y la corrige. */
   async cerrarPorTiempo(id: string, tx: Ejecutor): Promise<void> {
-    await tx.query("SELECT app.cerrar_evaluacion($1, 'tiempo_agotado')", [id]);
+    await crearCierreRepositorio().cerrar(id, 'tiempo_agotado', tx);
   },
   async leerResultado(
     id: string,

@@ -1,10 +1,16 @@
+import type { ReactElement } from 'react';
 import { renderToString } from 'react-dom/server';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { Paginacion } from '../../componentes/Paginacion';
+import { CUATRO_ALTERNATIVAS } from '../../pruebas/temario';
 import type { OpcionesFiltrosBanco, PreguntaDelBanco } from '../../tipos';
 import { FiltrosBanco } from './FiltrosBanco';
 import { ResultadoBanco } from './PaginaBanco';
 import { TablaBanco } from './TablaBanco';
+
+/** La tabla abre cada pregunta con un enlace: necesita un router. */
+const dibujar = (elemento: ReactElement) => renderToString(<MemoryRouter>{elemento}</MemoryRouter>);
 
 const pregunta = (cambios: Partial<PreguntaDelBanco> = {}): PreguntaDelBanco => ({
   id: 7,
@@ -27,6 +33,7 @@ const OPCIONES: OpcionesFiltrosBanco = {
       id: 2,
       codigo: 'M1',
       nombre: 'Matemática 1',
+      ...CUATRO_ALTERNATIVAS,
       ejes: [{ id: 11, nombre: 'Álgebra', contenidos: [{ id: 110, nombre: 'Ecuaciones' }] }],
       habilidades: [{ id: 30, nombre: 'Modelar' }],
     },
@@ -43,7 +50,7 @@ const nada = () => undefined;
 
 describe('tabla del banco (C02, HU-11 esc. 2)', () => {
   it('muestra el estado de cada pregunta, su ubicación en el temario, el origen y la dificultad', () => {
-    const html = renderToString(
+    const html = dibujar(
       <TablaBanco
         preguntas={[
           pregunta(),
@@ -69,14 +76,30 @@ describe('tabla del banco (C02, HU-11 esc. 2)', () => {
     expect(html).not.toContain('Posiblemente confusa');
   });
 
+  it('cada fila abre su pregunta en C03: «Editar» en borrador u observada, «Ver» en las demás (RF-G09)', () => {
+    const html = dibujar(
+      <TablaBanco
+        preguntas={[
+          pregunta({ id: 7, estado: { codigo: 'borrador', nombre: 'Borrador' } }),
+          pregunta({ id: 8, estado: { codigo: 'observada', nombre: 'Observada' } }),
+          pregunta({ id: 9, estado: { codigo: 'publicada', nombre: 'Publicada' } }),
+        ]}
+      />,
+    );
+
+    expect(html).toMatch(/href="\/banco\/7"[^>]*>Editar<\/a>/);
+    expect(html).toMatch(/href="\/banco\/8"[^>]*>Editar<\/a>/);
+    expect(html).toMatch(/href="\/banco\/9"[^>]*>Ver<\/a>/);
+  });
+
   it('marca las preguntas posiblemente confusas (C02)', () => {
-    const html = renderToString(<TablaBanco preguntas={[pregunta({ posibleAmbigua: true })]} />);
+    const html = dibujar(<TablaBanco preguntas={[pregunta({ posibleAmbigua: true })]} />);
 
     expect(html).toContain('etiqueta--confusa">Posiblemente confusa<');
   });
 
   it('sin preguntas avisa que no hay resultados para el filtro', () => {
-    expect(renderToString(<TablaBanco preguntas={[]} />)).toContain(
+    expect(dibujar(<TablaBanco preguntas={[]} />)).toContain(
       'No hay preguntas que cumplan el filtro.',
     );
   });
@@ -84,15 +107,13 @@ describe('tabla del banco (C02, HU-11 esc. 2)', () => {
 
 describe('estados de la página del banco', () => {
   it('mientras carga lo avisa', () => {
-    const html = renderToString(
-      <ResultadoBanco carga={{ tipo: 'cargando' }} alCambiarPagina={nada} />,
-    );
+    const html = dibujar(<ResultadoBanco carga={{ tipo: 'cargando' }} alCambiarPagina={nada} />);
 
     expect(html).toContain('Cargando preguntas');
   });
 
   it('si la API falla muestra su mensaje en español, con el código', () => {
-    const html = renderToString(
+    const html = dibujar(
       <ResultadoBanco
         carga={{
           tipo: 'fallida',
@@ -109,7 +130,7 @@ describe('estados de la página del banco', () => {
   });
 
   it('sin resultados no muestra la paginación', () => {
-    const html = renderToString(
+    const html = dibujar(
       <ResultadoBanco
         carga={{
           tipo: 'lista',
@@ -124,7 +145,7 @@ describe('estados de la página del banco', () => {
   });
 
   it('con preguntas muestra la tabla y la paginación', () => {
-    const html = renderToString(
+    const html = dibujar(
       <ResultadoBanco
         carga={{
           tipo: 'lista',
@@ -141,7 +162,7 @@ describe('estados de la página del banco', () => {
 
 describe('filtros del banco (C02, HU-11 esc. 1)', () => {
   it('ofrece prueba, eje, contenido, habilidad, estado, origen y dificultad; los del temario esperan a la prueba', () => {
-    const html = renderToString(
+    const html = dibujar(
       <FiltrosBanco opciones={OPCIONES} filtros={{}} alCambiar={nada} alLimpiar={nada} />,
     );
 
@@ -162,7 +183,7 @@ describe('filtros del banco (C02, HU-11 esc. 1)', () => {
   });
 
   it('con prueba y eje elegidos, se pueden elegir sus contenidos', () => {
-    const html = renderToString(
+    const html = dibujar(
       <FiltrosBanco
         opciones={OPCIONES}
         filtros={{ prueba: 2, eje: 11 }}
@@ -179,7 +200,7 @@ describe('filtros del banco (C02, HU-11 esc. 1)', () => {
 
 describe('paginación (HU-11 esc. 3)', () => {
   it('en la primera página no hay anterior; muestra el tramo y el total', () => {
-    const html = renderToString(
+    const html = dibujar(
       <Paginacion
         paginacion={{ pagina: 1, porPagina: 20, total: 45 }}
         totalPaginas={3}
@@ -194,7 +215,7 @@ describe('paginación (HU-11 esc. 3)', () => {
   });
 
   it('en la última página no hay siguiente', () => {
-    const html = renderToString(
+    const html = dibujar(
       <Paginacion
         paginacion={{ pagina: 3, porPagina: 20, total: 45 }}
         totalPaginas={3}

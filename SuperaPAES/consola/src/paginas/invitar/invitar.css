@@ -1,0 +1,182 @@
+/* W01 y W02 · Página de invitación: página pública que se abre en el teléfono o en el computador.
+   Sigue el boceto de Figma (prototipo v3) y el sistema de diseño de la app (DAS 7.5), como A05, por
+   eso tiene sus propios estilos y no los de la consola de escritorio. */
+
+.invitar {
+  /* Colores del sistema de diseño que la consola no define. */
+  --i-primario-suave: #e8eefd;
+  --i-texto-secundario: #4b5563;
+  --i-borde: #dde3ec;
+  --i-borde-input: #c9d2df;
+  --i-error-suave: #fdecec;
+  --i-error-texto: #7f1d1d;
+
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  width: min(28rem, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 1.5rem;
+  color: var(--texto);
+}
+
+.invitar__marca {
+  margin: 0;
+  color: var(--primario);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.invitar h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.invitar__bajada,
+.invitar__pie {
+  margin: 0;
+  color: var(--i-texto-secundario);
+}
+
+.invitar__bajada {
+  margin-top: -0.5rem;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.invitar__pie {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.invitar__tarjeta {
+  margin: 0;
+  padding: 1.25rem;
+  background: var(--superficie);
+  border: 1px solid var(--i-borde);
+  border-radius: 1rem;
+}
+
+.invitar__codigo {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.invitar__codigo h2 {
+  margin: 0;
+  color: var(--i-texto-secundario);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.invitar__valor {
+  margin: 0;
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  /* Un código largo no se sale de la tarjeta con letra grande. */
+  overflow-wrap: anywhere;
+}
+
+.invitar__copiar {
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--i-borde-input);
+  border-radius: 0.75rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.invitar__copiar:focus-visible,
+.invitar__tienda:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.invitar__estado {
+  min-height: 1.25rem;
+  margin: 0;
+  color: var(--i-texto-secundario);
+  font-size: 0.8125rem;
+}
+
+.invitar__aviso {
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  background: var(--i-error-suave);
+  color: var(--i-error-texto);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.invitar__pasos {
+  display: grid;
+  gap: 0.875rem;
+  list-style: none;
+  counter-reset: paso;
+}
+
+.invitar__pasos li {
+  display: flex;
+  gap: 0.875rem;
+  align-items: center;
+  line-height: 1.4;
+  counter-increment: paso;
+}
+
+.invitar__pasos li::before {
+  content: counter(paso);
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: var(--i-primario-suave);
+  color: var(--primario);
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.invitar__tienda {
+  display: flex;
+  gap: 0.875rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--texto);
+  color: #ffffff;
+  border-radius: 0.875rem;
+  text-decoration: none;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.invitar__tienda span {
+  display: grid;
+  line-height: 1.15;
+}
+
+.invitar__tienda small {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.invitar__tienda--pronto {
+  background: var(--i-primario-suave);
+  color: var(--i-texto-secundario);
+}

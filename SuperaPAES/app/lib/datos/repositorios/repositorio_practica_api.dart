@@ -1,4 +1,5 @@
 import 'package:supera_paes/datos/fuentes/fuente_practica_remota.dart';
+import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_practica.dart';
 
@@ -25,4 +26,8 @@ class RepositorioPracticaApi implements RepositorioPractica {
 
   @override
   Future<ResumenPractica> cerrar(int id) => _fuente.cerrar(id);
+
+  @override
+  Future<ConsultaEvaluacionAbierta> evaluacionAbierta() =>
+      _fuente.evaluacionAbierta();
 }

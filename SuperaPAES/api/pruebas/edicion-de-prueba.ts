@@ -9,9 +9,25 @@ import { crearPreguntasServicio } from '../modulos/preguntas/index.js';
 import type { PreguntasRepositorio } from '../modulos/preguntas/preguntas.repositorio.js';
 import type { DatosPregunta } from '../modulos/preguntas/preguntas.validadores.js';
 import type { PruebaTemario } from '../modulos/temario/index.js';
-import { crearAppDePrueba, temarioEnMemoria } from './ayudantes.js';
+import { crearAppDePrueba, temarioEnMemoria, tokenAdmin } from './ayudantes.js';
+import { textosEnMemoria } from './textos-de-prueba.js';
 
 export const RUTA_PREGUNTAS = '/api/v1/admin/preguntas';
+
+/** Sesión del administrador 5, autor de lo que se crea en estas pruebas. */
+export const comoAdmin = async () => ({
+  Authorization: `Bearer ${await tokenAdmin('admin', '5')}`,
+});
+
+interface CuerpoConProblemas {
+  error: { detalles: { ruta: string; mensaje: string }[] };
+}
+
+/** Problemas de validación de la respuesta, como «ruta: mensaje». */
+export const problemas = (respuesta: { body: unknown }) =>
+  (respuesta.body as CuerpoConProblemas).error.detalles.map(
+    ({ ruta, mensaje }) => `${ruta}: ${mensaje}`,
+  );
 
 const SELECCION = { codigo: 'seleccion_multiple', nombre: 'Selección múltiple' };
 const SUFICIENCIA = { codigo: 'suficiencia_datos', nombre: 'Suficiencia de datos' };
@@ -151,9 +167,10 @@ const LISTAS: PreguntasRepositorio = {
     ]),
 };
 
-/** App con el servicio de preguntas real sobre el temario y el repositorio en memoria. */
+/** App con el servicio de preguntas real sobre el temario y los repositorios en memoria. */
 export function escenarioEdicion() {
   const { repositorio, ponerEtapa } = repositorioEnMemoria();
+  const textos = textosEnMemoria();
   const auditoria = { registrarAuditoria: vi.fn(() => Promise.resolve()) };
   const temario = temarioEnMemoria(TEMARIO);
   const preguntas = crearPreguntasServicio({
@@ -165,7 +182,8 @@ export function escenarioEdicion() {
     administracion: auditoria,
     repositorio: LISTAS,
     repositorioEdicion: repositorio,
+    repositorioTextos: textos.repositorio,
   });
   const app = crearAppDePrueba({}, { preguntas, temario });
-  return { app, repositorio, auditoria, ponerEtapa };
+  return { app, repositorio, auditoria, ponerEtapa, textos };
 }

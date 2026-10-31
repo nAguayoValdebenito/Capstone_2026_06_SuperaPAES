@@ -3,16 +3,12 @@ import request from 'supertest';
 import type { Express } from 'express';
 import { expect, vi } from 'vitest';
 import { crearApp, crearServicios } from '../app.js';
-import {
-  cuerpoPregunta,
-  filtrosBanco,
-  paginaBanco,
-  preguntaParaEditar,
-} from './escenario-ids-preguntas.js';
+import { cuerpoDePreguntas, preguntasDePrueba } from './escenario-ids-preguntas.js';
 import {
   cuerpoPuntajes,
   privacidadDePrueba,
   serviciosEvaluacionesEstudiante,
+  suscripcionesDePrueba,
   serviciosPuntajes,
 } from './escenario-ids-estudiante.js';
 import {
@@ -166,14 +162,7 @@ export function escenario() {
     resumenPractica: vi.fn(() => Promise.resolve(resumenPractica)),
     ...serviciosEvaluacionesEstudiante(),
   };
-  const preguntas = {
-    ...servicios.preguntas,
-    listarBanco: vi.fn(() => Promise.resolve(paginaBanco)),
-    filtrosDelBanco: vi.fn(() => Promise.resolve(filtrosBanco)),
-    crearPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
-    obtenerPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
-    editarPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
-  };
+  const preguntas = preguntasDePrueba(servicios.preguntas);
   const app = crearApp(dependencias, {
     ...servicios,
     cuentas,
@@ -182,6 +171,7 @@ export function escenario() {
     preguntas,
     evaluaciones,
     privacidad: privacidadDePrueba,
+    suscripciones: { ...servicios.suscripciones, ...suscripcionesDePrueba },
   });
   return { app, cuentas, administracion, evaluaciones };
 }
@@ -201,6 +191,7 @@ function valoresDeCampo(valor: unknown, ruta: string): unknown[] {
 }
 
 function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
+  if (ruta.endsWith('/mini-ensayos')) return { pruebaId: 2 };
   if (ruta.endsWith('/registro'))
     return {
       nombre: 'Ana',
@@ -225,8 +216,7 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
   if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };
-  if (/^(POST|PUT) .*\/preguntas\/(:id)?$/.test(ruta)) return cuerpoPregunta;
-  return cuerpoPerfil(ruta);
+  return cuerpoDePreguntas(ruta) ?? cuerpoPerfil(ruta);
 }
 
 /** Perfil del estudiante (HU-29.1) y puntajes PAES (HU-41.1). */
@@ -258,6 +248,7 @@ const CON_SESION_APP = [
   '/app/cuentas/perfil',
   '/app/cuentas/puntajes',
   '/app/privacidad/',
+  '/app/suscripciones/',
 ];
 
 async function sesionPara(ruta: string): Promise<Record<string, string>> {

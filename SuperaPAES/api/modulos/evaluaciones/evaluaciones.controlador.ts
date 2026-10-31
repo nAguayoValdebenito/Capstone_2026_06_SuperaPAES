@@ -7,6 +7,9 @@ import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones.validadores.js';
 
 export interface EvaluacionesControlador {
+  iniciarMiniEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  iniciarDiagnostico: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  disponibilidadDiagnostico: RequestHandler;
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
   siguientePregunta: RequestHandler;
   cerrarPractica: RequestHandler;
@@ -15,6 +18,8 @@ export interface EvaluacionesControlador {
   obtenerRevision: RequestHandler;
   responderPregunta: RequestHandler<Record<string, string>, unknown, DatosRespuestaPregunta>;
   obtenerProgreso: RequestHandler;
+  evaluacionAbierta: RequestHandler;
+  entregarEvaluacion: RequestHandler;
 }
 
 function estudianteDe(req: Request): string {
@@ -22,10 +27,37 @@ function estudianteDe(req: Request): string {
   return req.estudiante.id;
 }
 
+function controladoresDiagnostico(servicio: EvaluacionesServicio) {
+  const iniciarDiagnostico: EvaluacionesControlador['iniciarDiagnostico'] = async (req, res) => {
+    responder(res, await servicio.iniciarDiagnostico(estudianteDe(req), req.body.pruebaId), {
+      estado: 201,
+    });
+  };
+  const disponibilidadDiagnostico: EvaluacionesControlador['disponibilidadDiagnostico'] = async (
+    req,
+    res,
+  ) => {
+    responder(
+      res,
+      await servicio.disponibilidadDiagnostico(estudianteDe(req), Number(req.query.pruebaId)),
+    );
+  };
+  return { iniciarDiagnostico, disponibilidadDiagnostico };
+}
+
 export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
   return {
+    ...controladoresDiagnostico(servicio),
+    entregarEvaluacion: async (req, res) => {
+      responder(res, await servicio.entregarEvaluacion(estudianteDe(req), String(req.params.id)));
+    },
+    iniciarMiniEnsayo: async (req, res) => {
+      responder(res, await servicio.iniciarMiniEnsayo(estudianteDe(req), req.body.pruebaId), {
+        estado: 201,
+      });
+    },
     iniciarPractica: async (req, res) => {
       responder(res, await servicio.iniciarPractica(estudianteDe(req), req.body), { estado: 201 });
     },
@@ -54,6 +86,9 @@ export function crearEvaluacionesControlador(
     },
     obtenerProgreso: async (req, res) => {
       responder(res, await servicio.obtenerProgreso(estudianteDe(req)));
+    },
+    evaluacionAbierta: async (req, res) => {
+      responder(res, await servicio.evaluacionAbierta(estudianteDe(req)));
     },
   };
 }

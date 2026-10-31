@@ -58,7 +58,11 @@ export interface BaseTemporal {
   cerrar(): Promise<void>;
 }
 
-export async function crearBaseTemporal(prefijo: string): Promise<BaseTemporal> {
+/** Base temporal migrada, o vacía con `{ migrar: false }` (por ejemplo, para restaurar un respaldo). */
+export async function crearBaseTemporal(
+  prefijo: string,
+  { migrar: migrarla = true }: { migrar?: boolean } = {},
+): Promise<BaseTemporal> {
   exigirNombreDePruebas(nombreDeLaBase(urlBase ?? ''));
   // Nombre generado aquí (solo letras, números y _): se puede escribir en el SQL. Termina en _test.
   const nombre = `supera_paes_${prefijo}_${Date.now()}${SUFIJO_PRUEBAS}`;
@@ -73,7 +77,7 @@ export async function crearBaseTemporal(prefijo: string): Promise<BaseTemporal> 
     return cliente;
   };
   const bd = await conectarOtra();
-  await migrar(bd, path.join(import.meta.dirname, '../db/migraciones'));
+  if (migrarla) await migrar(bd, path.join(import.meta.dirname, '../db/migraciones'));
   return {
     url: url.toString(),
     bd,

@@ -1,3 +1,4 @@
+import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/ids.dart';
@@ -144,6 +145,58 @@ abstract final class PracticaModelo {
       omitidas: json['omitidas'] as int,
       porcentaje: (json['porcentaje'] as num).toDouble(),
       tiempoUsadoSeg: json['tiempoUsadoSeg'] as int,
+    );
+  }
+
+  /// `data` de GET /evaluaciones/abierta (docs/contratos/HU-60.md).
+  static ConsultaEvaluacionAbierta evaluacionAbierta(
+    Map<String, dynamic> json,
+  ) {
+    final abierta = json['abierta'] as Map<String, dynamic>?;
+    final cerrada = json['cerrada'] as Map<String, dynamic>?;
+    return ConsultaEvaluacionAbierta(
+      abierta: abierta == null ? null : _abierta(abierta),
+      cerrada: cerrada == null
+          ? null
+          : EvaluacionRecienCerrada(
+              id: leerId(cerrada['id']),
+              tipoNombre:
+                  (cerrada['tipo'] as Map<String, dynamic>)['nombre'] as String,
+              porTiempo: cerrada['estado'] == 'tiempo_agotado',
+            ),
+    );
+  }
+
+  static EvaluacionAbierta _abierta(Map<String, dynamic> json) {
+    final tipo = json['tipo'] as Map<String, dynamic>;
+    final prueba = json['prueba'] as Map<String, dynamic>;
+    final alcance = json['alcance'] as Map<String, dynamic>;
+    final tipoAlcance = TipoAlcance.values.byName(alcance['tipo'] as String);
+    final dificultad = json['dificultad'] as Map<String, dynamic>;
+    return EvaluacionAbierta(
+      id: leerId(json['id']),
+      tipo: tipo['codigo'] as String,
+      tipoNombre: tipo['nombre'] as String,
+      pruebaId: leerId(prueba['id']),
+      prueba: nombreDePrueba(
+        prueba['codigo'] as String,
+        prueba['nombre'] as String,
+      ),
+      // Toda la prueba va sin nombre, como al iniciar: A17 ya nombra la prueba.
+      alcance: tipoAlcance == TipoAlcance.prueba
+          ? Alcance.todaLaPrueba
+          : Alcance(
+              tipoAlcance,
+              id: leerId(alcance['id']),
+              nombre: alcance['nombre'] as String,
+            ),
+      dificultadId: switch (dificultad['id']) {
+        null => null,
+        final id => leerId(id),
+      },
+      cantidad: json['cantidad'] as int,
+      respondidas: json['respondidas'] as int,
+      segundosRestantes: json['segundosRestantes'] as int?,
     );
   }
 }

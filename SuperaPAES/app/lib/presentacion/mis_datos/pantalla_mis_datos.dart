@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:supera_paes/dominio/entidades/documento_legal.dart';
+import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
 import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
 
-/// Mis datos y privacidad (A39; HU-07, HU-41 esc. 4, CU-14), desde Perfil:
-/// descargar los datos en un archivo y los puntajes PAES con su permiso.
-/// «Solicitudes sobre mis datos» (HU-09), «Borrar mi cuenta» (HU-08) y los
-/// términos aceptados se agregan con sus historias.
+/// Mis datos y privacidad (A39; HU-07, HU-08, HU-41 esc. 4, CU-14), desde
+/// Perfil: descargar los datos en un archivo, los puntajes PAES con su
+/// permiso, borrar la cuenta y las versiones aceptadas de los términos y de
+/// la privacidad (CU-14 paso 2). «Solicitudes sobre mis datos» (HU-09) se
+/// agrega con su historia.
 class PantallaMisDatos extends ConsumerStatefulWidget {
   const PantallaMisDatos({super.key});
 
@@ -20,40 +23,15 @@ class PantallaMisDatos extends ConsumerStatefulWidget {
   ConsumerState<PantallaMisDatos> createState() => _PantallaMisDatosState();
 }
 
-class _PantallaMisDatosState extends ConsumerState<PantallaMisDatos> {
-  bool _descargando = false;
-  String? _error;
-
+class _PantallaMisDatosState extends ConsumerState<PantallaMisDatos>
+    with DescargaDeMisDatos {
   static String _cargados(int cantidad) =>
       cantidad == 1 ? '1 puntaje cargado' : '$cantidad puntajes cargados';
-
-  /// Pide los datos y abre el menú Compartir con el archivo (CU-14 3.a).
-  Future<void> _descargar() async {
-    if (_descargando) return;
-    setState(() {
-      _descargando = true;
-      _error = null;
-    });
-    String? error;
-    try {
-      final archivo = await ref.read(repositorioMisDatosProvider).descargar();
-      await ref.read(compartirArchivoProvider)(archivo);
-    } on ErrorApi catch (fallo) {
-      error = fallo.mensaje;
-    } on Exception {
-      error = 'No se pudo abrir el menú para guardar el archivo.';
-    }
-    if (mounted) {
-      setState(() {
-        _descargando = false;
-        _error = error;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final puntajes = ref.watch(puntajesProvider).value;
+    final aceptados = ref.watch(estadoDeLaCuentaProvider).value;
     // «Permiso activo · 0 puntajes cargados», como en A39.
     final resumen = switch (puntajes) {
       null => 'Opcionales, con tu permiso.',
@@ -69,11 +47,11 @@ class _PantallaMisDatosState extends ConsumerState<PantallaMisDatos> {
           filas: [
             FilaNavegacion(
               texto: 'Descargar mis datos',
-              detalle: _descargando
+              detalle: descargando
                   ? 'Preparando tu archivo…'
                   : 'Tu cuenta, perfil, historial, respuestas, resultados y '
                         'puntajes en un archivo.',
-              onTap: _descargar,
+              onTap: descargar,
             ),
             FilaNavegacion(
               texto: 'Puntajes PAES',
@@ -82,9 +60,56 @@ class _PantallaMisDatosState extends ConsumerState<PantallaMisDatos> {
             ),
           ],
         ),
-        if (_error case final mensaje?)
+        if (error case final mensaje?)
           Aviso(tono: TonoAviso.error, texto: mensaje),
+        ListaDeFilas(
+          filas: [
+            FilaNavegacion(
+              texto: 'Borrar mi cuenta',
+              detalle: 'Esta acción no se puede deshacer.',
+              icono: Icons.delete_outline,
+              peligro: true,
+              onTap: () => context.push(Rutas.borrarCuenta),
+            ),
+          ],
+        ),
+        // Mientras carga, o si falla, no se muestra: no impide nada.
+        if (aceptados != null && aceptados.documentosAceptados.isNotEmpty)
+          Text(
+            terminosAceptados(aceptados.documentosAceptados),
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ),
       ],
     );
   }
+}
+
+/// «Aceptaste los Términos y condiciones 1.0 y la Política de privacidad 1.0
+/// el 21/10/2026.», como en A39. Si los aceptó en días distintos, cada uno
+/// lleva su fecha.
+String terminosAceptados(List<DocumentoAceptado> documentos) {
+  String nombre(DocumentoAceptado documento) => switch (documento.tipo) {
+    TipoDocumentoLegal.terminos => 'los Términos y condiciones',
+    TipoDocumentoLegal.privacidad => 'la Política de privacidad',
+  };
+  String fecha(DateTime dia) {
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return '${dos(dia.day)}/${dos(dia.month)}/${dia.year}';
+  }
+
+  final fechas = {for (final d in documentos) fecha(d.aceptadoEn)};
+  final mismaFecha = fechas.length == 1;
+  final partes = [
+    for (final d in documentos)
+      if (mismaFecha)
+        '${nombre(d)} ${d.version}'
+      else
+        '${nombre(d)} ${d.version} el ${fecha(d.aceptadoEn)}',
+  ];
+  final unidas = partes.join(' y ');
+  return mismaFecha
+      ? 'Aceptaste $unidas el ${fechas.single}.'
+      : 'Aceptaste $unidas.';
 }

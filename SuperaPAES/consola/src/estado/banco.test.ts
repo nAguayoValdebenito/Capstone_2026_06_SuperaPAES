@@ -11,18 +11,20 @@ import {
   totalDePaginas,
 } from './banco';
 
+import { CL, CUATRO_ALTERNATIVAS } from '../pruebas/temario';
 const PRUEBAS: PruebaTemario[] = [
   {
     id: 2,
     codigo: 'M1',
     nombre: 'Matemática 1',
+    ...CUATRO_ALTERNATIVAS,
     ejes: [
       { id: 10, nombre: 'Números', contenidos: [{ id: 100, nombre: 'Enteros' }] },
       { id: 11, nombre: 'Álgebra', contenidos: [{ id: 110, nombre: 'Ecuaciones' }] },
     ],
     habilidades: [{ id: 30, nombre: 'Modelar' }],
   },
-  { id: 1, codigo: 'CL', nombre: 'Competencia Lectora', ejes: [], habilidades: [] },
+  { ...CL, ejes: [], habilidades: [] },
 ];
 
 describe('filtros del banco (HU-11 esc. 1)', () => {

@@ -261,6 +261,7 @@ Nunca se suben valores reales al repositorio. Solo se versionan los archivos `.e
 | `DATABASE_URL_PRUEBAS` | Base aparte de las pruebas con PostgreSQL; su nombre debe terminar en `_test` |
 | `URL_CONSOLA` | Dirección pública de la consola, a la que enlazan los correos (su origen debe estar en `CORS_ORIGENES`) |
 | `CLAVE_CODIGO_CORREO` | Clave del HMAC del código de 6 dígitos del correo de verificación; distinta de los secretos JWT |
+| `CLAVE_TAREAS` | Opcional. Clave de la ruta de tareas periódicas (`POST /api/v1/tareas/periodicas`), que cada hora cierra las evaluaciones vencidas y las prácticas sin actividad. La misma va en el secreto `CLAVE_TAREAS` de GitHub, junto con `API_URL`; sin ella, la ruta no existe |
 | `CORS_ORIGENES` | Orígenes permitidos (la consola) |
 | `JWT_SECRETO_APP`, `JWT_SECRETO_CONSOLA` | Firmas separadas para las sesiones de la app y de la consola |
 | `PROVEEDOR_IA` | `simulado`, `deepseek` o `gemini` |
@@ -276,6 +277,7 @@ Nunca se suben valores reales al repositorio. Solo se versionan los archivos `.e
 | Variable | Para qué sirve |
 |---|---|
 | `VITE_API_URL` | Dirección de la API |
+| `VITE_ENLACE_GOOGLE_PLAY`, `VITE_ENLACE_APP_STORE` | Opcionales. Botones de la página de invitación (`/invitar/<código>`): durante la prueba cerrada, el enlace de inscripción de Google Play y el enlace público de TestFlight. Vacíos, la página dice «Pronto en» |
 
 ## Pruebas e integración continua
 

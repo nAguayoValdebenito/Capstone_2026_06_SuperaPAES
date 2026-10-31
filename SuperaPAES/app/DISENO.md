@@ -118,9 +118,12 @@ Entre los elementos de un formulario van 16 de separación; el diseño de refere
 | `Aviso(tono:, texto:, destacado:)` | Recuadro con ícono. Tonos de `TonoAviso`: `info`, `aviso`, `error`, `exito`, `neutro` y `primario`. Con `textoRico`, la negrita puede ir en medio (A09b). |
 | `Tarjeta(child:)`                  | Recuadro blanco con borde, radio 16 y relleno 16.              |
 | `BotonChico(texto:, onPressed:)`   | Botón de 40 dentro de un aviso o de una fila.                  |
+| `IconoEnCirculo(icono:, fondo:, color:)` | Ícono de 24 en un círculo de 48 sobre el título: el basurero de A42 y el reloj de A29. |
 | `BotonTexto(child:, onPressed:)`   | Botón de texto a lo ancho, como «Reenviar enlace».             |
 | `CargandoEnBoton()`                | Indicador dentro de un botón mientras se envía.                |
 | `PieConEnlace(pregunta:, enlace:, onPressed:)` | «¿No tienes cuenta? **Crea una**».                 |
+| `DatoResumen(valor:, texto:)`      | Número grande con su texto debajo, en un tercio de una `Row` («15 correctas» de A21 y A30). |
+| `AlternativaCorregidaVista(...)` y `ExplicacionCorreccion(...)` (en `correccion/partes_correccion.dart`) | Alternativa ya corregida y la tarjeta «Explicación» con «Por qué la B no es correcta» (A19 y A33). |
 | `HojaConfirmacion(titulo:, contenido:, confirmar:, cancelar:)` y `confirmarEnHoja(context, hoja)` (en `hoja_confirmacion.dart`) | Hoja que sube desde abajo con un botón que confirma y otro que vuelve (A18, A41); devuelve `true` si confirma. |
 | `ErrorConReintento(error:, mensaje:, alReintentar:)` (en `error_con_reintento.dart`) | Lo que no se pudo cargar, con «Reintentar» (Progreso, A41). |
 
@@ -145,8 +148,8 @@ No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las f
 | `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
 | `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`), «Sin verificar» (`aviso`), «Correcta» (`exito`) o «Tu respuesta» fallada (`error`). |
 | `IndicadorPasos(paso:, total:, opcional:, accion:)` | «Paso 2 de 3 · Opcional» con su barra y «Omitir». |
-| `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37).                |
-| `FilaNavegacion(texto:, onTap:, detalle:, icono:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. |
+| `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37). Una etiqueta larga baja de línea y ocupa a lo más la mitad. |
+| `FilaNavegacion(texto:, onTap:, detalle:, icono:, peligro:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. Con `peligro`, el título y el ícono van en rojo y sin círculo («Borrar mi cuenta» en A39). |
 
 Los botones grandes no necesitan estilo propio: `FilledButton` (principal) y `OutlinedButton`
 (contorno, como «Cerrar sesión») ya salen con 52 de alto, a lo ancho y con radio 14. Las casillas
@@ -192,7 +195,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A09b     | Paso 2, tope de tres áreas               | `32:1028` | `perfil_estudio/pantalla_paso_areas.dart` |
 | A10      | Perfil, paso 3: tus pruebas              | `33:643`  | `perfil_estudio/pantalla_paso_pruebas.dart` |
 | A11      | Confirmar el curso en marzo              | `33:730`  | `perfil_estudio/hoja_confirmar_curso.dart` |
-| A12      | Inicio                                   | `33:794`  | `inicio/` (ya sigue el boceto; sin «Práctica sin terminar», «Repasar errores» ni diagnóstico, que llegan con HU-60, HU-39 y HU-36) |
+| A12      | Inicio                                   | `33:794`  | `inicio/` (con «Práctica sin terminar» en `evaluacion_sin_terminar.dart`, con «Seguir» como `BotonChico`; sin «Repasar errores» ni diagnóstico, que llegan con HU-39 y HU-36) |
 | A13      | Personalizar la práctica                 | `33:883`  | `practicar/pantalla_personalizar_practica.dart` |
 | A14      | Elegir eje, contenido o habilidad        | `33:983`  | `practicar/pantalla_elegir_alcance.dart` |
 | A15      | Sin preguntas suficientes                | `33:1059` | `practicar/pantalla_sin_preguntas.dart` |
@@ -203,18 +206,30 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
 | A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43) |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
+| A29      | Retomar una evaluación                   | por anotar | `inicio/hoja_retomar_evaluacion.dart` (sin «Entregar ahora» hasta la HU-40.1; «Continuar» lleva a Evaluaciones hasta que el paso 27 conecte A27) |
+| A30      | Resultado de mini-ensayo                 | por anotar | `resultado/pantalla_resultado.dart` (sin «Ir al historial», que llega con HU-62) |
+| A32      | Resultado de ensayo completo             | por anotar | `resultado/pantalla_resultado.dart` (el puntaje con el año y el proceso de la tabla) |
+| A32b     | Ensayo sin tabla de conversión           | por anotar | `resultado/pantalla_resultado.dart` |
+| A33      | Revisión pregunta por pregunta           | por anotar | `resultado/pantalla_revision.dart` (alternativas y explicación de `correccion/partes_correccion.dart`) |
 | A35      | Progreso                                 | `35:1532` | `progreso/` (sin «Historial», que llega con HU-62) |
 | A36      | Progreso de una prueba sin respuestas    | `35:1664` | `progreso/pantalla_progreso.dart`      |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
-| A39      | Mis datos y privacidad                   | por anotar | `mis_datos/` (descarga y puntajes; sin «Solicitudes sobre mis datos», «Borrar mi cuenta» ni los términos aceptados, que llegan con HU-09 y HU-08) |
+| A38      | Invitar                                  | por anotar | `invitaciones/` (link, código, compartir, registrados, verificados y preguntas ganadas, y el saldo y el tope del mes con `FilaDato`) |
+| A39      | Mis datos y privacidad                   | por anotar | `mis_datos/` (descarga, puntajes y «Borrar mi cuenta»; sin «Solicitudes sobre mis datos» ni los términos aceptados, que llegan con HU-09) |
 | A41      | Puntajes PAES                            | `36:1574` | `puntajes/` (el interruptor del permiso abre una hoja con el permiso completo) |
+| A42      | Borrar mi cuenta                         | por anotar | `mis_datos/pantalla_borrar_cuenta.dart` |
+| A42b     | Borrar mi cuenta con una suscripción vigente | por anotar | `mis_datos/pantalla_borrar_cuenta.dart` (también ofrece descargar los datos, como pide CU-14 paso 4, y «Cancelar» es el mismo botón con borde de A42) |
 
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).
 Agrega su fila aquí cuando las construyas.
 
-## La A05 en la consola
+## La A05 y la página de invitación en la consola
 
 La A05 se abre desde el correo en el navegador del teléfono, así que sigue este mismo sistema y no
 el de la consola de escritorio. Sus estilos están en
 `consola/src/paginas/restablecer-contrasena/restablecer-contrasena.css` (clases `restablecer__…`,
 con los mismos valores de esta guía). No los mezcles con `global.css`.
+
+La página de invitación (W01 en el teléfono y W02 en el computador, `/invitar/<código>`) sigue el
+mismo criterio: `consola/src/paginas/invitar/invitar.css` (clases `invitar__…`), una sola columna
+centrada que sirve para los dos tamaños.

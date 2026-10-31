@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 /// Empezar la práctica desde A13 o desde el aviso de A15 (CU-06 paso 3).
 /// Si empieza, va a la pregunta; sin preguntas suficientes, abre A15 (o se
-/// queda en ella con el aviso nuevo); sin cupo, va a Cupo agotado (A22).
-/// Otro rechazo queda en [errorEmpezar], sobre el botón.
+/// queda en ella con el aviso nuevo); sin cupo, va a Cupo agotado (A22); con
+/// una evaluación con tiempo abierta, ofrece retomarla (A29, CU-10 2.b). Otro
+/// rechazo queda en [errorEmpezar], sobre el botón.
 mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   String? errorEmpezar;
   bool empezando = false;
@@ -34,7 +36,10 @@ mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       if (!mounted) return;
       if (error.codigo == 'CUPO_AGOTADO') {
         context.go(Rutas.cupoAgotado);
-      } else {
+      } else if (error.codigo == codigoConTiempoAbierta &&
+          await _ofrecerRetomar()) {
+        return;
+      } else if (mounted) {
         setState(
           () => errorEmpezar = error.problemas.isEmpty
               ? error.mensaje
@@ -45,4 +50,19 @@ mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       if (mounted) setState(() => empezando = false);
     }
   }
+
+  /// RN-19: primero hay que terminar la evaluación con tiempo. Devuelve si
+  /// se ofreció retomarla; si ya no estaba abierta (venció entre medio), el
+  /// llamador muestra el mensaje.
+  Future<bool> _ofrecerRetomar() async {
+    ref.invalidate(evaluacionAbiertaProvider);
+    final abierta = (await ref.read(evaluacionAbiertaProvider.future))?.abierta;
+    if (!mounted || abierta == null || !abierta.conTiempo) return false;
+    // Con la hoja abierta, el botón ya no está empezando nada.
+    setState(() => empezando = false);
+    await ofrecerRetomar(context, ref, abierta);
+    return true;
+  }
+
+  static const String codigoConTiempoAbierta = 'EVALUACION_CON_TIEMPO_ABIERTA';
 }

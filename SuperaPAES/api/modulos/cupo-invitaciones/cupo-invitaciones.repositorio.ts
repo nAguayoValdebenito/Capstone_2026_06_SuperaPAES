@@ -25,6 +25,11 @@ export interface CupoDelDia {
 export interface CupoInvitacionesRepositorio {
   /** Crea la fila de app.invitacion, sin bono ni dispositivo (HU-47 y HU-47.1 los agregan). */
   crearInvitacion(invitacion: NuevaInvitacion, tx?: Ejecutor): Promise<void>;
+  /** Invitados que se registraron con su código y, de ellos, los que verificaron su correo (A38). */
+  contarInvitaciones(
+    invitanteId: string,
+    tx?: Ejecutor,
+  ): Promise<{ registrados: number; verificados: number }>;
   /**
    * Sube el máximo de la fila del día de `ahora` del estudiante, si ya existe, sin tocar las usadas y
    * sin bajarlo nunca. Si no existe, no crea nada.
@@ -157,6 +162,14 @@ export function crearCupoInvitacionesRepositorio(bd: Ejecutor): CupoInvitaciones
         'INSERT INTO app.invitacion (invitante_id, invitado_id, registrado_en) VALUES ($1, $2, $3)',
         [invitanteId, invitadoId, registradoEn],
       );
+    },
+    async contarInvitaciones(invitanteId, tx = bd) {
+      const { rows } = await tx.query<{ registrados: number; verificados: number }>(
+        `SELECT COUNT(*)::int AS registrados, COUNT(verificado_en)::int AS verificados
+           FROM app.invitacion WHERE invitante_id = $1`,
+        [invitanteId],
+      );
+      return rows[0] ?? { registrados: 0, verificados: 0 };
     },
     ...crearConsultasCupoDelDia(bd),
     ...crearConsultasSaldoExtra(bd),

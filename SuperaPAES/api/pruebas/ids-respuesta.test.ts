@@ -15,6 +15,8 @@ describe('contrato central de ids', () => {
       ([ruta, campos]) => `${ruta} → ${campos.join(', ')}`,
     );
     expect(inventario).toEqual([
+      'POST /api/v1/app/evaluaciones/:id/entregar → data.id',
+      'POST /api/v1/app/evaluaciones/mini-ensayos → data.id, data.pruebaId, data.preguntas[].id, data.preguntas[].alternativaElegidaId, data.preguntas[].alternativas[].id',
       'POST /api/v1/app/cuentas/registro → data.estudiante.id',
       'POST /api/v1/app/cuentas/ingreso → data.estudiante.id',
       'GET /api/v1/app/cuentas/documentos-legales/vigentes → data[].id',
@@ -43,6 +45,10 @@ describe('contrato central de ids', () => {
       'POST /api/v1/admin/preguntas/ → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.textoEstimuloId, data.alternativas[].id',
       'GET /api/v1/admin/preguntas/:id → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.textoEstimuloId, data.alternativas[].id',
       'PUT /api/v1/admin/preguntas/:id → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.textoEstimuloId, data.alternativas[].id',
+      'GET /api/v1/admin/preguntas/textos → data[].id',
+      'GET /api/v1/admin/preguntas/textos/:id → data.id',
+      'POST /api/v1/admin/preguntas/textos → data.id',
+      'PUT /api/v1/admin/preguntas/textos/:id → data.id',
       'POST /api/v1/app/evaluaciones/practicas → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.dificultadId',
       'POST /api/v1/app/evaluaciones/practicas/:id/siguiente → data.id, data.alternativas[].id',
       'POST /api/v1/app/evaluaciones/practicas/:id/cerrar → data.id, data.prueba.id, data.alcance.id, data.dificultad.id, data.ejes[].id, data.habilidades[].id',
@@ -50,8 +56,11 @@ describe('contrato central de ids', () => {
       'POST /api/v1/app/evaluaciones/:id/items/:item/respuesta → data.alternativaElegidaId, data.alternativaCorrectaId, data.alternativas[].id',
       'GET /api/v1/app/evaluaciones/:id/resultado → data.id, data.prueba.id, data.ejes[].id, data.habilidades[].id',
       'GET /api/v1/app/evaluaciones/:id/revision → data.id, data.preguntas[].preguntaId, data.preguntas[].eje.id, data.preguntas[].alternativaElegidaId, data.preguntas[].alternativaCorrectaId, data.preguntas[].alternativas[].id',
+      'GET /api/v1/app/evaluaciones/abierta → data.abierta.preguntas[].id, data.abierta.preguntas[].alternativaElegidaId, data.abierta.preguntas[].alternativas[].id, data.abierta.id, data.abierta.prueba.id, data.abierta.alcance.id, data.abierta.dificultad.id, data.cerrada.id',
       'GET /api/v1/app/privacidad/mis-datos → data.cuenta.id, data.perfil.pruebas[], data.perfil.electivoId, data.perfil.pruebaReforzarId, data.perfil.areasCarrera[], data.evaluaciones[].id, data.evaluaciones[].respuestas[].preguntaId, data.puntajes[].id, data.puntajes[].pruebaId',
       'GET /api/v1/app/evaluaciones/progreso → data.pruebas[].pruebaId, data.pruebas[].ejes[].id, data.pruebas[].habilidades[].id, data.pruebas[].ensayos[].id',
+      'POST /api/v1/app/suscripciones/ → data.id, data.planId, data.pruebaId',
+      'POST /api/v1/app/suscripciones/:id/compra → data.id, data.planId, data.pruebaId, data.cambioEnRenovacion.planId',
     ]);
   });
 

@@ -11,8 +11,12 @@
     "dev": "tsx watch --env-file-if-exists=.env servidor.ts",
     "migrar": "tsx --env-file-if-exists=.env db/scripts/migrar.ts",
     "semillas": "tsx --env-file-if-exists=.env db/scripts/semillas.ts",
+    "semilla-demo": "tsx --env-file-if-exists=.env db/scripts/semilla-demo.ts",
     "probar:bd": "tsx --env-file-if-exists=.env db/scripts/probar-bd.ts",
     "crear-admin": "tsx --env-file-if-exists=.env db/scripts/crear-admin.ts",
+    "respaldar": "tsx --env-file-if-exists=.env db/scripts/respaldar.ts",
+    "restaurar-respaldo": "tsx --env-file-if-exists=.env db/scripts/restaurar-respaldo.ts",
+    "reintegrar": "tsx --env-file-if-exists=.env db/scripts/reintegrar.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/servidor.js",
     "migrar:produccion": "node dist/db/scripts/migrar.js && node dist/db/scripts/semillas.js",
@@ -22,6 +26,7 @@
     "cobertura": "vitest run --coverage"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "^3.1.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
@@ -41,6 +46,7 @@
     "@types/supertest": "^7.2.1",
     "eslint": "^10.11.0",
     "globals": "^17.13.0",
+    "jsrsasign": "^11.1.5",
     "mailparser": "^3.12.4",
     "smtp-server": "^3.21.1",
     "supertest": "^7.3.1",

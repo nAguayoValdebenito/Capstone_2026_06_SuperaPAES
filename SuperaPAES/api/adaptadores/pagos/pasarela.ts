@@ -7,23 +7,33 @@ export type Tienda = 'google_play' | 'app_store';
 export type EstadoSuscripcion =
   'pendiente' | 'activa' | 'fallida' | 'en_mora' | 'cancelada' | 'vencida';
 
-export interface SolicitudVerificacionCompra {
-  tienda: Tienda;
-  /** Identificador del producto en la tienda (contenido.plan_producto_tienda.id_producto). */
-  idProducto: string;
-  /** Token de compra de Google Play o transacción original de la App Store (app.suscripcion.id_compra_tienda). */
-  idCompraTienda: string;
-}
-
+/**
+ * Lo que la tienda confirma de una compra de suscripción (HU-43.1). La pasarela solo informa: el
+ * servicio decide si la compra corresponde a la suscripción (cuenta y producto). Una compra que la
+ * tienda no confirma se rechaza con ErrorCompraNoValida y una tienda caída, con ErrorTiendaNoDisponible.
+ */
 export interface CompraVerificada {
   tienda: Tienda;
-  idProducto: string;
+  /** Identificador estable de la compra: token de Google Play o transacción original de la App Store. */
   idCompraTienda: string;
-  estado: EstadoSuscripcion;
-  /** Fin del período pagado, si la tienda lo informa. */
+  /** Producto comprado (contenido.plan_producto_tienda.id_producto). */
+  idProducto: string;
+  /** Cuenta que la app pasó al comprar (obfuscatedAccountId o appAccountToken); null si no vino. */
+  cuentaTienda: string | null;
+  /**
+   * activa: pagada y vigente, también cancelada con el período pagado vigente. pendiente: el pago está
+   * en espera. fallida: el primer pago no se completó.
+   */
+  estado: 'activa' | 'pendiente' | 'fallida';
+  /** Inicio y fin del período pagado, si hay cobro. */
+  periodoInicio: Date | null;
   periodoFin: Date | null;
   /** Identificador del cobro (app.pago.id_pago_pasarela), si hubo cobro. */
   idPagoPasarela: string | null;
+  /** Google Play: la compra aún no se confirma (acknowledge); si no se confirma, Google la reembolsa. */
+  porConfirmar: boolean;
+  /** App Store: producto de la próxima renovación, si es otro (una bajada rige al renovar, RN-05). */
+  productoRenovacion: string | null;
 }
 
 export interface SuscripcionEnTienda {
@@ -51,7 +61,10 @@ export interface AvisoVerificado {
 
 export interface PasarelaPago {
   readonly nombre: 'simulado' | 'google-play' | 'app-store';
-  verificarCompra(solicitud: SolicitudVerificacionCompra): Promise<CompraVerificada>;
+  /** Consulta la compra en la tienda (token de Google Play o id de transacción de la App Store). */
+  verificarCompra(idCompraTienda: string): Promise<CompraVerificada>;
+  /** Confirma la compra en la tienda (acknowledge de Google Play); en la App Store no hace nada. */
+  confirmarCompra(compra: Pick<CompraVerificada, 'idProducto' | 'idCompraTienda'>): Promise<void>;
   consultarSuscripcion(idCompraTienda: string): Promise<SuscripcionEnTienda>;
   /** Verifica el origen del aviso (token de Pub/Sub o firma JWS de Apple) y lo traduce. */
   verificarAviso(aviso: AvisoEntrante): Promise<AvisoVerificado>;

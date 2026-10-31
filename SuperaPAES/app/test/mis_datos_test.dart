@@ -6,9 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/fuentes/fuente_mis_datos_remota.dart';
 import 'package:supera_paes/datos/modelos/mis_datos_modelo.dart';
 import 'package:supera_paes/dominio/entidades/archivo_mis_datos.dart';
+import 'package:supera_paes/dominio/entidades/documento_legal.dart';
+import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/mis_datos/pantalla_mis_datos.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
 import 'apoyo/app_de_prueba.dart';
@@ -50,6 +53,63 @@ void main() {
     );
   });
 
+  group('Términos aceptados (A39, CU-14 paso 2)', () {
+    test('con fechas distintas, cada documento lleva la suya', () {
+      expect(
+        terminosAceptados([
+          DocumentoAceptado(
+            tipo: TipoDocumentoLegal.terminos,
+            version: '1.0',
+            aceptadoEn: DateTime(2026, 10, 21),
+          ),
+          DocumentoAceptado(
+            tipo: TipoDocumentoLegal.privacidad,
+            version: '1.1',
+            aceptadoEn: DateTime(2026, 10, 25),
+          ),
+        ]),
+        'Aceptaste los Términos y condiciones 1.0 el 21/10/2026 y la '
+        'Política de privacidad 1.1 el 25/10/2026.',
+      );
+    });
+
+    test('con uno solo, lo nombra a él', () {
+      expect(
+        terminosAceptados([
+          DocumentoAceptado(
+            tipo: TipoDocumentoLegal.privacidad,
+            version: '2.0',
+            aceptadoEn: DateTime(2026, 3, 5),
+          ),
+        ]),
+        'Aceptaste la Política de privacidad 2.0 el 05/03/2026.',
+      );
+    });
+
+    testWidgets('si no se pudo consultar, A39 funciona igual sin la línea, '
+        'que aparece al reintentar', (tester) async {
+      final repo = RepositorioMisDatosFalso()
+        ..errorEstado = const ErrorApi(
+          codigo: 'SIN_CONEXION',
+          mensaje: 'No hay conexión con el servidor.',
+        );
+      await iniciarApp(
+        tester,
+        crearContenedor(sesion: sesionDeEjemplo, misDatos: repo),
+        ruta: Rutas.misDatos,
+      );
+
+      expect(find.textContaining('Aceptaste'), findsNothing);
+      expect(find.text('Borrar mi cuenta'), findsOne);
+
+      // Riverpod reintenta solo la consulta que falló.
+      repo.errorEstado = null;
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Aceptaste'), findsOne);
+    });
+  });
+
   group('Mis datos y privacidad (A39)', () {
     testWidgets('Perfil abre A39 con la descarga y los puntajes', (
       tester,
@@ -69,8 +129,17 @@ void main() {
         findsOne,
       );
       expect(find.text('Sin permiso · opcional'), findsOne);
-      // Llegan con HU-08 y HU-09.
-      expect(find.text('Borrar mi cuenta'), findsNothing);
+      expect(find.text('Borrar mi cuenta'), findsOne);
+      expect(find.text('Esta acción no se puede deshacer.'), findsOne);
+      // CU-14 paso 2: las versiones aceptadas, con su fecha.
+      expect(
+        find.text(
+          'Aceptaste los Términos y condiciones 1.0 y la Política de '
+          'privacidad 1.0 el 21/10/2026.',
+        ),
+        findsOne,
+      );
+      // Llega con HU-09.
       expect(find.text('Solicitudes sobre mis datos'), findsNothing);
 
       // «Perfil» también es una pestaña de la barra inferior.

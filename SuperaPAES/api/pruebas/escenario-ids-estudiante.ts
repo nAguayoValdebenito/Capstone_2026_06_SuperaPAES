@@ -58,9 +58,48 @@ const revision = {
   ],
 };
 
-/** Progreso (HU-38.2), resultado y revisión (HU-61.1) del servicio de evaluaciones. */
+/** La evaluación abierta (HU-60.1) y la que se cerró al consultarla; sus ids llegan como texto. */
+const abiertaDePrueba = {
+  abierta: {
+    preguntas: [{ id: '84', alternativaElegidaId: '101', alternativas: [{ id: '101' }] }],
+    id: '41',
+    prueba: { id: 1, codigo: 'M1', nombre: 'Matemática M1' },
+    alcance: { tipo: 'eje', id: 2, nombre: 'Álgebra y funciones' },
+    dificultad: { id: 2, codigo: 'media', nombre: 'Media' },
+  },
+  cerrada: { id: '40', tipo: { codigo: 'practica', nombre: 'Práctica' }, estado: 'abandonada' },
+};
+
+/**
+ * Progreso (HU-38.2), resultado y revisión (HU-61.1) y evaluación abierta (HU-60.1) del servicio de
+ * evaluaciones.
+ */
 export function serviciosEvaluacionesEstudiante() {
   return {
+    entregarEvaluacion: vi.fn(() =>
+      Promise.resolve({ id: '41', estado: 'entregada', resultadoDisponible: true }),
+    ),
+    iniciarMiniEnsayo: vi.fn(() =>
+      Promise.resolve({
+        id: '41',
+        pruebaId: 2,
+        cantidad: 1,
+        duracionMin: 48,
+        venceEn: fecha,
+        preguntas: [
+          {
+            id: '84',
+            orden: 1,
+            enunciado: 'Pregunta de prueba',
+            texto: null,
+            alternativas: [{ id: '101', letra: 'A', texto: 'Alternativa' }],
+            alternativaElegidaId: '101',
+            respondidaEn: fecha,
+          },
+        ],
+      }),
+    ),
+    evaluacionAbierta: vi.fn(() => Promise.resolve(abiertaDePrueba as never)),
     obtenerProgreso: vi.fn(() => Promise.resolve(progresoDePrueba)),
     obtenerResultado: vi.fn(() => Promise.resolve(resultado as never)),
     obtenerRevision: vi.fn(() => Promise.resolve(revision as never)),
@@ -88,11 +127,15 @@ const datosDelEstudiante = {
 };
 
 /**
- * El servicio de privacidad con la descarga de datos. Solo trae los campos que el inventario de ids
+ * El servicio de privacidad con la descarga de datos y el borrado de la cuenta. Solo trae los campos que el inventario de ids
  * revisa, así que no cumple todo el tipo del servicio.
  */
 export const privacidadDePrueba = {
   exportarDatos: vi.fn(() => Promise.resolve(datosDelEstudiante as never)),
+  borrarCuenta: vi.fn(() => Promise.resolve({ eliminadaEn: fecha })),
+  estadoDeLaCuenta: vi.fn(() =>
+    Promise.resolve({ suscripcionVigente: null, documentosAceptados: [] }),
+  ),
 };
 
 /** Las rutas de los puntajes del servicio de cuentas, que responden todas lo mismo. */
@@ -107,10 +150,37 @@ export function serviciosPuntajes() {
   };
 }
 
-/** Cuerpo de las rutas de los puntajes que lo piden. */
+/** Cuerpo de las rutas de los puntajes y de las suscripciones que lo piden. */
 export function cuerpoPuntajes(ruta: string): Record<string, unknown> | undefined {
   if (ruta === 'PUT /api/v1/app/cuentas/puntajes')
     return { pruebaId: 2, anioAdmision: 2026, puntaje: 650 };
   if (ruta === 'POST /api/v1/app/cuentas/puntajes/permiso') return { documentoId: 3 };
+  if (ruta === 'POST /api/v1/app/suscripciones/')
+    return { planId: 1, tienda: 'google_play', pruebaId: 2 };
+  if (ruta === 'POST /api/v1/app/suscripciones/:id/compra') return { idCompraTienda: 'token' };
   return undefined;
 }
+
+const suscripcion = {
+  id: '7',
+  estado: 'pendiente' as const,
+  planId: 1,
+  tienda: 'google_play' as const,
+  pruebaId: 2,
+  idProducto: 'una_prueba_mensual',
+  cuentaTienda: 'cuenta',
+  periodoFin: null,
+  cambioEnRenovacion: null,
+};
+
+/** Las rutas de compras del servicio de suscripciones (HU-43.1). */
+export const suscripcionesDePrueba = {
+  crearPendiente: vi.fn(() => Promise.resolve({ suscripcion, creada: true })),
+  validarCompra: vi.fn(() =>
+    Promise.resolve({
+      ...suscripcion,
+      estado: 'activa' as const,
+      cambioEnRenovacion: { planId: 3, desde: new Date('2026-12-15T00:00:00.000Z') },
+    }),
+  ),
+};
