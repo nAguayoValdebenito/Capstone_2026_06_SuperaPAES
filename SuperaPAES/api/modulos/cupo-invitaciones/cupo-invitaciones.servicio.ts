@@ -4,6 +4,7 @@
 // Por ejemplo, evaluaciones pide aquí descontar el cupo (RN-01) dentro de su propia transacción, y
 // cuentas pide subir el cupo del día cuando un estudiante verifica su correo.
 import { ErrorNoImplementado } from '../../comun/errores.js';
+import { crearUsosGratis, type UsosGratis } from './cupo-invitaciones.usos.servicio.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
@@ -53,7 +54,7 @@ export interface DependenciasCupoInvitacionesServicio {
 }
 
 export interface CupoInvitacionesServicio
-  extends CupoDiario, InicioCupo, Invitaciones, BonoInvitacion {
+  extends CupoDiario, InicioCupo, Invitaciones, BonoInvitacion, UsosGratis {
   /** Registra el código de quien invitó al estudiante (RN-03). */
   registrarCodigoInvitacion(estudianteId: string, codigo: string): Promise<void>;
   /**
@@ -77,6 +78,7 @@ export function crearCupoInvitacionesServicio(
   const repositorio = dependencias.repositorio ?? crearCupoInvitacionesRepositorio(dependencias.bd);
   const bono = crearBonoRepositorio(dependencias.bd);
   return {
+    ...crearUsosGratis(dependencias.suscripciones),
     // Esqueleto: se implementa con su historia de usuario.
     registrarCodigoInvitacion: () =>
       Promise.reject(new ErrorNoImplementado('El registro de códigos de invitación')),

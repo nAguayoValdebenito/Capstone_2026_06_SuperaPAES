@@ -75,6 +75,26 @@ const abiertaDePrueba = {
  */
 export function serviciosEvaluacionesEstudiante() {
   return {
+    iniciarMiniEnsayo: vi.fn(() =>
+      Promise.resolve({
+        id: '41',
+        pruebaId: 2,
+        cantidad: 1,
+        duracionMin: 48,
+        venceEn: fecha,
+        preguntas: [
+          {
+            id: '84',
+            orden: 1,
+            enunciado: 'Pregunta de prueba',
+            texto: null,
+            alternativas: [{ id: '101', letra: 'A', texto: 'Alternativa' }],
+            alternativaElegidaId: '101',
+            respondidaEn: fecha,
+          },
+        ],
+      }),
+    ),
     evaluacionAbierta: vi.fn(() => Promise.resolve(abiertaDePrueba as never)),
     obtenerProgreso: vi.fn(() => Promise.resolve(progresoDePrueba)),
     obtenerResultado: vi.fn(() => Promise.resolve(resultado as never)),

@@ -7,6 +7,7 @@ import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones.validadores.js';
 
 export interface EvaluacionesControlador {
+  iniciarMiniEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
   siguientePregunta: RequestHandler;
   cerrarPractica: RequestHandler;
@@ -27,6 +28,11 @@ export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
   return {
+    iniciarMiniEnsayo: async (req, res) => {
+      responder(res, await servicio.iniciarMiniEnsayo(estudianteDe(req), req.body.pruebaId), {
+        estado: 201,
+      });
+    },
     iniciarPractica: async (req, res) => {
       responder(res, await servicio.iniciarPractica(estudianteDe(req), req.body), { estado: 201 });
     },

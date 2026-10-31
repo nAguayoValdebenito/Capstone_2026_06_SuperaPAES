@@ -201,6 +201,7 @@ function valoresDeCampo(valor: unknown, ruta: string): unknown[] {
 }
 
 function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
+  if (ruta.endsWith('/mini-ensayos')) return { pruebaId: 2 };
   if (ruta.endsWith('/registro'))
     return {
       nombre: 'Ana',

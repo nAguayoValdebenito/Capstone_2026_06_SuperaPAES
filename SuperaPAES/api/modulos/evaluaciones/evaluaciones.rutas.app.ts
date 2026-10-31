@@ -14,11 +14,17 @@ import {
   esquemaIdsItem,
   esquemaInicioPractica,
   esquemaRespuesta,
+  esquemaInicioMini,
 } from './evaluaciones.validadores.js';
 
 export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Router {
   const router = Router();
   const controlador = crearEvaluacionesControlador(servicio);
+  router.post(
+    '/mini-ensayos',
+    validar({ cuerpo: esquemaInicioMini }),
+    controlador.iniciarMiniEnsayo,
+  );
   router.post(
     '/practicas',
     validar({ cuerpo: esquemaInicioPractica }),
