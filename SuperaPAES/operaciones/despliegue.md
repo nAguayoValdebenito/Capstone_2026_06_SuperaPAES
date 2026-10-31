@@ -43,7 +43,7 @@ La integración debe conservar los flujos de respaldo y tareas periódicas de `m
    Si el administrador ya existe, el comando no crea otro. Para restablecer su contraseña existe
    `npm run crear-admin:produccion -w api -- --restablecer`.
 
-## 2. Render: API y 27 variables
+## 2. Render: API y 28 variables
 
 Crear un **Web Service** Node con raíz `SuperaPAES`, Node 24 (archivo `.nvmrc`) y plan **Free**.
 Conectar la rama que ya tenga la integración de IA. Configurar:
@@ -55,21 +55,21 @@ Conectar la rama que ya tenga la integración de IA. Configurar:
 | Health Check Path | `/api/v1/salud/vivo`                                                                                |
 
 El plan gratuito no ofrece [**Pre-Deploy**](https://render.com/docs/deploys#pre-deploy-command).
-Por eso el Start Command aplica migraciones y semillas
-antes de iniciar la API en cada arranque, y se detiene si fallan. La exclusión de la semilla legal
-está en ese comando para que no se cargue al reiniciar. Render suspende el servicio tras 15 minutos
-sin tráfico; la siguiente solicitud lo despierta y puede tardar alrededor de un minuto. El disco
+Por eso el Start Command aplica migraciones y semillas antes de iniciar la API **en cada arranque**,
+también al despertar tras una suspensión. Si una migración falla, el servicio no sube. La exclusión
+de la semilla legal está en ese comando para que no se cargue al reiniciar. Render suspende el
+servicio tras 15 minutos sin tráfico; la siguiente solicitud lo despierta y puede tardar alrededor
+de un minuto. Ese primer arranque tarda más porque vuelve a ejecutar las migraciones. El disco
 local es efímero y el plan tiene límites mensuales de uso; conservar los datos en Neon. Consultar
 los [límites actuales del plan Free](https://render.com/docs/free) antes de una demostración.
 
-En **Environment**, cargar estas **27 variables**. `NODE_ENV=production` y `PORT` los proporciona
-[Render al servicio Node](https://render.com/docs/environment-variables) en tiempo de ejecución;
-comprobarlo si se cambia de tipo de servicio.
-`PORT` no se fija manualmente. `SMTP_TIMEOUT_MS` es opcional y aquí usa el valor predeterminado.
+En **Environment**, cargar estas **28 variables**, incluido `NODE_ENV=production` explícitamente.
+`PORT` lo proporciona [Render al servicio Node](https://render.com/docs/environment-variables) y
+no se fija manualmente. `SMTP_TIMEOUT_MS` es opcional y aquí usa el valor predeterminado.
 
 | Grupo                    |                                                                                                                                                                                                            Variables (cantidad) | Qué cargar                                                                                                                                                        |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base, consola y secretos |                                                                                             `DATABASE_URL`, `DATABASE_SSL`, `CORS_ORIGENES`, `URL_CONSOLA`, `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP`, `CLAVE_CODIGO_CORREO` (7) | Conexión de Neon; `DATABASE_SSL=true`; origen HTTPS de Vercel en las dos variables de consola; tres secretos distintos.                                           |
+| Base, consola y secretos |                                                                                 `NODE_ENV`, `DATABASE_URL`, `DATABASE_SSL`, `CORS_ORIGENES`, `URL_CONSOLA`, `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP`, `CLAVE_CODIGO_CORREO` (8) | `NODE_ENV=production`; conexión de Neon; `DATABASE_SSL=true`; origen HTTPS de Vercel en las dos variables de consola; tres secretos distintos.                    |
 | IA                       |                                                                                                                                                       `PROVEEDOR_IA`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GEMINI_MODELO` (4) | `PROVEEDOR_IA=deepseek`; claves emitidas por cada proveedor; modelo de Gemini elegido para el respaldo. `GEMINI_API_KEY` activa el respaldo de la rama integrada. |
 | Correo                   |                                                                                                                  `PROVEEDOR_CORREO`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CLAVE`, `CORREO_REMITENTE` (7) | Configuración de Brevo descrita en la sección 3.                                                                                                                  |
 | Tiendas                  | `PROVEEDOR_PAGOS`, `GOOGLE_PLAY_PAQUETE`, `GOOGLE_PLAY_CUENTA_SERVICIO`, `GOOGLE_PLAY_PUBSUB_AUDIENCIA`, `APP_STORE_BUNDLE_ID`, `APP_STORE_ID_EMISOR`, `APP_STORE_ID_CLAVE`, `APP_STORE_CLAVE_PRIVADA`, `APP_STORE_ENTORNO` (9) | `PROVEEDOR_PAGOS=tiendas`; texto de relleno claramente marcado en las siete variables de texto; `APP_STORE_ENTORNO=sandbox`.                                      |
@@ -117,7 +117,7 @@ volver a desplegar la API; la consola necesita CORS para llamar a la API desde e
 
 ## 5. GitHub: respaldo y bitácora
 
-En **Settings → Secrets and variables → Actions → Secrets**, crear `DATABASE_URL` con la conexión
+En **Settings, luego Secrets and variables, luego Actions, luego Secrets**, crear `DATABASE_URL` con la conexión
 **directa, sin pooling**, de Neon y `CLAVE_RESPALDO` con una cuarta clave aleatoria generada como en
 la sección 2. Guardar esa clave también fuera de GitHub: sin ella no se pueden abrir los respaldos.
 En **Variables**, crear `RESPALDO_ACTIVO=true` solo después de que un respaldo manual termine bien.
@@ -125,7 +125,7 @@ La ejecución programada consulta esta variable; la manual se puede ejecutar sin
 
 Comprobar que exista la etiqueta `incidente` (la plantilla `.github/ISSUE_TEMPLATE/incidente.yml`
 la usa). Registrar cada falla en un issue con esa etiqueta, sin claves ni datos personales. Para
-probar el respaldo: **Actions → Respaldo diario → Run workflow → Run workflow**. Confirmar que el
+probar el respaldo: **Actions, luego Respaldo diario, luego Run workflow, luego Run workflow**. Confirmar que el
 flujo terminó bien y publicó el artefacto cifrado; después activar `RESPALDO_ACTIVO`. El flujo
 debe seguir presente tras integrar la rama IA. El procedimiento de recuperación está en
 [`operaciones/contingencia.md`](contingencia.md).
