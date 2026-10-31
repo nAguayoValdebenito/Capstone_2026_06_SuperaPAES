@@ -27,7 +27,12 @@ export const crearPresupuestoIA = (): PresupuestoIA => ({
     LIMITES_IA.maxReintentos * LIMITES_IA.esperaReintentoMs,
 });
 
-export class ErrorContenidoVacio extends ErrorIARespuestaInvalida {}
+// Fallos del contenido que dio el modelo y que un segundo intento suele corregir (no es un rechazo de
+// seguridad ni un truncamiento). Comparten el único reintento y el presupuesto de tiempo global.
+export class ErrorContenidoReintentable extends ErrorIARespuestaInvalida {}
+export class ErrorContenidoVacio extends ErrorContenidoReintentable {}
+/** El texto del modelo no es JSON analizable (por ejemplo, una comilla perdida). */
+export class ErrorJsonNoAnalizable extends ErrorContenidoReintentable {}
 class ErrorRedOProveedor extends ErrorIANoDisponible {}
 
 interface PeticionIA<T> {
@@ -103,10 +108,10 @@ export async function solicitarIA<T>(
       return await intentar(peticion, presupuesto);
     } catch (error) {
       const reintentable =
-        error instanceof ErrorRedOProveedor || error instanceof ErrorContenidoVacio;
+        error instanceof ErrorRedOProveedor || error instanceof ErrorContenidoReintentable;
       if (!reintentable) throw error;
       if (presupuesto.restantes === 0) {
-        throw error instanceof ErrorContenidoVacio
+        throw error instanceof ErrorContenidoReintentable
           ? new ErrorIARespuestaInvalida()
           : new ErrorIANoDisponible();
       }

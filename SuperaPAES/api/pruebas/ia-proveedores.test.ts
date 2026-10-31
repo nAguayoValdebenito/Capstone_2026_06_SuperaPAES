@@ -100,7 +100,9 @@ describe.each(['deepseek', 'gemini'] as const)('IA %s', (nombre) => {
     expect(resultado).not.toHaveProperty('usoTokens');
   });
 
-  it.each(['no es json', '{', '{}', '{"preguntas":[{"enunciado":123}]}'])(
+  // 'no es json' y '{' ya no están aquí: un JSON no analizable se reintenta (ver más abajo). Un JSON válido
+  // con la forma equivocada sigue sin reintento: el modelo respondió algo coherente.
+  it.each(['{}', '{"preguntas":[{"enunciado":123}]}'])(
     'rechaza contenido inválido sin reintento: %s',
     async (contenido) => {
       fetchFalso.mockResolvedValue(Response.json(sobre(contenido)));
@@ -130,6 +132,42 @@ describe.each(['deepseek', 'gemini'] as const)('IA %s', (nombre) => {
     await Promise.all([vi.runAllTimersAsync(), espera]);
     expect(fetchFalso).toHaveBeenCalledTimes(2);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  // Forma exacta de un fallo real de Gemini (HTTP 200, finishReason STOP): sin la comilla de apertura de
+  // "alternativas", con un `$` en su lugar.
+  const jsonConComillaPerdida = '{"preguntas":[{"enunciado":"x",$alternativas":[]}]}';
+
+  it.each(['no es json', '{', jsonConComillaPerdida])(
+    'reintenta un JSON no analizable una vez y luego entrega el resultado: %s',
+    async (malformado) => {
+      fetchFalso
+        .mockResolvedValueOnce(Response.json(sobre(malformado)))
+        .mockResolvedValueOnce(Response.json(sobre()));
+      const espera = expect(
+        proveedorReal(nombre).generarPreguntas(solicitudIa),
+      ).resolves.toMatchObject({ preguntas: [preguntaIa] });
+      await Promise.all([vi.runAllTimersAsync(), espera]);
+      expect(fetchFalso).toHaveBeenCalledTimes(2);
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
+  it('dos JSON no analizables terminan con respuesta inválida tras un único reintento', async () => {
+    fetchFalso.mockImplementation(() =>
+      Promise.resolve(Response.json(sobre(jsonConComillaPerdida))),
+    );
+    const espera = expect(
+      proveedorReal(nombre).generarPreguntas(solicitudIa),
+    ).rejects.toMatchObject({ codigo: 'IA_RESPUESTA_INVALIDA', estadoHttp: 502 });
+    await Promise.all([vi.runAllTimersAsync(), espera]);
+    expect(fetchFalso).toHaveBeenCalledTimes(2);
+    // Ni el texto del modelo ni las claves llegan a los registros.
+    const registrado = JSON.stringify(
+      (['log', 'error', 'info'] as const).map((nivel) => vi.spyOn(console, nivel).mock.calls),
+    );
+    expect(registrado).not.toContain('alternativas');
+    expect(registrado).not.toMatch(/clave-(deepseek|gemini)-ficticia/u);
   });
 
   it('dos contenidos vacíos terminan con respuesta inválida', async () => {
@@ -189,4 +227,34 @@ it('DeepSeek vuelve a leer el modelo en cada solicitud sin valores fijos en el c
       ([, opciones]) => (JSON.parse(opciones?.body as string) as { model: string }).model,
     ),
   ).toEqual(['modelo-uno', 'modelo-dos']);
+});
+
+// Medido con 20 llamadas reales por variante (sin reintentos): sin esquema, 6 respuestas fallidas de 20
+// (5 JSON rotos y 1 de forma inválida); con responseJsonSchema, 0 de 20. Solo Gemini: no se probó con DeepSeek.
+describe('Gemini: salida estructurada', () => {
+  it('envía el JSON Schema de las preguntas en responseJsonSchema', async () => {
+    fetchFalso.mockResolvedValue(Response.json(sobreGemini()));
+    await proveedorReal('gemini').generarPreguntas(solicitudIa);
+    const [, opciones] = fetchFalso.mock.calls[0] ?? [];
+    const cuerpo = JSON.parse(opciones?.body as string) as {
+      generationConfig: { responseMimeType: string; responseJsonSchema: Record<string, unknown> };
+    };
+    const { responseMimeType, responseJsonSchema } = cuerpo.generationConfig;
+    expect(responseMimeType).toBe('application/json');
+    expect(responseJsonSchema).toMatchObject({
+      type: 'object',
+      required: ['preguntas'],
+      properties: { preguntas: { type: 'array' } },
+    });
+    // La letra de cada alternativa queda limitada a A-E (RN-08) desde el esquema.
+    expect(JSON.stringify(responseJsonSchema)).toContain('"enum":["A","B","C","D","E"]');
+  });
+
+  it('DeepSeek no recibe un esquema en la petición', async () => {
+    fetchFalso.mockResolvedValue(Response.json(sobreDeepSeek()));
+    await proveedorReal('deepseek').generarPreguntas(solicitudIa);
+    const [, opciones] = fetchFalso.mock.calls[0] ?? [];
+    expect(opciones?.body as string).not.toContain('responseJsonSchema');
+    expect(opciones?.body as string).not.toContain('json_schema');
+  });
 });
