@@ -157,6 +157,7 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.pruebas[].habilidades[].id',
     'data.pruebas[].ensayos[].id',
   ],
+  'POST /api/v1/app/suscripciones/': ['data.id', 'data.planId', 'data.pruebaId'],
 };
 
 const MAXIMO_ID = BigInt(Number.MAX_SAFE_INTEGER);

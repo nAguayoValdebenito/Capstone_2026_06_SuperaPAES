@@ -138,6 +138,7 @@ function crearSuscripcionesYCupo(
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const suscripciones = crearSuscripcionesServicio({
     ...base,
+    reloj: dependencias.reloj,
     pagos: dependencias.proveedores.pagos,
   });
   const cubrePrueba: SuscripcionesServicio['cubrePrueba'] =

@@ -25,6 +25,7 @@ describe.skipIf(!urlBase)('cobertura de las suscripciones con PostgreSQL (RN-04)
     servicio = crearSuscripcionesServicio({
       bd: entorno.bd,
       unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(entorno.bd) },
+      reloj: relojDelSistema,
       pagos: FabricaProveedores.pagos({ proveedor: 'simulado' }, relojDelSistema),
     });
     const { rows } = await entorno.bd.query<{ codigo: 'CL' | 'M1' | 'M2'; id: number }>(

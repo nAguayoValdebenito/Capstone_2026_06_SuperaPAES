@@ -150,10 +150,29 @@ export function serviciosPuntajes() {
   };
 }
 
-/** Cuerpo de las rutas de los puntajes que lo piden. */
+/** Cuerpo de las rutas de los puntajes y de las suscripciones que lo piden. */
 export function cuerpoPuntajes(ruta: string): Record<string, unknown> | undefined {
   if (ruta === 'PUT /api/v1/app/cuentas/puntajes')
     return { pruebaId: 2, anioAdmision: 2026, puntaje: 650 };
   if (ruta === 'POST /api/v1/app/cuentas/puntajes/permiso') return { documentoId: 3 };
+  if (ruta === 'POST /api/v1/app/suscripciones/')
+    return { planId: 1, tienda: 'google_play', pruebaId: 2 };
   return undefined;
 }
+
+const suscripcion = {
+  id: '7',
+  estado: 'pendiente' as const,
+  planId: 1,
+  tienda: 'google_play' as const,
+  pruebaId: 2,
+  idProducto: 'una_prueba_mensual',
+  cuentaTienda: 'cuenta',
+  periodoFin: null,
+  cambioEnRenovacion: null,
+};
+
+/** Las rutas de compras del servicio de suscripciones (HU-43.1). */
+export const suscripcionesDePrueba = {
+  crearPendiente: vi.fn(() => Promise.resolve({ suscripcion, creada: true })),
+};
