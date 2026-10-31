@@ -108,7 +108,7 @@ describe.skipIf(!urlBase)('estado de la cuenta de la app con PostgreSQL (GET /cu
       'documentosAceptados',
     ]);
     const texto = JSON.stringify(respuesta);
-    for (const dato of ['diego@ejemplo.cl', 'elena@ejemplo.cl', 'hash', 'contrasena'])
+    for (const dato of ['diego@ejemplo.cl', 'elena@ejemplo.cl', 'hash', 'contrasena', 'token'])
       expect(texto).not.toContain(dato);
   });
 
