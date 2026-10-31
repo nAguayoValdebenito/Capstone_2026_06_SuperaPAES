@@ -84,8 +84,8 @@ describe.skipIf(!process.env['DATABASE_URL_PRUEBAS'])(
         request(app).post('/api/v1/tareas/periodicas').set('Authorization', `Bearer ${clave}`),
       ]);
       expect(rs.map((r) => r.status)).toEqual([200, 200, 200]);
-    expect(rs[0].body.data).toEqual(rs[1].body.data);
-    expect(rs[0].body.data.omitidas).toBe(3);
+      expect(rs[0].body.data).toEqual(rs[1].body.data);
+      expect(rs[0].body.data.omitidas).toBe(3);
       const fila = await cerrada(id);
       expect(fila).toMatchObject({ total: 1, recalculada: null });
       expect(fila.cerrada).toEqual(fila.vence);

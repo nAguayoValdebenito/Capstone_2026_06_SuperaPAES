@@ -75,6 +75,19 @@ describe.skipIf(!process.env['DATABASE_URL_PRUEBAS'])(
         .set('Authorization', `Bearer ${token}`);
       expect(resultado.status).toBe(200);
       expect(resultado.body.data).toMatchObject({ correctas: 0, incorrectas: 1, omitidas: 21 });
+      const revision = await request(entorno.app)
+        .get(`/api/v1/app/evaluaciones/${id}/revision`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(revision.status).toBe(200);
+      expect(revision.body.data.preguntas).toHaveLength(22);
+      expect(revision.body.data.preguntas[0]).toMatchObject({
+        alternativaElegidaId: b,
+        alternativaCorrectaId: a,
+        resultado: 'incorrecta',
+        explicacion: 'Explicación reservada',
+      });
+      const revisadas = revision.body.data.preguntas as { resultado: string }[];
+      expect(revisadas.filter((p) => p.resultado === 'omitida')).toHaveLength(21);
       expect((await responder(token, id, item, a)).status).toBe(409);
       expect(await m.cantidades(estudianteId)).toEqual({ evaluaciones: 1, usos: 1 });
     });

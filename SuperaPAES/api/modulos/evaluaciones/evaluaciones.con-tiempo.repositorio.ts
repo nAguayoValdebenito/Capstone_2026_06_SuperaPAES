@@ -93,4 +93,3 @@ const consultasConTiempo = {
 export function crearConTiempoRepositorio() {
   return consultasConTiempo;
 }
-export type ConTiempoRepositorio = ReturnType<typeof crearConTiempoRepositorio>;
