@@ -1,14 +1,19 @@
 // Definición de rutas de la consola a partir de SECCIONES. La raíz lleva al inicio de cada rol.
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { DisenoGeneral } from '../componentes/DisenoGeneral';
 import { useSesion } from '../estado/contexto-sesion';
 import { PaginaIngreso } from '../paginas/ingreso/PaginaIngreso';
 import { PaginaInvitar } from '../paginas/invitar/PaginaInvitar';
 import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada';
-import { PaginaPregunta } from '../paginas/pregunta/PaginaPregunta';
 import { PaginaRestablecerContrasena } from '../paginas/restablecer-contrasena/PaginaRestablecerContrasena';
 import { RutaProtegida } from './RutaProtegida';
 import { INICIO_POR_ROL, SECCIONES } from './secciones';
+
+// C03 se descarga al abrirla: su vista previa trae KaTeX y sus fuentes (HU-12.4).
+const PaginaPregunta = lazy(() =>
+  import('../paginas/pregunta/PaginaPregunta').then((m) => ({ default: m.PaginaPregunta })),
+);
 
 function RedirigirAlInicio() {
   const { usuario } = useSesion();
@@ -43,7 +48,9 @@ export function RutasConsola() {
             path={ruta}
             element={
               <RutaProtegida roles={['admin']}>
-                <PaginaPregunta />
+                <Suspense fallback={<p aria-live="polite">Cargando la pregunta…</p>}>
+                  <PaginaPregunta />
+                </Suspense>
               </RutaProtegida>
             }
           />
