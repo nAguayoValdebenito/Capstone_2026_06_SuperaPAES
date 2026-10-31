@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
 import { prepararPracticas } from './base-practicas.js';
 import { errorConFormato } from './ayudantes.js';
+import { conBarrera } from './barrera-de-prueba.js';
 import {
   historialDe,
   insertarSuscripcion,
@@ -205,15 +206,42 @@ describe.skipIf(!urlBase)('suscripción pendiente con PostgreSQL (HU-43.1, CU-12
     expect(await historial(primera.body.data.id as number)).toHaveLength(1);
   });
 
-  it('dos pedidos a la vez dejan una sola pendiente', async () => {
+  it('dos pedidos que se cruzan al insertar dejan una sola pendiente (el índice detiene al segundo)', async () => {
     const { id: estudianteId, token } = await base.sesion('ana@ejemplo.cl');
     const cuerpo = { planId: planes['Todas las pruebas mensual'], tienda: 'google_play' };
+    // Ambas transacciones ya leyeron que no hay pendiente cuando cualquiera inserta.
+    const cruzada = entorno.crearAppCon({
+      unidadDeTrabajo: conBarrera(entorno.unidadDeTrabajo, /INSERT INTO app\.suscripcion\s/),
+    });
+    const pedir = () =>
+      request(cruzada).post(RUTA).set('Authorization', `Bearer ${token}`).send(cuerpo);
 
-    const [una, otra] = await Promise.all([crear(token, cuerpo), crear(token, cuerpo)]);
+    const [una, otra] = await Promise.all([pedir(), pedir()]);
 
     expect([una.status, otra.status].sort()).toEqual([200, 201]);
     expect(una.body.data.id).toBe(otra.body.data.id);
     expect(await cuantasDe(estudianteId)).toBe(1);
+    expect(await historial(una.body.data.id as number)).toHaveLength(1);
+  });
+
+  it('la base no admite dos suscripciones vigentes del mismo estudiante (ux_suscripcion_vigente)', async () => {
+    const { id: estudianteId } = await base.sesion('ana@ejemplo.cl');
+    await insertarSuscripcion(entorno.bd, {
+      estudianteId,
+      plan: 'Todas las pruebas mensual',
+      estado: 'pendiente',
+    });
+
+    const segunda = insertarSuscripcion(entorno.bd, {
+      estudianteId,
+      plan: 'Una prueba mensual',
+      estado: 'activa',
+    });
+
+    await expect(segunda).rejects.toMatchObject({
+      code: '23505',
+      constraint: 'ux_suscripcion_vigente',
+    });
   });
 
   it.each(['activa', 'en_mora'])(

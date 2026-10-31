@@ -6,6 +6,7 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { beforeAll, beforeEach, expect, vi } from 'vitest';
 import type { CompraVerificada, PasarelaPago } from '../adaptadores/fabrica.js';
+import type { Dependencias } from '../app.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
 import { prepararPracticas } from './base-practicas.js';
 import { historialDe, pagosDe, suscripcionGuardada } from './suscripciones-de-prueba.js';
@@ -68,9 +69,7 @@ export function prepararCompras(prefijo: string) {
       'SELECT nombre, id FROM contenido.plan',
     );
     for (const plan of rows) planes[plan.nombre] = plan.id;
-    app = entorno.crearAppCon({
-      proveedores: { ...crearDependenciasDePrueba().proveedores, pagos: tienda.pagos },
-    });
+    app = appCon({});
   });
 
   beforeEach(() => {
@@ -96,6 +95,13 @@ export function prepararCompras(prefijo: string) {
     return respuesta.body.data as { id: number; cuentaTienda: string; planId: number };
   }
 
+  /** Otra app sobre la misma base y la misma pasarela falsa, con dependencias cambiadas. */
+  const appCon = (cambios: Partial<Dependencias>) =>
+    entorno.crearAppCon({
+      proveedores: { ...crearDependenciasDePrueba().proveedores, pagos: tienda.pagos },
+      ...cambios,
+    });
+
   /** POST /app/suscripciones/{id}/compra, en la app con la pasarela falsa o en la indicada. */
   const validar = (token: string, id: number, cuerpo: Record<string, unknown>, en?: Express) =>
     request(en ?? app)
@@ -110,6 +116,7 @@ export function prepararCompras(prefijo: string) {
     tienda,
     pendiente,
     validar,
+    appCon,
     guardada: (id: number) => suscripcionGuardada(entorno.bd, id),
     historial: (id: number) => historialDe(entorno.bd, id),
     pagos: (id: number) => pagosDe(entorno.bd, id),

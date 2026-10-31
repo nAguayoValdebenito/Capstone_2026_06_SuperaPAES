@@ -69,6 +69,28 @@ const REGISTRAR_CAMBIO = `
      LEFT JOIN contenido.estado_suscripcion ea ON ea.codigo = $2::text
     WHERE en.codigo = $3`;
 
+/**
+ * Bloquea la fila de la suscripción y recién entonces la lee completa. Se hace en dos consultas porque
+ * un SELECT con JOIN ... FOR UPDATE OF s que espera el bloqueo vuelve a comprobar la fila contra las filas
+ * unidas antes de la espera: si otra transacción cambió el estado o el plan, el JOIN ya no calza y la
+ * suscripción «desaparece». La segunda consulta ve lo que esa transacción dejó confirmado.
+ * `condicion` es SQL fijo del repositorio sobre la tabla `s`; los valores van como parámetros.
+ */
+export async function leerBloqueada(
+  tx: Ejecutor,
+  condicion: string,
+  parametros: unknown[],
+): Promise<FilaSuscripcion | null> {
+  const bloqueada = await tx.query<{ id: string }>(
+    `SELECT s.id::text AS id FROM app.suscripcion s WHERE ${condicion} FOR UPDATE`,
+    parametros,
+  );
+  const id = bloqueada.rows[0]?.id;
+  if (id === undefined) return null;
+  const { rows } = await tx.query<FilaSuscripcion>(`${SUSCRIPCION} WHERE s.id = $1`, [id]);
+  return rows[0] ?? null;
+}
+
 /** Lecturas: el plan en la tienda, la prueba y la suscripción vigente. */
 function lecturas(bd: Ejecutor) {
   return {
@@ -84,11 +106,7 @@ function lecturas(bd: Ejecutor) {
 
     /** La suscripción vigente del estudiante (pendiente, activa o en mora), bloqueada. */
     async vigenteBloqueada(estudianteId: string, tx: Ejecutor = bd) {
-      const { rows } = await tx.query<FilaSuscripcion>(
-        `${SUSCRIPCION} WHERE s.estudiante_id = $1 AND s.vigente FOR UPDATE OF s`,
-        [estudianteId],
-      );
-      return rows[0] ?? null;
+      return leerBloqueada(tx, 's.estudiante_id = $1 AND s.vigente', [estudianteId]);
     },
   };
 }

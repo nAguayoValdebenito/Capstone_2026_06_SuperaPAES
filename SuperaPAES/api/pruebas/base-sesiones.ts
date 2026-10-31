@@ -11,13 +11,15 @@ import { crearApp, type Dependencias } from '../app.js';
 import type { OpcionesLimiteIntentos } from '../comun/middleware/limite-intentos.js';
 import { crearPool } from '../db/conexion.js';
 import { crearPrimerAdministrador } from '../db/primer-administrador.js';
-import { crearUnidadDeTrabajo } from '../db/transaccion.js';
+import { crearUnidadDeTrabajo, type UnidadDeTrabajo } from '../db/transaccion.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
 import { crearBaseTemporal, MINUTO, vaciarCuentasInternas, vaciarTablas } from './base-temporal.js';
 
 export interface EntornoSesiones {
   /** Conexión a la base temporal, para preparar datos y revisar app.token_sesion. */
   bd: pg.Client;
+  /** La unidad de trabajo del pool de la app, por ejemplo para envolverla con una barrera. */
+  unidadDeTrabajo: UnidadDeTrabajo;
   /** App sobre la base real, con el límite de intentos por defecto. */
   app: Express;
   /** App nueva (contadores en cero) con un límite de intentos propio. */
@@ -101,6 +103,7 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     pool = crearPool({ url: base.url, ssl: false });
     Object.assign(entorno, {
       bd: base.bd,
+      unidadDeTrabajo: crearUnidadDeTrabajo(pool),
       app: crearAppSobreElPool(),
       crearAppConLimite: (limiteIntentos: OpcionesLimiteIntentos) =>
         crearAppSobreElPool({ limiteIntentos }),

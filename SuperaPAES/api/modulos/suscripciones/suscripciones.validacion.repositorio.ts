@@ -5,6 +5,7 @@
 import type { EstadoSuscripcion, Tienda } from '../../adaptadores/pagos/pasarela.js';
 import type { Ejecutor } from '../../db/transaccion.js';
 import {
+  leerBloqueada,
   SUSCRIPCION,
   type FilaSuscripcion,
   type PlanEnTienda,
@@ -80,8 +81,10 @@ function lecturas(bd: Ejecutor) {
       tx: Ejecutor = bd,
       bloquear = false,
     ): Promise<FilaSuscripcion | null> {
+      if (bloquear)
+        return leerBloqueada(tx, 's.id = $1 AND s.estudiante_id = $2', [id, estudianteId]);
       const { rows } = await tx.query<FilaSuscripcion>(
-        `${SUSCRIPCION} WHERE s.id = $1 AND s.estudiante_id = $2${bloquear ? ' FOR UPDATE OF s' : ''}`,
+        `${SUSCRIPCION} WHERE s.id = $1 AND s.estudiante_id = $2`,
         [id, estudianteId],
       );
       return rows[0] ?? null;
