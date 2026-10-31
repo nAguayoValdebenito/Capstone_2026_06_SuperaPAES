@@ -12,19 +12,22 @@ pendientes.
 - Crear el proyecto PostgreSQL 18 en Neon, usar su conexión TLS directa, ejecutar
   `migrar:produccion` sin la semilla legal y crear el primer administrador desde una terminal local.
 - Integrar la conexión IA en la rama que se publicará. En Render, configurar el Web Service Node 24
-  con raíz `SuperaPAES`, build, start, salud y **28 variables explícitas**, incluido
+  con raíz `SuperaPAES`, build, start, salud y **29 variables explícitas**, incluidas
   `NODE_ENV=production`: DeepSeek principal, Gemini de respaldo, SMTP real y tiendas en modo
   `sandbox`. Las siete variables de texto de tiendas llevan marcadores inequívocos mientras las
   compras sigan sin implementar.
-- Crear y guardar por separado los secretos de las sesiones, del código de correo y del respaldo;
+- Crear y guardar por separado los secretos de las sesiones, del código de correo, de tareas
+  periódicas y del respaldo;
   obtener las claves de IA y SMTP de sus proveedores.
 - Verificar el remitente y configurar Brevo SMTP con STARTTLS en el puerto 2525.
 - Publicar la consola en Vercel con raíz `SuperaPAES/consola`, establecer `VITE_API_URL` y ajustar
   `URL_CONSOLA` y `CORS_ORIGENES` en Render.
-- Crear los secretos `DATABASE_URL` y `CLAVE_RESPALDO` de GitHub Actions, ejecutar el primer respaldo
-  manual, activar `RESPALDO_ACTIVO` y comprobar la etiqueta `incidente`.
-- Verificar salud, ingreso del administrador y registro con correo real. Dejar la comprobación de
-  generación de preguntas pendiente hasta que exista la ruta del generador.
+- Crear los secretos `DATABASE_URL`, `CLAVE_RESPALDO`, `API_URL` y `CLAVE_TAREAS` de GitHub Actions;
+  `CLAVE_TAREAS` debe coincidir con Render. Ejecutar a mano el respaldo y «Tareas periódicas»,
+  activar `RESPALDO_ACTIVO` tras comprobar el respaldo y verificar la etiqueta `incidente`.
+- Verificar salud, ingreso del administrador, registro con correo real y ejecución efectiva de
+  «Tareas periódicas». Dejar la comprobación de generación de preguntas pendiente hasta que exista
+  la ruta del generador.
 
 ## Relación con el DAS 4.5.5 (v1.20)
 
@@ -42,7 +45,8 @@ pendientes.
 
 ## Verificación de este PR
 
-- Los nombres de las 28 variables se contrastaron con `leerConfiguracion()` en `origin/main` y
-  `feat/conexion-ia`; `GEMINI_MODELO` es la única que depende de integrar la rama IA.
+- Los nombres de las 29 variables se contrastaron con `leerConfiguracion()` en `origin/main` y
+  `feat/conexion-ia`: antes de integrar, `CLAVE_TAREAS` está en `main` y `GEMINI_MODELO` está en la
+  rama IA. La configuración de 29 exige conservar ambos.
 - Se revisaron los comandos reales de npm, la exclusión de la semilla legal, los workflows y el DAS
   4.5.5. El archivo Markdown pasa Prettier y `git diff --check`.

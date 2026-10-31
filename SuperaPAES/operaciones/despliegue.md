@@ -43,7 +43,7 @@ La integración debe conservar los flujos de respaldo y tareas periódicas de `m
    Si el administrador ya existe, el comando no crea otro. Para restablecer su contraseña existe
    `npm run crear-admin:produccion -w api -- --restablecer`.
 
-## 2. Render: API y 28 variables
+## 2. Render: API y 29 variables
 
 Crear un **Web Service** Node con raíz `SuperaPAES`, Node 24 (archivo `.nvmrc`) y plan **Free**.
 Conectar la rama que ya tenga la integración de IA. Configurar:
@@ -63,27 +63,32 @@ de un minuto. Ese primer arranque tarda más porque vuelve a ejecutar las migrac
 local es efímero y el plan tiene límites mensuales de uso; conservar los datos en Neon. Consultar
 los [límites actuales del plan Free](https://render.com/docs/free) antes de una demostración.
 
-En **Environment**, cargar estas **28 variables**, incluido `NODE_ENV=production` explícitamente.
+En **Environment**, cargar estas **29 variables**, incluido `NODE_ENV=production` explícitamente.
 `PORT` lo proporciona [Render al servicio Node](https://render.com/docs/environment-variables) y
 no se fija manualmente. `SMTP_TIMEOUT_MS` es opcional y aquí usa el valor predeterminado.
 
 | Grupo                    |                                                                                                                                                                                                            Variables (cantidad) | Qué cargar                                                                                                                                                        |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base, consola y secretos |                                                                                 `NODE_ENV`, `DATABASE_URL`, `DATABASE_SSL`, `CORS_ORIGENES`, `URL_CONSOLA`, `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP`, `CLAVE_CODIGO_CORREO` (8) | `NODE_ENV=production`; conexión de Neon; `DATABASE_SSL=true`; origen HTTPS de Vercel en las dos variables de consola; tres secretos distintos.                    |
+| Base, consola y secretos |                                                                 `NODE_ENV`, `DATABASE_URL`, `DATABASE_SSL`, `CORS_ORIGENES`, `URL_CONSOLA`, `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP`, `CLAVE_CODIGO_CORREO`, `CLAVE_TAREAS` (9) | `NODE_ENV=production`; conexión de Neon; `DATABASE_SSL=true`; origen HTTPS de Vercel en las dos variables de consola; cuatro secretos distintos.                  |
 | IA                       |                                                                                                                                                       `PROVEEDOR_IA`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GEMINI_MODELO` (4) | `PROVEEDOR_IA=deepseek`; claves emitidas por cada proveedor; modelo de Gemini elegido para el respaldo. `GEMINI_API_KEY` activa el respaldo de la rama integrada. |
 | Correo                   |                                                                                                                  `PROVEEDOR_CORREO`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CLAVE`, `CORREO_REMITENTE` (7) | Configuración de Brevo descrita en la sección 3.                                                                                                                  |
 | Tiendas                  | `PROVEEDOR_PAGOS`, `GOOGLE_PLAY_PAQUETE`, `GOOGLE_PLAY_CUENTA_SERVICIO`, `GOOGLE_PLAY_PUBSUB_AUDIENCIA`, `APP_STORE_BUNDLE_ID`, `APP_STORE_ID_EMISOR`, `APP_STORE_ID_CLAVE`, `APP_STORE_CLAVE_PRIVADA`, `APP_STORE_ENTORNO` (9) | `PROVEEDOR_PAGOS=tiendas`; texto de relleno claramente marcado en las siete variables de texto; `APP_STORE_ENTORNO=sandbox`.                                      |
 
-Para cada uno de `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP` y `CLAVE_CODIGO_CORREO`, ejecutar **por
+`leerConfiguracion()` de `main` permite omitir `CLAVE_TAREAS` incluso en producción, pero el flujo
+horario la necesita. Si falta o está vacía, `POST /api/v1/tareas/periodicas` no se monta y responde
+404 `NO_ENCONTRADO` («La ruta solicitada no existe.»). Si se carga, exige al menos 32 caracteres y
+que sea distinta de los dos secretos JWT y `CLAVE_CODIGO_CORREO`.
+
+Para cada uno de `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP`, `CLAVE_CODIGO_CORREO` y `CLAVE_TAREAS`, ejecutar **por
 separado** este comando en una terminal privada y guardar cada resultado directamente en Render:
 
 ```powershell
 node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"
 ```
 
-Cada resultado supera 32 caracteres. Generar los tres de manera independiente y comprobar que
+Cada resultado supera 32 caracteres. Generar los cuatro de manera independiente y comprobar que
 sean distintos entre sí. `CLAVE_RESPALDO` se genera igual, por separado, para GitHub y el gestor de
-contraseñas del equipo; también debe ser distinta de las otras tres. Las claves de DeepSeek, Gemini
+contraseñas del equipo; también debe ser distinta de las otras cuatro. Las claves de DeepSeek, Gemini
 y Brevo las entrega cada proveedor: no sustituirlas por cadenas generadas localmente.
 
 **Tiendas en este primer despliegue:** poner un marcador inequívoco, por ejemplo
@@ -118,8 +123,10 @@ volver a desplegar la API; la consola necesita CORS para llamar a la API desde e
 ## 5. GitHub: respaldo y bitácora
 
 En **Settings, luego Secrets and variables, luego Actions, luego Secrets**, crear `DATABASE_URL` con la conexión
-**directa, sin pooling**, de Neon y `CLAVE_RESPALDO` con una cuarta clave aleatoria generada como en
+**directa, sin pooling**, de Neon y `CLAVE_RESPALDO` con una clave aleatoria adicional generada como en
 la sección 2. Guardar esa clave también fuera de GitHub: sin ella no se pueden abrir los respaldos.
+Crear además `API_URL` con la URL HTTPS pública de la API en Render, sin barra final, y
+`CLAVE_TAREAS` con **exactamente el mismo valor** que se cargó en Render.
 En **Variables**, crear `RESPALDO_ACTIVO=true` solo después de que un respaldo manual termine bien.
 La ejecución programada consulta esta variable; la manual se puede ejecutar sin ella.
 
@@ -130,14 +137,20 @@ flujo terminó bien y publicó el artefacto cifrado; después activar `RESPALDO_
 debe seguir presente tras integrar la rama IA. El procedimiento de recuperación está en
 [`operaciones/contingencia.md`](contingencia.md).
 
+Probar también el flujo horario en **Actions, luego Tareas periódicas, luego Run workflow**. Abrir
+la ejecución y comprobar que el paso «Llamar a la API» llamó a la ruta y terminó bien. Si faltan
+`API_URL` o `CLAVE_TAREAS`, el flujo termina sin error pero deja un aviso y **no llama** a la API;
+esa ejecución no cuenta como prueba satisfactoria.
+
 ## 6. Verificación posterior al despliegue
 
-| Paso                              | Resultado esperado                                                                                                       | Si falla, revisar                                                                                                                                                                                                                                                                                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Salud                             | `GET https://<api>/api/v1/salud/vivo` responde 200. Consultar también `/api/v1/salud` para comprobar Neon.               | Estado y logs de Render; posible despertar del plan Free; `DATABASE_URL`, TLS y migraciones si falla la ruta que consulta la base.                                                                                                                                                                                         |
-| Ingreso del administrador         | Entrar desde la consola publicada con la cuenta creada en Neon.                                                          | `VITE_API_URL`, `URL_CONSOLA`, `CORS_ORIGENES`, logs de Render, cuenta activa y secretos JWT.                                                                                                                                                                                                                              |
-| Registro con correo real          | Registrar una cuenta de prueba con una dirección real y recibir el correo de verificación.                               | Logs y estado del envío en Brevo; remitente verificado; `SMTP_HOST`, puerto, STARTTLS, login y clave; enlace construido con `URL_CONSOLA`.                                                                                                                                                                                 |
-| Generación de una pregunta con IA | Cuando el módulo Generador exponga la acción, pedir un lote pequeño y comprobar que aparece una propuesta para revisión. | Estado del lote, logs de Render, saldo y respuesta de DeepSeek; si DeepSeek responde sin saldo, comprobar clave y modelo de Gemini. **Hoy este paso no puede aprobarse:** la pantalla Generador IA y su ruta API siguen sin implementar incluso en `feat/conexion-ia`; la integración actual solo conecta los adaptadores. |
+| Paso                              | Resultado esperado                                                                                                          | Si falla, revisar                                                                                                                                                                                                                                                                                                          |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Salud                             | `GET https://<api>/api/v1/salud/vivo` responde 200. Consultar también `/api/v1/salud` para comprobar Neon.                  | Estado y logs de Render; posible despertar del plan Free; `DATABASE_URL`, TLS y migraciones si falla la ruta que consulta la base.                                                                                                                                                                                         |
+| Ingreso del administrador         | Entrar desde la consola publicada con la cuenta creada en Neon.                                                             | `VITE_API_URL`, `URL_CONSOLA`, `CORS_ORIGENES`, logs de Render, cuenta activa y secretos JWT.                                                                                                                                                                                                                              |
+| Registro con correo real          | Registrar una cuenta de prueba con una dirección real y recibir el correo de verificación.                                  | Logs y estado del envío en Brevo; remitente verificado; `SMTP_HOST`, puerto, STARTTLS, login y clave; enlace construido con `URL_CONSOLA`.                                                                                                                                                                                 |
+| Tareas periódicas                 | Tras el despliegue, ejecutar a mano «Tareas periódicas» en GitHub Actions y comprobar que la llamada a la API termina bien. | Los secretos `API_URL` y `CLAVE_TAREAS` de GitHub, el mismo valor de `CLAVE_TAREAS` en Render, el aviso de omisión del flujo y los logs de Render.                                                                                                                                                                         |
+| Generación de una pregunta con IA | Cuando el módulo Generador exponga la acción, pedir un lote pequeño y comprobar que aparece una propuesta para revisión.    | Estado del lote, logs de Render, saldo y respuesta de DeepSeek; si DeepSeek responde sin saldo, comprobar clave y modelo de Gemini. **Hoy este paso no puede aprobarse:** la pantalla Generador IA y su ruta API siguen sin implementar incluso en `feat/conexion-ia`; la integración actual solo conecta los adaptadores. |
 
 Si una comprobación revela una falla de la versión publicada, abrir un incidente y seguir
 [`operaciones/contingencia.md`](contingencia.md). No marcar como verificado un paso que el código
