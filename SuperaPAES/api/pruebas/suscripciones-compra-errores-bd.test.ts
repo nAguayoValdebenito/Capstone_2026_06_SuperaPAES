@@ -130,26 +130,31 @@ describe.skipIf(!urlBase)('compras rechazadas con PostgreSQL (HU-43.1)', () => {
     expect(await c.pagos(beto.id)).toHaveLength(respuestaBeto.status === 200 ? 1 : 0);
   });
 
-  it('la validación vuelve a leer la suscripción bloqueada: si se canceló mientras esperaba, 409', async () => {
-    const { token, id, cuentaTienda } = await conPendiente();
-    tienda.verificar.mockResolvedValue(compraActiva({ cuentaTienda }));
-    // Otra transacción cancela la suscripción (la tiene bloqueada) mientras la validación empieza.
+  /**
+   * Otra transacción cambia la suscripción y la retiene sin confirmar; la validación (que ya consultó la
+   * tienda) queda esperando la fila, y recién entonces se confirma el cambio. `cambio` es SQL fijo.
+   */
+  async function validarConFilaRetenida(token: string, id: number, cambio: string) {
     await entorno.bd.query('BEGIN');
-    let pedido: Promise<{ status: number; body: unknown }>;
+    let pedido: Promise<{ status: number; body: { data: { estado: string } } }>;
     try {
-      await entorno.bd.query(
-        `UPDATE app.suscripcion
-            SET estado_suscripcion_id = (SELECT id FROM contenido.estado_suscripcion WHERE codigo = 'cancelada')
-          WHERE id = $1`,
-        [id],
-      );
+      await entorno.bd.query(`UPDATE app.suscripcion SET ${cambio} WHERE id = $1`, [id]);
       pedido = c.validar(token, id, { idCompraTienda: 'token-compra-1' }).then((r) => r);
       await esperarBloqueo();
     } finally {
       await entorno.bd.query('COMMIT');
     }
+    return pedido;
+  }
 
-    const respuesta = await pedido;
+  const ESTADO = (codigo: string) =>
+    `estado_suscripcion_id = (SELECT id FROM contenido.estado_suscripcion WHERE codigo = '${codigo}')`;
+
+  it('la validación vuelve a leer la suscripción bloqueada: si se canceló mientras esperaba, 409', async () => {
+    const { token, id, cuentaTienda } = await conPendiente();
+    tienda.verificar.mockResolvedValue(compraActiva({ cuentaTienda }));
+
+    const respuesta = await validarConFilaRetenida(token, id, ESTADO('cancelada'));
 
     expect(respuesta.status).toBe(409);
     expect(respuesta.body).toEqual(errorConFormato('CONFLICTO'));
@@ -161,24 +166,12 @@ describe.skipIf(!urlBase)('compras rechazadas con PostgreSQL (HU-43.1)', () => {
   it('si otra validación de la misma compra la activa mientras espera, devuelve el estado actual', async () => {
     const { token, id, cuentaTienda } = await conPendiente();
     tienda.verificar.mockResolvedValue(compraActiva({ cuentaTienda }));
-    // La otra validación ya activó la suscripción (tiene la fila bloqueada) y todavía no confirma.
-    await entorno.bd.query('BEGIN');
-    let pedido: Promise<{ status: number; body: { data: { estado: string } } }>;
-    try {
-      await entorno.bd.query(
-        `UPDATE app.suscripcion
-            SET estado_suscripcion_id = (SELECT id FROM contenido.estado_suscripcion WHERE codigo = 'activa'),
-                id_compra_tienda = 'token-compra-1', inicio = now()
-          WHERE id = $1`,
-        [id],
-      );
-      pedido = c.validar(token, id, { idCompraTienda: 'token-compra-1' }).then((r) => r);
-      await esperarBloqueo();
-    } finally {
-      await entorno.bd.query('COMMIT');
-    }
 
-    const respuesta = await pedido;
+    const respuesta = await validarConFilaRetenida(
+      token,
+      id,
+      `${ESTADO('activa')}, id_compra_tienda = 'token-compra-1', inicio = now()`,
+    );
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body.data.estado).toBe('activa');
