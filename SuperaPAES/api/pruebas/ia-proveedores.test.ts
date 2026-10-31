@@ -222,3 +222,33 @@ it('DeepSeek vuelve a leer el modelo en cada solicitud sin valores fijos en el c
     ),
   ).toEqual(['modelo-uno', 'modelo-dos']);
 });
+
+// Medido con 20 llamadas reales por variante (sin reintentos): sin esquema, 6 respuestas fallidas de 20
+// (5 JSON rotos y 1 de forma inválida); con responseJsonSchema, 0 de 20. Solo Gemini: no se probó con DeepSeek.
+describe('Gemini: salida estructurada', () => {
+  it('envía el JSON Schema de las preguntas en responseJsonSchema', async () => {
+    fetchFalso.mockResolvedValue(Response.json(sobreGemini()));
+    await proveedorReal('gemini').generarPreguntas(solicitudIa);
+    const [, opciones] = fetchFalso.mock.calls[0] ?? [];
+    const cuerpo = JSON.parse(opciones?.body as string) as {
+      generationConfig: { responseMimeType: string; responseJsonSchema: Record<string, unknown> };
+    };
+    const { responseMimeType, responseJsonSchema } = cuerpo.generationConfig;
+    expect(responseMimeType).toBe('application/json');
+    expect(responseJsonSchema).toMatchObject({
+      type: 'object',
+      required: ['preguntas'],
+      properties: { preguntas: { type: 'array' } },
+    });
+    // La letra de cada alternativa queda limitada a A-E (RN-08) desde el esquema.
+    expect(JSON.stringify(responseJsonSchema)).toContain('"enum":["A","B","C","D","E"]');
+  });
+
+  it('DeepSeek no recibe un esquema en la petición', async () => {
+    fetchFalso.mockResolvedValue(Response.json(sobreDeepSeek()));
+    await proveedorReal('deepseek').generarPreguntas(solicitudIa);
+    const [, opciones] = fetchFalso.mock.calls[0] ?? [];
+    expect(opciones?.body as string).not.toContain('responseJsonSchema');
+    expect(opciones?.body as string).not.toContain('json_schema');
+  });
+});

@@ -1,4 +1,5 @@
-// Gemini por REST; la clave viaja en una cabecera y el modelo procede del entorno.
+// Gemini por REST; la clave viaja en una cabecera y el modelo procede del entorno. Con salida estructurada
+// (responseJsonSchema): sin el esquema, 6 de 20 respuestas medidas llegaron rotas; con él, 0 de 20 (HU-16.1).
 import { z } from 'zod';
 import { ErrorIARespuestaInvalida } from '../../comun/errores.js';
 import { crearPresupuestoIA, LIMITES_IA, solicitarIA, type PresupuestoIA } from './http.js';
@@ -6,6 +7,7 @@ import type { ProveedorIA, ResultadoGeneracion, SolicitudGeneracion } from './pr
 import {
   conUsoTokens,
   cuentaTokens,
+  ESQUEMA_JSON_IA,
   exigirModelo,
   FORMATO_JSON_IA,
   leerPreguntas,
@@ -37,6 +39,13 @@ const esquemaSobre = z.object({
     .optional(),
 });
 
+/** JSON válido por construcción: el modelo responde con el esquema de las preguntas. */
+const CONFIGURACION_GENERACION = {
+  maxOutputTokens: LIMITES_IA.maxTokens,
+  responseMimeType: 'application/json',
+  responseJsonSchema: ESQUEMA_JSON_IA,
+} as const;
+
 interface OpcionesGemini {
   claveApi: string;
   modelo: string;
@@ -64,10 +73,7 @@ export class ProveedorIAGemini implements ProveedorIA {
         cuerpo: {
           contents: [{ role: 'user', parts: [{ text: solicitud.instruccion }] }],
           systemInstruction: { parts: [{ text: FORMATO_JSON_IA }] },
-          generationConfig: {
-            maxOutputTokens: LIMITES_IA.maxTokens,
-            responseMimeType: 'application/json',
-          },
+          generationConfig: CONFIGURACION_GENERACION,
         },
         interpretar: (datos) => {
           const sobre = leerSobre(esquemaSobre, datos);

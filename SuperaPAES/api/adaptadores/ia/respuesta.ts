@@ -23,7 +23,8 @@ const esquemaPreguntas = z.object({
 });
 
 // Solo formato, sin temario, ejemplos aprobados, cantidades ni criterios pedagógicos.
-export const FORMATO_JSON_IA = `Devuelve exclusivamente un objeto JSON con el siguiente esquema: ${JSON.stringify(z.toJSONSchema(esquemaPreguntas))}`;
+export const ESQUEMA_JSON_IA = z.toJSONSchema(esquemaPreguntas);
+export const FORMATO_JSON_IA = `Devuelve exclusivamente un objeto JSON con el siguiente esquema: ${JSON.stringify(ESQUEMA_JSON_IA)}`;
 export const cuentaTokens = z.number().int().nonnegative().optional();
 
 export function leerSobre<T>(esquema: z.ZodType<T>, datos: unknown): T {
