@@ -214,6 +214,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A35      | Progreso                                 | `35:1532` | `progreso/` (sin «Historial», que llega con HU-62) |
 | A36      | Progreso de una prueba sin respuestas    | `35:1664` | `progreso/pantalla_progreso.dart`      |
 | A37      | Perfil                                   | `35:1721` | `perfil/` (ya sigue el boceto)         |
+| A38      | Invitar                                  | por anotar | `invitaciones/` (link, código, compartir, registrados y verificados; las preguntas ganadas, el saldo y el tope del mes llegan con HU-47.2) |
 | A39      | Mis datos y privacidad                   | por anotar | `mis_datos/` (descarga, puntajes y «Borrar mi cuenta»; sin «Solicitudes sobre mis datos» ni los términos aceptados, que llegan con HU-09) |
 | A41      | Puntajes PAES                            | `36:1574` | `puntajes/` (el interruptor del permiso abre una hoja con el permiso completo) |
 | A42      | Borrar mi cuenta                         | por anotar | `mis_datos/pantalla_borrar_cuenta.dart` |
@@ -222,9 +223,13 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 Las demás pantallas están en la misma página, con el código del DAS en el nombre (A07, A13…).
 Agrega su fila aquí cuando las construyas.
 
-## La A05 en la consola
+## La A05 y la página de invitación en la consola
 
 La A05 se abre desde el correo en el navegador del teléfono, así que sigue este mismo sistema y no
 el de la consola de escritorio. Sus estilos están en
 `consola/src/paginas/restablecer-contrasena/restablecer-contrasena.css` (clases `restablecer__…`,
 con los mismos valores de esta guía). No los mezcles con `global.css`.
+
+La página de invitación (W01 en el teléfono y W02 en el computador, `/invitar/<código>`) sigue el
+mismo criterio: `consola/src/paginas/invitar/invitar.css` (clases `invitar__…`), una sola columna
+centrada que sirve para los dos tamaños.
