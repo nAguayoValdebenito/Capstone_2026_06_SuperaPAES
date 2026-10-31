@@ -69,10 +69,54 @@ const alternativa = z.strictObject({
 });
 
 /**
+ * Dirección de la imagen de un texto (tablas, gráficos): https://… o una ruta relativa que la app pide a
+ * la API. Sin «:» fuera de http(s), así no pasa javascript: ni data:. Subir archivos no es de HU-12.
+ */
+const DIRECCION_IMAGEN = /^(https?:\/\/[^\s<>"']+|[\w.~/-]+)$/;
+
+/**
+ * HU-12.2: texto de lectura (contenido.texto_estimulo). El tipo va por su código; el contenido es
+ * Markdown con fórmulas en LaTeX, como la pregunta. Lleva su contenido, su imagen o ambos.
+ */
+export const esquemaTexto = z
+  .strictObject({
+    tipoTexto: codigoDeLista,
+    titulo: textoObligatorio('Escribe el título del texto.').max(
+      200,
+      'El título puede tener hasta 200 caracteres.',
+    ),
+    contenido: z
+      .string()
+      .trim()
+      .transform((valor) => valor || null)
+      .nullable()
+      .default(null),
+    imagenUrl: z
+      .string()
+      .trim()
+      .max(300, 'La dirección de la imagen puede tener hasta 300 caracteres.')
+      .regex(DIRECCION_IMAGEN, 'La dirección de la imagen no es válida.')
+      .nullable()
+      .default(null),
+  })
+  .refine((texto) => texto.contenido !== null || texto.imagenUrl !== null, {
+    message: 'Escribe el texto o indica la dirección de su imagen.',
+    path: ['contenido'],
+  });
+
+/** Lista de textos de lectura: búsqueda simple por título, de a páginas como el banco. */
+export const esquemaConsultaTextos = z.strictObject({
+  buscar: z.string().trim().max(100, 'La búsqueda puede tener hasta 100 caracteres.').optional(),
+  pagina: numeroDePagina(1, 100_000),
+  porPagina: numeroDePagina(POR_PAGINA_BANCO, MAXIMO_POR_PAGINA_BANCO),
+});
+
+/**
  * HU-12, RF-G02 y C03: datos de una pregunta al crearla o editarla. El tipo de pregunta y la dificultad
- * sugerida van por su código. El texto de lectura (texto_estimulo) y el orden de la pregunta en él van
- * juntos, como exige el modelo. RN-08 (cuántas alternativas, una correcta y el texto en Competencia
- * Lectora) depende de la prueba: lo revisa el servicio.
+ * sugerida van por su código. El texto de lectura es uno guardado (textoEstimuloId) o uno nuevo que se
+ * crea en la misma transacción (textoNuevo, HU-12.2), y va siempre con el orden de la pregunta en él,
+ * como exige el modelo. RN-08 (cuántas alternativas, una correcta y el texto en Competencia Lectora)
+ * depende de la prueba: lo revisa el servicio.
  */
 export const esquemaPregunta = z
   .strictObject({
@@ -84,15 +128,29 @@ export const esquemaPregunta = z
     enunciado: textoObligatorio('Escribe el enunciado.'),
     explicacion: textoObligatorio('Escribe la explicación de la respuesta correcta.'),
     textoEstimuloId: idDeCuerpo.nullable().default(null),
+    textoNuevo: esquemaTexto.nullable().default(null),
     ordenEnTexto: z.int().positive().max(32_767).nullable().default(null),
     alternativas: z.array(alternativa).min(1, 'Agrega las alternativas.').max(LETRAS.length),
   })
-  .refine((datos) => (datos.textoEstimuloId === null) === (datos.ordenEnTexto === null), {
-    message: 'Indica el texto de lectura y el orden de la pregunta en él.',
-    path: ['ordenEnTexto'],
-  });
+  .refine((datos) => datos.textoEstimuloId === null || datos.textoNuevo === null, {
+    message: 'Elige un texto guardado o escribe uno nuevo, no ambos.',
+    path: ['textoNuevo'],
+  })
+  .refine(
+    (datos) =>
+      (datos.textoEstimuloId === null && datos.textoNuevo === null) ===
+      (datos.ordenEnTexto === null),
+    {
+      message: 'Indica el texto de lectura y el orden de la pregunta en él.',
+      path: ['ordenEnTexto'],
+    },
+  );
 
 export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
 
+export const esquemaIdTexto = z.strictObject({ id: idDeRuta });
+
 export type DatosPregunta = z.output<typeof esquemaPregunta>;
+export type DatosTexto = z.output<typeof esquemaTexto>;
+export type ConsultaTextos = z.output<typeof esquemaConsultaTextos>;
 export type AlternativaPregunta = DatosPregunta['alternativas'][number];

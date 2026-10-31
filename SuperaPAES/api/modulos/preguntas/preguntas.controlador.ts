@@ -4,7 +4,12 @@ import type { Request, RequestHandler } from 'express';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
-import type { DatosPregunta, FiltrosBanco } from './preguntas.validadores.js';
+import type {
+  ConsultaTextos,
+  DatosPregunta,
+  DatosTexto,
+  FiltrosBanco,
+} from './preguntas.validadores.js';
 
 /** Manejador cuyo cuerpo y parámetros ya fueron validados y tipados por validar() en la ruta. */
 type Validado<C = unknown> = RequestHandler<Record<string, string>, unknown, C>;
@@ -15,6 +20,11 @@ export interface PreguntasControlador {
   crearPregunta: Validado<DatosPregunta>;
   obtenerPregunta: Validado;
   editarPregunta: Validado<DatosPregunta>;
+  listarTextos: RequestHandler;
+  obtenerTexto: Validado;
+  crearTexto: Validado<DatosTexto>;
+  editarTexto: Validado<DatosTexto>;
+  tiposDeTexto: RequestHandler;
 }
 
 /** Administrador que crea o edita: autor de la pregunta y de la auditoría. Lo deja autenticarAdmin. */
@@ -42,6 +52,24 @@ export function crearPreguntasControlador(servicio: PreguntasServicio): Pregunta
     },
     editarPregunta: async (req, res) => {
       responder(res, await servicio.editarPregunta(autorDe(req), String(req.params.id), req.body));
+    },
+    listarTextos: async (_req, res) => {
+      const { textos, paginacion } = await servicio.listarTextos(
+        res.locals.consulta as ConsultaTextos,
+      );
+      responder(res, textos, { meta: paginacion });
+    },
+    obtenerTexto: async (req, res) => {
+      responder(res, await servicio.obtenerTexto(String(req.params.id)));
+    },
+    crearTexto: async (req, res) => {
+      responder(res, await servicio.crearTexto(autorDe(req), req.body), { estado: 201 });
+    },
+    editarTexto: async (req, res) => {
+      responder(res, await servicio.editarTexto(autorDe(req), String(req.params.id), req.body));
+    },
+    tiposDeTexto: async (_req, res) => {
+      responder(res, await servicio.tiposDeTexto());
     },
   };
 }

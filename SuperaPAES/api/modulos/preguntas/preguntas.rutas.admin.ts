@@ -6,13 +6,45 @@
 import { Router } from 'express';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
-import { crearPreguntasControlador } from './preguntas.controlador.js';
+import { crearPreguntasControlador, type PreguntasControlador } from './preguntas.controlador.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
 import {
+  esquemaConsultaTextos,
   esquemaFiltrosBanco,
   esquemaIdPregunta,
+  esquemaIdTexto,
   esquemaPregunta,
+  esquemaTexto,
 } from './preguntas.validadores.js';
+
+/** Textos de lectura (C03, HU-12.2). Van antes de /:id, para que «textos» no se lea como una pregunta. */
+function agregarRutasTextos(router: Router, controlador: PreguntasControlador): void {
+  router.get(
+    '/textos',
+    exigirRol('admin'),
+    validar({ consulta: esquemaConsultaTextos }),
+    controlador.listarTextos,
+  );
+  router.get('/textos/tipos', exigirRol('admin'), controlador.tiposDeTexto);
+  router.get(
+    '/textos/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdTexto }),
+    controlador.obtenerTexto,
+  );
+  router.post(
+    '/textos',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaTexto }),
+    controlador.crearTexto,
+  );
+  router.put(
+    '/textos/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdTexto, cuerpo: esquemaTexto }),
+    controlador.editarTexto,
+  );
+}
 
 export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   const router = Router();
@@ -26,6 +58,8 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
     controlador.listarBanco,
   );
   router.get('/filtros', exigirRol('admin'), controlador.filtrosDelBanco);
+
+  agregarRutasTextos(router, controlador);
 
   // Crear y editar preguntas (C03, HU-12.1, RF-G02, RF-G09): la consola del administrador recibe la
   // pregunta completa, con la alternativa correcta.
