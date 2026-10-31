@@ -57,20 +57,26 @@ jobs:
       - name: Formato (Prettier)
         run: npx prettier --check .
       - run: npm run lint -w api
-      # Mismo procedimiento que en un equipo del equipo: crear la base de pruebas (aquí la crea el
-      # contenedor) y migrarla con npm run migrar -w api.
-      - name: Migrar la base de pruebas
-        run: npm run migrar -w api
-      - run: npm run test -w api
-      - run: npm run build -w api
-      # Pruebas del modelo de datos: siempre, con psql 18 del repositorio oficial de PostgreSQL. Si falta
-      # api/db/pruebas/modelo_bd.sql o falla un caso, probar:bd termina con error y el flujo falla.
-      - name: psql 18
+      # Cliente de PostgreSQL 18 del repositorio oficial, antes de las pruebas: las de contingencia
+      # (TEC-08) usan pg_dump y pg_restore (y gpg, que ya trae el runner), y probar:bd usa psql.
+      - name: Cliente de PostgreSQL 18
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-18
+      # Mismo procedimiento que en un equipo del equipo: crear la base de pruebas (aquí la crea el
+      # contenedor) y migrarla con npm run migrar -w api.
+      - name: Migrar la base de pruebas
+        run: npm run migrar -w api
+      - name: Pruebas de la API
+        env:
+          PG_DUMP: /usr/lib/postgresql/18/bin/pg_dump
+          PG_RESTORE: /usr/lib/postgresql/18/bin/pg_restore
+        run: npm run test -w api
+      - run: npm run build -w api
+      # Pruebas del modelo de datos: siempre. Si falta api/db/pruebas/modelo_bd.sql o falla un caso,
+      # probar:bd termina con error y el flujo falla.
       - name: Pruebas del modelo de datos
         env:
           PSQL: /usr/lib/postgresql/18/bin/psql
