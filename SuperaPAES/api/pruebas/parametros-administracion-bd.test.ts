@@ -40,4 +40,26 @@ describe.skipIf(!urlBase)('parámetros de texto con PostgreSQL', () => {
   it('no sustituye una clave ausente por un modelo por defecto', async () => {
     await expect(servicio.obtenerParametroTexto('no_existe')).rejects.toThrow();
   });
+
+  it('lee un número decimal sin redondearlo', async () => {
+    await base.bd.query(
+      "UPDATE contenido.configuracion SET valor = '0.54'::jsonb WHERE clave = 'precio_entrada_ia_gemini'",
+    );
+    expect(await servicio.obtenerParametroNumero('precio_entrada_ia_gemini')).toBe(0.54);
+  });
+
+  it.each(['"0.5"', 'null', 'true', '{}', '[1]'])(
+    'rechaza un valor que no es un número: %s',
+    async (valor) => {
+      await base.bd.query(
+        "UPDATE contenido.configuracion SET valor = $1::jsonb WHERE clave = 'precio_salida_ia_gemini'",
+        [valor],
+      );
+      await expect(servicio.obtenerParametroNumero('precio_salida_ia_gemini')).rejects.toThrow();
+    },
+  );
+
+  it('no inventa un número para una clave ausente', async () => {
+    await expect(servicio.obtenerParametroNumero('no_existe')).rejects.toThrow();
+  });
 });
