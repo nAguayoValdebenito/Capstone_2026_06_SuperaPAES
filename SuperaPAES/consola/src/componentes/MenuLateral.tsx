@@ -26,7 +26,8 @@ export function MenuLateral() {
         <ul>
           {visibles.map((s) => (
             <li key={s.ruta}>
-              <NavLink to={s.ruta} end className="menu__enlace">
+              {/* Sin `end`: /banco/nueva y /banco/:id (C03) también marcan el banco. */}
+              <NavLink to={s.ruta} className="menu__enlace">
                 {s.titulo}
               </NavLink>
             </li>

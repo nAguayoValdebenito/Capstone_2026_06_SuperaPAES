@@ -1,6 +1,7 @@
 // C02 · Banco de preguntas (HU-11, RF-G01): filtros por prueba, eje, contenido, habilidad, estado, origen
 // y dificultad asignada; tabla con el estado de cada pregunta; de a páginas. La lógica está en
 // src/estado/banco.ts. Las acciones de la tabla y la publicación de varias llegan con sus historias.
+import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
 import { type CargaBanco, totalDePaginas, useBanco } from '../../estado/banco';
 import { FiltrosBanco } from './FiltrosBanco';
@@ -44,10 +45,20 @@ export function PaginaBanco() {
 
   return (
     <section className="pagina pagina--ancha">
-      <h1>Banco de preguntas</h1>
-      <p className="pagina__aviso">
-        Preguntas de todas las pruebas, con su estado. Filtra para encontrar las que debes trabajar.
-      </p>
+      <header className="pagina__encabezado">
+        <div>
+          <h1>Banco de preguntas</h1>
+          <p className="pagina__aviso">
+            Preguntas de todas las pruebas, con su estado. Filtra para encontrar las que debes
+            trabajar.
+          </p>
+        </div>
+        <div className="pagina__acciones">
+          <Link className="boton boton--primario" to="/banco/nueva">
+            Nueva pregunta
+          </Link>
+        </div>
+      </header>
       {opciones.tipo === 'lista' && (
         <FiltrosBanco
           opciones={opciones.opciones}
