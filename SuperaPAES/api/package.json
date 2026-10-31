@@ -11,6 +11,7 @@
     "dev": "tsx watch --env-file-if-exists=.env servidor.ts",
     "migrar": "tsx --env-file-if-exists=.env db/scripts/migrar.ts",
     "semillas": "tsx --env-file-if-exists=.env db/scripts/semillas.ts",
+    "semilla-demo": "tsx --env-file-if-exists=.env db/scripts/semilla-demo.ts",
     "probar:bd": "tsx --env-file-if-exists=.env db/scripts/probar-bd.ts",
     "crear-admin": "tsx --env-file-if-exists=.env db/scripts/crear-admin.ts",
     "respaldar": "tsx --env-file-if-exists=.env db/scripts/respaldar.ts",
