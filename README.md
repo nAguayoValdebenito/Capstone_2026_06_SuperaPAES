@@ -277,6 +277,7 @@ Nunca se suben valores reales al repositorio. Solo se versionan los archivos `.e
 | Variable | Para qué sirve |
 |---|---|
 | `VITE_API_URL` | Dirección de la API |
+| `VITE_ENLACE_GOOGLE_PLAY`, `VITE_ENLACE_APP_STORE` | Opcionales. Botones de la página de invitación (`/invitar/<código>`): durante la prueba cerrada, el enlace de inscripción de Google Play y el enlace público de TestFlight. Vacíos, la página dice «Pronto en» |
 
 ## Pruebas e integración continua
 

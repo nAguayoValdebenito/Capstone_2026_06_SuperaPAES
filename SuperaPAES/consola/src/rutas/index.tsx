@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { DisenoGeneral } from '../componentes/DisenoGeneral';
 import { useSesion } from '../estado/contexto-sesion';
 import { PaginaIngreso } from '../paginas/ingreso/PaginaIngreso';
+import { PaginaInvitar } from '../paginas/invitar/PaginaInvitar';
 import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada';
 import { PaginaRestablecerContrasena } from '../paginas/restablecer-contrasena/PaginaRestablecerContrasena';
 import { RutaProtegida } from './RutaProtegida';
@@ -19,6 +20,8 @@ export function RutasConsola() {
       <Route path="/ingreso" element={<PaginaIngreso />} />
       {/* Pública: la abre el estudiante con el enlace del correo de recuperación (A05, HU-06). */}
       <Route path="/restablecer-contrasena" element={<PaginaRestablecerContrasena />} />
+      {/* Pública: la abre el link de invitación que comparte el estudiante (W01 y W02, HU-46). */}
+      <Route path="/invitar/:codigo" element={<PaginaInvitar />} />
       <Route path="/" element={<RedirigirAlInicio />} />
       <Route element={<DisenoGeneral />}>
         {SECCIONES.map(({ ruta, roles, Pagina }) => (
