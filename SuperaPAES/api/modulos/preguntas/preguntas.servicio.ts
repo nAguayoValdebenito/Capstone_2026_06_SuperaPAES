@@ -18,6 +18,11 @@ import {
   type Opcion,
   type PreguntasRepositorio,
 } from './preguntas.repositorio.js';
+import {
+  crearPreguntasTextosRepositorio,
+  type PreguntasTextosRepositorio,
+} from './preguntas.textos.repositorio.js';
+import { crearTextosDeLectura, type TextosDeLectura } from './preguntas.textos.servicio.js';
 import type { FiltrosBanco, OrigenPregunta } from './preguntas.validadores.js';
 
 export interface DependenciasPreguntasServicio {
@@ -30,7 +35,12 @@ export interface DependenciasPreguntasServicio {
   repositorio?: PreguntasRepositorio;
   /** Solo para pruebas: reemplaza al de crearPreguntasEdicionRepositorio(bd). */
   repositorioEdicion?: PreguntasEdicionRepositorio;
+  /** Solo para pruebas: reemplaza al de crearPreguntasTextosRepositorio(bd). */
+  repositorioTextos?: PreguntasTextosRepositorio;
 }
+
+/** Lo que la consola hace con los textos de lectura (HU-12.2); lo demás es para crear preguntas. */
+type TextosDeLaConsola = Omit<TextosDeLectura, 'problemasDeTexto' | 'crearEnTransaccion'>;
 
 /** Pregunta tal como la lista el banco (C02): con su estado y sin la alternativa correcta. */
 export interface PreguntaDelBanco {
@@ -63,7 +73,7 @@ export interface FiltrosDelBanco {
   dificultades: Opcion[];
 }
 
-export interface PreguntasServicio extends EdicionPreguntas {
+export interface PreguntasServicio extends EdicionPreguntas, TextosDeLaConsola {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.
@@ -233,17 +243,29 @@ export function crearPreguntasServicio(
   dependencias: DependenciasPreguntasServicio,
 ): PreguntasServicio {
   const repositorio = dependencias.repositorio ?? crearPreguntasRepositorio(dependencias.bd);
-  const { temario } = dependencias;
+  const { temario, unidadDeTrabajo } = dependencias;
+  const auditoria = dependencias.administracion;
+  const textos = crearTextosDeLectura({
+    unidadDeTrabajo,
+    auditoria,
+    repositorio: dependencias.repositorioTextos ?? crearPreguntasTextosRepositorio(dependencias.bd),
+  });
   const edicion = crearEdicionPreguntas({
-    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    unidadDeTrabajo,
     temario,
-    auditoria: dependencias.administracion,
+    auditoria,
     repositorio:
       dependencias.repositorioEdicion ?? crearPreguntasEdicionRepositorio(dependencias.bd),
     listas: repositorio,
+    textos,
   });
   return {
     ...edicion,
+    listarTextos: (consulta) => textos.listarTextos(consulta),
+    obtenerTexto: (id) => textos.obtenerTexto(id),
+    crearTexto: (autorId, datos) => textos.crearTexto(autorId, datos),
+    editarTexto: (autorId, id, datos) => textos.editarTexto(autorId, id, datos),
+    tiposDeTexto: () => textos.tiposDeTexto(),
     listarBanco: (filtros) => listarBanco(repositorio, temario, filtros),
     // Una consulta tras otra: así también sirve con una sola conexión (una transacción o un cliente).
     async filtrosDelBanco() {

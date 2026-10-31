@@ -77,7 +77,8 @@ export function problemasDePregunta(
     ...problemasDelTemario(datos, prueba, dificultades),
     ...problemasDeAlternativas(datos.alternativas, prueba),
   ];
-  if (prueba.requiereTexto && datos.textoEstimuloId === null) {
+  const sinTexto = datos.textoEstimuloId === null && datos.textoNuevo === null;
+  if (prueba.requiereTexto && sinTexto) {
     problemas.push(
       problema('textoEstimuloId', `En ${prueba.nombre} cada pregunta va con su texto de lectura.`),
     );
