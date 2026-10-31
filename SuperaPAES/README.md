@@ -23,8 +23,9 @@ la base de datos no se publican: el equipo los recibe por un canal privado.
 
 - Node 24 (ver `.nvmrc`) y npm 11.
 - PostgreSQL 18 instalado en el equipo (puerto 5432).
-- Para la app: Flutter estable 3.44 o superior; Android Studio con el SDK para Android; Xcode en
-  macOS para iOS.
+- Para la app: Flutter estable 3.44 o superior; Android Studio con el SDK para Android y el **NDK
+  28.2.13676358** (SDK Manager → SDK Tools → NDK (Side by side) → marcar «Show Package Details»); la
+  instalación automática de Gradle falla en Windows; Xcode en macOS para iOS.
 
 ## Puesta en marcha
 
@@ -36,16 +37,23 @@ createdb -U postgres supera_paes             # en Windows: "C:\Program Files\Pos
 cp api/.env.example api/.env                 # completa DATABASE_URL y los dos JWT_SECRETO_*
 npm run migrar -w api                        # modelo 12.0: 85 tablas, 156 claves foráneas, 12 vistas y datos iniciales
 npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
+npm run semilla-demo -w api                  # opcional, solo desarrollo: 5 preguntas de ejemplo para probar la práctica
 npm run probar:bd -w api                     # 249 casos del modelo en una base temporal (necesita psql 18)
 npm run crear-admin -w api                   # una sola vez: tu administrador para entrar a la consola
 npm run dev -w api                           # http://localhost:3000/api/v1/salud
 npm run dev -w consola                       # http://localhost:5173
 ```
 
-El SQL vive en `api/db`: migraciones `001` a `003` (modelo de datos 12.0), semillas `001` a `004`
-(temario PAES 2027, evaluaciones, documentos legales 1.0 y acciones de auditoría de usuarios internos,
-en ese orden) y las pruebas del modelo. La migración `003` y la semilla `003` comparten el número,
+El SQL vive en `api/db`: migraciones `001` a `003` (modelo de datos 12.0), semillas `001` a `005`
+(temario PAES 2027, evaluaciones, documentos legales 1.0, acciones de auditoría de usuarios internos
+y tipos de pregunta por prueba, en ese orden) y las pruebas del modelo. La migración `003` y la semilla `003` comparten el número,
 pero están en carpetas distintas y no chocan.
+
+`npm run semilla-demo -w api` carga una pregunta de ejemplo publicada por prueba (cinco, la de Competencia
+Lectora con su texto) para probar la práctica en el emulador. Cada enunciado empieza con `[EJEMPLO]`, son
+inventadas y sin material del DEMRE. Es solo de desarrollo: se niega con `NODE_ENV=production`, es
+idempotente y no la ejecutan `migrar:produccion`, Docker ni la CI. Necesita las migraciones y las
+semillas ya cargadas.
 
 **Primer administrador.** La consola no permite registrarse: en tu base local creas tu propia cuenta
 de administrador con `npm run crear-admin -w api`, en una terminal interactiva (PowerShell o la de VS
@@ -105,7 +113,7 @@ docker compose --env-file .env.docker up --build
 ```
 
 La primera ejecución crea la base `supera_paes`, aplica las migraciones `001` a `003` y carga las
-cuatro semillas, incluidos los textos legales locales. En cada arranque, `migraciones` termina antes
+cinco semillas, incluidos los textos legales locales. En cada arranque, `migraciones` termina antes
 de iniciar la API. La API usa IA y pagos simulados y escribe el correo en los registros. Abre
 http://localhost:3000/api/v1/salud/vivo para comprobar la API y http://localhost:8080 para la consola.
 La base queda disponible solo desde este computador en el puerto 5433.
@@ -166,7 +174,9 @@ ficticia en `CORREO_REMITENTE`. No necesita usuario ni clave. Los correos se ven
 http://localhost:8025. El arranque normal con `npm run dev` y `PROVEEDOR_CORREO=consola` no cambia.
 
 Para usar un servidor SMTP real, completa también `SMTP_USUARIO`, `SMTP_CLAVE` y una dirección
-verificada en `CORREO_REMITENTE`. Usa `SMTP_TLS=implicit` con el puerto 465 o
+verificada en `CORREO_REMITENTE` (solo la dirección: «Nombre <correo>» se rechaza al arrancar). El
+nombre visible de los correos es «Supera PAES»; se cambia con la variable opcional
+`CORREO_REMITENTE_NOMBRE`. Usa `SMTP_TLS=implicit` con el puerto 465 o
 `SMTP_TLS=starttls` con 587 o 2525. La API obliga a cifrar toda conexión remota. En Render se usa
 2525 con STARTTLS porque los puertos SMTP habituales están bloqueados; la contraseña debe ser una
 clave SMTP del proveedor, no la contraseña de la cuenta ni una clave de API. Nunca guardes esos

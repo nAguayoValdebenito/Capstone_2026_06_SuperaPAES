@@ -32,6 +32,7 @@ describe('configuración de Docker', () => {
       'SMTP_USUARIO',
       'SMTP_CLAVE',
       'CORREO_REMITENTE',
+      'CORREO_REMITENTE_NOMBRE',
     ]) {
       expect(variables, `falta ${nombre} en .env.docker.example`).toHaveProperty(nombre);
     }

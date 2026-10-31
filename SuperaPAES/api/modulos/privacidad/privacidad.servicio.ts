@@ -3,7 +3,7 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
-import type { CuentasServicio } from '../cuentas/index.js';
+import type { CuentasServicio, DocumentoAceptado } from '../cuentas/index.js';
 import type { EvaluacionesServicio } from '../evaluaciones/index.js';
 import type { SuscripcionesServicio } from '../suscripciones/index.js';
 import type { PrivacidadRepositorio } from './privacidad.repositorio.js';
@@ -33,33 +33,12 @@ export interface DatosDelEstudiante extends Cuenta {
   puntajes: Awaited<ReturnType<CuentasServicio['obtenerPuntajes']>>['puntajes'];
 }
 
-type Consentimiento = Cuenta['consentimientos'][number];
-
-/** La versión vigente que el estudiante aceptó de un documento legal obligatorio. */
-export interface DocumentoAceptado {
-  documento: 'terminos' | 'privacidad';
-  version: string;
-  aceptadoEn: Date;
-}
-
 /** Mis datos (A39) y «Borrar mi cuenta» (A42 y A42b). */
 export interface EstadoDeLaCuenta {
   /** La suscripción activa o en mora que la tienda sigue cobrando; `null` si no hay (A42). */
   suscripcionVigente: Awaited<ReturnType<SuscripcionesServicio['vigenteDe']>>;
   /** Términos y privacidad, la última versión aceptada sin revocar de cada uno (CU-14 paso 2). */
   documentosAceptados: DocumentoAceptado[];
-}
-
-const OBLIGATORIOS: readonly DocumentoAceptado['documento'][] = ['terminos', 'privacidad'];
-
-/** De cada documento obligatorio, el último consentimiento sin revocar (vienen por fecha). */
-function documentosAceptados(consentimientos: Consentimiento[]): DocumentoAceptado[] {
-  return OBLIGATORIOS.flatMap((documento) => {
-    const ultimo = consentimientos
-      .filter((c) => c.documento === documento && c.revocadoEn === null)
-      .at(-1);
-    return ultimo ? [{ documento, version: ultimo.version, aceptadoEn: ultimo.aceptadoEn }] : [];
-  });
 }
 
 export interface PrivacidadServicio {
@@ -103,10 +82,9 @@ export function crearPrivacidadServicio(
     },
     borrarCuenta: (estudianteId) => cuentas.eliminarCuenta(estudianteId),
     estadoDeLaCuenta: async (estudianteId) => {
-      const { consentimientos } = await cuentas.exportarCuenta(estudianteId);
       return {
         suscripcionVigente: await suscripciones.vigenteDe(estudianteId),
-        documentosAceptados: documentosAceptados(consentimientos),
+        documentosAceptados: await cuentas.documentosAceptadosDe(estudianteId),
       };
     },
   };
