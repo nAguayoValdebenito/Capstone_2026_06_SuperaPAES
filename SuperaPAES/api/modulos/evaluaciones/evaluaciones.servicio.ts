@@ -36,6 +36,13 @@ import {
 } from './evaluaciones.exportacion.servicio.js';
 import { crearResumenRepositorio } from './evaluaciones.resumen.repositorio.js';
 import { crearResumenServicio, type ResumenServicio } from './evaluaciones.resumen.servicio.js';
+import { crearResultadoRepositorio } from './evaluaciones.resultado.repositorio.js';
+import {
+  crearResultadoServicio,
+  type ResultadoServicio,
+} from './evaluaciones.resultado.servicio.js';
+import { crearAbiertaRepositorio } from './evaluaciones.abierta.repositorio.js';
+import { crearAbiertaServicio, type AbiertaServicio } from './evaluaciones.abierta.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 
 export interface DependenciasEvaluacionesServicio {
@@ -57,8 +64,10 @@ export type EvaluacionesServicio = SeleccionPractica &
   PracticasServicio &
   RespuestasServicio &
   ResumenServicio &
+  ResultadoServicio &
   ProgresoServicio &
-  ExportacionEvaluaciones;
+  ExportacionEvaluaciones &
+  AbiertaServicio;
 
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
@@ -91,9 +100,18 @@ function crearServicioSinReintento(
       repositorio: crearResumenRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
     }),
+    ...crearResultadoServicio({
+      repositorio: crearResultadoRepositorio(),
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    }),
     ...crearExportacionEvaluaciones(dependencias.bd),
     ...crearProgresoServicio({
       repositorio: crearProgresoRepositorio(dependencias.bd),
+      administracion: dependencias.administracion,
+    }),
+    ...crearAbiertaServicio({
+      repositorio: crearAbiertaRepositorio(dependencias.bd),
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
       administracion: dependencias.administracion,
     }),
   };

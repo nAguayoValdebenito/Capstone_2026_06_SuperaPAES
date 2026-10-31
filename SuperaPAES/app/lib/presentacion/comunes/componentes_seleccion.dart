@@ -51,17 +51,24 @@ class OpcionRadio extends StatelessWidget {
 /// Título (Cuerpo fuerte) con un detalle gris opcional debajo, de
 /// [OpcionRadio] y [FilaNavegacion].
 class _TituloConDetalle extends StatelessWidget {
-  const _TituloConDetalle({required this.texto, required this.detalle});
+  const _TituloConDetalle({
+    required this.texto,
+    required this.detalle,
+    this.color,
+  });
 
   final String texto;
   final String? detalle;
+
+  /// Color del título; por defecto, el del texto.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(texto, style: TemaSuperaPaes.cuerpoFuerte),
+        Text(texto, style: TemaSuperaPaes.cuerpoFuerte.copyWith(color: color)),
         if (detalle case final abajo?) ...[
           const SizedBox(height: 2),
           Text(
@@ -305,8 +312,23 @@ class OpcionAlternativa extends StatelessWidget {
   final ResultadoAlternativa? resultado;
   final String? etiqueta;
 
+  /// Desde esta escala de letra, la [etiqueta] baja bajo el texto: al lado no
+  /// cabe (RNF-12).
+  static const double escalaParaApilar = 1.3;
+
   @override
   Widget build(BuildContext context) {
+    final apilar =
+        MediaQuery.textScalerOf(context).scale(1) >= escalaParaApilar;
+    final etiquetaVista = switch (etiqueta) {
+      final texto? => Etiqueta(
+        texto: texto,
+        tono: resultado == ResultadoAlternativa.incorrecta
+            ? TonoEtiqueta.error
+            : TonoEtiqueta.exito,
+      ),
+      null => null,
+    };
     final (fondo, color) = switch (resultado) {
       ResultadoAlternativa.correcta => (
         TemaSuperaPaes.exitoSuave,
@@ -357,18 +379,23 @@ class OpcionAlternativa extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(top: 3),
-                // Las alternativas también pueden traer fórmulas e imágenes.
-                child: TextoConFormulas(texto),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Las alternativas también pueden traer fórmulas e
+                    // imágenes.
+                    TextoConFormulas(texto),
+                    if (etiquetaVista != null && apilar) ...[
+                      const SizedBox(height: 6),
+                      etiquetaVista,
+                    ],
+                  ],
+                ),
               ),
             ),
-            if (etiqueta case final texto?) ...[
+            if (etiquetaVista != null && !apilar) ...[
               const SizedBox(width: 8),
-              Etiqueta(
-                texto: texto,
-                tono: resultado == ResultadoAlternativa.incorrecta
-                    ? TonoEtiqueta.error
-                    : TonoEtiqueta.exito,
-              ),
+              etiquetaVista,
             ],
           ],
         ),
@@ -588,10 +615,14 @@ class FilaDato extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          etiqueta,
-          style: TemaSuperaPaes.pequeno.copyWith(
-            color: TemaSuperaPaes.textoSecundario,
+        // Flexible: una etiqueta larga («Invitaciones premiadas este mes»)
+        // baja de línea en vez de empujar el valor fuera (RNF-12).
+        Flexible(
+          child: Text(
+            etiqueta,
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -616,6 +647,7 @@ class FilaNavegacion extends StatelessWidget {
     super.key,
     this.detalle,
     this.icono,
+    this.peligro = false,
   });
 
   final String texto;
@@ -628,6 +660,10 @@ class FilaNavegacion extends StatelessWidget {
   /// Ícono a la izquierda, en un círculo `primarioSuave` (A22).
   final IconData? icono;
 
+  /// Acción que no se deshace, como «Borrar mi cuenta» en A39: el título y
+  /// el ícono van en rojo, y el ícono sin círculo.
+  final bool peligro;
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -636,7 +672,10 @@ class FilaNavegacion extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            if (icono case final simbolo?) ...[
+            if (icono case final simbolo? when peligro) ...[
+              Icon(simbolo, size: 22, color: TemaSuperaPaes.error),
+              const SizedBox(width: 12),
+            ] else if (icono case final simbolo?) ...[
               Container(
                 width: TemaSuperaPaes.altoBotonChico,
                 height: TemaSuperaPaes.altoBotonChico,
@@ -649,7 +688,11 @@ class FilaNavegacion extends StatelessWidget {
               const SizedBox(width: 12),
             ],
             Expanded(
-              child: _TituloConDetalle(texto: texto, detalle: detalle),
+              child: _TituloConDetalle(
+                texto: texto,
+                detalle: detalle,
+                color: peligro ? TemaSuperaPaes.error : null,
+              ),
             ),
             const Icon(
               Icons.chevron_right,

@@ -12,7 +12,7 @@ import {
 import {
   cuerpoPuntajes,
   privacidadDePrueba,
-  progresoDePrueba,
+  serviciosEvaluacionesEstudiante,
   serviciosPuntajes,
 } from './escenario-ids-estudiante.js';
 import {
@@ -164,7 +164,7 @@ export function escenario() {
     ),
     cerrarPractica: vi.fn(() => Promise.resolve(resumenPractica)),
     resumenPractica: vi.fn(() => Promise.resolve(resumenPractica)),
-    obtenerProgreso: vi.fn(() => Promise.resolve(progresoDePrueba)),
+    ...serviciosEvaluacionesEstudiante(),
   };
   const preguntas = {
     ...servicios.preguntas,

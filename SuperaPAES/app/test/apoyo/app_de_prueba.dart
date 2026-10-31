@@ -7,17 +7,22 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/invitaciones/estado_invitaciones.dart';
+import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/progreso/estado_progreso.dart';
 import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
+import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 import 'repositorio_cuentas_falso.dart';
 import 'repositorio_cupo_falso.dart';
+import 'repositorio_mis_datos_falso.dart';
 import 'repositorio_perfil_falso.dart';
 import 'repositorio_practica_falso.dart';
 import 'repositorio_progreso_falso.dart';
 import 'repositorio_puntajes_falso.dart';
+import 'repositorio_resultados_falso.dart';
 
 /// Contenedor de la app sin red ni almacén del teléfono. Con `sesion`, la
 /// app arranca con esa sesión guardada.
@@ -29,6 +34,11 @@ ProviderContainer crearContenedor({
   RepositorioPracticaFalso? practica,
   RepositorioProgresoFalso? progreso,
   RepositorioPuntajesFalso? puntajes,
+  RepositorioMisDatosFalso? misDatos,
+  RepositorioResultadosFalso? resultados,
+  CompartirArchivo? compartir,
+  AbrirEnlace? abrirEnlace,
+  CompartirTexto? compartirTexto,
   AlmacenSesionEnMemoria? almacen,
   SesionEstudiante? sesion,
 }) {
@@ -47,6 +57,19 @@ ProviderContainer crearContenedor({
       repositorioPuntajesProvider.overrideWithValue(
         puntajes ?? RepositorioPuntajesFalso(),
       ),
+      // Sin `resultados`, el mini-ensayo del boceto A30.
+      repositorioResultadosProvider.overrideWithValue(
+        resultados ?? RepositorioResultadosFalso(),
+      ),
+      repositorioMisDatosProvider.overrideWithValue(
+        misDatos ?? RepositorioMisDatosFalso(),
+      ),
+      // Sin `compartir`, el menú Compartir no hace nada.
+      compartirArchivoProvider.overrideWithValue(compartir ?? (_) async {}),
+      // Sin `compartirTexto`, el menú Compartir no hace nada.
+      compartirTextoProvider.overrideWithValue(compartirTexto ?? (_) async {}),
+      // Sin `abrirEnlace`, ningún enlace sale de la app.
+      abrirEnlaceProvider.overrideWithValue(abrirEnlace ?? (_) async => true),
       repositorioCuentasProvider.overrideWithValue(
         repositorio ?? RepositorioCuentasFalso(),
       ),

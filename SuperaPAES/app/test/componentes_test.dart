@@ -198,6 +198,28 @@ void main() {
     expect(find.text('Logaritmos'), findsOne);
   });
 
+  testWidgets('DatoResumen reparte el ancho y pone el texto bajo el número', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      const Row(
+        children: [
+          DatoResumen(valor: '15', texto: 'correctas'),
+          DatoResumen(valor: '4', texto: 'incorrectas'),
+        ],
+      ),
+    );
+
+    final numero = tester.getRect(find.text('15'));
+    final texto = tester.getRect(find.text('correctas'));
+    expect(texto.top, greaterThanOrEqualTo(numero.bottom));
+    expect(
+      tester.getCenter(find.text('4')).dx,
+      greaterThan(tester.getCenter(find.text('15')).dx),
+    );
+  });
+
   testWidgets('Aviso pone en negrita el texto destacado', (tester) async {
     await montar(
       tester,

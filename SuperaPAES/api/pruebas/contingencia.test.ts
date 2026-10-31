@@ -1,0 +1,139 @@
+// TEC-08: piezas de los scripts de contingencia que no necesitan una base: ocultar secretos en la
+// salida, encontrar pg_dump, pg_restore y gpg, exigir una clave larga, nombrar las copias del día y
+// los rechazos del comando reintegrar antes de conectarse.
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { exigirClave, LARGO_MINIMO_CLAVE } from '../db/cifrado.js';
+import { encontrarHerramienta, ocultarSecretos, partesSensibles } from '../db/procesos.js';
+import { entornoLibpq, nombresDeCopia } from '../db/copia-de-respaldo.js';
+
+// Dirección inventada para las pruebas, sin ningún servidor real. secretlint-disable-next-line
+const URL_FALSA = 'postgres://usuario_falso:clave_falsa_123@ep-falso.example.cl:6543/base_falsa';
+
+describe('ocultar secretos en la salida de los scripts', () => {
+  it('oculta la dirección completa, el servidor, el usuario, la contraseña y la base', () => {
+    const mensaje =
+      'could not translate host name "ep-falso.example.cl"; password authentication failed for user ' +
+      '"usuario_falso" (clave_falsa_123) en base_falsa';
+    const limpio = ocultarSecretos(mensaje, partesSensibles(URL_FALSA));
+    for (const parte of ['ep-falso.example.cl', 'usuario_falso', 'clave_falsa_123', 'base_falsa']) {
+      expect(limpio).not.toContain(parte);
+    }
+    expect(limpio).toContain('[oculto]');
+  });
+
+  it('oculta cualquier dirección postgres:// aunque no se haya indicado', () => {
+    expect(ocultarSecretos(`conexión a ${URL_FALSA} rechazada`, [])).toBe(
+      'conexión a [oculto] rechazada',
+    );
+  });
+
+  it('una dirección mal escrita se oculta completa', () => {
+    expect(partesSensibles('no-es-una-url')).toEqual(['no-es-una-url']);
+    expect(partesSensibles(undefined)).toEqual([]);
+  });
+});
+
+describe('herramientas externas', () => {
+  const nunca = () => false;
+  it('usa la variable de entorno de la herramienta si existe', () => {
+    expect(encontrarHerramienta('pg_dump', { PG_DUMP: '/opt/pg/pg_dump' }, 'linux', nunca)).toBe(
+      '/opt/pg/pg_dump',
+    );
+    expect(encontrarHerramienta('gpg', { GPG: 'C:\\gpg.exe' }, 'win32', nunca)).toBe('C:\\gpg.exe');
+  });
+
+  it('en Windows usa la instalación de PostgreSQL 18 y la de Git for Windows', () => {
+    const siempre = () => true;
+    expect(encontrarHerramienta('pg_restore', {}, 'win32', siempre)).toBe(
+      'C:\\Program Files\\PostgreSQL\\18\\bin\\pg_restore.exe',
+    );
+    expect(encontrarHerramienta('gpg', {}, 'win32', siempre)).toBe(
+      'C:\\Program Files\\Git\\usr\\bin\\gpg.exe',
+    );
+  });
+
+  it('si no, la busca en el PATH por su nombre', () => {
+    expect(encontrarHerramienta('pg_dump', {}, 'linux', nunca)).toBe('pg_dump');
+    expect(encontrarHerramienta('gpg', {}, 'win32', nunca)).toBe('gpg');
+  });
+});
+
+describe('clave del respaldo', () => {
+  it(`exige al menos ${LARGO_MINIMO_CLAVE} caracteres`, () => {
+    expect(() => exigirClave(undefined)).toThrow('Falta CLAVE_RESPALDO');
+    expect(() => exigirClave('a'.repeat(LARGO_MINIMO_CLAVE - 1))).toThrow('al menos 32');
+    expect(exigirClave('a'.repeat(LARGO_MINIMO_CLAVE))).toHaveLength(LARGO_MINIMO_CLAVE);
+  });
+
+  it('rechaza una clave con salto de línea (gpg leería solo la primera línea)', () => {
+    expect(() => exigirClave(`${'a'.repeat(40)}\nb`)).toThrow('salto de línea');
+  });
+});
+
+describe('nombres de las copias', () => {
+  it('llevan la fecha del respaldo y la extensión .gpg', () => {
+    expect(nombresDeCopia(new Date('2026-10-30T07:00:00Z'))).toEqual({
+      respaldo: 'supera-paes-2026-10-30.dump.gpg',
+      cantidades: 'supera-paes-2026-10-30.cantidades.json.gpg',
+    });
+  });
+});
+
+describe('comando reintegrar: rechazos antes de conectarse', () => {
+  const reintegrar = (entorno: Record<string, string>) => {
+    const resultado = spawnSync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        path.join(import.meta.dirname, '../db/scripts/reintegrar.ts'),
+        '--aplicar',
+      ],
+      {
+        cwd: path.join(import.meta.dirname, '..'),
+        env: { ...process.env, DATABASE_SSL: 'false', ...entorno },
+        encoding: 'utf8',
+      },
+    );
+    return { codigo: resultado.status, salida: `${resultado.stdout}${resultado.stderr}` };
+  };
+  const secretas = ['usuario_falso', 'clave_falsa_123', 'ep-falso.example.cl', 'base_falsa'];
+
+  it('exige DESDE en ISO 8601 con zona', () => {
+    const { codigo, salida } = reintegrar({
+      DESDE: '2026-11-02 14:30',
+      URL_ORIGEN: URL_FALSA,
+      URL_DESTINO: URL_FALSA,
+    });
+    expect(codigo).toBe(1);
+    expect(salida).toContain('DESDE debe ser el momento de recuperación en ISO 8601 con zona');
+  });
+
+  it('se niega si el origen y el destino son la misma base, sin mostrar la dirección', () => {
+    const { codigo, salida } = reintegrar({
+      DESDE: '2026-10-01T10:00:00-03:00',
+      URL_ORIGEN: URL_FALSA,
+      URL_DESTINO: URL_FALSA,
+    });
+    expect(codigo).toBe(1);
+    expect(salida).toContain('URL_ORIGEN y URL_DESTINO son la misma base');
+    for (const parte of secretas) expect(salida).not.toContain(parte);
+  });
+});
+
+describe('conexión de pg_dump y pg_restore', () => {
+  it('con TLS exige verify-full y usa los certificados raíz del sistema si no se indicó otro', () => {
+    expect(entornoLibpq(URL_FALSA, true, {})).toMatchObject({
+      PGSSLMODE: 'verify-full',
+      PGSSLROOTCERT: 'system',
+      PGHOST: 'ep-falso.example.cl',
+      PGPORT: '6543',
+    });
+    expect(entornoLibpq(URL_FALSA, true, { PGSSLROOTCERT: '/etc/ssl/ca.pem' })).not.toHaveProperty(
+      'PGSSLROOTCERT',
+    );
+    expect(entornoLibpq(URL_FALSA, false, {})).toMatchObject({ PGSSLMODE: 'disable' });
+  });
+});

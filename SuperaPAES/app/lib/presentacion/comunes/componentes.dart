@@ -420,6 +420,32 @@ class Aviso extends StatelessWidget {
   }
 }
 
+/// Un número grande con su texto debajo, en un tercio del ancho: «7
+/// correctas» de A21 y A30. Va dentro de una `Row`.
+class DatoResumen extends StatelessWidget {
+  const DatoResumen({required this.valor, required this.texto, super.key});
+
+  final String valor;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(valor, style: TemaSuperaPaes.numero),
+          Text(
+            texto,
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Tarjeta blanca con borde (radio 16, relleno 16), como los recuadros de A12
 /// y A05.
 class Tarjeta extends StatelessWidget {
@@ -439,6 +465,34 @@ class Tarjeta extends StatelessWidget {
         border: Border.all(color: borde ?? TemaSuperaPaes.borde),
       ),
       child: child,
+    );
+  }
+}
+
+/// Ícono de 24 en un círculo de 48, sobre el título de una pantalla o una
+/// hoja: el basurero de A42 o el reloj de A29.
+class IconoEnCirculo extends StatelessWidget {
+  const IconoEnCirculo({
+    required this.icono,
+    required this.fondo,
+    required this.color,
+    super.key,
+  });
+
+  final IconData icono;
+  final Color fondo;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+        child: Icon(icono, size: 24, color: color),
+      ),
     );
   }
 }

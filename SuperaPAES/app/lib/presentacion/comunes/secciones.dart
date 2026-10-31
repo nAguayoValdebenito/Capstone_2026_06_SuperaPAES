@@ -8,6 +8,7 @@ import 'package:supera_paes/presentacion/evaluaciones/pantalla_evaluaciones.dart
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 import 'package:supera_paes/presentacion/inicio/pantalla_inicio.dart';
 import 'package:supera_paes/presentacion/invitaciones/pantalla_invitaciones.dart';
+import 'package:supera_paes/presentacion/mis_datos/pantalla_borrar_cuenta.dart';
 import 'package:supera_paes/presentacion/mis_datos/pantalla_mis_datos.dart';
 import 'package:supera_paes/presentacion/perfil/pantalla_perfil.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_areas.dart';
@@ -24,6 +25,8 @@ import 'package:supera_paes/presentacion/progreso/pantalla_progreso.dart';
 import 'package:supera_paes/presentacion/puntajes/pantalla_puntajes.dart';
 import 'package:supera_paes/presentacion/recuperar_contrasena/pantalla_recuperar_contrasena.dart';
 import 'package:supera_paes/presentacion/repaso/pantalla_repaso.dart';
+import 'package:supera_paes/presentacion/resultado/pantalla_resultado.dart';
+import 'package:supera_paes/presentacion/resultado/pantalla_revision.dart';
 import 'package:supera_paes/presentacion/terminos/pantalla_terminos.dart';
 import 'package:supera_paes/presentacion/verificar_correo/pantalla_verificar_correo.dart';
 
@@ -162,6 +165,19 @@ const List<Seccion> secciones = [
     PantallaCupoAgotado.new,
   ),
   Seccion('Repaso de errores', Rutas.repaso, Icons.replay, PantallaRepaso.new),
+  // Resultado y revisión de una evaluación (HU-61)
+  Seccion(
+    'Resultado',
+    Rutas.resultado,
+    Icons.assessment_outlined,
+    PantallaResultado.new,
+  ),
+  Seccion(
+    'Revisión',
+    Rutas.revision,
+    Icons.fact_check_outlined,
+    PantallaRevision.new,
+  ),
   // Desde Perfil
   Seccion(
     'Planes',
@@ -186,6 +202,12 @@ const List<Seccion> secciones = [
     Rutas.puntajes,
     Icons.emoji_events_outlined,
     PantallaPuntajes.new,
+  ),
+  Seccion(
+    'Borrar mi cuenta',
+    Rutas.borrarCuenta,
+    Icons.delete_outline,
+    PantallaBorrarCuenta.new,
   ),
   // Perfil de estudio (HU-29): bienvenida, edición y corrección del curso
   Seccion(

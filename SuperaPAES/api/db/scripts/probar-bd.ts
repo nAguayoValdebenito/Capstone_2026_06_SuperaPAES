@@ -35,7 +35,7 @@ ejecutarScript(async (admin) => {
   }
   const configuracion = leerConfiguracionBaseDeDatos();
   // Nombre generado por el script (solo letras, números y _): se puede escribir en el SQL.
-  const nombre = `supera_paes_prueba_${Date.now()}`;
+  const nombre = `supera_paes_prueba_${Date.now()}_test`;
   const url = new URL(configuracion.url);
   url.pathname = `/${nombre}`;
   const prueba: DatosConexion = { url: url.toString(), ssl: configuracion.ssl };

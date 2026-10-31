@@ -1,7 +1,11 @@
 // Punto de entrada: lee la configuración, crea las dependencias reales y arranca la API y el worker.
 import { crearApp, crearServicios, type Dependencias } from './app.js';
 import { FabricaProveedores } from './adaptadores/fabrica.js';
-import { ErrorConfiguracion, leerConfiguracion } from './comun/configuracion.js';
+import {
+  ErrorConfiguracion,
+  leerConfiguracion,
+  type Configuracion,
+} from './comun/configuracion.js';
 import { registro } from './comun/registro.js';
 import { relojDelSistema } from './comun/reloj.js';
 import { comprobarBaseDeDatos, crearPool } from './db/conexion.js';
@@ -23,6 +27,7 @@ function iniciar(): void {
     verificacionCorreo: config.verificacionCorreo,
     corsOrigenes: config.corsOrigenes,
     registrarPeticiones: config.entorno !== 'test',
+    ...(config.claveTareas && { claveTareas: config.claveTareas }),
   };
   const servicios = crearServicios(dependencias);
   const app = crearApp(dependencias, servicios);
@@ -42,7 +47,9 @@ function iniciar(): void {
         correo: config.correo.proveedor,
         pagos: config.pagos.proveedor,
       },
+      tareasPeriodicas: config.claveTareas ? 'activas' : 'sin CLAVE_TAREAS',
     });
+    avisarSiFaltanTareas(config);
   });
 
   const detener = (senal: string) => {
@@ -56,6 +63,12 @@ function iniciar(): void {
   };
   process.on('SIGTERM', () => detener('SIGTERM'));
   process.on('SIGINT', () => detener('SIGINT'));
+}
+
+function avisarSiFaltanTareas(config: Configuracion): void {
+  if (!config.claveTareas && config.entorno === 'production') {
+    registro.error('Falta CLAVE_TAREAS: nada cierra las evaluaciones vencidas cada hora.');
+  }
 }
 
 try {

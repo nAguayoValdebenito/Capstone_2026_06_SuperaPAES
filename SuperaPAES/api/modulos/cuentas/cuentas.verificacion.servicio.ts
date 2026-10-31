@@ -108,8 +108,7 @@ function resultadoDe(resultado: Resultado): ResultadoVerificacion {
 /**
  * Lo que pasa cada vez que un correo queda verificado: con el enlace, con el código o por el
  * administrador, siempre dentro de la misma transacción. El cupo de hoy sube a cupo_verificado desde
- * ese momento (RN-01, HU-05.3). Es el punto de extensión de CU-02a: el bono para quien invitó (HU-47)
- * se agrega aquí, con una llamada al servicio de cupo-invitaciones.
+ * ese momento (RN-01, HU-05.3) y, si llegó invitado, quien lo invitó recibe su bono (CU-02a, HU-47.1).
  */
 async function marcarVerificado(
   { repositorio, reloj, cupoInvitaciones }: DependenciasVerificacion,
@@ -120,6 +119,7 @@ async function marcarVerificado(
   const ahora = reloj();
   await repositorio.marcarCorreoVerificado(estudianteId, ahora, tx);
   await cupoInvitaciones.aplicarCupoVerificado(estudianteId, ahora, tx);
+  await cupoInvitaciones.premiarInvitacion(estudianteId, ahora, tx);
 }
 
 interface CorreoPreparado {

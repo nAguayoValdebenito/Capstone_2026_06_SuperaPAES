@@ -191,6 +191,32 @@ void main() {
     });
   });
 
+  testWidgets('con la letra al doble no se desborda: la racha y «Verificar» '
+      'bajan de línea (RNF-12)', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await _abrirInicio(tester);
+
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getTopLeft(find.text('Racha: 5 días')).dy,
+      greaterThan(tester.getBottomLeft(find.text('Hola,')).dy),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Verificar'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getTopLeft(find.text('Verificar')).dy,
+      greaterThan(
+        tester.getBottomLeft(find.textContaining('Verifica tu correo')).dy,
+      ),
+    );
+  });
+
   group('pruebasDeInicio', () {
     PerfilEstudiante perfil({int? reforzar, int? electivo}) => PerfilEstudiante(
       completo: true,

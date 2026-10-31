@@ -12,7 +12,7 @@ const grupoProgreso = {
   aciertoPorDificultad: { media: 80, dificil: 20 },
   aReforzar: true,
 };
-export const progresoDePrueba = {
+const progresoDePrueba = {
   pruebas: [
     {
       pruebaId: 2,
@@ -30,6 +30,57 @@ export const progresoDePrueba = {
     },
   ],
 };
+
+/** Resultado de HU-61.1 de un mini-ensayo, con un eje y una habilidad (ids de la base en texto). */
+const resultado = {
+  id: '41',
+  tipo: { codigo: 'mini_ensayo', nombre: 'Mini-ensayo' },
+  prueba: { id: 2, codigo: 'M1', nombre: 'Competencia Matemática 1' },
+  ejes: [{ id: 3, nombre: 'Números', preguntas: 6, correctas: 5 }],
+  habilidades: [{ id: 7, nombre: 'Resolver problemas', preguntas: 6, correctas: 5 }],
+};
+
+/** Revisión de HU-61.1 con una pregunta respondida. */
+const revision = {
+  id: '41',
+  preguntas: [
+    {
+      orden: 1,
+      preguntaId: '900',
+      eje: { id: 3, nombre: 'Números' },
+      alternativaElegidaId: '102',
+      alternativaCorrectaId: '101',
+      alternativas: [
+        { id: 101, letra: 'A' },
+        { id: 102, letra: 'B' },
+      ],
+    },
+  ],
+};
+
+/** La evaluación abierta (HU-60.1) y la que se cerró al consultarla; sus ids llegan como texto. */
+const abiertaDePrueba = {
+  abierta: {
+    id: '41',
+    prueba: { id: 1, codigo: 'M1', nombre: 'Matemática M1' },
+    alcance: { tipo: 'eje', id: 2, nombre: 'Álgebra y funciones' },
+    dificultad: { id: 2, codigo: 'media', nombre: 'Media' },
+  },
+  cerrada: { id: '40', tipo: { codigo: 'practica', nombre: 'Práctica' }, estado: 'abandonada' },
+};
+
+/**
+ * Progreso (HU-38.2), resultado y revisión (HU-61.1) y evaluación abierta (HU-60.1) del servicio de
+ * evaluaciones.
+ */
+export function serviciosEvaluacionesEstudiante() {
+  return {
+    evaluacionAbierta: vi.fn(() => Promise.resolve(abiertaDePrueba as never)),
+    obtenerProgreso: vi.fn(() => Promise.resolve(progresoDePrueba)),
+    obtenerResultado: vi.fn(() => Promise.resolve(resultado as never)),
+    obtenerRevision: vi.fn(() => Promise.resolve(revision as never)),
+  };
+}
 
 /** Puntajes de HU-41.1 con el permiso dado y un puntaje (sus ids llegan como texto de la base). */
 const puntajes = {
@@ -52,11 +103,15 @@ const datosDelEstudiante = {
 };
 
 /**
- * El servicio de privacidad con la descarga de datos. Solo trae los campos que el inventario de ids
+ * El servicio de privacidad con la descarga de datos y el borrado de la cuenta. Solo trae los campos que el inventario de ids
  * revisa, así que no cumple todo el tipo del servicio.
  */
 export const privacidadDePrueba = {
   exportarDatos: vi.fn(() => Promise.resolve(datosDelEstudiante as never)),
+  borrarCuenta: vi.fn(() => Promise.resolve({ eliminadaEn: fecha })),
+  estadoDeLaCuenta: vi.fn(() =>
+    Promise.resolve({ suscripcionVigente: null, documentosAceptados: [] }),
+  ),
 };
 
 /** Las rutas de los puntajes del servicio de cuentas, que responden todas lo mismo. */

@@ -93,6 +93,10 @@ class EstadoSesion extends AsyncNotifier<SesionEstudiante?> {
     await _olvidar();
   }
 
+  /// La cuenta se borró (HU-08): la API ya cerró la sesión, así que solo se
+  /// olvida en el teléfono.
+  Future<void> olvidarCuentaBorrada() => _olvidar();
+
   Future<void> _olvidar() async {
     await _almacen.borrar();
     state = const AsyncData(null);
