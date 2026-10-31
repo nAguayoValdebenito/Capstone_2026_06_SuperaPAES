@@ -8,6 +8,7 @@ import type { PreguntaParaEditar } from '../../tipos';
 import { CampoAlternativas, CamposTemario, type Editor } from './CamposPregunta';
 import { MensajeError } from '../../componentes/MensajeError';
 import { CampoTextoLectura } from './CampoTextoLectura';
+import { VistaPrevia } from './VistaPrevia';
 
 const ID_FORMULARIO = 'formulario-pregunta';
 
@@ -116,7 +117,8 @@ function Avisos({ editor, pregunta }: { editor: Editor; pregunta: PreguntaParaEd
   );
 }
 
-function ContenidoPregunta({ editor }: { editor: Editor }) {
+/** Encabezado, avisos, formulario y vista previa; se exporta para las pruebas (HU-12.5). */
+export function ContenidoPregunta({ editor }: { editor: Editor }) {
   const { carga } = editor;
   if (carga.tipo === 'cargando') return <p aria-live="polite">Cargando la pregunta…</p>;
   if (carga.tipo === 'fallida') {
@@ -133,15 +135,7 @@ function ContenidoPregunta({ editor }: { editor: Editor }) {
       <Avisos editor={editor} pregunta={carga.pregunta} />
       <div className="editor-pregunta">
         <FormularioPregunta editor={editor} carga={carga} />
-        <aside className="panel vista-previa" aria-label="Vista previa en la app">
-          <h2>Vista previa en la app</h2>
-          <p className="campo__ayuda">Las fórmulas se ven como las verá el estudiante.</p>
-          {prueba?.requiereTexto !== false && (
-            <p className="aviso aviso--info">
-              En Competencia Lectora la pregunta debe estar ligada a un texto de lectura.
-            </p>
-          )}
-        </aside>
+        <VistaPrevia campos={editor.campos} prueba={prueba} />
       </div>
     </>
   );
