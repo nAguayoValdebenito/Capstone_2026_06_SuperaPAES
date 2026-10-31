@@ -2,6 +2,10 @@
 import type { RequestHandler } from 'express';
 import type { z } from 'zod';
 import { ErrorValidacion } from '../errores.js';
+import { usarMensajesDeValidacionEnEspanol } from '../mensajes-validacion.js';
+
+// Los esquemas se evalúan al llegar una petición: los mensajes de zod ya van en español.
+usarMensajesDeValidacionEnEspanol();
 
 interface Esquemas {
   cuerpo?: z.ZodType;
