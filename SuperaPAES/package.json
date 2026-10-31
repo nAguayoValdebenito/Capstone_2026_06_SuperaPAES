@@ -30,5 +30,8 @@
     "madge": "^8.0.0",
     "prettier": "^3.9.9",
     "secretlint": "^13.0.7"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }
