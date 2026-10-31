@@ -59,6 +59,7 @@ describe('FabricaProveedores: correo', () => {
     usuario: undefined,
     clave: undefined,
     remitente: 'a@b.cl',
+    remitenteNombre: 'Supera PAES',
     timeoutMs: 10_000,
   };
 

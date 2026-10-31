@@ -36,6 +36,7 @@ function opciones(puerto: number, cambios: Partial<OpcionesSmtp> = {}): Opciones
     usuario: undefined,
     clave: undefined,
     remitente: 'no-responder@ejemplo.cl',
+    remitenteNombre: 'Supera PAES',
     timeoutMs: 2_000,
     ...cambios,
   };
@@ -75,6 +76,14 @@ describe('ProveedorCorreoSmtp', () => {
     expect(recibido?.subject).toBe('Verificación con tildes y ñ');
     expect(recibido?.text).toBe('Tu código de verificación también conserva á, é, í, ó, ú y ñ.');
     expect(recibido?.html).toBe('<p>Contraseña y año: á, é, í, ó, ú y ñ.</p>');
+
+    // TEC-07 (DAS 2.5): el nombre visible sale de la configuración, con tildes y ñ.
+    await new ProveedorCorreoSmtp(
+      opciones(puerto, { remitenteNombre: 'Equipo Supera PAES Año 2026' }),
+    ).enviar({ para: 'estudiante@ejemplo.cl', asunto: 'Otro', texto: 'Hola', html: '<p>Hola</p>' });
+    expect(recibido?.from?.value).toEqual([
+      { address: 'no-responder@ejemplo.cl', name: 'Equipo Supera PAES Año 2026' },
+    ]);
   });
 
   it('rechaza el envío si STARTTLS es obligatorio y el servidor no lo ofrece', async () => {

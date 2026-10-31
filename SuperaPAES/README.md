@@ -166,7 +166,9 @@ ficticia en `CORREO_REMITENTE`. No necesita usuario ni clave. Los correos se ven
 http://localhost:8025. El arranque normal con `npm run dev` y `PROVEEDOR_CORREO=consola` no cambia.
 
 Para usar un servidor SMTP real, completa también `SMTP_USUARIO`, `SMTP_CLAVE` y una dirección
-verificada en `CORREO_REMITENTE`. Usa `SMTP_TLS=implicit` con el puerto 465 o
+verificada en `CORREO_REMITENTE` (solo la dirección: «Nombre <correo>» se rechaza al arrancar). El
+nombre visible de los correos es «Supera PAES»; se cambia con la variable opcional
+`CORREO_REMITENTE_NOMBRE`. Usa `SMTP_TLS=implicit` con el puerto 465 o
 `SMTP_TLS=starttls` con 587 o 2525. La API obliga a cifrar toda conexión remota. En Render se usa
 2525 con STARTTLS porque los puertos SMTP habituales están bloqueados; la contraseña debe ser una
 clave SMTP del proveedor, no la contraseña de la cuenta ni una clave de API. Nunca guardes esos

@@ -80,6 +80,7 @@ describe('leerConfiguracion', () => {
       usuario: 'usuario-smtp',
       clave: 'clave-smtp-de-prueba',
       remitente: 'no-responder@ejemplo.cl',
+      remitenteNombre: 'Supera PAES',
       timeoutMs: 7500,
     });
   });
