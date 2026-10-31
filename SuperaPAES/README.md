@@ -165,6 +165,26 @@ Proveedores (se eligen con variables de entorno, ver `api/.env.example`):
 | `PROVEEDOR_CORREO` | `consola`, `smtp`                               | `consola`   |
 | `PROVEEDOR_PAGOS`  | `simulado`, `tiendas` (Google Play y App Store) | `simulado`  |
 
+## Proveedores de IA
+
+En desarrollo y Docker, `PROVEEDOR_IA=simulado` funciona sin claves ni llamadas externas.
+Con `deepseek`, completa `DEEPSEEK_API_KEY`; el modelo se lee de `modelo_ia` en
+`contenido.configuracion`. El nombre antiguo `deepseek-chat` está retirado: antes de probar la
+conexión real debe estar aplicada la migración 004 de la tarea independiente del modelo vigente.
+Esta conexión no cambia ese dato ni incluye esa migración.
+
+Para habilitar respaldo, completa además `GEMINI_API_KEY` y `GEMINI_MODELO` (por ejemplo,
+`gemini-3.5-flash-lite`). Solo el HTTP 402 de DeepSeek activa Gemini. Con `PROVEEDOR_IA=gemini`,
+esas dos variables de Gemini son obligatorias y DeepSeek no se utiliza. Nunca pongas claves en
+variables `VITE_` ni en archivos versionados; en Render se cargan en el entorno del servidor.
+
+Los adaptadores reciben la instrucción ya armada y validan únicamente su salida JSON; todavía no
+hay una ruta para generar lotes. El pedido puede tardar unos cinco minutos: HU-16.2 debe invocarlo
+desde un lote en segundo plano, sin hacer esperar una petición HTTP del usuario. Cada intento tiene
+120 s hasta cabeceras y 30 s para el cuerpo; hay un solo reintento por red, 5xx o contenido vacío,
+con espera de 1500 ms, compartido con el respaldo. Timeout, 4xx, JSON inválido y truncamiento no
+se reintentan. El límite de salida es 8192 tokens. Los adaptadores no calculan costos.
+
 ## Correo en desarrollo
 
 Por defecto `PROVEEDOR_CORREO=consola`: no envía nada. Para ver los correos como los recibiría una

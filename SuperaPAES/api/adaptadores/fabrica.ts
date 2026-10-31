@@ -14,6 +14,7 @@ import { ProveedorCorreoSmtp } from './correo/smtp.js';
 import { ProveedorIADeepSeek } from './ia/deepseek.js';
 import { ProveedorIAGemini } from './ia/gemini.js';
 import type { ProveedorIA } from './ia/proveedor.js';
+import { ProveedorIAConRespaldo } from './ia/respaldo.js';
 import { ProveedorIASimulado } from './ia/simulado.js';
 import { PasarelaAppStore } from './pagos/app-store.js';
 import { PasarelaGooglePlay } from './pagos/google-play.js';
@@ -31,22 +32,33 @@ export interface Proveedores {
 }
 
 export const FabricaProveedores = {
-  crear(config: Pick<Configuracion, 'ia' | 'correo' | 'pagos'>, reloj: Reloj): Proveedores {
+  crear(
+    config: Pick<Configuracion, 'ia' | 'correo' | 'pagos'>,
+    reloj: Reloj,
+    obtenerModeloPrincipal: () => Promise<string>,
+  ): Proveedores {
     return {
-      ia: FabricaProveedores.ia(config.ia),
+      ia: FabricaProveedores.ia(config.ia, obtenerModeloPrincipal),
       correo: FabricaProveedores.correo(config.correo),
       pagos: FabricaProveedores.pagos(config.pagos, reloj),
     };
   },
 
-  ia(config: ConfiguracionIA): ProveedorIA {
+  ia(config: ConfiguracionIA, obtenerModeloPrincipal: () => Promise<string>): ProveedorIA {
     switch (config.proveedor) {
       case 'simulado':
         return new ProveedorIASimulado();
-      case 'deepseek':
-        return new ProveedorIADeepSeek(config.claveApi);
+      case 'deepseek': {
+        const principal = new ProveedorIADeepSeek({
+          claveApi: config.claveApi,
+          obtenerModeloPrincipal,
+        });
+        return config.respaldo
+          ? new ProveedorIAConRespaldo(principal, new ProveedorIAGemini(config.respaldo))
+          : principal;
+      }
       case 'gemini':
-        return new ProveedorIAGemini(config.claveApi);
+        return new ProveedorIAGemini(config);
     }
   },
 

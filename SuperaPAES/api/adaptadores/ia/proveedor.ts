@@ -1,14 +1,11 @@
 // Interfaz común de los proveedores de IA que generan propuestas de preguntas.
 
-export type TipoPregunta = 'seleccion_multiple' | 'suficiencia_datos';
 export type Dificultad = 'facil' | 'media' | 'dificil';
 export type Letra = 'A' | 'B' | 'C' | 'D' | 'E';
 
 export interface SolicitudGeneracion {
-  contenido: { nombre: string; descriptores: string };
-  tipoPregunta: TipoPregunta;
-  cantidad: number;
-  conTexto: boolean;
+  /** Preparada por HU-16.2, sin datos personales. El adaptador no construye contenido curricular. */
+  instruccion: string;
 }
 
 /** Textos en Markdown con fórmulas en LaTeX, como se guardan en contenido.pregunta y alternativa. */
@@ -21,9 +18,11 @@ export interface PreguntaPropuesta {
 }
 
 export interface ResultadoGeneracion {
+  proveedor: ProveedorIA['nombre'];
   modelo: string;
   preguntas: PreguntaPropuesta[];
   tokensUsados?: number;
+  usoTokens?: { entrada?: number; salida?: number; total?: number };
   /** Costo de la solicitud (contenido.lote_generacion.costo_usd), para el tope mensual de gasto. */
   costoUsd?: number;
 }

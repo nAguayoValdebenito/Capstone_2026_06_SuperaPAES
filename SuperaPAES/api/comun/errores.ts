@@ -205,3 +205,25 @@ export class ErrorBaseDeDatosNoDisponible extends ErrorAplicacion {
     super(503, 'BASE_DE_DATOS_NO_DISPONIBLE', 'La base de datos no está disponible.', { causa });
   }
 }
+
+export class ErrorIANoDisponible extends ErrorAplicacion {
+  constructor() {
+    super(503, 'IA_NO_DISPONIBLE', 'El proveedor de IA no está disponible. Intenta más tarde.');
+  }
+}
+
+export class ErrorIARespuestaInvalida extends ErrorAplicacion {
+  constructor() {
+    super(502, 'IA_RESPUESTA_INVALIDA', 'El proveedor de IA devolvió una respuesta no válida.');
+  }
+}
+
+export class ErrorIASaldoAgotado extends ErrorAplicacion {
+  constructor() {
+    super(
+      503,
+      'IA_SALDO_AGOTADO',
+      'El proveedor principal de IA no tiene saldo y no hay respaldo disponible.',
+    );
+  }
+}
