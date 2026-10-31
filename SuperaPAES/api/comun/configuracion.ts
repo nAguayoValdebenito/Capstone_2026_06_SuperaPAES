@@ -291,15 +291,13 @@ export function leerConfiguracion(
 // Tras la validación, las variables del proveedor elegido existen: `?? ''` solo satisface al tipo.
 function leerConfiguracionIA(v: Variables): ConfiguracionIA {
   if (v.PROVEEDOR_IA === 'simulado') return { proveedor: 'simulado' };
-  if (v.PROVEEDOR_IA === 'gemini') {
-    return { proveedor: 'gemini', claveApi: v.GEMINI_API_KEY ?? '', modelo: v.GEMINI_MODELO ?? '' };
-  }
+  const gemini = { claveApi: v.GEMINI_API_KEY ?? '', modelo: v.GEMINI_MODELO ?? '' };
+  if (v.PROVEEDOR_IA === 'gemini') return { proveedor: 'gemini', ...gemini };
   return {
     proveedor: 'deepseek',
     claveApi: v.DEEPSEEK_API_KEY ?? '',
-    ...(v.GEMINI_API_KEY !== undefined && {
-      respaldo: { claveApi: v.GEMINI_API_KEY, modelo: v.GEMINI_MODELO ?? '' },
-    }),
+    // Con GEMINI_API_KEY, Gemini es el respaldo del saldo agotado de DeepSeek.
+    ...(v.GEMINI_API_KEY !== undefined && { respaldo: gemini }),
   };
 }
 

@@ -54,7 +54,7 @@ cantidad de alternativas, cantidad solicitada ni corrección de las preguntas. E
   salida estructurada; [API REST generateContent](https://ai.google.dev/api/generate-content).
 - [Retiro de modelos DeepSeek](https://api-docs.deepseek.com/news/news260424/):
   `deepseek-chat` y `deepseek-reasoner` dejaron de funcionar el 24/07/2026. La corrección del
-  parámetro queda para la migración 004 en `fix/modelo-ia-vigente`, independiente de esta rama.
+  parámetro es la migración 004, ya integrada en `main` (#65), independiente de esta rama.
 
 ## Variables de producción
 
@@ -105,8 +105,8 @@ No se agregan dependencias: fetch y AbortController pertenecen a Node 24 (MIT); 
 
 ## Comprobación manual pendiente
 
-La guía y el script de `docs/` permanecen ignorados por Git. Primero se aplica y verifica la 004
-en la base local, después se ejecuta la prueba con la clave propia. El script anuncia proveedor
+La guía y el script de `docs/` permanecen ignorados por Git. La 004 ya está en `main`; se verifica
+en la base local y después se ejecuta la prueba con la clave propia. El script anuncia proveedor
 y modelo antes del pedido; imprime solo cantidad, uso y resultado de la validación, sin respuestas
 ni claves. No habilita respaldo para la prueba individual. No se ejecutaron llamadas reales ni
 se marcaron casos del C2. Esta rama no se despliega a Neon ni a Render.
@@ -117,19 +117,20 @@ El adaptador de IA recibe instrucciones sin datos personales y usa HTTPS con cla
 servidor; ante saldo agotado de DeepSeek (HTTP 402), usa Gemini si está configurado, con tiempos
 de espera y un único reintento acotados, y entrega modelo, proveedor y uso de tokens informado.
 
-El cambio de la tabla de parámetros a `modelo_ia = deepseek-flash` pertenece al PR independiente
-de la migración 004 y a la versión siguiente del DAS del equipo de documentación.
+El cambio de la tabla de parámetros a `modelo_ia = deepseek-flash` lo hace la migración 004 (#65, ya
+integrada) y la versión siguiente del DAS del equipo de documentación.
 
 ## Verificación
 
 - `npm run lint`: aprobado (TypeScript, ESLint y formato, API y consola).
-- `npm test` con PostgreSQL: API 781 aprobadas y 38 omitidas; consola 109 aprobadas.
+- `npm test` con PostgreSQL: API 113 archivos, 1135 aprobadas y 54 omitidas; consola 147 aprobadas.
 - `npm run build`: aprobado en API y consola.
 - `npm audit`: 0 vulnerabilidades; sin dependencias nuevas ni cambios en el lockfile.
 - `npm run codigo-muerto` (Knip): aprobado.
 - `npm run circulares` (Madge): sin ciclos. En consola conserva el aviso de resolución de
   `react-router` (un archivo omitido por la herramienta).
-- `npm run duplicacion` (jscpd): aprobado; 0,10 % de líneas duplicadas.
+- `npm run duplicacion` (jscpd): aprobado; 3 duplicados, 2 que ya había en `main` y el bloque de imports
+  común de `deepseek.ts` y `gemini.ts`.
 - `npm run revisar-secretos` (secretlint): aprobado.
 - `npm run probar:bd -w api`: 249/249 casos correctos en base temporal.
 - Compose válido; imágenes compiladas y stack aislado iniciado con IA simulada; API y consola
@@ -140,3 +141,20 @@ de la migración 004 y a la versión siguiente del DAS del equipo de documentaci
   red y 5xx, 4xx sin reintento, selección y errores del respaldo, no filtración de claves/cuerpos,
   conservación del presupuesto global y lectura dinámica del modelo.
 - No se tocaron migraciones, semillas ni el DAS; revisión de alcance y `git diff --check` aprobadas.
+
+## Integración con `main` y revisión de seguridad
+
+- Se fusionó `origin/main` (con la migración 004). Único conflicto: la lista de variables de
+  `configuracion-docker.test.ts`, resuelto conservando las de IA y `CORREO_REMITENTE_NOMBRE`.
+  `CLAVE_TAREAS`, la ruta `POST /api/v1/tareas/periodicas` y los flujos `ci.yml`, `respaldo.yml` y
+  `tareas-periodicas.yml` siguen intactos; la rama no borra ningún archivo de `main`.
+- Se restauró `probar-bd.ts` a la versión de `main`: un cambio de nombre ajeno a la IA había entrado en una
+  fusión anterior. `operaciones/despliegue.md` ya no pide integrar la conexión IA; el resto no cambia.
+- La configuración de producción coincide con la guía: DeepSeek solo exige `DEEPSEEK_API_KEY`; con
+  `GEMINI_API_KEY` (respaldo) exige además `GEMINI_MODELO`; `PROVEEDOR_IA=gemini` exige ambas.
+- No entra ningún script manual con claves (`probar-ia.ts` no existe en la rama ni en su historial).
+- `/security-review` de la rama: sin hallazgos de confianza alta. Las claves viajan solo en cabeceras a
+  hosts fijos con `redirect: 'error'`; los registros guardan proveedor, estado HTTP y motivo; los errores
+  usan mensajes genéricos sin causa. Los tiempos son 120 s de cabeceras y 30 s de cuerpo, con un
+  reintento y un presupuesto común con el respaldo. **No hay un límite de bytes de la respuesta**: la
+  acotan `max_tokens` (8192), los hosts fijos con TLS y los 30 s del cuerpo; queda para HU-16.5.
