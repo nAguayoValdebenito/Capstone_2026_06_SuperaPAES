@@ -54,9 +54,10 @@ export function crearSuscripcionesServicio(
       Promise.reject(
         new ErrorNoImplementado(`El procesamiento de avisos de ${NOMBRE_TIENDA[tienda]}`),
       ),
-    // TEMPORAL hasta HU-44: todavía no hay suscripciones, así que ninguna cubre una prueba. HU-44 la
-    // reemplaza por la consulta de app.suscripcion y app.suscripcion_prueba (estado activa o en mora).
-    cubrePrueba: () => Promise.resolve(false),
+    // Sigue solo el estado (RN-26): hasta HU-44 nada pasa una suscripción a cancelada o vencida al
+    // terminar su período, así que una activa sigue cubriendo después de periodo_fin.
+    cubrePrueba: (estudianteId, pruebaId, tx) =>
+      repositorio.cubrePrueba(estudianteId, pruebaId, tx),
     vigenteDe: (estudianteId) => repositorio.vigenteDe(estudianteId),
   };
 }
