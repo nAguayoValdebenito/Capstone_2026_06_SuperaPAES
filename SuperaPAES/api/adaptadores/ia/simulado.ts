@@ -41,6 +41,8 @@ export class ProveedorIASimulado implements ProveedorIA {
           ],
           explicacion:
             'Se resta $3$ a ambos lados ($2x = 8$) y se divide por $2$, por lo que $x = 4$.',
+          resolucion: 'Se resta $3$ a ambos lados ($2x = 8$) y se divide por $2$: $x = 4$.',
+          habilidad: 'RP',
           dificultadSugerida: 'facil',
         },
       ],

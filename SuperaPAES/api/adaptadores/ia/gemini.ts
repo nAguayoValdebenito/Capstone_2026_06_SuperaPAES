@@ -7,9 +7,9 @@ import type { ProveedorIA, ResultadoGeneracion, SolicitudGeneracion } from './pr
 import {
   conUsoTokens,
   cuentaTokens,
-  ESQUEMA_JSON_IA,
+  esquemaJsonPreguntas,
   exigirModelo,
-  FORMATO_JSON_IA,
+  formatoJson,
   leerPreguntas,
   leerSobre,
 } from './respuesta.js';
@@ -39,12 +39,16 @@ const esquemaSobre = z.object({
     .optional(),
 });
 
-/** JSON válido por construcción: el modelo responde con el esquema de las preguntas. */
-const CONFIGURACION_GENERACION = {
-  maxOutputTokens: LIMITES_IA.maxTokens,
-  responseMimeType: 'application/json',
-  responseJsonSchema: ESQUEMA_JSON_IA,
-} as const;
+/** JSON válido por construcción: el modelo responde con el esquema de las preguntas del pedido. */
+function configuracionDe(solicitud: SolicitudGeneracion) {
+  const temperatura = solicitud.temperaturas?.gemini;
+  return {
+    maxOutputTokens: LIMITES_IA.maxTokens,
+    responseMimeType: 'application/json',
+    responseJsonSchema: esquemaJsonPreguntas(solicitud.formato),
+    ...(temperatura !== undefined && { temperature: temperatura }),
+  };
+}
 
 interface OpcionesGemini {
   claveApi: string;
@@ -72,8 +76,8 @@ export class ProveedorIAGemini implements ProveedorIA {
         cabeceras: { 'x-goog-api-key': this.opciones.claveApi },
         cuerpo: {
           contents: [{ role: 'user', parts: [{ text: solicitud.instruccion }] }],
-          systemInstruction: { parts: [{ text: FORMATO_JSON_IA }] },
-          generationConfig: CONFIGURACION_GENERACION,
+          systemInstruction: { parts: [{ text: formatoJson(solicitud.formato) }] },
+          generationConfig: configuracionDe(solicitud),
         },
         interpretar: (datos) => {
           const sobre = leerSobre(esquemaSobre, datos);

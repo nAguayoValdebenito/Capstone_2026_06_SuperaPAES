@@ -7,7 +7,7 @@ import {
   conUsoTokens,
   cuentaTokens,
   exigirModelo,
-  FORMATO_JSON_IA,
+  formatoJson,
   leerPreguntas,
   leerSobre,
 } from './respuesta.js';
@@ -84,10 +84,13 @@ export class ProveedorIADeepSeek implements ProveedorIA {
           model: modelo,
           stream: false,
           max_tokens: LIMITES_IA.maxTokens,
+          ...(solicitud.temperaturas?.deepseek !== undefined && {
+            temperature: solicitud.temperaturas.deepseek,
+          }),
           thinking: { type: 'disabled' },
           response_format: { type: 'json_object' },
           messages: [
-            { role: 'system', content: FORMATO_JSON_IA },
+            { role: 'system', content: formatoJson(solicitud.formato) },
             { role: 'user', content: solicitud.instruccion },
           ],
         },
