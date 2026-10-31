@@ -9,9 +9,10 @@ La integración debe conservar los flujos de respaldo y tareas periódicas de `m
 ## 1. Neon: base de datos y primer administrador
 
 1. Crear un proyecto de Neon con **PostgreSQL 18**. Elegir la rama principal y copiar su conexión
-   directa (sin _pooling_) para migraciones, administración y respaldo. La forma de `DATABASE_URL` es
-   `postgresql://<usuario>:<contraseña>@<host>/<base>?sslmode=require`; los campos entre `< >` son
-   marcadores, no datos para copiar literalmente. Mantener TLS con `DATABASE_SSL=true`. Para el
+   directa (sin _pooling_) para migraciones, administración y respaldo. La forma de `DATABASE_URL`
+   comienza con `postgresql://` y continúa, sin espacios, con
+   `<usuario>:<contraseña>@<host>/<base>?sslmode=require`. Los campos entre `< >` son marcadores,
+   no datos para copiar literalmente. Mantener TLS con `DATABASE_SSL=true`. Para el
    respaldo de GitHub usar la misma conexión directa; ver la
    [guía de conexiones de Neon](https://neon.com/docs/connect/connect-from-any-app).
 2. Desde una terminal local con Node 24, instalar dependencias y compilar:
