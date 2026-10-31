@@ -44,6 +44,8 @@ import {
 import { crearAbiertaRepositorio } from './evaluaciones.abierta.repositorio.js';
 import { crearAbiertaServicio, type AbiertaServicio } from './evaluaciones.abierta.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
+import { crearMiniServicio, type MiniServicio } from './evaluaciones.mini.servicio.js';
+import { crearEntregaServicio, type EntregaServicio } from './evaluaciones.entrega.servicio.js';
 
 export interface DependenciasEvaluacionesServicio {
   bd: Ejecutor;
@@ -60,7 +62,9 @@ export interface DependenciasEvaluacionesServicio {
   repositorio?: EvaluacionesRepositorio;
 }
 
-export type EvaluacionesServicio = SeleccionPractica &
+export type EvaluacionesServicio = MiniServicio &
+  EntregaServicio &
+  SeleccionPractica &
   PracticasServicio &
   RespuestasServicio &
   ResumenServicio &
@@ -68,6 +72,22 @@ export type EvaluacionesServicio = SeleccionPractica &
   ProgresoServicio &
   ExportacionEvaluaciones &
   AbiertaServicio;
+
+function crearMini(dependencias: DependenciasEvaluacionesServicio) {
+  return crearMiniServicio({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    cuentas: dependencias.cuentas,
+    cupo: dependencias.cupoInvitaciones,
+    seleccion: dependencias.repositorio ?? crearEvaluacionesRepositorio(dependencias.bd),
+  });
+}
+
+function crearProgreso(dependencias: DependenciasEvaluacionesServicio) {
+  return crearProgresoServicio({
+    repositorio: crearProgresoRepositorio(dependencias.bd),
+    administracion: dependencias.administracion,
+  });
+}
 
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
@@ -78,8 +98,11 @@ function crearServicioSinReintento(
     reloj: dependencias.reloj,
     azar: dependencias.azar ?? Math.random,
   });
+  const progreso = crearProgreso(dependencias);
   return {
     ...seleccion,
+    ...crearMini(dependencias),
+    ...crearEntregaServicio(dependencias.unidadDeTrabajo, dependencias.cuentas),
     ...crearPracticasServicio({
       repositorio: crearPracticasRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
@@ -103,12 +126,10 @@ function crearServicioSinReintento(
     ...crearResultadoServicio({
       repositorio: crearResultadoRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
+      progreso,
     }),
     ...crearExportacionEvaluaciones(dependencias.bd),
-    ...crearProgresoServicio({
-      repositorio: crearProgresoRepositorio(dependencias.bd),
-      administracion: dependencias.administracion,
-    }),
+    ...progreso,
     ...crearAbiertaServicio({
       repositorio: crearAbiertaRepositorio(dependencias.bd),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,

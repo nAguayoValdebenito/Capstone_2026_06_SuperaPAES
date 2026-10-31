@@ -107,7 +107,7 @@ export interface Dependencias {
   segundoPlano?: (tarea: () => Promise<void>) => void;
   /**
    * Solo para pruebas: reemplaza la respuesta de suscripciones a «¿una suscripción cubre la prueba?»
-   * (RN-04), que hoy siempre es no (hasta HU-44).
+   * (RN-04), que por defecto consulta la suscripción activa o en mora del estudiante.
    */
   cubrePrueba?: SuscripcionesServicio['cubrePrueba'];
 }
@@ -138,6 +138,7 @@ function crearSuscripcionesYCupo(
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const suscripciones = crearSuscripcionesServicio({
     ...base,
+    reloj: dependencias.reloj,
     pagos: dependencias.proveedores.pagos,
   });
   const cubrePrueba: SuscripcionesServicio['cubrePrueba'] =

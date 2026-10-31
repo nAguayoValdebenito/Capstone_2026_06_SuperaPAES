@@ -30,6 +30,8 @@ Archivos (modelo 12.0; las semillas no cambiaron respecto del 11.0):
 - `005_tipos_pregunta_por_prueba.sql`: tipos de pregunta que admite cada prueba
   (`contenido.prueba_tipo_pregunta`): selección múltiple en todas y suficiencia de datos solo en M2.
   Sin estas filas no se guarda ninguna pregunta (HU-12). Necesita el temario.
+- `006_acciones_auditoria_textos.sql`: acciones de auditoría para crear y editar textos de lectura
+  (HU-12.2, RNF-08).
 
 La semilla `003_documentos_legales.sql` y la migración `003_acciones_usuario_interno.sql` comparten
 el número, pero están en carpetas distintas y cada ejecutor lleva su propia cuenta: no chocan.

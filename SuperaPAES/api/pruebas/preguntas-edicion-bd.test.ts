@@ -1,14 +1,20 @@
 // Crear y editar preguntas contra PostgreSQL real (HU-12.1, ver base-temporal.ts): con las semillas
 // (temario y tipos de pregunta por prueba), la pregunta nueva queda en borrador con su autor, sus
 // alternativas, su historial y su auditoría; al editar, las alternativas conservan su id y la versión
-// sube sola si ya se había guardado. Los casos de RN-08 sin base están en preguntas-edicion.test.ts.
+// sube sola si ya se había guardado. Los textos de lectura (HU-12.2) se crean con su autor y su
+// auditoría, y no se editan si una pregunta que los usa está en revisión. Los casos de RN-08 sin base
+// están en preguntas-edicion.test.ts y los de los textos en textos-lectura.test.ts.
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { crearServicios, type Servicios } from '../app.js';
 import { ErrorConflicto } from '../comun/errores.js';
 import { ejecutarEnTransaccion } from '../db/transaccion.js';
 import { ejecutarSemillas } from '../db/semillas.js';
-import { type DatosPregunta, esquemaPregunta } from '../modulos/preguntas/preguntas.validadores.js';
+import {
+  type DatosPregunta,
+  esquemaPregunta,
+  esquemaTexto,
+} from '../modulos/preguntas/preguntas.validadores.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
 import { uno } from './banco-de-prueba.js';
 import {
@@ -19,12 +25,13 @@ import {
   urlBase,
 } from './base-temporal.js';
 import { alternativas } from './edicion-de-prueba.js';
+import { cuerpoTexto } from './textos-de-prueba.js';
 
 describe('crear y editar preguntas sin base de datos', () => {
   exigirBaseEnCi();
 });
 
-describe.skipIf(!urlBase)('crear y editar preguntas con PostgreSQL (HU-12.1)', () => {
+describe.skipIf(!urlBase)('crear y editar preguntas con PostgreSQL (HU-12.1 y HU-12.2)', () => {
   let base: BaseTemporal;
   let servicios: Servicios;
   let adminId = '';
@@ -148,6 +155,35 @@ describe.skipIf(!urlBase)('crear y editar preguntas con PostgreSQL (HU-12.1)', (
     expect(auditoria).toEqual([{ entidad: 'pregunta', id: creada.id }]);
   });
 
+  it('CP-09 con el temario real: solo se acepta la de M2 con 5; las demás, con su motivo y sin guardarse', async () => {
+    const contar = async () =>
+      Number((await base.bd.query('SELECT count(*) AS n FROM contenido.pregunta')).rows[0]?.n);
+    const antes = await contar();
+    const crear = (d: DatosPregunta) => servicios.preguntas.crearPregunta(adminId, d);
+
+    await expect(crear(datos('M1', { alternativas: alternativas(5) }))).rejects.toThrow(
+      'Competencia Matemática 1 lleva 4 alternativas.',
+    );
+    await expect(crear(datos('M1', { alternativas: alternativas(4, ['A', 'C']) }))).rejects.toThrow(
+      'Marca una sola alternativa correcta.',
+    );
+    await expect(crear(datos('CL'))).rejects.toThrow(
+      'En Competencia Lectora cada pregunta va con su texto de lectura.',
+    );
+    expect(await contar()).toBe(antes);
+
+    const m2 = await crear(datos('M2', { alternativas: alternativas(5, ['E']) }));
+    expect(m2).toMatchObject({ estado: { codigo: 'borrador' }, version: 1 });
+    expect(await contar()).toBe(antes + 1);
+    // La base tampoco acepta una segunda correcta aunque se salte la API (ux_alternativa_una_correcta).
+    await expect(
+      base.bd.query(
+        "UPDATE contenido.alternativa SET es_correcta = true WHERE pregunta_id = $1 AND letra = 'A'",
+        [m2.id],
+      ),
+    ).rejects.toThrow(/ux_alternativa_una_correcta/);
+  });
+
   it('una de Competencia Lectora se guarda con su texto de lectura y su orden', async () => {
     const texto = await uno(
       base.bd,
@@ -201,5 +237,60 @@ describe.skipIf(!urlBase)('crear y editar preguntas con PostgreSQL (HU-12.1)', (
 
     expect(editada).toMatchObject({ enunciado: 'Corregida', version: 2 });
     expect(editada.alternativas.map((a) => a.id)).toEqual(creada.alternativas.map((a) => a.id));
+  });
+
+  /** Acciones de auditoría registradas sobre la entidad indicada, en orden. */
+  const acciones = async (entidad: string, id: string) => {
+    const { rows } = await base.bd.query<{ codigo: string }>(
+      `SELECT x.codigo FROM contenido.auditoria a
+         JOIN contenido.accion_auditoria x ON x.id = a.accion_auditoria_id
+        WHERE a.entidad = $1 AND a.entidad_id = $2 ORDER BY a.id`,
+      [entidad, id],
+    );
+    return rows.map((fila) => fila.codigo);
+  };
+
+  it('un texto se crea con su autor, se encuentra por su título y se edita, todo auditado', async () => {
+    const creado = await servicios.preguntas.crearTexto(adminId, esquemaTexto.parse(cuerpoTexto()));
+    const { rows } = await base.bd.query(
+      'SELECT creado_por::text AS autor FROM contenido.texto_estimulo WHERE id = $1',
+      [creado.id],
+    );
+    expect(rows).toEqual([{ autor: adminId }]);
+
+    const { textos } = await servicios.preguntas.listarTextos({
+      buscar: 'FARO DEL',
+      pagina: 1,
+      porPagina: 20,
+    });
+    expect(textos.map((texto) => texto.id)).toContain(creado.id);
+
+    const editado = await servicios.preguntas.editarTexto(
+      adminId,
+      creado.id,
+      esquemaTexto.parse(
+        cuerpoTexto({ titulo: 'El faro del norte', imagenUrl: 'imagenes/faro.png' }),
+      ),
+    );
+    expect(editado).toMatchObject({ titulo: 'El faro del norte', imagenUrl: 'imagenes/faro.png' });
+    expect(await acciones('texto_estimulo', creado.id)).toEqual(['crear_texto', 'editar_texto']);
+  });
+
+  it('una pregunta de Competencia Lectora crea su texto nuevo; el texto no se edita si la pregunta está en revisión', async () => {
+    const creada = await servicios.preguntas.crearPregunta(
+      adminId,
+      datos('CL', { textoNuevo: cuerpoTexto({ titulo: 'Las abejas' }), ordenEnTexto: 1 }),
+    );
+    const textoId = creada.textoEstimuloId ?? '';
+    const texto = await servicios.preguntas.obtenerTexto(textoId);
+    expect(texto).toMatchObject({ titulo: 'Las abejas', preguntas: 1, editable: true });
+    expect(await acciones('texto_estimulo', textoId)).toEqual(['crear_texto']);
+
+    await cambiarEtapa(creada.id, 'en_revision');
+
+    expect((await servicios.preguntas.obtenerTexto(textoId)).editable).toBe(false);
+    await expect(
+      servicios.preguntas.editarTexto(adminId, textoId, esquemaTexto.parse(cuerpoTexto())),
+    ).rejects.toBeInstanceOf(ErrorConflicto);
   });
 });

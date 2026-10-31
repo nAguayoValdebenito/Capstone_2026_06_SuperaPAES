@@ -4,6 +4,8 @@
 // periódica cierra las demás con cerrarVencidas.
 import type { UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
+import { crearConTiempoRepositorio } from './evaluaciones.con-tiempo.repositorio.js';
+import { conTransaccionDeCierre } from './evaluaciones.cierre-transaccion.js';
 import type {
   AbiertaRepositorio,
   EvaluacionParaRetomar,
@@ -32,11 +34,19 @@ export function crearAbiertaServicio(dependencias: DependenciasAbierta) {
   return {
     async evaluacionAbierta(estudianteId: string): Promise<EvaluacionAbierta> {
       const horas = await administracion.obtenerParametroEntero('horas_inactividad_practica');
-      return unidadDeTrabajo.enTransaccion(async (tx) => {
+      return conTransaccionDeCierre(unidadDeTrabajo, async (tx) => {
         const fila = await repositorio.leerAbierta(estudianteId, horas, tx);
         if (!fila) return { abierta: null, cerrada: null };
         const { vencida, inactiva, ...abierta } = fila;
-        if (!vencida && !inactiva) return { abierta, cerrada: null };
+        if (!vencida && !inactiva) {
+          if (abierta.venceEn)
+            abierta.preguntas = await crearConTiempoRepositorio().preguntas(
+              abierta.id,
+              estudianteId,
+              tx,
+            );
+          return { abierta, cerrada: null };
+        }
         const estado = vencida ? 'tiempo_agotado' : 'abandonada';
         await repositorio.cerrar(fila.id, estado, tx);
         return { abierta: null, cerrada: { id: fila.id, tipo: fila.tipo, estado } };

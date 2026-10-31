@@ -68,7 +68,28 @@ const esquemaBase = z.object({
   SMTP_CLAVE: secretoOpcional,
   CORREO_REMITENTE: z.preprocess(
     (valor) => (valor === '' ? undefined : valor),
-    z.email().optional(),
+    z
+      .string()
+      // «Nombre <correo>» no sirve: el nombre va en CORREO_REMITENTE_NOMBRE.
+      .refine((valor) => !/[<>]/.test(valor), {
+        error: 'lleva solo la dirección de correo; el nombre visible va en CORREO_REMITENTE_NOMBRE',
+        abort: true,
+      })
+      .pipe(z.email())
+      .optional(),
+  ),
+  CORREO_REMITENTE_NOMBRE: z.preprocess(
+    (valor) => (valor === '' ? undefined : valor),
+    z
+      .string()
+      .trim()
+      .max(80)
+      // Sin saltos de línea ni caracteres de control (inyección de encabezados), ni <, >, " o la barra invertida.
+      // eslint-disable-next-line no-control-regex
+      .refine((valor) => !/[\u0000-\u001f\u007f<>"\\]/.test(valor), {
+        error: 'no admite saltos de línea, caracteres de control ni < > " \\',
+      })
+      .optional(),
   ),
   SMTP_TIMEOUT_MS: milisegundos,
   PROVEEDOR_PAGOS: z.enum(['simulado', 'tiendas']).default('simulado'),

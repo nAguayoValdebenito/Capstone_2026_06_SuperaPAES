@@ -64,6 +64,7 @@ describe('FabricaProveedores: correo', () => {
     usuario: undefined,
     clave: undefined,
     remitente: 'a@b.cl',
+    remitenteNombre: 'Supera PAES',
     timeoutMs: 10_000,
   };
 
@@ -116,12 +117,9 @@ describe('FabricaProveedores: pagos', () => {
     expect(pagos.app_store.nombre).toBe('app-store');
   });
 
-  it('las pasarelas de las tiendas aún no están implementadas', async () => {
+  it('los avisos y la consulta de las tiendas aún no están implementados (HU-44)', async () => {
     const aviso = { cuerpoCrudo: Buffer.from('{}'), encabezados: {} };
     for (const pasarela of Object.values(FabricaProveedores.pagos(tiendas, relojDelSistema))) {
-      await expect(
-        pasarela.verificarCompra({ tienda: 'google_play', idProducto: 'p', idCompraTienda: 'c' }),
-      ).rejects.toBeInstanceOf(ErrorNoImplementado);
       await expect(pasarela.consultarSuscripcion('c')).rejects.toBeInstanceOf(ErrorNoImplementado);
       await expect(pasarela.verificarAviso(aviso)).rejects.toBeInstanceOf(ErrorNoImplementado);
     }
@@ -147,19 +145,33 @@ describe('FabricaProveedores: pagos', () => {
 describe('PasarelaPagoSimulada', () => {
   const ahora = new Date('2027-03-15T12:00:00Z');
   const pasarela = new PasarelaPagoSimulada('google_play', () => ahora);
-  const compra = (idCompraTienda: string, idProducto = 'una_prueba_mensual') =>
-    pasarela.verificarCompra({ tienda: 'google_play', idProducto, idCompraTienda });
+  const CUENTA = '4ea3b5d0-1c2e-8f00-9a1b-2c3d4e5f6a7b';
+  const compra = (idCompraTienda: string) => pasarela.verificarCompra(idCompraTienda);
+  const motivo = (promesa: Promise<unknown>) =>
+    promesa.then(
+      () => null,
+      (error: unknown) => (error as { detalles?: { motivo?: string } }).detalles?.motivo,
+    );
 
-  it('aprueba la compra y calcula el fin del período mensual', async () => {
-    const resultado = await compra('simulado-aprobada-1');
+  it('aprueba «producto:cuenta» con el fin del período mensual y un cobro estable', async () => {
+    const id = `una_prueba_mensual:${CUENTA}`;
 
-    expect(resultado.estado).toBe('activa');
-    expect(resultado.periodoFin).toEqual(new Date('2027-04-15T12:00:00Z'));
-    expect(resultado.idPagoPasarela).toBe('simulado-pago-simulado-aprobada-1');
+    expect(await compra(id)).toEqual({
+      tienda: 'google_play',
+      idCompraTienda: id,
+      idProducto: 'una_prueba_mensual',
+      cuentaTienda: CUENTA,
+      estado: 'activa',
+      periodoInicio: ahora,
+      periodoFin: new Date('2027-04-15T12:00:00Z'),
+      idPagoPasarela: `sim-${id}`,
+      porConfirmar: false,
+      productoRenovacion: null,
+    });
   });
 
   it('un plan anual dura 12 meses', async () => {
-    const resultado = await compra('simulado-aprobada-2', 'todas_anual');
+    const resultado = await compra(`todas_anual:${CUENTA}`);
 
     expect(resultado.periodoFin).toEqual(new Date('2028-03-15T12:00:00Z'));
   });
@@ -167,11 +179,7 @@ describe('PasarelaPagoSimulada', () => {
   it('al fin de mes usa el último día del mes de término', async () => {
     const fin31 = new PasarelaPagoSimulada('app_store', () => new Date('2027-01-31T12:00:00Z'));
 
-    const resultado = await fin31.verificarCompra({
-      tienda: 'app_store',
-      idProducto: 'una_prueba_mensual',
-      idCompraTienda: 'simulado-aprobada-3',
-    });
+    const resultado = await fin31.verificarCompra(`una_prueba_mensual:${CUENTA}`);
 
     expect(resultado.periodoFin).toEqual(new Date('2027-02-28T12:00:00Z'));
   });
@@ -182,10 +190,27 @@ describe('PasarelaPagoSimulada', () => {
     expect(consulta.periodoFin).toEqual(new Date('2028-03-15T12:00:00Z'));
   });
 
-  it('rechaza o deja en mora según el dato de prueba', async () => {
-    expect((await compra('simulado-rechazada-1')).estado).toBe('fallida');
-    expect((await compra('simulado-mora-1')).estado).toBe('en_mora');
-    expect((await compra('simulado-rechazada-1')).idPagoPasarela).toBeNull();
+  it('deja la compra pendiente o fallida según el dato de prueba, sin cobro', async () => {
+    expect(await compra(`todas_mensual:${CUENTA}:pendiente`)).toMatchObject({
+      estado: 'pendiente',
+      idPagoPasarela: null,
+      periodoFin: null,
+    });
+    expect(await compra(`todas_mensual:${CUENTA}:rechazada`)).toMatchObject({
+      estado: 'fallida',
+      idPagoPasarela: null,
+    });
+  });
+
+  it('una compra vencida o sin producto y cuenta no es válida', async () => {
+    expect(await motivo(compra(`todas_mensual:${CUENTA}:vencida`))).toBe('no_vigente');
+    expect(await motivo(compra('simulado-aprobada-1'))).toBe('no_encontrada');
+  });
+
+  it('confirmar una compra simulada no hace nada', async () => {
+    await expect(
+      pasarela.confirmarCompra({ idProducto: 'todas_mensual', idCompraTienda: 'x' }),
+    ).resolves.toBeUndefined();
   });
 
   it('traduce un aviso simulado y rechaza uno mal formado', async () => {

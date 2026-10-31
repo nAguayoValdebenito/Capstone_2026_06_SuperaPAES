@@ -1,6 +1,8 @@
 // Filtros del banco (C02, HU-11 esc. 1, RF-G01): prueba, eje y contenido en cascada, habilidad de la
 // prueba, estado, origen y dificultad asignada. Solo presenta: los cambios los aplica useBanco.
 import { contenidosDisponibles, ejesDisponibles, habilidadesDisponibles } from '../../estado/banco';
+import { Selector } from '../../componentes/Selector';
+import { deLista, deTemario, numero } from '../../utilidades/opciones';
 import type { FiltrosBanco as Filtros, OpcionesFiltrosBanco, OrigenPregunta } from '../../tipos';
 
 interface Propiedades {
@@ -10,51 +12,7 @@ interface Propiedades {
   alLimpiar: () => void;
 }
 
-interface OpcionSelector {
-  valor: string;
-  texto: string;
-}
-
-const numero = (valor: string) => (valor === '' ? undefined : Number(valor));
 const texto = (valor: string) => (valor === '' ? undefined : valor);
-
-function Selector({
-  etiqueta,
-  valor,
-  opciones,
-  deshabilitado = false,
-  alCambiar,
-}: {
-  etiqueta: string;
-  valor: string | number | undefined;
-  opciones: OpcionSelector[];
-  deshabilitado?: boolean;
-  alCambiar: (valor: string) => void;
-}) {
-  return (
-    <label className="campo">
-      {etiqueta}
-      <select
-        value={valor ?? ''}
-        disabled={deshabilitado}
-        onChange={(evento) => alCambiar(evento.target.value)}
-      >
-        <option value="">Todos</option>
-        {opciones.map((opcion) => (
-          <option key={opcion.valor} value={opcion.valor}>
-            {opcion.texto}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-const deTemario = (items: readonly { id: number; nombre: string }[]): OpcionSelector[] =>
-  items.map((item) => ({ valor: String(item.id), texto: item.nombre }));
-
-const deLista = (items: readonly { codigo: string; nombre: string }[]): OpcionSelector[] =>
-  items.map((item) => ({ valor: item.codigo, texto: item.nombre }));
 
 function FiltrosTemario({ opciones, filtros, alCambiar }: Omit<Propiedades, 'alLimpiar'>) {
   const ejes = ejesDisponibles(opciones.pruebas, filtros);

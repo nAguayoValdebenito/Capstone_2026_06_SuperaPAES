@@ -6,7 +6,10 @@
 // crearEvaluacionesControlador(servicio).
 import { Router } from 'express';
 import { validar } from '../../comun/middleware/validacion.js';
-import { crearEvaluacionesControlador } from './evaluaciones.controlador.js';
+import {
+  crearEvaluacionesControlador,
+  type EvaluacionesControlador,
+} from './evaluaciones.controlador.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import {
   esquemaIdEvaluacion,
@@ -14,11 +17,37 @@ import {
   esquemaIdsItem,
   esquemaInicioPractica,
   esquemaRespuesta,
+  esquemaInicioMini,
+  esquemaDisponibilidadDiagnostico,
 } from './evaluaciones.validadores.js';
+
+function registrarConTiempo(router: Router, controlador: EvaluacionesControlador) {
+  router.get(
+    '/diagnosticos/disponibilidad',
+    validar({ consulta: esquemaDisponibilidadDiagnostico }),
+    controlador.disponibilidadDiagnostico,
+  );
+  router.post(
+    '/:id/entregar',
+    validar({ parametros: esquemaIdEvaluacion }),
+    controlador.entregarEvaluacion,
+  );
+  router.post(
+    '/mini-ensayos',
+    validar({ cuerpo: esquemaInicioMini }),
+    controlador.iniciarMiniEnsayo,
+  );
+  router.post(
+    '/diagnosticos',
+    validar({ cuerpo: esquemaInicioMini }),
+    controlador.iniciarDiagnostico,
+  );
+}
 
 export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Router {
   const router = Router();
   const controlador = crearEvaluacionesControlador(servicio);
+  registrarConTiempo(router, controlador);
   router.post(
     '/practicas',
     validar({ cuerpo: esquemaInicioPractica }),

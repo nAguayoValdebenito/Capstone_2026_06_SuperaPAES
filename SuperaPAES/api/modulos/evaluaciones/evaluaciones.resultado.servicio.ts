@@ -5,10 +5,13 @@
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { evaluacionInexistente, evaluacionSinEntregar } from './evaluaciones.errores.js';
 import type { ResultadoRepositorio } from './evaluaciones.resultado.repositorio.js';
+import type { ProgresoServicio } from './evaluaciones.progreso.servicio.js';
+import { conTransaccionDeCierre } from './evaluaciones.cierre-transaccion.js';
 
 export interface DependenciasResultado {
   repositorio: ResultadoRepositorio;
   unidadDeTrabajo: UnidadDeTrabajo;
+  progreso: Pick<ProgresoServicio, 'obtenerProgreso'>;
 }
 
 async function consultarCerrada<T>(
@@ -17,7 +20,7 @@ async function consultarCerrada<T>(
   id: string,
   leer: (tx: Ejecutor) => Promise<T>,
 ): Promise<T> {
-  return unidadDeTrabajo.enTransaccion(async (tx) => {
+  return conTransaccionDeCierre(unidadDeTrabajo, async (tx) => {
     const evaluacion = await repositorio.bloquearEvaluacion(id, estudianteId, tx);
     if (!evaluacion) throw evaluacionInexistente();
     if (!evaluacion.cerradaEn) {
@@ -29,14 +32,36 @@ async function consultarCerrada<T>(
 }
 
 export function crearResultadoServicio(dependencias: DependenciasResultado) {
-  const { repositorio } = dependencias;
+  const { repositorio, progreso } = dependencias;
   return {
-    obtenerResultado: (estudianteId: string, id: string) =>
-      consultarCerrada(dependencias, estudianteId, id, async (tx) => {
+    obtenerResultado: async (estudianteId: string, id: string) => {
+      const resultado = await consultarCerrada(dependencias, estudianteId, id, async (tx) => {
         const resultado = await repositorio.leerResultado(id, estudianteId, tx);
         if (!resultado) throw new Error('La evaluación cerrada no tiene un resultado guardado.');
         return resultado;
-      }),
+      });
+      if (resultado.tipo.codigo !== 'diagnostico') return resultado;
+      const prueba = (await progreso.obtenerProgreso(estudianteId)).pruebas.find(
+        (p) => p.pruebaId === resultado.prueba.id,
+      );
+      const ejes = resultado.ejes.map((eje) => ({
+        ...eje,
+        aReforzar: prueba?.ejes.find((p) => p.id === eje.id)?.aReforzar ?? false,
+      }));
+      const habilidades = resultado.habilidades.map((habilidad) => ({
+        ...habilidad,
+        aReforzar: prueba?.habilidades.find((p) => p.id === habilidad.id)?.aReforzar ?? false,
+      }));
+      return {
+        ...resultado,
+        ejes,
+        habilidades,
+        ejesAReforzar: ejes.filter((eje) => eje.aReforzar).map((eje) => eje.id),
+        habilidadesAReforzar: habilidades
+          .filter((habilidad) => habilidad.aReforzar)
+          .map((habilidad) => habilidad.id),
+      };
+    },
     obtenerRevision: (estudianteId: string, id: string) =>
       consultarCerrada(dependencias, estudianteId, id, async (tx) => ({
         id,

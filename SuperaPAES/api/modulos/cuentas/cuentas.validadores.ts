@@ -6,7 +6,7 @@ import { cabeEnBcrypt, refinarContrasena } from '../../comun/contrasenas.js';
 
 /** Se guarda y se compara sin espacios y en minúsculas. */
 const correo = z
-  .string()
+  .string('Ingresa tu correo.')
   .trim()
   .toLowerCase()
   .pipe(
@@ -18,13 +18,16 @@ const conMotivo = (mensaje: string, motivo: string) => ({ message: mensaje, para
 
 // La contraseña nueva se valida con RN-31 en el componente común (refinarContrasena). La del ingreso
 // solo se limita a 72 bytes de UTF-8, para que la contraseña completa cuente en bcrypt.
-const contrasena = z.string().min(1).refine(cabeEnBcrypt, 'La contraseña es demasiado larga.');
+const contrasena = z
+  .string('Ingresa tu contraseña.')
+  .min(1, 'Ingresa tu contraseña.')
+  .refine(cabeEnBcrypt, 'La contraseña es demasiado larga.');
 
 export const esquemaRegistro = z
   .strictObject({
     /** De 1 a 100 caracteres, sin espacios al inicio, al final ni repetidos. */
     nombre: z
-      .string()
+      .string('Ingresa tu nombre.')
       .trim()
       .transform((valor) => valor.replace(/\s+/g, ' '))
       .pipe(
@@ -34,7 +37,7 @@ export const esquemaRegistro = z
           .max(100, 'El nombre puede tener hasta 100 caracteres.'),
       ),
     correo,
-    contrasena: z.string(),
+    contrasena: z.string('Ingresa tu contraseña.'),
     /** RN-18 (HU-01 esc. 5): la app es para personas de 14 años o más; sin la declaración no se crea nada. */
     declaraTenerCatorceAnios: z
       .unknown()
@@ -83,7 +86,10 @@ export const esquemaRecuperacion = z.strictObject({ correo });
  */
 export const esquemaRestablecer = z.strictObject({
   token: z.string().min(1).max(100),
-  contrasena: z.string().min(1, 'Ingresa la contraseña nueva.').max(500),
+  contrasena: z
+    .string('Ingresa la contraseña nueva.')
+    .min(1, 'Ingresa la contraseña nueva.')
+    .max(500),
 });
 
 /** Renovar y cerrar la sesión: el token de renovación que entregó el ingreso (o la última renovación). */

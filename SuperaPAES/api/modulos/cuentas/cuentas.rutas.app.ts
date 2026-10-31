@@ -62,6 +62,8 @@ function montarRecuperacion(
 /** Perfil del estudiante (HU-29.1): con sesión, sin otro límite. */
 function montarPerfil(router: Router, controlador: CuentasControlador, mw: MiddlewareRutas): void {
   router.get('/perfil', mw.autenticarApp, controlador.obtenerPerfil);
+  // DAS 4.3.3: el correo verificado, el cupo del día y las versiones aceptadas de los textos legales.
+  router.get('/yo', mw.autenticarApp, controlador.estadoDeLaCuenta);
   router.put(
     '/perfil',
     mw.autenticarApp,

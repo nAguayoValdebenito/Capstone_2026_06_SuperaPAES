@@ -1,10 +1,12 @@
 // Pasarela simulada: recorre el mismo flujo que las tiendas sin salir del servidor. La usan el
-// desarrollo y las pruebas automáticas. El resultado depende del dato de prueba en id_compra_tienda:
-// si contiene "rechazada" el cobro falla, si contiene "mora" queda en mora y en otro caso se aprueba.
+// desarrollo y las pruebas automáticas. Una compra simulada es «<producto>:<cuentaTienda>», con
+// «:pendiente» (pago en espera), «:rechazada» (primer pago fallido) o «:vencida» (no vigente) al final
+// si se quiere otro resultado; sin producto y cuenta, la tienda no la encuentra. Al consultar una
+// suscripción, el dato de prueba decide: "rechazada" falla, "mora" queda en mora y lo demás se aprueba.
 // Un producto o compra que contiene "anual" dura 12 meses; el resto, 1 mes.
 // Los avisos no llevan firma: nunca se usa con PROVEEDOR_PAGOS=tiendas.
 import { z } from 'zod';
-import { ErrorSolicitudInvalida } from '../../comun/errores.js';
+import { ErrorCompraNoValida, ErrorSolicitudInvalida } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type {
   AvisoEntrante,
@@ -12,7 +14,6 @@ import type {
   CompraVerificada,
   EstadoSuscripcion,
   PasarelaPago,
-  SolicitudVerificacionCompra,
   SuscripcionEnTienda,
   Tienda,
 } from './pasarela.js';
@@ -37,14 +38,31 @@ export class PasarelaPagoSimulada implements PasarelaPago {
     private readonly reloj: Reloj,
   ) {}
 
-  verificarCompra(solicitud: SolicitudVerificacionCompra): Promise<CompraVerificada> {
-    const estado = estadoSimulado(solicitud.idCompraTienda);
+  verificarCompra(idCompraTienda: string): Promise<CompraVerificada> {
+    const [idProducto, cuentaTienda, resultado, ...resto] = idCompraTienda.split(':');
+    if (!idProducto || !cuentaTienda || resto.length > 0)
+      return Promise.reject(new ErrorCompraNoValida('no_encontrada'));
+    if (resultado === 'vencida') return Promise.reject(new ErrorCompraNoValida('no_vigente'));
+    const estado =
+      resultado === 'pendiente' ? 'pendiente' : resultado === 'rechazada' ? 'fallida' : 'activa';
+    const cobrada = estado === 'activa';
     return Promise.resolve({
-      ...solicitud,
+      tienda: this.tienda,
+      idCompraTienda,
+      idProducto,
+      cuentaTienda,
       estado,
-      periodoFin: estado === 'activa' ? this.finDePeriodo(solicitud.idProducto) : null,
-      idPagoPasarela: estado === 'activa' ? `simulado-pago-${solicitud.idCompraTienda}` : null,
+      periodoInicio: cobrada ? this.reloj() : null,
+      periodoFin: cobrada ? this.finDePeriodo(idProducto) : null,
+      idPagoPasarela: cobrada ? `sim-${idCompraTienda}` : null,
+      porConfirmar: false,
+      productoRenovacion: null,
     });
+  }
+
+  /** Las compras simuladas no se confirman: no hay tienda que las reembolse. */
+  confirmarCompra(_compra: Pick<CompraVerificada, 'idProducto' | 'idCompraTienda'>): Promise<void> {
+    return Promise.resolve();
   }
 
   consultarSuscripcion(idCompraTienda: string): Promise<SuscripcionEnTienda> {

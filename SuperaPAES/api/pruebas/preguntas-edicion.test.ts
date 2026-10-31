@@ -11,9 +11,9 @@ import {
   M2,
   RUTA_PREGUNTAS,
   TEXTO_GUARDADO,
+  comoAdmin,
+  problemas,
 } from './edicion-de-prueba.js';
-
-const comoAdmin = async () => ({ Authorization: `Bearer ${await tokenAdmin('admin', '5')}` });
 
 async function crear(app: ReturnType<typeof escenarioEdicion>['app'], datos = cuerpo()) {
   return request(app)
@@ -21,16 +21,6 @@ async function crear(app: ReturnType<typeof escenarioEdicion>['app'], datos = cu
     .set(await comoAdmin())
     .send(datos);
 }
-
-interface CuerpoConProblemas {
-  error: { detalles: { ruta: string; mensaje: string }[] };
-}
-
-/** Problemas de validación de la respuesta, como «ruta: mensaje». */
-const problemas = (respuesta: { body: unknown }) =>
-  (respuesta.body as CuerpoConProblemas).error.detalles.map(
-    ({ ruta, mensaje }) => `${ruta}: ${mensaje}`,
-  );
 
 describe('crear una pregunta (HU-12.1, CU-15)', () => {
   it('queda en borrador, con su autor, sus alternativas y su eje; responde 201 (esc. 4)', async () => {

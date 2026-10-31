@@ -35,6 +35,7 @@ describe('configuración de Docker', () => {
       'DEEPSEEK_API_KEY',
       'GEMINI_API_KEY',
       'GEMINI_MODELO',
+      'CORREO_REMITENTE_NOMBRE',
     ]) {
       expect(variables, `falta ${nombre} en .env.docker.example`).toHaveProperty(nombre);
     }

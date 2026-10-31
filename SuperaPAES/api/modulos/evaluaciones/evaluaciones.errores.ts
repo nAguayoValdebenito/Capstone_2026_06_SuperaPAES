@@ -15,11 +15,24 @@ export function sinPreguntas(disponibles: number, solicitadas: number, opciones:
   );
 }
 
-export const evaluacionConTiempoAbierta = () =>
+export const evaluacionConTiempoAbierta = (abierta?: {
+  id: string;
+  tipo: string;
+  pruebaId: number;
+  venceEn: Date | null;
+}) =>
   new ErrorAplicacion(
     409,
     'EVALUACION_CON_TIEMPO_ABIERTA',
     'Termina tu evaluación con tiempo antes de empezar otra.',
+    abierta ? { detalles: { abierta: { ...abierta, id: Number(abierta.id) } } } : undefined,
+  );
+
+export const diagnosticoYaRendido = () =>
+  new ErrorAplicacion(
+    409,
+    'DIAGNOSTICO_YA_RENDIDO',
+    'Ya rendiste el diagnóstico de esta prueba este año escolar.',
   );
 
 export const evaluacionNoEncontrada = () =>

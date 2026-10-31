@@ -72,13 +72,21 @@ export interface Opcion {
 /** Origen de una pregunta, deducido por la API del lote de IA o de la importación. */
 export type OrigenPregunta = 'manual' | 'importacion' | 'ia';
 
-/** Prueba con sus ejes (y los contenidos de cada eje) y sus habilidades, para los filtros del banco. */
+/**
+ * Prueba con sus ejes (y los contenidos de cada eje), sus habilidades y los tipos de pregunta que
+ * admite, para los filtros del banco y el formulario C03. opcionesMin, opcionesMax y requiereTexto son
+ * las reglas de RN-08.
+ */
 export interface PruebaTemario {
   id: number;
   codigo: string;
   nombre: string;
+  opcionesMin: number;
+  opcionesMax: number;
+  requiereTexto: boolean;
   ejes: { id: number; nombre: string; contenidos: { id: number; nombre: string }[] }[];
   habilidades: { id: number; nombre: string }[];
+  tiposPregunta: Opcion[];
 }
 
 /** Opciones de los filtros del banco (GET /admin/preguntas/filtros). */
@@ -115,6 +123,68 @@ export interface PreguntaDelBanco {
   /** Un revisor dijo fácil y el otro difícil ("posiblemente confusa" en C02). */
   posibleAmbigua: boolean;
   actualizadoEn: string;
+}
+
+/** Letra de una alternativa, en orden. */
+export const LETRAS = ['A', 'B', 'C', 'D', 'E'] as const;
+export type Letra = (typeof LETRAS)[number];
+
+export interface AlternativaPregunta {
+  letra: Letra;
+  texto: string;
+  esCorrecta: boolean;
+  explicacion: string | null;
+}
+
+/** Texto de lectura que se escribe en el formulario (HU-12.2). */
+export interface DatosTexto {
+  tipoTexto: string;
+  titulo: string;
+  contenido: string | null;
+  imagenUrl: string | null;
+}
+
+/** Lo que la consola envía al crear o editar una pregunta (C03, HU-12.1). */
+export interface DatosPregunta {
+  pruebaId: number;
+  contenidoId: number;
+  habilidadId: number;
+  tipoPregunta: string;
+  dificultadSugerida: string | null;
+  enunciado: string;
+  explicacion: string;
+  textoEstimuloId: number | null;
+  textoNuevo: DatosTexto | null;
+  ordenEnTexto: number | null;
+  alternativas: AlternativaPregunta[];
+}
+
+/** La pregunta guardada, con la correcta: solo la ve el administrador. */
+export interface PreguntaParaEditar extends Omit<
+  DatosPregunta,
+  'textoNuevo' | 'alternativas' | 'dificultadSugerida'
+> {
+  id: number;
+  ejeId: number;
+  dificultadSugerida: string | null;
+  estado: Opcion;
+  /** RF-G09: solo en borrador u observada. */
+  editable: boolean;
+  version: number;
+  origen: OrigenPregunta;
+  alternativas: (AlternativaPregunta & { id: number })[];
+  actualizadoEn: string;
+}
+
+/** Texto de lectura en la lista para elegir uno guardado. */
+export interface TextoDeLectura {
+  id: number;
+  tipoTexto: Opcion;
+  titulo: string | null;
+  resumen: string | null;
+  imagenUrl: string | null;
+  preguntas: number;
+  creadoEn: string;
 }
 
 /** Paginación de un listado de la API (`meta`). */
