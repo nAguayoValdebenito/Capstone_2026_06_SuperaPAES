@@ -127,6 +127,50 @@ export class ErrorYaVerificado extends ErrorAplicacion {
   }
 }
 
+/** HU-43.1: por qué la tienda no deja activar la compra (`detalles.motivo` de COMPRA_NO_VALIDA). */
+export type MotivoCompraNoValida =
+  | 'no_encontrada'
+  | 'otra_cuenta'
+  | 'otro_producto'
+  | 'otro_paquete'
+  | 'firma_invalida'
+  | 'revocada'
+  | 'no_vigente';
+
+const MENSAJE_COMPRA_NO_VALIDA: Record<MotivoCompraNoValida, string> = {
+  no_encontrada: 'La tienda no encontró esta compra.',
+  otra_cuenta: 'Esta compra se hizo para otra suscripción o cuenta.',
+  otro_producto: 'Esta compra es de un producto distinto al plan elegido.',
+  otro_paquete: 'Esta compra no es de la app Supera PAES.',
+  firma_invalida: 'No pudimos comprobar que la compra venga de la tienda.',
+  revocada: 'La tienda anuló o reembolsó esta compra.',
+  no_vigente: 'Esta compra ya no está vigente en la tienda.',
+};
+
+/**
+ * HU-43.1, 422 COMPRA_NO_VALIDA: la tienda no confirma la compra para esta suscripción. Solo cuenta lo
+ * que responde la tienda: nunca se activa un plan porque la app diga que pagó. No se guarda nada.
+ */
+export class ErrorCompraNoValida extends ErrorAplicacion {
+  constructor(readonly motivo: MotivoCompraNoValida) {
+    super(422, 'COMPRA_NO_VALIDA', MENSAJE_COMPRA_NO_VALIDA[motivo], { detalles: { motivo } });
+  }
+}
+
+/**
+ * HU-43.1, 503 TIENDA_NO_DISPONIBLE: la tienda respondió con error, tardó más de 10 s o la API no pudo
+ * autenticarse con ella. La suscripción queda igual y se puede reintentar.
+ */
+export class ErrorTiendaNoDisponible extends ErrorAplicacion {
+  constructor() {
+    super(
+      503,
+      'TIENDA_NO_DISPONIBLE',
+      'No pudimos confirmar la compra con la tienda. Inténtalo de nuevo en unos minutos.',
+    );
+  }
+}
+
 export class ErrorDemasiadosIntentos extends ErrorAplicacion {
   constructor() {
     super(

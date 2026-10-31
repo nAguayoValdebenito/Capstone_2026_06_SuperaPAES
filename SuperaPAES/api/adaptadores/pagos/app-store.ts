@@ -23,6 +23,10 @@ export class PasarelaAppStore implements PasarelaPago {
     return Promise.reject(new ErrorNoImplementado('La verificación de compras de la App Store'));
   }
 
+  confirmarCompra(): Promise<void> {
+    return Promise.reject(new ErrorNoImplementado('La confirmación de compras de la App Store'));
+  }
+
   consultarSuscripcion(): Promise<SuscripcionEnTienda> {
     return Promise.reject(new ErrorNoImplementado('La consulta de suscripciones en la App Store'));
   }
