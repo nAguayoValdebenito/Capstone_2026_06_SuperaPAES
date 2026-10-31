@@ -155,6 +155,35 @@ describe.skipIf(!urlBase)('crear y editar preguntas con PostgreSQL (HU-12.1 y HU
     expect(auditoria).toEqual([{ entidad: 'pregunta', id: creada.id }]);
   });
 
+  it('CP-09 con el temario real: solo se acepta la de M2 con 5; las demás, con su motivo y sin guardarse', async () => {
+    const contar = async () =>
+      Number((await base.bd.query('SELECT count(*) AS n FROM contenido.pregunta')).rows[0]?.n);
+    const antes = await contar();
+    const crear = (d: DatosPregunta) => servicios.preguntas.crearPregunta(adminId, d);
+
+    await expect(crear(datos('M1', { alternativas: alternativas(5) }))).rejects.toThrow(
+      'Competencia Matemática 1 lleva 4 alternativas.',
+    );
+    await expect(crear(datos('M1', { alternativas: alternativas(4, ['A', 'C']) }))).rejects.toThrow(
+      'Marca una sola alternativa correcta.',
+    );
+    await expect(crear(datos('CL'))).rejects.toThrow(
+      'En Competencia Lectora cada pregunta va con su texto de lectura.',
+    );
+    expect(await contar()).toBe(antes);
+
+    const m2 = await crear(datos('M2', { alternativas: alternativas(5, ['E']) }));
+    expect(m2).toMatchObject({ estado: { codigo: 'borrador' }, version: 1 });
+    expect(await contar()).toBe(antes + 1);
+    // La base tampoco acepta una segunda correcta aunque se salte la API (ux_alternativa_una_correcta).
+    await expect(
+      base.bd.query(
+        "UPDATE contenido.alternativa SET es_correcta = true WHERE pregunta_id = $1 AND letra = 'A'",
+        [m2.id],
+      ),
+    ).rejects.toThrow(/ux_alternativa_una_correcta/);
+  });
+
   it('una de Competencia Lectora se guarda con su texto de lectura y su orden', async () => {
     const texto = await uno(
       base.bd,

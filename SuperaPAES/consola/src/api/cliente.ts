@@ -7,6 +7,12 @@ const URL_BASE = (
   import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3000' : '')
 ).replace(/\/$/, '');
 
+/** Dirección de una imagen de pregunta: completa, o relativa a la API (como en la app, HU-34.2). */
+export function direccionDeImagen(url: string): string {
+  if (/^https?:\/\//.test(url)) return url;
+  return `${URL_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 export class ErrorApi extends Error {
   constructor(
     readonly estadoHttp: number,
