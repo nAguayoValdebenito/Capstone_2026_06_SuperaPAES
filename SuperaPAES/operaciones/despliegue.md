@@ -67,6 +67,8 @@ los [límites actuales del plan Free](https://render.com/docs/free) antes de una
 En **Environment**, cargar estas **29 variables**, incluido `NODE_ENV=production` explícitamente.
 `PORT` lo proporciona [Render al servicio Node](https://render.com/docs/environment-variables) y
 no se fija manualmente. `SMTP_TIMEOUT_MS` es opcional y aquí usa el valor predeterminado.
+`CORREO_REMITENTE_NOMBRE` también es opcional y queda fuera de las 29: si no se define, los correos
+salen con el nombre visible «Supera PAES» (se explica en la sección 3).
 
 | Grupo                    |                                                                                                                                                                                                            Variables (cantidad) | Qué cargar                                                                                                                                                        |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -106,7 +108,9 @@ SMTP** y una **clave SMTP**. En Render, usar `PROVEEDOR_CORREO=smtp`, el host SM
 en `SMTP_HOST`, `SMTP_PORT=2525`, `SMTP_TLS=starttls`, el login en `SMTP_USUARIO` y la clave SMTP en
 `SMTP_CLAVE`. La clave SMTP no es la contraseña de la cuenta ni una clave de API. En
 `CORREO_REMITENTE` escribir **solo la dirección de correo verificada**, sin nombre visible ni
-corchetes; la API agrega el nombre. El puerto 2525 evita los puertos SMTP bloqueados en Render Free;
+corchetes: un valor con `<` o `>` hace que la API no arranque. El nombre visible va en la variable
+opcional `CORREO_REMITENTE_NOMBRE`, que por defecto vale «Supera PAES»; solo se define para cambiarlo,
+con hasta 80 caracteres y sin saltos de línea, comillas ni corchetes angulares. El puerto 2525 evita los puertos SMTP bloqueados en Render Free;
 [Brevo lo admite](https://help.brevo.com/hc/en-us/articles/115000188150-Troubleshooting-Issues-with-Brevo-SMTP).
 
 ## 4. Vercel: consola y CORS
