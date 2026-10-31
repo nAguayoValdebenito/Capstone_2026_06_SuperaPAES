@@ -12,7 +12,9 @@ tiene reglas de negocio y solo habla con la API por HTTP (`/api/v1/app`). Solo A
 
 1. Instala Flutter estable (3.44 o superior) y revisa con `flutter doctor`. Para Android necesitas
    Android Studio con el SDK, las _Command-line Tools_ (SDK Manager) y las licencias aceptadas
-   (`flutter doctor --android-licenses`).
+   (`flutter doctor --android-licenses`). Instala también el **NDK 28.2.13676358** desde el SDK Manager
+   (SDK Tools → NDK (Side by side) → «Show Package Details»): la instalación automática de Gradle falla
+   en Windows.
 2. `android/` e `ios/` ya están generadas. Solo si se borran, regenéralas con
    `powershell -ExecutionPolicy Bypass -File scripts/preparar_plataformas.ps1`.
 3. Copia `config/desarrollo.example.json` como `config/desarrollo.json` (está en `.gitignore`).
