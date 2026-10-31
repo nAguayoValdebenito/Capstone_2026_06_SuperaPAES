@@ -615,10 +615,14 @@ class FilaDato extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          etiqueta,
-          style: TemaSuperaPaes.pequeno.copyWith(
-            color: TemaSuperaPaes.textoSecundario,
+        // Flexible: una etiqueta larga («Invitaciones premiadas este mes»)
+        // baja de línea en vez de empujar el valor fuera (RNF-12).
+        Flexible(
+          child: Text(
+            etiqueta,
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
           ),
         ),
         const SizedBox(width: 12),

@@ -44,6 +44,10 @@ void main() {
           'link': 'https://consola.superapaes.cl/invitar/K7P2QX',
           'registrados': 3,
           'verificados': 1,
+          'preguntasGanadas': 5,
+          'saldoExtra': 5,
+          'premiadasMes': 1,
+          'topeMes': 10,
         }),
       );
 
@@ -59,6 +63,10 @@ void main() {
       expect(invitaciones.codigo, 'K7P2QX');
       expect(invitaciones.registrados, 3);
       expect(invitaciones.verificados, 1);
+      expect(invitaciones.preguntasGanadas, 5);
+      expect(invitaciones.saldoExtra, 5);
+      expect(invitaciones.premiadasMes, 1);
+      expect(invitaciones.topeMes, 10);
     },
   );
 
@@ -82,6 +90,17 @@ void main() {
       expect(find.text('registrados'), findsOne);
       expect(find.text('1'), findsOne);
       expect(find.text('verificados'), findsOne);
+      // Lo ganado invitando (HU-47.2).
+      await tester.scrollUntilVisible(
+        find.textContaining('se acumulan y no vencen'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('preguntas ganadas'), findsOne);
+      expect(find.text('Saldo de preguntas extra'), findsOne);
+      expect(find.text('Invitaciones premiadas este mes'), findsOne);
+      expect(find.text('1 de 10'), findsOne);
+      expect(find.textContaining('se acumulan y no vencen'), findsOne);
     });
 
     testWidgets('«Compartir invitación» envía el código y el link (CU-11 '
@@ -157,7 +176,7 @@ void main() {
         ruta: Rutas.invitaciones,
       );
       await tester.scrollUntilVisible(
-        find.text('verificados'),
+        find.textContaining('se acumulan y no vencen'),
         200,
         scrollable: find.byType(Scrollable).first,
       );

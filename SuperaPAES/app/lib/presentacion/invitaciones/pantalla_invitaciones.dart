@@ -6,13 +6,15 @@ import 'package:supera_paes/dominio/entidades/resumen_invitaciones.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/invitaciones/estado_invitaciones.dart';
 
-/// Invitar (A38; HU-46, CU-11 pasos 1 a 3, RF-A12, RN-33), desde Perfil: el
-/// link a la página de invitación y el código propio, para copiarlos o
-/// compartirlos, y cuántos se registraron y verificaron su correo. Las
-/// preguntas ganadas, el saldo y el tope del mes se agregan con HU-47.2.
+/// Invitar (A38; HU-46, HU-47, CU-11 pasos 1 a 3, RF-A12, RN-03, RN-33),
+/// desde Perfil: el link a la página de invitación y el código propio, para
+/// copiarlos o compartirlos; cuántos se registraron y verificaron su correo,
+/// las preguntas ganadas, el saldo de preguntas extra y las invitaciones
+/// premiadas del mes con su tope.
 class PantallaInvitaciones extends ConsumerWidget {
   const PantallaInvitaciones({super.key});
 
@@ -42,7 +44,34 @@ class PantallaInvitaciones extends ConsumerWidget {
                 _Contador(valor: value.registrados, texto: 'registrados'),
                 const SizedBox(width: 12),
                 _Contador(valor: value.verificados, texto: 'verificados'),
+                const SizedBox(width: 12),
+                _Contador(
+                  valor: value.preguntasGanadas,
+                  texto: 'preguntas ganadas',
+                ),
               ],
+            ),
+            Tarjeta(
+              child: Column(
+                children: [
+                  FilaDato(
+                    etiqueta: 'Saldo de preguntas extra',
+                    valor: '${value.saldoExtra}',
+                  ),
+                  const SizedBox(height: 10),
+                  FilaDato(
+                    etiqueta: 'Invitaciones premiadas este mes',
+                    valor: '${value.premiadasMes} de ${value.topeMes}',
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              'Las preguntas extra se usan después del cupo del día, se '
+              'acumulan y no vencen. Cada correo cuenta una sola vez.',
+              style: TemaSuperaPaes.pequeno.copyWith(
+                color: TemaSuperaPaes.textoSecundario,
+              ),
             ),
           ],
           AsyncError(:final error) => [
