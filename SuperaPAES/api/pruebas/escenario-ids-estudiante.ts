@@ -61,6 +61,7 @@ const revision = {
 /** La evaluación abierta (HU-60.1) y la que se cerró al consultarla; sus ids llegan como texto. */
 const abiertaDePrueba = {
   abierta: {
+    preguntas: [{ id: '84', alternativaElegidaId: '101', alternativas: [{ id: '101' }] }],
     id: '41',
     prueba: { id: 1, codigo: 'M1', nombre: 'Matemática M1' },
     alcance: { tipo: 'eje', id: 2, nombre: 'Álgebra y funciones' },
@@ -75,6 +76,9 @@ const abiertaDePrueba = {
  */
 export function serviciosEvaluacionesEstudiante() {
   return {
+    entregarEvaluacion: vi.fn(() =>
+      Promise.resolve({ id: '41', estado: 'entregada', resultadoDisponible: true }),
+    ),
     iniciarMiniEnsayo: vi.fn(() =>
       Promise.resolve({
         id: '41',

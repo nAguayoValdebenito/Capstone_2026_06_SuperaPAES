@@ -10,6 +10,7 @@ export interface ItemParaResponder {
   cerrada: boolean;
   venceEn: Date | null;
   consumeCupo: boolean;
+  conTiempo?: boolean;
 }
 
 export interface RespuestaNueva {
@@ -47,11 +48,11 @@ const consultasRespuestas = {
   ): Promise<ItemParaResponder | null> {
     const { rows } = await tx.query<ItemParaResponder>(
       `SELECT i.prueba_id AS "pruebaId", i.respondida_en IS NOT NULL AS respondida,
-          e.cerrada_en IS NOT NULL AS cerrada, e.vence_en AS "venceEn", t.consume_cupo AS "consumeCupo"
+          e.cerrada_en IS NOT NULL AS cerrada, e.vence_en AS "venceEn", t.consume_cupo AS "consumeCupo",t.con_tiempo AS "conTiempo"
          FROM app.evaluacion e
          JOIN app.evaluacion_item i ON i.evaluacion_id = e.id
          JOIN contenido.tipo_evaluacion t ON t.id = e.tipo_evaluacion_id
-        WHERE e.id = $1 AND i.id = $2 AND e.estudiante_id = $3 AND t.codigo = 'practica'
+        WHERE e.id = $1 AND i.id = $2 AND e.estudiante_id = $3 AND (t.codigo = 'practica' OR t.con_tiempo)
         FOR UPDATE OF e, i`,
       [evaluacionId, itemId, estudianteId],
     );
@@ -78,6 +79,19 @@ const consultasRespuestas = {
       [respuesta.itemId, respuesta.alternativaId, respuesta.ahora, respuesta.tipoConsumo],
     );
     return rowCount === 1;
+  },
+  /** El reloj se lee después del bloqueo, en la sentencia que escribe: sin la gracia del trigger. */
+  async guardarConTiempo(itemId: string, alternativaId: number, tx: Ejecutor) {
+    const { rows } = await tx.query<{ alternativaElegidaId: string; respondidaEn: Date }>(
+      `WITH reloj AS MATERIALIZED (SELECT clock_timestamp() AS ahora)
+       UPDATE app.evaluacion_item i SET alternativa_id=$2,respondida_en=reloj.ahora,
+        tiempo_seg=GREATEST(0,floor(extract(epoch FROM reloj.ahora-i.entregada_en)))::int
+       FROM app.evaluacion e,reloj WHERE i.id=$1 AND e.id=i.evaluacion_id AND e.cerrada_en IS NULL
+        AND reloj.ahora<e.vence_en
+       RETURNING i.alternativa_id::text AS "alternativaElegidaId",i.respondida_en AS "respondidaEn"`,
+      [itemId, alternativaId],
+    );
+    return rows[0] ?? null;
   },
   async leerCorreccion(
     itemId: string,

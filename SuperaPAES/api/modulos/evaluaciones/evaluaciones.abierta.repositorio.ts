@@ -1,6 +1,7 @@
 // Evaluación abierta del estudiante, para retomarla donde quedó (HU-60.1, CU-28, RF-A22), y cierre
 // periódico de las vencidas y de las prácticas sin actividad con app.cerrar_vencidas (RN-19, RN-21).
 import type { Ejecutor } from '../../db/transaccion.js';
+import type { PreguntaConTiempo } from './evaluaciones.con-tiempo.repositorio.js';
 import {
   ALCANCE_Y_DIFICULTAD,
   JOINS_ALCANCE,
@@ -14,6 +15,7 @@ interface Codigo {
 
 /** Lo que la app muestra para retomar (A12 y A29). */
 export interface EvaluacionParaRetomar {
+  preguntas?: PreguntaConTiempo[];
   id: string;
   tipo: Codigo;
   prueba: Codigo & { id: number };
