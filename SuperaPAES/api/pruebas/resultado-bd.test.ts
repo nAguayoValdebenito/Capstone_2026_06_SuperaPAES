@@ -1,6 +1,6 @@
 // HU-61.1 (RF-A23, RN-21 a RN-23, CU-29): resultado y revisión pregunta por pregunta contra PostgreSQL
-// real. Las prácticas se hacen por HTTP; las evaluaciones con tiempo (que todavía no tienen ruta para
-// empezar, HU-40) se arman en la base y se cierran con cerrar_evaluacion, como lo hará la entrega.
+// real. Estos casos usan fixtures con tiempo para aislar resultado y revisión; mini-ensayo-respuestas
+// prueba también el recorrido por HTTP desde el inicio del mini-ensayo hasta ambas consultas.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';

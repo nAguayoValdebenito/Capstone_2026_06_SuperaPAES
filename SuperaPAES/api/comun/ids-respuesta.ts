@@ -28,6 +28,14 @@ const CAMPOS_PREGUNTA = [
 ] as const;
 
 export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
+  'POST /api/v1/app/evaluaciones/:id/entregar': ['data.id'],
+  'POST /api/v1/app/evaluaciones/mini-ensayos': [
+    'data.id',
+    'data.pruebaId',
+    'data.preguntas[].id',
+    'data.preguntas[].alternativaElegidaId',
+    'data.preguntas[].alternativas[].id',
+  ],
   'POST /api/v1/app/cuentas/registro': ['data.estudiante.id'],
   'POST /api/v1/app/cuentas/ingreso': ['data.estudiante.id'],
   'GET /api/v1/app/cuentas/documentos-legales/vigentes': ['data[].id'],
@@ -123,6 +131,9 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.preguntas[].alternativas[].id',
   ],
   'GET /api/v1/app/evaluaciones/abierta': [
+    'data.abierta.preguntas[].id',
+    'data.abierta.preguntas[].alternativaElegidaId',
+    'data.abierta.preguntas[].alternativas[].id',
     'data.abierta.id',
     'data.abierta.prueba.id',
     'data.abierta.alcance.id',

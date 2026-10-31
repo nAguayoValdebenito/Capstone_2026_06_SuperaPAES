@@ -5,6 +5,7 @@
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { evaluacionInexistente, evaluacionSinEntregar } from './evaluaciones.errores.js';
 import type { ResultadoRepositorio } from './evaluaciones.resultado.repositorio.js';
+import { conTransaccionDeCierre } from './evaluaciones.cierre-transaccion.js';
 
 export interface DependenciasResultado {
   repositorio: ResultadoRepositorio;
@@ -17,7 +18,7 @@ async function consultarCerrada<T>(
   id: string,
   leer: (tx: Ejecutor) => Promise<T>,
 ): Promise<T> {
-  return unidadDeTrabajo.enTransaccion(async (tx) => {
+  return conTransaccionDeCierre(unidadDeTrabajo, async (tx) => {
     const evaluacion = await repositorio.bloquearEvaluacion(id, estudianteId, tx);
     if (!evaluacion) throw evaluacionInexistente();
     if (!evaluacion.cerradaEn) {

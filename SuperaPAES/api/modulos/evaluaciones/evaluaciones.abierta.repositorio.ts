@@ -1,6 +1,8 @@
 // Evaluación abierta del estudiante, para retomarla donde quedó (HU-60.1, CU-28, RF-A22), y cierre
 // periódico de las vencidas y de las prácticas sin actividad con app.cerrar_vencidas (RN-19, RN-21).
 import type { Ejecutor } from '../../db/transaccion.js';
+import type { PreguntaConTiempo } from './evaluaciones.con-tiempo.repositorio.js';
+import { crearCierreRepositorio } from './evaluaciones.cierre.repositorio.js';
 import {
   ALCANCE_Y_DIFICULTAD,
   JOINS_ALCANCE,
@@ -14,6 +16,7 @@ interface Codigo {
 
 /** Lo que la app muestra para retomar (A12 y A29). */
 export interface EvaluacionParaRetomar {
+  preguntas?: PreguntaConTiempo[];
   id: string;
   tipo: Codigo;
   prueba: Codigo & { id: number };
@@ -65,11 +68,24 @@ export function crearAbiertaRepositorio(bd: Ejecutor) {
       tx: Ejecutor,
     ): Promise<FilaAbierta | null> {
       const { rows } = await tx.query<FilaAbierta>(ABIERTA, [estudianteId, horas]);
-      return rows[0] ?? null;
+      const fila = rows[0];
+      if (!fila) return null;
+      // Una segunda sentencia observa el reloj después de obtener FOR UPDATE.
+      const tiempo = await tx.query<
+        Pick<FilaAbierta, 'segundosRestantes' | 'vencida' | 'inactiva'>
+      >(
+        `WITH reloj AS MATERIALIZED (SELECT clock_timestamp() AS ahora)
+         SELECT CASE WHEN e.vence_en IS NOT NULL THEN GREATEST(0,CEIL(EXTRACT(EPOCH FROM e.vence_en-reloj.ahora)))::int END AS "segundosRestantes",
+          COALESCE(e.vence_en<=reloj.ahora,false) AS vencida,
+          NOT t.con_tiempo AND e.ultima_actividad_en<reloj.ahora-$2*INTERVAL '1 hour' AS inactiva
+         FROM app.evaluacion e JOIN contenido.tipo_evaluacion t ON t.id=e.tipo_evaluacion_id,reloj WHERE e.id=$1`,
+        [fila.id, horas],
+      );
+      return { ...fila, ...tiempo.rows[0]! };
     },
     /** La cierra y la corrige: con tiempo, en su hora de término (RN-21). */
     async cerrar(id: string, estado: 'tiempo_agotado' | 'abandonada', tx: Ejecutor): Promise<void> {
-      await tx.query('SELECT app.cerrar_evaluacion($1, $2)', [id, estado]);
+      await crearCierreRepositorio().cerrar(id, estado, tx);
     },
     /** Cierra todas las vencidas y las prácticas sin actividad; devuelve cuántas cerró. */
     async cerrarVencidas(): Promise<number> {

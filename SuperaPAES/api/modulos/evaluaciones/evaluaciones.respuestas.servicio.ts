@@ -10,6 +10,7 @@
 // La respuesta se guarda con lo que se descontó porque tg_item lo exige al responder, y la pregunta
 // extra se descuenta después, porque tg_movimiento_bono exige que el ítem ya diga bono.
 import type { Reloj } from '../../comun/reloj.js';
+import { ErrorAplicacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { CuentasServicio } from '../cuentas/index.js';
 import type { CupoInvitacionesServicio, EstadoCupo } from '../cupo-invitaciones/index.js';
@@ -105,10 +106,10 @@ async function responder(
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     const cuenta = await cuentas.estadoParaCupo(estudianteId, tx, true);
     if (!cuenta) throw itemNoEncontrado();
-    const item = comprobarItem(
-      await repositorio.bloquearItem(evaluacionId, itemId, estudianteId, tx),
-      ahora,
-    );
+    const bloqueado = await repositorio.bloquearItem(evaluacionId, itemId, estudianteId, tx);
+    if (bloqueado?.conTiempo)
+      return responderConTiempo(repositorio, { evaluacionId, itemId, alternativaId }, tx);
+    const item = comprobarItem(bloqueado, ahora);
     if (!(await repositorio.alternativasVisibles(itemId, tx)).includes(String(alternativaId)))
       throw alternativaInvalida();
     const datosCupo = { estudianteId, pruebaId: item.pruebaId, ...cuenta, ahora };
@@ -123,6 +124,27 @@ async function responder(
     if (!corregido) throw new Error('La respuesta guardada no apareció corregida en la vista.');
     return resultado(corregido, await cupo.consultarCupo(datosCupo, tx));
   });
+}
+
+async function responderConTiempo(
+  repositorio: RespuestasRepositorio,
+  datos: DatosRespuesta,
+  tx: Ejecutor,
+) {
+  if (
+    !(await repositorio.alternativasVisibles(datos.itemId, tx)).includes(
+      String(datos.alternativaId),
+    )
+  )
+    throw alternativaInvalida();
+  const respuesta = await repositorio.guardarConTiempo(datos.itemId, datos.alternativaId, tx);
+  if (!respuesta)
+    throw new ErrorAplicacion(
+      409,
+      'EVALUACION_CERRADA',
+      'Esta evaluación ya terminó: se entregó o se acabó el tiempo.',
+    );
+  return respuesta;
 }
 
 export function crearRespuestasServicio(dependencias: DependenciasRespuestas) {
