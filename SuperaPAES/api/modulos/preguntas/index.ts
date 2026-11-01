@@ -5,7 +5,6 @@ export { crearRutasAppPreguntas } from './preguntas.rutas.app.js';
 export { crearRutasAdminPreguntas } from './preguntas.rutas.admin.js';
 export {
   crearPreguntasServicio,
-  type LecturasParaGenerar,
   type PreguntasServicio,
 } from './preguntas.servicio.js';
 export type { EjemploDePregunta } from './preguntas.generacion.repositorio.js';

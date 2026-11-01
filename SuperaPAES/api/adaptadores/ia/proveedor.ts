@@ -46,7 +46,11 @@ export interface ResultadoGeneracion {
   costoUsd?: number;
 }
 
+export type ProveedorIAReal = 'gemini' | 'deepseek';
+
 export interface ProveedorIA {
   readonly nombre: 'simulado' | 'gemini' | 'deepseek';
+  /** Los proveedores reales a los que puede llamar (DeepSeek con respaldo: los dos). Cada uno tiene precio. */
+  readonly usa: readonly ProveedorIAReal[];
   generarPreguntas(solicitud: SolicitudGeneracion): Promise<ResultadoGeneracion>;
 }

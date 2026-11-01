@@ -13,6 +13,7 @@ interface GeneracionPresupuestada {
 
 export class ProveedorIAConRespaldo implements ProveedorIA {
   readonly nombre = 'deepseek';
+  readonly usa = ['deepseek', 'gemini'] as const;
 
   constructor(
     private readonly principal: GeneracionPresupuestada,

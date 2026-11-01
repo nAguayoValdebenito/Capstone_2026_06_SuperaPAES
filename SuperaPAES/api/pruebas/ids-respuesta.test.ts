@@ -11,9 +11,7 @@ const MAXIMO = Number.MAX_SAFE_INTEGER;
 describe('contrato central de ids', () => {
   it('fija cada ruta y campo convertido; agregar un campo requiere cambiar este inventario', () => {
     // Una línea por ruta, en el orden del inventario: «método ruta → campos».
-    const inventario = Object.entries(CAMPOS_ID_POR_RUTA).map(
-      ([ruta, campos]) => `${ruta} → ${campos.join(', ')}`,
-    );
+    const inventario = Object.entries(CAMPOS_ID_POR_RUTA).map(([r, c]) => `${r} → ${c.join(', ')}`);
     expect(inventario).toEqual([
       'POST /api/v1/app/evaluaciones/:id/entregar → data.id',
       'POST /api/v1/app/evaluaciones/mini-ensayos → data.id, data.pruebaId, data.preguntas[].id, data.preguntas[].alternativaElegidaId, data.preguntas[].alternativas[].id',
@@ -60,6 +58,9 @@ describe('contrato central de ids', () => {
       'GET /api/v1/app/privacidad/mis-datos → data.cuenta.id, data.perfil.pruebas[], data.perfil.electivoId, data.perfil.pruebaReforzarId, data.perfil.areasCarrera[], data.evaluaciones[].id, data.evaluaciones[].respuestas[].preguntaId, data.puntajes[].id, data.puntajes[].pruebaId',
       'GET /api/v1/app/evaluaciones/progreso → data.pruebas[].pruebaId, data.pruebas[].ejes[].id, data.pruebas[].habilidades[].id, data.pruebas[].ensayos[].id',
       'POST /api/v1/app/suscripciones/ → data.id, data.planId, data.pruebaId',
+      'POST /api/v1/admin/generador/lotes → data.id, data.contenidoId',
+      'GET /api/v1/admin/generador/lotes → data[].id, data[].contenidoId',
+      'GET /api/v1/admin/generador/lotes/:id → data.id, data.contenidoId',
       'POST /api/v1/app/suscripciones/:id/compra → data.id, data.planId, data.pruebaId, data.cambioEnRenovacion.planId',
     ]);
   });

@@ -58,6 +58,7 @@ function interpretarDeepSeek(datos: unknown, modelo: string): ResultadoGeneracio
 
 export class ProveedorIADeepSeek implements ProveedorIA {
   readonly nombre = 'deepseek';
+  readonly usa = ['deepseek'] as const;
 
   constructor(private readonly opciones: OpcionesDeepSeek) {}
 

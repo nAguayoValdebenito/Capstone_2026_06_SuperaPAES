@@ -1,35 +1,50 @@
-// Reglas de negocio del módulo generador: lotes de generación de preguntas con IA (la cola la
-// consume el worker de trabajos/).
+// Reglas de negocio del módulo generador: lotes de generación de preguntas con IA (la cola la consume el
+// worker de trabajos/).
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 // Productor-consumidor: la consola crea lotes pendientes en contenido.lote_generacion (productor) y el
 // worker llama a procesarPendientes (consumidor), que usa el proveedor de IA y guarda las propuestas
 // válidas a través del servicio de preguntas.
 import type { ProveedorIA } from '../../adaptadores/fabrica.js';
+import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PreguntasServicio } from '../preguntas/index.js';
-import type { GeneradorRepositorio } from './generador.repositorio.js';
+import type { TemarioServicio } from '../temario/index.js';
+import { crearLotesRepositorio, type LotesRepositorio } from './generador.lotes.repositorio.js';
+import { crearProductor, type Productor } from './generador.productor.servicio.js';
 
 export interface DependenciasGeneradorServicio {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
+  reloj: Reloj;
   ia: ProveedorIA;
   administracion: AdministracionServicio;
   preguntas: PreguntasServicio;
-  /** Solo para pruebas: reemplaza al repositorio que se crea con crearGeneradorRepositorio(bd). */
-  repositorio?: GeneradorRepositorio;
+  temario: TemarioServicio;
+  /** Solo para pruebas: reemplaza al repositorio que se crea con crearLotesRepositorio(bd). */
+  repositorio?: LotesRepositorio;
 }
 
-export interface GeneradorServicio {
+export interface GeneradorServicio extends Productor {
   /** Procesa los lotes pendientes y devuelve cuántos procesó. */
   procesarPendientes(): Promise<number>;
 }
 
 export function crearGeneradorServicio(
-  _dependencias: DependenciasGeneradorServicio,
+  dependencias: DependenciasGeneradorServicio,
 ): GeneradorServicio {
+  const lotes = dependencias.repositorio ?? crearLotesRepositorio(dependencias.bd);
+  const productor = crearProductor({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    lotes,
+    temario: dependencias.temario,
+    administracion: dependencias.administracion,
+    ia: dependencias.ia,
+  });
   return {
-    // Esqueleto: todavía no hay lotes que leer; se implementa en la historia del generador.
+    ...productor,
+    // Se implementa con el worker (tarea siguiente): por ahora no hay nada que procesar.
     procesarPendientes: () => Promise.resolve(0),
   };
 }

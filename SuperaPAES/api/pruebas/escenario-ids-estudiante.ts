@@ -158,6 +158,7 @@ export function cuerpoPuntajes(ruta: string): Record<string, unknown> | undefine
   if (ruta === 'POST /api/v1/app/suscripciones/')
     return { planId: 1, tienda: 'google_play', pruebaId: 2 };
   if (ruta === 'POST /api/v1/app/suscripciones/:id/compra') return { idCompraTienda: 'token' };
+  if (ruta === 'POST /api/v1/admin/generador/lotes') return { contenidoId: 12, cantidad: 5 };
   return undefined;
 }
 
@@ -182,5 +183,31 @@ export const suscripcionesDePrueba = {
       estado: 'activa' as const,
       cambioEnRenovacion: { planId: 3, desde: new Date('2026-12-15T00:00:00.000Z') },
     }),
+  ),
+};
+
+const lote = {
+  id: '7',
+  estado: 'pendiente' as const,
+  contenidoId: 12,
+  cantidad: 5,
+  conTexto: false,
+  validas: 0,
+  descartadas: 0,
+  procesadas: 0,
+  modelo: 'modelo',
+  versionInstrucciones: '1.0',
+  tokensUsados: null,
+  costoUsd: null,
+  motivos: null,
+  creadoEn: fecha,
+};
+
+/** Las rutas de lotes del servicio del generador (HU-16.2): responden lo mismo. */
+export const generadorDePrueba = {
+  crearLote: vi.fn(() => Promise.resolve({ lote, creado: true })),
+  obtenerLote: vi.fn(() => Promise.resolve(lote)),
+  listarLotes: vi.fn(() =>
+    Promise.resolve({ lotes: [lote], paginacion: { pagina: 1, porPagina: 20, total: 1 } }),
   ),
 };

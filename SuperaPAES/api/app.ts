@@ -188,7 +188,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   });
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario, administracion });
-  const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
+  const generador = crearGeneradorServicio({ ...conReloj, ia, administracion, preguntas, temario });
   const revision = crearRevisionServicio({ ...base, administracion, preguntas });
   const evaluaciones = crearEvaluacionesServicio({
     ...conReloj,

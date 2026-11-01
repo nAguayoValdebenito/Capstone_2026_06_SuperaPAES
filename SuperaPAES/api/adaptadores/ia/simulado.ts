@@ -3,6 +3,7 @@ import type { ProveedorIA, ResultadoGeneracion } from './proveedor.js';
 
 export class ProveedorIASimulado implements ProveedorIA {
   readonly nombre = 'simulado';
+  readonly usa = [] as const;
 
   generarPreguntas(): Promise<ResultadoGeneracion> {
     return Promise.resolve({

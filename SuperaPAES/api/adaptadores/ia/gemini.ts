@@ -57,6 +57,7 @@ interface OpcionesGemini {
 
 export class ProveedorIAGemini implements ProveedorIA {
   readonly nombre = 'gemini';
+  readonly usa = ['gemini'] as const;
 
   constructor(private readonly opciones: OpcionesGemini) {}
 

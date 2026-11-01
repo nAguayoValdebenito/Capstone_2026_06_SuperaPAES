@@ -6,6 +6,7 @@ import { crearApp, crearServicios } from '../app.js';
 import { cuerpoDePreguntas, preguntasDePrueba } from './escenario-ids-preguntas.js';
 import {
   cuerpoPuntajes,
+  generadorDePrueba,
   privacidadDePrueba,
   serviciosEvaluacionesEstudiante,
   suscripcionesDePrueba,
@@ -172,6 +173,7 @@ export function escenario() {
     evaluaciones,
     privacidad: privacidadDePrueba,
     suscripciones: { ...servicios.suscripciones, ...suscripcionesDePrueba },
+    generador: { ...servicios.generador, ...generadorDePrueba },
   });
   return { app, cuentas, administracion, evaluaciones };
 }

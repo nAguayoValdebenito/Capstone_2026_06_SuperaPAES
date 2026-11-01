@@ -227,3 +227,41 @@ export class ErrorIASaldoAgotado extends ErrorAplicacion {
     );
   }
 }
+
+/** HU-16.2, 409 TOPE_DIARIO_IA: el lote pasaría el tope diario de preguntas generadas con IA (RNF-03). */
+export class ErrorTopeDiarioIa extends ErrorAplicacion {
+  constructor(usadas: number, pedidas: number, maximo: number) {
+    super(
+      409,
+      'TOPE_DIARIO_IA',
+      'Se alcanzó el tope diario de preguntas generadas con IA. Pide menos preguntas o inténtalo mañana.',
+      { detalles: { usadas, pedidas, maximo } },
+    );
+  }
+}
+
+/** HU-16.2, 409 TOPE_MENSUAL_IA: el gasto del mes en la IA llegó al tope (RNF-03). */
+export class ErrorTopeMensualIa extends ErrorAplicacion {
+  constructor(gastado: number, maximo: number) {
+    super(
+      409,
+      'TOPE_MENSUAL_IA',
+      'Se alcanzó el tope mensual de gasto en la IA. No se envió ninguna solicitud.',
+      { detalles: { gastado, maximo } },
+    );
+  }
+}
+
+/**
+ * HU-16.2, 503 PRECIO_IA_NO_CONFIGURADO: falta el precio de un proveedor de IA (o un lote del mes no tiene
+ * costo), así que el gasto no se puede verificar. Falla de forma segura: no se calcula como si costara cero.
+ */
+export class ErrorPrecioIaNoConfigurado extends ErrorAplicacion {
+  constructor() {
+    super(
+      503,
+      'PRECIO_IA_NO_CONFIGURADO',
+      'No se puede verificar el gasto en la IA porque falta el precio de un proveedor. Avisa al equipo técnico.',
+    );
+  }
+}
