@@ -47,6 +47,9 @@ services:
       CORS_ORIGENES: ${CORS_ORIGENES:-http://localhost:8080}
       URL_CONSOLA: ${URL_CONSOLA:-http://localhost:8080}
       PROVEEDOR_IA: ${PROVEEDOR_IA:-simulado}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODELO: ${GEMINI_MODELO:-}
       PROVEEDOR_CORREO: ${PROVEEDOR_CORREO:-consola}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}

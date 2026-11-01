@@ -19,6 +19,7 @@ abstract final class ResultadoModelo {
         prueba['codigo'] as String,
         prueba['nombre'] as String,
       ),
+      pruebaId: leerId(prueba['id']),
       estado: estado['codigo'] as String,
       cantidad: json['cantidad'] as int,
       puntuables: json['puntuables'] as int,
@@ -38,6 +39,14 @@ abstract final class ResultadoModelo {
       recalculado: json['recalculadoEn'] != null,
       ejes: _grupos(json['ejes']),
       habilidades: _grupos(json['habilidades']),
+      ejesOmitidos: [
+        for (final valor in json['ejesOmitidos'] as List<Object?>? ?? const [])
+          if (valor case final Map<String, dynamic> eje)
+            EjeOmitido(
+              nombre: eje['nombre'] as String,
+              curso: eje['curso'] as String?,
+            ),
+      ],
     );
   }
 
@@ -45,6 +54,11 @@ abstract final class ResultadoModelo {
     for (final valor in lista as List<Object?>? ?? const [])
       if (valor case final Map<String, dynamic> grupo)
         GrupoDeResultado(
+          id: switch (grupo['id']) {
+            null => null,
+            final id => leerId(id),
+          },
+          aReforzar: grupo['aReforzar'] == true,
           nombre: grupo['nombre'] as String,
           preguntas: grupo['preguntas'] as int,
           correctas: grupo['correctas'] as int,

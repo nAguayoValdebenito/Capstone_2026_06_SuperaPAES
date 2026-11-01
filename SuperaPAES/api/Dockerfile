@@ -25,6 +25,8 @@ COPY --chown=node:node api/package.json api/package.json
 COPY --from=compilacion --chown=node:node /proyecto/api/dist api/dist
 COPY --chown=node:node api/db/migraciones api/db/migraciones
 COPY --chown=node:node api/db/semillas api/db/semillas
+# Certificados raíz de Apple (HU-43.1): tsc no los copia a dist.
+COPY --chown=node:node api/adaptadores/pagos/certificados api/adaptadores/pagos/certificados
 
 USER node
 EXPOSE 3000

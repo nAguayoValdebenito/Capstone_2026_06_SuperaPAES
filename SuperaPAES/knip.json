@@ -5,11 +5,8 @@
   "workspaces": {
     "api": {
       "ignore": [
-        "modulos/generador/generador.controlador.ts",
-        "modulos/generador/generador.validadores.ts",
         "modulos/privacidad/privacidad.validadores.ts",
         "modulos/revision/revision.validadores.ts",
-        "modulos/suscripciones/suscripciones.validadores.ts",
         "eslint.reglas-arquitectura.d.ts"
       ]
     },

@@ -3,19 +3,10 @@ import { ErrorConfiguracion, leerConfiguracion } from '../comun/configuracion.js
 import {
   CLAVE_CODIGO_DE_PRUEBA,
   SECRETO_APP_DE_PRUEBA,
-  SECRETO_DE_PRUEBA,
   URL_CONSOLA_DE_PRUEBA,
 } from './ayudantes.js';
 
-const minimas = {
-  // Valor de prueba, no es un secreto. secretlint-disable-next-line
-  DATABASE_URL: 'postgres://usuario:clave@localhost:5432/supera_paes',
-  JWT_SECRETO_CONSOLA: SECRETO_DE_PRUEBA,
-  JWT_SECRETO_APP: SECRETO_APP_DE_PRUEBA,
-  URL_CONSOLA: URL_CONSOLA_DE_PRUEBA,
-  CORS_ORIGENES: URL_CONSOLA_DE_PRUEBA,
-  CLAVE_CODIGO_CORREO: CLAVE_CODIGO_DE_PRUEBA,
-};
+import { variablesMinimas as minimas } from './variables-configuracion.js';
 
 const tiendas = {
   PROVEEDOR_PAGOS: 'tiendas',
@@ -61,6 +52,53 @@ describe('leerConfiguracion', () => {
     ['gemini', /GEMINI_API_KEY/],
   ])('exige la clave del proveedor de IA elegido (%s)', (proveedor, variable) => {
     expect(() => leerConfiguracion({ ...minimas, PROVEEDOR_IA: proveedor })).toThrow(variable);
+  });
+
+  it('con DeepSeek la clave de Gemini sigue siendo opcional', () => {
+    expect(
+      leerConfiguracion({ ...minimas, PROVEEDOR_IA: 'deepseek', DEEPSEEK_API_KEY: 'prueba' }).ia,
+    ).toEqual({ proveedor: 'deepseek', claveApi: 'prueba' });
+  });
+
+  it.each(['gemini', 'deepseek'])(
+    'exige GEMINI_MODELO cuando Gemini está habilitado con %s',
+    (proveedor) => {
+      expect(() =>
+        leerConfiguracion({
+          ...minimas,
+          PROVEEDOR_IA: proveedor,
+          DEEPSEEK_API_KEY: 'prueba',
+          GEMINI_API_KEY: 'respaldo',
+        }),
+      ).toThrow(/GEMINI_MODELO/);
+    },
+  );
+
+  it('transporta el modelo Gemini y su clave de respaldo sin reemplazar la principal', () => {
+    expect(
+      leerConfiguracion({
+        ...minimas,
+        PROVEEDOR_IA: 'deepseek',
+        DEEPSEEK_API_KEY: 'principal',
+        GEMINI_API_KEY: 'respaldo',
+        GEMINI_MODELO: 'modelo-gemini-prueba',
+      }).ia,
+    ).toEqual({
+      proveedor: 'deepseek',
+      claveApi: 'principal',
+      respaldo: { claveApi: 'respaldo', modelo: 'modelo-gemini-prueba' },
+    });
+  });
+
+  it('configura Gemini directo con su modelo de entorno', () => {
+    expect(
+      leerConfiguracion({
+        ...minimas,
+        PROVEEDOR_IA: 'gemini',
+        GEMINI_API_KEY: 'prueba',
+        GEMINI_MODELO: 'modelo-gemini-prueba',
+      }).ia,
+    ).toEqual({ proveedor: 'gemini', claveApi: 'prueba', modelo: 'modelo-gemini-prueba' });
   });
 
   it('exige los datos de SMTP solo si el correo es smtp', () => {
@@ -220,27 +258,6 @@ describe('leerConfiguracion', () => {
       for (const variable of ['PROVEEDOR_PAGOS', 'PROVEEDOR_CORREO', 'PROVEEDOR_IA']) {
         expect(mensaje).toContain(variable);
       }
-    });
-  });
-
-  describe('CLAVE_TAREAS (tareas periódicas, DAS 4.3.3)', () => {
-    it('es opcional: sin ella, o vacía, la ruta no se monta', () => {
-      expect(leerConfiguracion(minimas).claveTareas).toBeUndefined();
-      expect(leerConfiguracion({ ...minimas, CLAVE_TAREAS: '' }).claveTareas).toBeUndefined();
-    });
-
-    it('con ella, la entrega', () => {
-      const clave = 'clave-de-tareas-de-prueba-con-32-caracteres';
-      expect(leerConfiguracion({ ...minimas, CLAVE_TAREAS: clave }).claveTareas).toBe(clave);
-    });
-
-    it('rechaza una clave corta o repetida con otro secreto', () => {
-      expect(() => leerConfiguracion({ ...minimas, CLAVE_TAREAS: 'corta' })).toThrow(
-        /CLAVE_TAREAS/,
-      );
-      expect(() => leerConfiguracion({ ...minimas, CLAVE_TAREAS: SECRETO_DE_PRUEBA })).toThrow(
-        /CLAVE_TAREAS[\s\S]*distinta/,
-      );
     });
   });
 

@@ -2,9 +2,8 @@
 
 Guía para la versión de prueba. Los comandos se ejecutan desde `SuperaPAES/`, salvo donde se indica
 otra carpeta. No guardar direcciones de conexión, claves ni contraseñas en el repositorio, los issues
-o los registros. Antes de publicar, integrar la conexión IA de `feat/conexion-ia` en la rama que se
-desplegará: `origin/main` todavía no reconoce `GEMINI_MODELO` ni usa Gemini como respaldo de DeepSeek.
-La integración debe conservar los flujos de respaldo y tareas periódicas de `main`.
+o los registros. La conexión IA ya está integrada: `main` reconoce `GEMINI_MODELO` y usa Gemini como
+respaldo de DeepSeek, y conserva los flujos de respaldo y tareas periódicas.
 
 ## 1. Neon: base de datos y primer administrador
 

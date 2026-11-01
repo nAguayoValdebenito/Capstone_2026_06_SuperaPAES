@@ -1,20 +1,19 @@
-// Evaluaciones con tiempo armadas en la base, para las pruebas con PostgreSQL: todavía no tienen ruta
-// para empezar (HU-40), así que se insertan como lo hará el inicio y se cierran con cerrar_evaluacion.
+// Evaluaciones con tiempo armadas directamente en PostgreSQL para probar cierres y respuestas.
 import type { Ejecutor } from '../db/transaccion.js';
 import { crearPreguntaPublicada, type PreguntaDePrueba } from './preguntas-de-prueba.js';
 
 export interface DatosEvaluacionConTiempo {
   estudianteId: string;
   pruebaId: number;
-  tipo: 'mini_ensayo' | 'ensayo';
+  tipo: 'mini_ensayo' | 'ensayo' | 'diagnostico';
   preguntas: PreguntaDePrueba[];
   /** Minutos desde que empezó; por defecto, recién empezada. */
   haceMin?: number;
 }
 
 /**
- * Arma un mini-ensayo o un ensayo con esas preguntas y devuelve su id y los de sus ítems. El ensayo usa
- * la tabla de conversión más reciente de la prueba (RN-23).
+ * Arma una evaluación con tiempo y devuelve su id y los de sus ítems. El ensayo usa la tabla de
+ * conversión más reciente de la prueba (RN-23).
  */
 export async function evaluacionConTiempo(
   bd: Ejecutor,

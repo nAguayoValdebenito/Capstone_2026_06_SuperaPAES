@@ -4,7 +4,11 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/presentacion/correccion/pantalla_correccion.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/pantalla_crear_cuenta.dart';
 import 'package:supera_paes/presentacion/cupo_agotado/pantalla_cupo_agotado.dart';
+import 'package:supera_paes/presentacion/evaluaciones/pantalla_antes_de_empezar.dart';
 import 'package:supera_paes/presentacion/evaluaciones/pantalla_evaluaciones.dart';
+import 'package:supera_paes/presentacion/evaluaciones/pantalla_ofrecer_diagnostico.dart';
+import 'package:supera_paes/presentacion/evaluaciones/pantalla_pregunta_con_reloj.dart';
+import 'package:supera_paes/presentacion/evaluaciones/pantalla_ver_todas.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 import 'package:supera_paes/presentacion/inicio/pantalla_inicio.dart';
 import 'package:supera_paes/presentacion/invitaciones/pantalla_invitaciones.dart';
@@ -165,6 +169,31 @@ const List<Seccion> secciones = [
     PantallaCupoAgotado.new,
   ),
   Seccion('Repaso de errores', Rutas.repaso, Icons.replay, PantallaRepaso.new),
+  // Evaluaciones con tiempo (HU-36 y HU-40): A16, A26, A27 y A28
+  Seccion(
+    'Ofrecer el diagnóstico',
+    Rutas.ofrecerDiagnostico,
+    Icons.insights_outlined,
+    PantallaOfrecerDiagnostico.new,
+  ),
+  Seccion(
+    'Antes de empezar',
+    Rutas.antesDeEmpezar,
+    Icons.info_outline,
+    PantallaAntesDeEmpezar.new,
+  ),
+  Seccion(
+    'Pregunta con reloj',
+    Rutas.preguntaConReloj,
+    Icons.timer_outlined,
+    PantallaPreguntaConReloj.new,
+  ),
+  Seccion(
+    'Ver todas y entregar',
+    Rutas.verTodas,
+    Icons.grid_view,
+    PantallaVerTodas.new,
+  ),
   // Resultado y revisión de una evaluación (HU-61)
   Seccion(
     'Resultado',

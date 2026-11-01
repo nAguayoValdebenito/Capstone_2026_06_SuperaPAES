@@ -162,6 +162,16 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.pruebas[].habilidades[].id',
     'data.pruebas[].ensayos[].id',
   ],
+  'POST /api/v1/app/suscripciones/': ['data.id', 'data.planId', 'data.pruebaId'],
+  'POST /api/v1/admin/generador/lotes': ['data.id', 'data.contenidoId'],
+  'GET /api/v1/admin/generador/lotes': ['data[].id', 'data[].contenidoId'],
+  'GET /api/v1/admin/generador/lotes/:id': ['data.id', 'data.contenidoId'],
+  'POST /api/v1/app/suscripciones/:id/compra': [
+    'data.id',
+    'data.planId',
+    'data.pruebaId',
+    'data.cambioEnRenovacion.planId',
+  ],
 };
 
 const MAXIMO_ID = BigInt(Number.MAX_SAFE_INTEGER);

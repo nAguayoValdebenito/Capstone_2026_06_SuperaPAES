@@ -56,6 +56,7 @@ const esquemaBase = z.object({
   PROVEEDOR_IA: z.enum(['simulado', 'deepseek', 'gemini']).default('simulado'),
   DEEPSEEK_API_KEY: textoOpcional,
   GEMINI_API_KEY: textoOpcional,
+  GEMINI_MODELO: textoOpcional,
   PROVEEDOR_CORREO: z.enum(['consola', 'smtp']).default('consola'),
   SMTP_HOST: textoOpcional,
   SMTP_PORT: puerto,
@@ -110,7 +111,12 @@ type Variables = z.output<typeof esquemaBase>;
 /** Variables que solo se exigen con el proveedor indicado. */
 const EXIGIDAS_POR_PROVEEDOR: [(v: Variables) => boolean, string, (keyof Variables)[]][] = [
   [(v) => v.PROVEEDOR_IA === 'deepseek', 'PROVEEDOR_IA=deepseek', ['DEEPSEEK_API_KEY']],
-  [(v) => v.PROVEEDOR_IA === 'gemini', 'PROVEEDOR_IA=gemini', ['GEMINI_API_KEY']],
+  [(v) => v.PROVEEDOR_IA === 'gemini', 'PROVEEDOR_IA=gemini', ['GEMINI_API_KEY', 'GEMINI_MODELO']],
+  [
+    (v) => v.PROVEEDOR_IA === 'deepseek' && v.GEMINI_API_KEY !== undefined,
+    'respaldo con Gemini',
+    ['GEMINI_MODELO'],
+  ],
   [
     (v) => v.PROVEEDOR_CORREO === 'smtp',
     'PROVEEDOR_CORREO=smtp',
@@ -211,7 +217,9 @@ const esquema = esquemaBase.superRefine((v, ctx) => {
 });
 
 export type ConfiguracionIA =
-  { proveedor: 'simulado' } | { proveedor: 'deepseek' | 'gemini'; claveApi: string };
+  | { proveedor: 'simulado' }
+  | { proveedor: 'gemini'; claveApi: string; modelo: string }
+  | { proveedor: 'deepseek'; claveApi: string; respaldo?: { claveApi: string; modelo: string } };
 
 export interface ConfiguracionGooglePlay {
   paquete: string;
@@ -283,8 +291,14 @@ export function leerConfiguracion(
 // Tras la validación, las variables del proveedor elegido existen: `?? ''` solo satisface al tipo.
 function leerConfiguracionIA(v: Variables): ConfiguracionIA {
   if (v.PROVEEDOR_IA === 'simulado') return { proveedor: 'simulado' };
-  const claveApi = v.PROVEEDOR_IA === 'gemini' ? v.GEMINI_API_KEY : v.DEEPSEEK_API_KEY;
-  return { proveedor: v.PROVEEDOR_IA, claveApi: claveApi ?? '' };
+  const gemini = { claveApi: v.GEMINI_API_KEY ?? '', modelo: v.GEMINI_MODELO ?? '' };
+  if (v.PROVEEDOR_IA === 'gemini') return { proveedor: 'gemini', ...gemini };
+  return {
+    proveedor: 'deepseek',
+    claveApi: v.DEEPSEEK_API_KEY ?? '',
+    // Con GEMINI_API_KEY, Gemini es el respaldo del saldo agotado de DeepSeek.
+    ...(v.GEMINI_API_KEY !== undefined && { respaldo: gemini }),
+  };
 }
 
 function leerConfiguracionPagos(v: Variables): ConfiguracionPagos {

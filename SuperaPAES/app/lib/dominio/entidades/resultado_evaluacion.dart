@@ -6,13 +6,31 @@ class GrupoDeResultado {
     required this.nombre,
     required this.preguntas,
     required this.correctas,
+    this.id,
+    this.aReforzar = false,
   });
 
+  /// Para practicarlo desde A31.
+  final int? id;
   final String nombre;
   final int preguntas;
   final int correctas;
 
+  /// Solo en el diagnóstico: la práctica le dará prioridad (RN-14).
+  final bool aReforzar;
+
   double get porcentaje => preguntas == 0 ? 0 : 100 * correctas / preguntas;
+}
+
+/// Un eje que el diagnóstico no incluyó porque el curso todavía no lo ve
+/// (RN-28, A31), con el curso en que se empieza a enseñar.
+class EjeOmitido {
+  const EjeOmitido({required this.nombre, this.curso});
+
+  final String nombre;
+
+  /// «4° medio»; `null` si no se sabe.
+  final String? curso;
 }
 
 /// Tabla de conversión del DEMRE con que se estimó el puntaje (RN-23).
@@ -47,6 +65,8 @@ class ResultadoEvaluacion {
     this.puntaje,
     this.tablaConversion,
     this.recalculado = false,
+    this.pruebaId,
+    this.ejesOmitidos = const [],
   });
 
   final int id;
@@ -59,6 +79,9 @@ class ResultadoEvaluacion {
 
   /// Nombre de la prueba como en Inicio («Matemática M1»).
   final String prueba;
+
+  /// Para practicar lo que marcó el diagnóstico (A31).
+  final int? pruebaId;
 
   /// `entregada`, `tiempo_agotado` o `abandonada`.
   final String estado;
@@ -84,7 +107,18 @@ class ResultadoEvaluacion {
   final List<GrupoDeResultado> ejes;
   final List<GrupoDeResultado> habilidades;
 
+  /// Solo en el diagnóstico (A31).
+  final List<EjeOmitido> ejesOmitidos;
+
   bool get esEnsayo => tipo == 'ensayo';
+  bool get esDiagnostico => tipo == 'diagnostico';
+
+  /// Lo que la práctica priorizará desde ahora: los ejes o, en Lectora, las
+  /// habilidades a reforzar.
+  List<GrupoDeResultado> get aReforzar => [
+    for (final grupo in [...ejes, ...habilidades])
+      if (grupo.aReforzar) grupo,
+  ];
 }
 
 /// Cómo quedó una pregunta en la revisión.

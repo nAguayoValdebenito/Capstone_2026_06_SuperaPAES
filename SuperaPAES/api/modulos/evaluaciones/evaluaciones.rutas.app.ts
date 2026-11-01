@@ -18,18 +18,41 @@ import {
   esquemaInicioPractica,
   esquemaRespuesta,
   esquemaInicioMini,
+  esquemaDisponibilidad,
 } from './evaluaciones.validadores.js';
 
 function registrarConTiempo(router: Router, controlador: EvaluacionesControlador) {
+  router.get(
+    '/ensayos/disponibilidad',
+    validar({ consulta: esquemaDisponibilidad }),
+    controlador.disponibilidadEnsayo,
+  );
+  router.post('/ensayos', validar({ cuerpo: esquemaInicioMini }), controlador.iniciarEnsayo);
+  router.get(
+    '/diagnosticos/disponibilidad',
+    validar({ consulta: esquemaDisponibilidad }),
+    controlador.disponibilidadDiagnostico,
+  );
   router.post(
     '/:id/entregar',
     validar({ parametros: esquemaIdEvaluacion }),
     controlador.entregarEvaluacion,
   );
+  // HU-40.3: preguntas, minutos y uso gratis del mes antes de empezar (A25 y A26).
+  router.get(
+    '/mini-ensayos/disponibilidad',
+    validar({ consulta: esquemaDisponibilidad }),
+    controlador.disponibilidadMiniEnsayo,
+  );
   router.post(
     '/mini-ensayos',
     validar({ cuerpo: esquemaInicioMini }),
     controlador.iniciarMiniEnsayo,
+  );
+  router.post(
+    '/diagnosticos',
+    validar({ cuerpo: esquemaInicioMini }),
+    controlador.iniciarDiagnostico,
   );
 }
 

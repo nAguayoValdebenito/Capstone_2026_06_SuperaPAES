@@ -8,6 +8,11 @@ import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones
 
 export interface EvaluacionesControlador {
   iniciarMiniEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  disponibilidadMiniEnsayo: RequestHandler;
+  iniciarDiagnostico: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  disponibilidadDiagnostico: RequestHandler;
+  iniciarEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  disponibilidadEnsayo: RequestHandler;
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
   siguientePregunta: RequestHandler;
   cerrarPractica: RequestHandler;
@@ -25,17 +30,69 @@ function estudianteDe(req: Request): string {
   return req.estudiante.id;
 }
 
+function controladoresDiagnostico(servicio: EvaluacionesServicio) {
+  const iniciarDiagnostico: EvaluacionesControlador['iniciarDiagnostico'] = async (req, res) => {
+    responder(res, await servicio.iniciarDiagnostico(estudianteDe(req), req.body.pruebaId), {
+      estado: 201,
+    });
+  };
+  const disponibilidadDiagnostico: EvaluacionesControlador['disponibilidadDiagnostico'] = async (
+    req,
+    res,
+  ) => {
+    responder(
+      res,
+      await servicio.disponibilidadDiagnostico(estudianteDe(req), Number(req.query.pruebaId)),
+    );
+  };
+  return { iniciarDiagnostico, disponibilidadDiagnostico };
+}
+
+function controladoresMini(servicio: EvaluacionesServicio) {
+  const disponibilidadMiniEnsayo: EvaluacionesControlador['disponibilidadMiniEnsayo'] = async (
+    req,
+    res,
+  ) => {
+    responder(
+      res,
+      await servicio.disponibilidadMiniEnsayo(estudianteDe(req), Number(req.query.pruebaId)),
+    );
+  };
+  const iniciarMiniEnsayo: EvaluacionesControlador['iniciarMiniEnsayo'] = async (req, res) => {
+    responder(res, await servicio.iniciarMiniEnsayo(estudianteDe(req), req.body.pruebaId), {
+      estado: 201,
+    });
+  };
+  return { disponibilidadMiniEnsayo, iniciarMiniEnsayo };
+}
+
+function controladoresEnsayo(servicio: EvaluacionesServicio) {
+  const disponibilidadEnsayo: EvaluacionesControlador['disponibilidadEnsayo'] = async (
+    req,
+    res,
+  ) => {
+    responder(
+      res,
+      await servicio.disponibilidadEnsayo(estudianteDe(req), Number(req.query.pruebaId)),
+    );
+  };
+  const iniciarEnsayo: EvaluacionesControlador['iniciarEnsayo'] = async (req, res) => {
+    responder(res, await servicio.iniciarEnsayo(estudianteDe(req), req.body.pruebaId), {
+      estado: 201,
+    });
+  };
+  return { disponibilidadEnsayo, iniciarEnsayo };
+}
+
 export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
   return {
+    ...controladoresDiagnostico(servicio),
+    ...controladoresMini(servicio),
+    ...controladoresEnsayo(servicio),
     entregarEvaluacion: async (req, res) => {
       responder(res, await servicio.entregarEvaluacion(estudianteDe(req), String(req.params.id)));
-    },
-    iniciarMiniEnsayo: async (req, res) => {
-      responder(res, await servicio.iniciarMiniEnsayo(estudianteDe(req), req.body.pruebaId), {
-        estado: 201,
-      });
     },
     iniciarPractica: async (req, res) => {
       responder(res, await servicio.iniciarPractica(estudianteDe(req), req.body), { estado: 201 });

@@ -22,10 +22,17 @@ abstract final class Rutas {
   static const String elegirAlcance = '/practicar/elegir';
   static const String sinPreguntas = '/practicar/sin-preguntas';
   static const String resumenPractica = '/practicar/resumen';
+  static const String ofrecerDiagnostico = '/practicar/diagnostico';
   static const String pregunta = '/pregunta';
   static const String correccion = '/correccion';
   static const String cupoAgotado = '/cupo-agotado';
   static const String repaso = '/repaso';
+
+  // Evaluaciones con tiempo (HU-40): antes de empezar, la pregunta con reloj
+  // y ver todas para entregar.
+  static const String antesDeEmpezar = '/evaluaciones/antes-de-empezar';
+  static const String preguntaConReloj = '/evaluaciones/pregunta';
+  static const String verTodas = '/evaluaciones/ver-todas';
 
   // Resultado y revisión de una evaluación (HU-61)
   static const String resultado = '/evaluaciones/resultado';

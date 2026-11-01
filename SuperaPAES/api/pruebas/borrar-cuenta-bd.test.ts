@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
 import { crearEstudianteDePrueba } from './estudiantes-de-prueba.js';
 import { prepararRespuestas } from './respuestas-de-prueba.js';
+import { insertarSuscripcion } from './suscripciones-de-prueba.js';
 
 const RUTA_BORRAR = '/api/v1/app/privacidad/cuenta';
 const RUTA_PUNTAJES = '/api/v1/app/cuentas/puntajes';
@@ -23,16 +24,12 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
     request(entorno.app).get(RUTA_BORRAR).set('Authorization', `Bearer ${token}`);
 
   /** Una suscripción del plan en la tienda, con el estado indicado (la vigencia la pone la base). */
-  async function suscribir(estudianteId: string, plan: string, estado: string, tienda: string) {
-    await entorno.bd.query(
-      `INSERT INTO app.suscripcion
-         (estudiante_id, plan_id, estado_suscripcion_id, vigente, canal_venta_id, inicio, creado_en)
-       SELECT $1, pl.id, e.id, e.vigente, c.id, now(), now()
-         FROM contenido.plan pl, contenido.estado_suscripcion e, contenido.canal_venta c
-        WHERE pl.nombre = $2 AND e.codigo = $3 AND c.codigo = $4`,
-      [estudianteId, plan, estado, tienda],
-    );
-  }
+  const suscribir = (
+    estudianteId: string,
+    plan: string,
+    estado: string,
+    tienda: 'google_play' | 'app_store',
+  ) => insertarSuscripcion(entorno.bd, { estudianteId, plan, estado, tienda });
 
   /** Una práctica de M1 con una bien (A) y una mal (B), cerrada; y el permiso con un puntaje. */
   async function practicarYCargar(token: string) {

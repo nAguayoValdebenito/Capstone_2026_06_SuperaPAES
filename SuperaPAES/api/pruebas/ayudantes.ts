@@ -5,6 +5,7 @@ import { crearApp, crearServicios, type Dependencias, type Servicios } from '../
 import { FabricaProveedores } from '../adaptadores/fabrica.js';
 import { firmarToken } from '../comun/jwt.js';
 import { relojDelSistema } from '../comun/reloj.js';
+import { candadosSinBase } from '../db/candados.js';
 import type { RolCuentaInterna } from '../comun/roles.js';
 import { DURACION_TOKEN_ACCESO_SEGUNDOS } from '../modulos/cuentas/cuentas.servicio.js';
 import type { PruebaTemario, TemarioServicio } from '../modulos/temario/index.js';
@@ -20,6 +21,7 @@ export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): 
   return {
     bd: { query: sinBase },
     unidadDeTrabajo: { enTransaccion: sinBase },
+    candados: candadosSinBase,
     comprobarBaseDeDatos: () => Promise.resolve(),
     proveedores: FabricaProveedores.crear(
       {
@@ -28,6 +30,7 @@ export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): 
         pagos: { proveedor: 'simulado' },
       },
       relojDelSistema,
+      () => Promise.resolve('modelo-de-prueba'),
     ),
     reloj: relojDelSistema,
     jwt: { secretoConsola: SECRETO_DE_PRUEBA, secretoApp: SECRETO_APP_DE_PRUEBA },
@@ -101,6 +104,8 @@ export function cuerpoIngreso(cambios: Record<string, unknown> = {}): Record<str
 /** Temario sin base para las pruebas de preguntas: entrega `temario` y nada de la app. */
 export function temarioEnMemoria(temario: PruebaTemario[]): TemarioServicio {
   return {
+    contenidoParaGenerar: () => Promise.resolve(null),
+    mezclaDeDificultad: () => Promise.resolve({ facil: 30, media: 45, dificil: 25 }),
     listarAreas: () => Promise.resolve([]),
     alcancePracticaValido: () => Promise.resolve(true),
     listarTemario: () => Promise.resolve(temario),

@@ -6,31 +6,46 @@ import type {
 } from './evaluaciones.estructura.js';
 
 const consultasEstructura = {
+  async tablaReciente(
+    pruebaId: number,
+    electivoId: number | null,
+    tx: Ejecutor,
+  ): Promise<number | null> {
+    const { rows } = await tx.query<{ id: number }>(
+      `SELECT t.id FROM contenido.tabla_conversion t
+       WHERE t.prueba_id=$1 AND t.electivo_area_id IS NOT DISTINCT FROM $2::int
+         AND EXISTS (SELECT 1 FROM contenido.tabla_conversion_fila f WHERE f.tabla_conversion_id=t.id)
+       ORDER BY t.publicada_en DESC,t.anio_admision DESC,t.id DESC LIMIT 1`,
+      [pruebaId, electivoId],
+    );
+    return rows[0]?.id ?? null;
+  },
   async leer(
+    tipo: 'mini_ensayo' | 'diagnostico' | 'ensayo',
     pruebaId: number,
     nivelId: number | null,
     tx: Ejecutor,
   ): Promise<EstructuraConTiempo | null> {
     const { rows } = await tx.query<EstructuraConTiempo>(
-      `SELECT s.id,s.prueba_id AS "pruebaId",p.codigo,s.cantidad_min AS cantidad,
+      `SELECT s.id,s.prueba_id AS "pruebaId",p.codigo,s.cantidad_min AS cantidad,s.no_puntuables AS "noPuntuables",
          s.duracion_min AS "duracionMin",s.textos FROM contenido.estructura_evaluacion s
          JOIN contenido.tipo_evaluacion t ON t.id=s.tipo_evaluacion_id
          JOIN contenido.prueba p ON p.id=s.prueba_id
-         WHERE t.codigo='mini_ensayo' AND s.prueba_id=$1 AND s.activa AND p.activa`,
-      [pruebaId],
+         WHERE t.codigo=$2 AND s.prueba_id=$1 AND s.activa AND p.activa`,
+      [pruebaId, tipo],
     );
     const estructura = rows[0];
     if (!estructura) return null;
     const detalle = await tx.query<DetalleEstructura>(
-      `SELECT d.eje_id AS "ejeId",d.habilidad_id AS "habilidadId",d.es_electivo AS "esElectivo",d.cantidad,
+      `SELECT d.eje_id AS "ejeId",d.habilidad_id AS "habilidadId",d.es_electivo AS "esElectivo",d.cantidad,d.no_puntuables AS "noPuntuables",
          COALESCE(e.orden,h.id,32767) AS orden,
-         (d.habilidad_id IS NOT NULL OR d.es_electivo OR EXISTS(SELECT 1 FROM contenido.contenido_tematico c
+         ($3::boolean OR d.habilidad_id IS NOT NULL OR d.es_electivo OR EXISTS(SELECT 1 FROM contenido.contenido_tematico c
            LEFT JOIN contenido.nivel_escolar n ON n.id=c.nivel_escolar_id
            WHERE c.eje_id=d.eje_id AND c.activo AND (n.orden IS NULL OR $2::smallint IS NULL
              OR n.orden<=(SELECT orden FROM contenido.nivel_escolar WHERE id=$2)))) AS disponible
          FROM contenido.estructura_detalle d LEFT JOIN contenido.eje_tematico e ON e.id=d.eje_id
          LEFT JOIN contenido.habilidad h ON h.id=d.habilidad_id WHERE d.estructura_id=$1 ORDER BY orden`,
-      [estructura.id, nivelId],
+      [estructura.id, nivelId, tipo === 'ensayo'],
     );
     return { ...estructura, detalles: detalle.rows };
   },
@@ -38,6 +53,7 @@ const consultasEstructura = {
     pruebaId: number,
     nivelId: number | null,
     tx: Ejecutor,
+    estudianteId?: string,
   ): Promise<CandidataEstructura[]> {
     const { rows } = await tx.query<CandidataEstructura>(
       `SELECT v.id::text AS "preguntaId",v.version,pv.eje_id AS "ejeId",pv.habilidad_id AS "habilidadId",
@@ -48,8 +64,11 @@ const consultasEstructura = {
          JOIN contenido.dificultad d ON d.id=pv.dificultad_id
          LEFT JOIN contenido.nivel_escolar n ON n.id=c.nivel_escolar_id
          WHERE c.prueba_id=$1 AND c.activo AND (v.prueba='CL' OR $2::smallint IS NULL
-           OR n.orden IS NULL OR n.orden<=(SELECT orden FROM contenido.nivel_escolar WHERE id=$2)) ORDER BY random()`,
-      [pruebaId, nivelId],
+           OR n.orden IS NULL OR n.orden<=(SELECT orden FROM contenido.nivel_escolar WHERE id=$2))
+         ORDER BY CASE WHEN $3::bigint IS NULL THEN 0 WHEN EXISTS (
+           SELECT 1 FROM app.evaluacion_item i JOIN app.evaluacion e ON e.id=i.evaluacion_id
+           WHERE e.estudiante_id=$3 AND i.pregunta_id=v.id) THEN 1 ELSE 0 END, random()`,
+      [pruebaId, nivelId, estudianteId ?? null],
     );
     return rows;
   },

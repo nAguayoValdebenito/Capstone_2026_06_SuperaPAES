@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 /**
  * Base de las pruebas con PostgreSQL: DATABASE_URL_PRUEBAS del entorno o, si no está, solo esa variable
@@ -17,15 +17,40 @@ function urlDePruebas(): string | undefined {
 }
 
 const urlPruebas = urlDePruebas();
+const suitesPostgres = [
+  'pruebas/**/*-bd.test.ts',
+  'pruebas/primer-administrador.test.ts',
+  'pruebas/transaccion.test.ts',
+];
 
 export default defineConfig({
   test: {
-    include: ['pruebas/**/*.test.ts'],
     environment: 'node',
     env: urlPruebas ? { DATABASE_URL_PRUEBAS: urlPruebas } : {},
     // Varios archivos crean y migran bases temporales a la vez; limitar los workers evita
     // que esa carga haga exceder los 5 s de las pruebas de selección con PostgreSQL.
     maxWorkers: 4,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'sin-postgres',
+          include: ['pruebas/**/*.test.ts'],
+          exclude: [...configDefaults.exclude, ...suitesPostgres],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'postgresql',
+          include: suitesPostgres,
+          // Las operaciones reales pueden esperar I/O y checkpoints al crear o borrar bases.
+          testTimeout: 20_000,
+          // Conserva el MINUTO que ya usan los hooks explícitos de preparación y cierre.
+          hookTimeout: 60_000,
+        },
+      },
+    ],
     // Cada prueba deja los espías (vi.spyOn) como estaban, aunque falle antes de restaurarlos.
     restoreMocks: true,
     // npm run cobertura -w api. Solo el código de producción (sin pruebas ni scripts de línea de comandos).

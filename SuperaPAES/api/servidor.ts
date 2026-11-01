@@ -1,9 +1,14 @@
 // Punto de entrada: lee la configuración, crea las dependencias reales y arranca la API y el worker.
 import { crearApp, crearServicios, type Dependencias } from './app.js';
 import { FabricaProveedores } from './adaptadores/fabrica.js';
-import { ErrorConfiguracion, leerConfiguracion } from './comun/configuracion.js';
+import {
+  ErrorConfiguracion,
+  leerConfiguracion,
+  type Configuracion,
+} from './comun/configuracion.js';
 import { registro } from './comun/registro.js';
 import { relojDelSistema } from './comun/reloj.js';
+import { crearCandadosDeSesion } from './db/candados.js';
 import { comprobarBaseDeDatos, crearPool } from './db/conexion.js';
 import { crearUnidadDeTrabajo } from './db/transaccion.js';
 import { crearWorkerGeneracion } from './trabajos/worker-generacion.js';
@@ -14,8 +19,11 @@ function iniciar(): void {
   const dependencias: Dependencias = {
     bd: pool,
     unidadDeTrabajo: crearUnidadDeTrabajo(pool),
+    candados: crearCandadosDeSesion(pool),
     comprobarBaseDeDatos: () => comprobarBaseDeDatos(pool),
-    proveedores: FabricaProveedores.crear(config, relojDelSistema),
+    proveedores: FabricaProveedores.crear(config, relojDelSistema, () =>
+      servicios.administracion.obtenerParametroTexto('modelo_ia'),
+    ),
     reloj: relojDelSistema,
     jwt: config.jwt,
     verificacionCorreo: config.verificacionCorreo,
@@ -43,9 +51,7 @@ function iniciar(): void {
       },
       tareasPeriodicas: config.claveTareas ? 'activas' : 'sin CLAVE_TAREAS',
     });
-    if (!config.claveTareas && config.entorno === 'production') {
-      registro.error('Falta CLAVE_TAREAS: nada cierra las evaluaciones vencidas cada hora.');
-    }
+    avisarSiFaltanTareas(config);
   });
 
   const detener = (senal: string) => {
@@ -59,6 +65,12 @@ function iniciar(): void {
   };
   process.on('SIGTERM', () => detener('SIGTERM'));
   process.on('SIGINT', () => detener('SIGINT'));
+}
+
+function avisarSiFaltanTareas(config: Configuracion): void {
+  if (!config.claveTareas && config.entorno === 'production') {
+    registro.error('Falta CLAVE_TAREAS: nada cierra las evaluaciones vencidas cada hora.');
+  }
 }
 
 try {

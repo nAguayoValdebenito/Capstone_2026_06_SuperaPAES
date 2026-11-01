@@ -73,6 +73,10 @@ export interface AdministracionServicio {
    * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto.
    */
   obtenerParametroEntero(clave: string): Promise<number>;
+  /** Número configurado (con decimales, como un precio); sin valor por defecto si falta o no es un número. */
+  obtenerParametroNumero(clave: string): Promise<number>;
+  /** Texto configurado, sin valor por defecto si falta o tiene un tipo distinto. */
+  obtenerParametroTexto(clave: string): Promise<string>;
   /**
    * RN-30: de cada documento legal obligatorio (términos y privacidad), la versión con mayor
    * vigente_desde que ya empezó. La usan el registro y las páginas /terminos y /privacidad.
@@ -310,6 +314,20 @@ export function crearAdministracionServicio(
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
     documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),
     permisoPuntajesVigente: (ahora) => contexto.repositorio.permisoPuntajesVigente(ahora),
+    obtenerParametroTexto: async (clave) => {
+      const valor = await contexto.repositorio.leerParametro(clave);
+      if (typeof valor !== 'string' || valor.trim() === '') {
+        throw new Error('Parámetro de texto ausente o inválido.');
+      }
+      return valor;
+    },
+    obtenerParametroNumero: async (clave) => {
+      const valor = await contexto.repositorio.leerParametro(clave);
+      if (typeof valor !== 'number' || !Number.isFinite(valor)) {
+        throw new Error(`contenido.configuracion no tiene un número en ${clave}.`);
+      }
+      return valor;
+    },
     obtenerParametroEntero: async (clave) => {
       const valor = await contexto.repositorio.leerParametro(clave);
       if (typeof valor !== 'number' || !Number.isInteger(valor)) {

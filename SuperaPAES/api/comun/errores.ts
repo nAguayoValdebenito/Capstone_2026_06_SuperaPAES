@@ -127,6 +127,57 @@ export class ErrorYaVerificado extends ErrorAplicacion {
   }
 }
 
+/** HU-43.1: por qué la tienda no deja activar la compra (`detalles.motivo` de COMPRA_NO_VALIDA). */
+export type MotivoCompraNoValida =
+  | 'no_encontrada'
+  | 'otra_cuenta'
+  | 'otro_producto'
+  | 'otro_paquete'
+  | 'firma_invalida'
+  | 'revocada'
+  | 'no_vigente';
+
+const MENSAJE_COMPRA_NO_VALIDA: Record<MotivoCompraNoValida, string> = {
+  no_encontrada: 'La tienda no encontró esta compra.',
+  otra_cuenta: 'Esta compra se hizo para otra suscripción o cuenta.',
+  otro_producto: 'Esta compra es de un producto distinto al plan elegido.',
+  otro_paquete: 'Esta compra no es de la app Supera PAES.',
+  firma_invalida: 'No pudimos comprobar que la compra venga de la tienda.',
+  revocada: 'La tienda anuló o reembolsó esta compra.',
+  no_vigente: 'Esta compra ya no está vigente en la tienda.',
+};
+
+/**
+ * HU-43.1, 422 COMPRA_NO_VALIDA: la tienda no confirma la compra para esta suscripción. Solo cuenta lo
+ * que responde la tienda: nunca se activa un plan porque la app diga que pagó. No se guarda nada.
+ */
+export class ErrorCompraNoValida extends ErrorAplicacion {
+  constructor(readonly motivo: MotivoCompraNoValida) {
+    super(422, 'COMPRA_NO_VALIDA', MENSAJE_COMPRA_NO_VALIDA[motivo], { detalles: { motivo } });
+  }
+}
+
+/** HU-43.1, 409 COMPRA_YA_REGISTRADA: la compra ya está ligada a otra suscripción o cuenta. */
+export class ErrorCompraYaRegistrada extends ErrorAplicacion {
+  constructor() {
+    super(409, 'COMPRA_YA_REGISTRADA', 'Esta compra ya está registrada en otra suscripción.');
+  }
+}
+
+/**
+ * HU-43.1, 503 TIENDA_NO_DISPONIBLE: la tienda respondió con error, tardó más de 10 s o la API no pudo
+ * autenticarse con ella. La suscripción queda igual y se puede reintentar.
+ */
+export class ErrorTiendaNoDisponible extends ErrorAplicacion {
+  constructor() {
+    super(
+      503,
+      'TIENDA_NO_DISPONIBLE',
+      'No pudimos confirmar la compra con la tienda. Inténtalo de nuevo en unos minutos.',
+    );
+  }
+}
+
 export class ErrorDemasiadosIntentos extends ErrorAplicacion {
   constructor() {
     super(
@@ -152,5 +203,65 @@ export class ErrorNoImplementado extends ErrorAplicacion {
 export class ErrorBaseDeDatosNoDisponible extends ErrorAplicacion {
   constructor(causa?: unknown) {
     super(503, 'BASE_DE_DATOS_NO_DISPONIBLE', 'La base de datos no está disponible.', { causa });
+  }
+}
+
+export class ErrorIANoDisponible extends ErrorAplicacion {
+  constructor() {
+    super(503, 'IA_NO_DISPONIBLE', 'El proveedor de IA no está disponible. Intenta más tarde.');
+  }
+}
+
+export class ErrorIARespuestaInvalida extends ErrorAplicacion {
+  constructor() {
+    super(502, 'IA_RESPUESTA_INVALIDA', 'El proveedor de IA devolvió una respuesta no válida.');
+  }
+}
+
+export class ErrorIASaldoAgotado extends ErrorAplicacion {
+  constructor() {
+    super(
+      503,
+      'IA_SALDO_AGOTADO',
+      'El proveedor principal de IA no tiene saldo y no hay respaldo disponible.',
+    );
+  }
+}
+
+/** HU-16.2, 409 TOPE_DIARIO_IA: el lote pasaría el tope diario de preguntas generadas con IA (RNF-03). */
+export class ErrorTopeDiarioIa extends ErrorAplicacion {
+  constructor(usadas: number, pedidas: number, maximo: number) {
+    super(
+      409,
+      'TOPE_DIARIO_IA',
+      'Se alcanzó el tope diario de preguntas generadas con IA. Pide menos preguntas o inténtalo mañana.',
+      { detalles: { usadas, pedidas, maximo } },
+    );
+  }
+}
+
+/** HU-16.2, 409 TOPE_MENSUAL_IA: el gasto del mes en la IA llegó al tope (RNF-03). */
+export class ErrorTopeMensualIa extends ErrorAplicacion {
+  constructor(gastado: number, maximo: number) {
+    super(
+      409,
+      'TOPE_MENSUAL_IA',
+      'Se alcanzó el tope mensual de gasto en la IA. No se envió ninguna solicitud.',
+      { detalles: { gastado, maximo } },
+    );
+  }
+}
+
+/**
+ * HU-16.2, 503 PRECIO_IA_NO_CONFIGURADO: falta el precio de un proveedor de IA (o un lote del mes no tiene
+ * costo), así que el gasto no se puede verificar. Falla de forma segura: no se calcula como si costara cero.
+ */
+export class ErrorPrecioIaNoConfigurado extends ErrorAplicacion {
+  constructor() {
+    super(
+      503,
+      'PRECIO_IA_NO_CONFIGURADO',
+      'No se puede verificar el gasto en la IA porque falta el precio de un proveedor. Avisa al equipo técnico.',
+    );
   }
 }

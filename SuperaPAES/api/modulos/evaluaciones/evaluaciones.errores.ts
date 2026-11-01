@@ -28,6 +28,13 @@ export const evaluacionConTiempoAbierta = (abierta?: {
     abierta ? { detalles: { abierta: { ...abierta, id: Number(abierta.id) } } } : undefined,
   );
 
+export const diagnosticoYaRendido = () =>
+  new ErrorAplicacion(
+    409,
+    'DIAGNOSTICO_YA_RENDIDO',
+    'Ya rendiste el diagnóstico de esta prueba este año escolar.',
+  );
+
 export const evaluacionNoEncontrada = () =>
   new ErrorAplicacion(404, 'EVALUACION_NO_ENCONTRADA', 'La práctica solicitada no existe.');
 

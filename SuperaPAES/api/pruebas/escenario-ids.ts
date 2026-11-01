@@ -6,8 +6,10 @@ import { crearApp, crearServicios } from '../app.js';
 import { cuerpoDePreguntas, preguntasDePrueba } from './escenario-ids-preguntas.js';
 import {
   cuerpoPuntajes,
+  generadorDePrueba,
   privacidadDePrueba,
   serviciosEvaluacionesEstudiante,
+  suscripcionesDePrueba,
   serviciosPuntajes,
 } from './escenario-ids-estudiante.js';
 import {
@@ -170,6 +172,8 @@ export function escenario() {
     preguntas,
     evaluaciones,
     privacidad: privacidadDePrueba,
+    suscripciones: { ...servicios.suscripciones, ...suscripcionesDePrueba },
+    generador: { ...servicios.generador, ...generadorDePrueba },
   });
   return { app, cuentas, administracion, evaluaciones };
 }
@@ -246,6 +250,7 @@ const CON_SESION_APP = [
   '/app/cuentas/perfil',
   '/app/cuentas/puntajes',
   '/app/privacidad/',
+  '/app/suscripciones/',
 ];
 
 async function sesionPara(ruta: string): Promise<Record<string, string>> {
