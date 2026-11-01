@@ -48,6 +48,25 @@ export function resultadoValido(solicitud: SolicitudGeneracion, n: number): Resu
   };
 }
 
+const PARRAFO =
+  'La ciudad había crecido junto al río durante siglos, y sus habitantes aprendieron a leer el agua como quien lee un libro. ';
+
+/** Un texto de lectura válido y distinto cada vez (título y contenido con tilde, largo suficiente). */
+export function textoValido(n: number) {
+  return { titulo: `La ciudad y el río, caso ${String(n)}`, contenido: PARRAFO.repeat(8).trim() };
+}
+
+export function resultadoDeTexto(n: number): ResultadoGeneracion {
+  return {
+    proveedor: 'deepseek',
+    modelo: 'modelo-falso',
+    preguntas: [],
+    texto: textoValido(n),
+    usoTokens: { entrada: 500, salida: 900, total: 1400 },
+    tokensUsados: 1400,
+  };
+}
+
 export function crearIaFalsa(
   opciones: { nombre?: ProveedorIA['nombre']; usa?: ProveedorIA['usa'] } = {},
 ) {
@@ -60,7 +79,11 @@ export function crearIaFalsa(
     const siguiente = respuestas.shift();
     if (siguiente instanceof Error) return Promise.reject(siguiente);
     if (typeof siguiente === 'function') return Promise.resolve(siguiente(solicitud, contador));
-    return Promise.resolve(siguiente ?? resultadoValido(solicitud, contador));
+    const porDefecto =
+      solicitud.salida === 'texto'
+        ? resultadoDeTexto(contador)
+        : resultadoValido(solicitud, contador);
+    return Promise.resolve(siguiente ?? porDefecto);
   });
   const proveedor: ProveedorIA = {
     nombre: opciones.nombre ?? 'deepseek',

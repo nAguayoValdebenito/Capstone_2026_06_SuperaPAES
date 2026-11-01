@@ -257,19 +257,5 @@ describe.skipIf(!urlBase)('reanudación, candado y plazo del lote con PostgreSQL
       );
       await worker.detener();
     });
-
-    it('un lote con texto de lectura todavía no se toma (llega con HU-18)', async () => {
-      const respuesta = await g.pedirLote(await g.sesionAdmin(), {
-        contenidoId: g.contenidos.cl,
-        cantidad: 3,
-        conTexto: true,
-      });
-      expect(respuesta.status).toBe(202);
-
-      const procesados = await g.trabajador().procesarPendientes();
-
-      expect(procesados).toBe(0);
-      expect(ia.generarPreguntas).not.toHaveBeenCalled();
-    });
   });
 });

@@ -7,10 +7,10 @@ import type { ProveedorIA, ResultadoGeneracion, SolicitudGeneracion } from './pr
 import {
   conUsoTokens,
   cuentaTokens,
-  esquemaJsonPreguntas,
+  esquemaDeSalida,
   exigirModelo,
-  formatoJson,
-  leerPreguntas,
+  formatoDeSalida,
+  leerSalida,
   leerSobre,
 } from './respuesta.js';
 
@@ -45,7 +45,7 @@ function configuracionDe(solicitud: SolicitudGeneracion) {
   return {
     maxOutputTokens: LIMITES_IA.maxTokens,
     responseMimeType: 'application/json',
-    responseJsonSchema: esquemaJsonPreguntas(solicitud.formato),
+    responseJsonSchema: esquemaDeSalida(solicitud),
     ...(temperatura !== undefined && { temperature: temperatura }),
   };
 }
@@ -77,7 +77,7 @@ export class ProveedorIAGemini implements ProveedorIA {
         cabeceras: { 'x-goog-api-key': this.opciones.claveApi },
         cuerpo: {
           contents: [{ role: 'user', parts: [{ text: solicitud.instruccion }] }],
-          systemInstruction: { parts: [{ text: formatoJson(solicitud.formato) }] },
+          systemInstruction: { parts: [{ text: formatoDeSalida(solicitud) }] },
           generationConfig: configuracionDe(solicitud),
         },
         interpretar: (datos) => {
@@ -92,7 +92,7 @@ export class ProveedorIAGemini implements ProveedorIA {
           return {
             proveedor: this.nombre,
             modelo: sobre.modelVersion ?? modelo,
-            preguntas: leerPreguntas(texto),
+            ...leerSalida(solicitud, texto),
             ...conUsoTokens(
               sobre.usageMetadata && {
                 ...(sobre.usageMetadata.promptTokenCount !== undefined && {

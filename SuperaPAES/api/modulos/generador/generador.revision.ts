@@ -18,7 +18,11 @@ export type MotivoDescarte =
   | 'clave_incoherente'
   | 'letras_en_explicacion'
   | 'sin_tildes'
-  | 'signos_de_interrogacion';
+  | 'signos_de_interrogacion'
+  // El texto de lectura (HU-18.2)
+  | 'texto_invalido'
+  | 'texto_corto'
+  | 'texto_largo';
 
 export interface Problema {
   motivo: MotivoDescarte;

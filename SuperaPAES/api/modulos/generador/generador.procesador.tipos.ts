@@ -3,6 +3,7 @@ import type {
   ProveedorIA,
   ResultadoGeneracion,
   SolicitudGeneracion,
+  TextoPropuesto,
 } from '../../adaptadores/ia/proveedor.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { CandadosDeSesion } from '../../db/candados.js';
@@ -12,6 +13,7 @@ import type { EjemploDePregunta, PreguntasServicio } from '../preguntas/index.js
 import type { ContenidoParaGenerar, TemarioServicio } from '../temario/index.js';
 import type { Precios } from './generador.costo.js';
 import type { FilaLote, LotesRepositorio } from './generador.lotes.repositorio.js';
+import type { TipoDeTexto } from './generador.texto.js';
 
 export interface OpcionesProcesador {
   /** Azar en [0, 1) para las fichas y el orden de las alternativas; se inyecta en las pruebas. */
@@ -29,7 +31,7 @@ export interface DependenciasProcesador {
   temario: Pick<TemarioServicio, 'contenidoParaGenerar' | 'mezclaDeDificultad'>;
   preguntas: Pick<
     PreguntasServicio,
-    'enunciadosDelContenido' | 'ejemplosAprobados' | 'guardarPropuestaDeIa'
+    'enunciadosDelContenido' | 'ejemplosAprobados' | 'guardarPropuestaDeIa' | 'guardarTextoDeIa'
   >;
   administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'obtenerParametroNumero'>;
   ia: Pick<ProveedorIA, 'nombre' | 'usa' | 'generarPreguntas'>;
@@ -48,8 +50,15 @@ export interface Turno {
   /** Enunciados del contenido y de las propuestas ya guardadas en este turno. */
   existentes: string[];
   ejemplos: EjemploDePregunta[];
+  /** Con texto de lectura (HU-18): el texto ya aceptado, sobre el que se hace cada pregunta. */
+  texto?: TextoGenerado;
   mezcla: Awaited<ReturnType<TemarioServicio['mezclaDeDificultad']>>;
   fallasSeguidas: number;
+}
+
+/** El texto de lectura que pasó la revisión, listo para guardarse con su tipo. */
+export interface TextoGenerado extends TextoPropuesto {
+  tipo: TipoDeTexto;
 }
 
 /** Lo que pasó al pedir una pregunta a la IA. */

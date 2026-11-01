@@ -7,8 +7,8 @@ import {
   conUsoTokens,
   cuentaTokens,
   exigirModelo,
-  formatoJson,
-  leerPreguntas,
+  formatoDeSalida,
+  leerSalida,
   leerSobre,
 } from './respuesta.js';
 
@@ -36,14 +36,18 @@ interface OpcionesDeepSeek {
   obtenerModeloPrincipal(): Promise<string>;
 }
 
-function interpretarDeepSeek(datos: unknown, modelo: string): ResultadoGeneracion {
+function interpretarDeepSeek(
+  datos: unknown,
+  modelo: string,
+  solicitud: SolicitudGeneracion,
+): ResultadoGeneracion {
   const sobre = leerSobre(esquemaSobre, datos);
   const opcion = sobre.choices[0];
   if (opcion?.finish_reason !== 'stop') throw new ErrorIARespuestaInvalida();
   return {
     proveedor: 'deepseek',
     modelo: sobre.model ?? modelo,
-    preguntas: leerPreguntas(opcion.message.content),
+    ...leerSalida(solicitud, opcion.message.content),
     ...conUsoTokens(
       sobre.usage && {
         ...(sobre.usage.prompt_tokens !== undefined && { entrada: sobre.usage.prompt_tokens }),
@@ -91,11 +95,11 @@ export class ProveedorIADeepSeek implements ProveedorIA {
           thinking: { type: 'disabled' },
           response_format: { type: 'json_object' },
           messages: [
-            { role: 'system', content: formatoJson(solicitud.formato) },
+            { role: 'system', content: formatoDeSalida(solicitud) },
             { role: 'user', content: solicitud.instruccion },
           ],
         },
-        interpretar: (datos) => interpretarDeepSeek(datos, modelo),
+        interpretar: (datos) => interpretarDeepSeek(datos, modelo, solicitud),
       },
       presupuesto,
     );

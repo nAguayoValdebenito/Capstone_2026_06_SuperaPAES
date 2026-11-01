@@ -16,6 +16,7 @@ import {
   crearPreguntasGeneracionRepositorio,
   type EjemploDePregunta,
   type PropuestaDeIa,
+  type TextoDeIa,
 } from './preguntas.generacion.repositorio.js';
 import {
   crearPreguntasRepositorio,
@@ -86,6 +87,8 @@ export interface LecturasParaGenerar {
   ejemplosAprobados(contenidoId: number, limite: number): Promise<EjemploDePregunta[]>;
   /** HU-16.2: guarda una propuesta de la IA revisada como borrador, en la transacción del lote. */
   guardarPropuestaDeIa(propuesta: PropuestaDeIa, tx: Ejecutor): Promise<string>;
+  /** HU-18.1: guarda el texto de lectura de la IA; las preguntas de su lote se enlazan a él. */
+  guardarTextoDeIa(texto: TextoDeIa, tx: Ejecutor): Promise<string>;
 }
 
 export interface PreguntasServicio
@@ -281,6 +284,7 @@ export function crearPreguntasServicio(
     enunciadosDelContenido: (contenidoId, tx) => generacion.enunciadosDelContenido(contenidoId, tx),
     ejemplosAprobados: (contenidoId, limite) => generacion.ejemplosAprobados(contenidoId, limite),
     guardarPropuestaDeIa: (propuesta, tx) => generacion.guardarPropuesta(propuesta, tx),
+    guardarTextoDeIa: (texto, tx) => generacion.guardarTexto(texto, tx),
     listarTextos: (consulta) => textos.listarTextos(consulta),
     obtenerTexto: (id) => textos.obtenerTexto(id),
     crearTexto: (autorId, datos) => textos.crearTexto(autorId, datos),

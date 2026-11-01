@@ -10,7 +10,8 @@ export type CierreDeLote =
   | 'ia_no_disponible'
   | 'tope_mensual'
   | 'precio_no_configurado'
-  | 'contenido_inexistente';
+  | 'contenido_inexistente'
+  | 'texto_invalido';
 
 export interface MotivosDelLote {
   /** El primer problema de cada pregunta descartada (su motivo de descarte). */
@@ -19,6 +20,8 @@ export interface MotivosDelLote {
   reglas: Record<string, number>;
   /** Llamadas a la IA que fallaron (cuentan como pregunta descartada): IA_NO_DISPONIBLE y otras. */
   fallas: Record<string, number>;
+  /** Solo en lotes con texto de lectura: por qué se descartó cada texto pedido (HU-18.2). */
+  textos?: Record<string, number>;
   cierre?: CierreDeLote;
 }
 
@@ -37,10 +40,12 @@ function contadores(valor: unknown): Record<string, number> {
 /** Lee el JSON guardado; un lote nuevo (null) o un valor raro parte de cero. */
 export function leerMotivos(valor: unknown): MotivosDelLote {
   const origen = esRegistro(valor) ? valor : {};
+  const textos = contadores(origen['textos']);
   return {
     porMotivo: contadores(origen['porMotivo']),
     reglas: contadores(origen['reglas']),
     fallas: contadores(origen['fallas']),
+    ...(Object.keys(textos).length > 0 && { textos }),
   };
 }
 
@@ -58,6 +63,16 @@ export function anotarDescarte(
   for (const problema of problemas) reglas = sumar(reglas, problema.motivo);
   const primero = problemas[0]?.motivo ?? 'sin_motivo';
   return { ...motivos, porMotivo: sumar(motivos.porMotivo, primero), reglas };
+}
+
+/** Anota un texto de lectura descartado con todos los problemas que se le encontraron. */
+export function anotarTextoDescartado(
+  motivos: MotivosDelLote,
+  problemas: readonly Problema[],
+): MotivosDelLote {
+  let textos = motivos.textos ?? {};
+  for (const problema of problemas) textos = sumar(textos, problema.motivo);
+  return { ...motivos, textos };
 }
 
 export function anotarFalla(motivos: MotivosDelLote, codigo: string): MotivosDelLote {

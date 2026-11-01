@@ -1,9 +1,10 @@
 // El avance de un lote (HU-16.2, HU-17): cada resultado de la IA se guarda en su propia transacción junto con
 // los conteos, los tokens, el costo y los motivos del lote. Si el proceso muere, lo ya hecho queda guardado y
 // el siguiente turno sigue desde ahí. Una llamada ya pagada se anota siempre, aunque la pregunta no se pueda guardar.
-import type { ResultadoGeneracion } from '../../adaptadores/ia/proveedor.js';
+import type { PreguntaPropuesta, ResultadoGeneracion } from '../../adaptadores/ia/proveedor.js';
 import { mensajeDeError, registro } from '../../comun/registro.js';
 import type { Ejecutor } from '../../db/transaccion.js';
+import type { PropuestaDeIa } from '../preguntas/index.js';
 import { calcularCostoUsd, type Precios } from './generador.costo.js';
 import type { Ficha } from './generador.fichas.js';
 import { esNumerica } from './generador.instrucciones.js';
@@ -27,7 +28,7 @@ type Anotacion = (motivos: MotivosDelLote) => MotivosDelLote;
 type ConsumoDeLaLlamada = Pick<AvanceDeLote, 'tokens' | 'costoUsd' | 'modelo'>;
 
 /** Lo que se guarda de golpe: los conteos, el consumo, cómo se anotan los motivos y, si hay, qué escribir antes. */
-type CambioDeLote = Pick<AvanceDeLote, 'validas' | 'descartadas'> &
+export type CambioDeLote = Pick<AvanceDeLote, 'validas' | 'descartadas'> &
   ConsumoDeLaLlamada & { anotar: Anotacion; antes?: (tx: Ejecutor) => Promise<void> };
 
 const SIN_CONSUMO: ConsumoDeLaLlamada = { tokens: null, costoUsd: null, modelo: null };
@@ -36,7 +37,7 @@ const SIN_CONSUMO: ConsumoDeLaLlamada = { tokens: null, costoUsd: null, modelo: 
  * Suma un avance al lote y, en la misma transacción, lo que haga `antes` (guardar la pregunta). Con la fila
  * reservada, los motivos se leen y se escriben sin que otro proceso se cuele.
  */
-async function guardarAvance(
+export async function guardarAvance(
   d: DependenciasProcesador,
   turno: Turno,
   { anotar, antes, ...avance }: CambioDeLote,
@@ -62,7 +63,7 @@ function tokensDe(resultado: ResultadoGeneracion): number | null {
  * proveedor sin precio, se guardan los tokens sin costo: el gasto del mes ya no se puede verificar y el
  * tope falla de forma segura (PRECIO_IA_NO_CONFIGURADO), nunca como si la llamada fuera gratis.
  */
-function consumoDe(resultado: ResultadoGeneracion, precios: Precios): ConsumoDeLaLlamada {
+export function consumoDe(resultado: ResultadoGeneracion, precios: Precios): ConsumoDeLaLlamada {
   const tokens = tokensDe(resultado);
   const modelo = resultado.modelo;
   if (tokens === null) return { tokens, costoUsd: null, modelo };
@@ -87,12 +88,17 @@ export async function registrarFalla(
     ...SIN_CONSUMO,
     anotar: (m) => anotarFalla(m, falla.codigo),
   });
+  return cierreTrasFalla(turno, falla);
+}
+
+/** Cuenta la falla y dice si hay que cerrar el lote: sin saldo, o tras varias fallas seguidas. */
+export function cierreTrasFalla(turno: Turno, falla: FallaDeLaIa): CierreDeLote | null {
   turno.fallasSeguidas += 1;
   if (falla.saldoAgotado) return 'saldo_agotado';
   return turno.fallasSeguidas >= FALLAS_SEGUIDAS_PARA_CORTAR ? 'ia_no_disponible' : null;
 }
 
-function revisar(turno: Turno, ficha: Ficha, resultado: ResultadoGeneracion): Problema[] {
+export function revisar(turno: Turno, ficha: Ficha, resultado: ResultadoGeneracion): Problema[] {
   const propuesta = resultado.preguntas[0];
   if (!propuesta) {
     return [{ motivo: 'formato_invalido', detalle: 'La IA no devolvió ninguna pregunta.' }];
@@ -107,16 +113,14 @@ function revisar(turno: Turno, ficha: Ficha, resultado: ResultadoGeneracion): Pr
   });
 }
 
-/** Guarda la pregunta válida con su avance; si no se pudo guardar, la llamada ya se pagó: se anota igual. */
-async function guardarValida(
+/** La propuesta válida lista para guardarse (alternativas barajadas); el texto y el orden los pone quien guarda. */
+export function guardableDe(
   d: DependenciasProcesador,
   turno: Turno,
-  resultado: ResultadoGeneracion,
-): Promise<void> {
-  const propuesta = resultado.preguntas[0]!;
+  propuesta: PreguntaPropuesta,
+): PropuestaDeIa {
   const { prueba } = turno.contenido;
-  const consumo = consumoDe(resultado, turno.precios);
-  const guardable = aPropuestaGuardable(
+  return aPropuestaGuardable(
     propuesta,
     {
       loteId: turno.lote.id,
@@ -128,6 +132,17 @@ async function guardarValida(
     },
     azarDe(d),
   );
+}
+
+/** Guarda la pregunta válida con su avance; si no se pudo guardar, la llamada ya se pagó: se anota igual. */
+async function guardarValida(
+  d: DependenciasProcesador,
+  turno: Turno,
+  resultado: ResultadoGeneracion,
+): Promise<void> {
+  const propuesta = resultado.preguntas[0]!;
+  const consumo = consumoDe(resultado, turno.precios);
+  const guardable = guardableDe(d, turno, propuesta);
   try {
     await guardarAvance(d, turno, {
       validas: 1,

@@ -39,6 +39,20 @@ const INSERTAR_ALTERNATIVAS = `
     FROM unnest($2::text[], $3::text[], $4::boolean[], $5::text[])
          AS a (letra, texto, es_correcta, explicacion)`;
 
+/** El texto de lectura de la IA que acompaña a las preguntas de un lote (HU-18.1). */
+export interface TextoDeIa {
+  loteId: string;
+  /** Código de contenido.tipo_texto: literario o no_literario. */
+  tipo: string;
+  titulo: string;
+  contenido: string;
+}
+
+const INSERTAR_TEXTO = `
+  INSERT INTO contenido.texto_estimulo (tipo_texto_id, titulo, contenido, lote_id, creado_en)
+  VALUES ((SELECT id FROM contenido.tipo_texto WHERE codigo = $1), $2, $3, $4, now())
+  RETURNING id::text AS id`;
+
 // Ejemplos: aprobadas o publicadas, de origen manual o IA. Las importadas quedan fuera (RN-29): no se
 // sabe de dónde vienen y no deben servir de modelo para la IA.
 const EJEMPLOS = `
@@ -78,6 +92,17 @@ export function crearPreguntasGeneracionRepositorio(bd: Ejecutor) {
     /** Guarda la propuesta como pregunta en borrador con sus alternativas; devuelve su id. */
     guardarPropuesta: (propuesta: PropuestaDeIa, tx: Ejecutor = bd) =>
       guardarPropuesta(tx, propuesta),
+
+    /** Guarda el texto de lectura de un lote, sin autor humano (su origen «ia» sale de lote_id). */
+    async guardarTexto(texto: TextoDeIa, tx: Ejecutor = bd): Promise<string> {
+      const { rows } = await tx.query<{ id: string }>(INSERTAR_TEXTO, [
+        texto.tipo,
+        texto.titulo,
+        texto.contenido,
+        texto.loteId,
+      ]);
+      return rows[0]!.id;
+    },
 
     /** Los enunciados del contenido en cualquier estado, también rechazadas y retiradas. */
     async enunciadosDelContenido(contenidoId: number, tx: Ejecutor = bd): Promise<string[]> {

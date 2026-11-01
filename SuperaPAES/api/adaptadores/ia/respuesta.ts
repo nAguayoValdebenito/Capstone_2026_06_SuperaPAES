@@ -2,7 +2,13 @@
 import { z } from 'zod';
 import { ErrorIARespuestaInvalida, ErrorIANoDisponible } from '../../comun/errores.js';
 import { ErrorContenidoVacio, ErrorJsonNoAnalizable } from './http.js';
-import type { FormatoPregunta, PreguntaPropuesta, ResultadoGeneracion } from './proveedor.js';
+import type {
+  FormatoPregunta,
+  PreguntaPropuesta,
+  ResultadoGeneracion,
+  SolicitudGeneracion,
+  TextoPropuesto,
+} from './proveedor.js';
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E'] as const;
 const DIFICULTADES = ['facil', 'media', 'dificil'] as const;
@@ -80,9 +86,29 @@ export function esquemaJsonPreguntas(formato?: FormatoPregunta): Record<string, 
   };
 }
 
+const esquemaLecturaTexto = z.object({ titulo: z.string(), contenido: z.string() });
+
+/** El JSON Schema del texto de lectura (HU-18.1): un título y el contenido, nada más. */
+export function esquemaJsonTexto(): Record<string, unknown> {
+  return {
+    type: 'object',
+    properties: { titulo: { type: 'string' }, contenido: { type: 'string' } },
+    required: ['titulo', 'contenido'],
+    additionalProperties: false,
+  };
+}
+
+/** El esquema que corresponde a lo que se pide: una pregunta del pedido o un texto de lectura. */
+export const esquemaDeSalida = (solicitud: SolicitudGeneracion): Record<string, unknown> =>
+  solicitud.salida === 'texto' ? esquemaJsonTexto() : esquemaJsonPreguntas(solicitud.formato);
+
 // Solo formato, sin temario, ejemplos aprobados, cantidades ni criterios pedagógicos.
 export const formatoJson = (formato?: FormatoPregunta): string =>
   `Devuelve exclusivamente un objeto JSON con el siguiente esquema: ${JSON.stringify(esquemaJsonPreguntas(formato))}`;
+
+/** Lo mismo que formatoJson, con el esquema de lo que se pide (pregunta o texto). */
+export const formatoDeSalida = (solicitud: SolicitudGeneracion): string =>
+  `Devuelve exclusivamente un objeto JSON con el siguiente esquema: ${JSON.stringify(esquemaDeSalida(solicitud))}`;
 
 export const cuentaTokens = z.number().int().nonnegative().optional();
 
@@ -92,16 +118,31 @@ export function leerSobre<T>(esquema: z.ZodType<T>, datos: unknown): T {
   return resultado.data;
 }
 
-export function leerPreguntas(texto: string | null): PreguntaPropuesta[] {
+function analizarJson(texto: string | null): unknown {
   if (texto === null || texto.trim() === '') throw new ErrorContenidoVacio();
-  let datos: unknown;
   try {
-    datos = JSON.parse(texto) as unknown;
+    return JSON.parse(texto) as unknown;
   } catch {
     // El mensaje no incluye el texto del modelo. Se reintenta una vez (ver ErrorContenidoReintentable).
     throw new ErrorJsonNoAnalizable();
   }
-  return leerSobre(esquemaLectura, datos).preguntas;
+}
+
+export function leerPreguntas(texto: string | null): PreguntaPropuesta[] {
+  return leerSobre(esquemaLectura, analizarJson(texto)).preguntas;
+}
+
+export function leerTexto(texto: string | null): TextoPropuesto {
+  return leerSobre(esquemaLecturaTexto, analizarJson(texto));
+}
+
+/** Lo que el contenido del modelo aporta al resultado, según lo pedido: las preguntas o el texto. */
+export function leerSalida(
+  solicitud: SolicitudGeneracion,
+  contenido: string | null,
+): Pick<ResultadoGeneracion, 'preguntas' | 'texto'> {
+  if (solicitud.salida === 'texto') return { preguntas: [], texto: leerTexto(contenido) };
+  return { preguntas: leerPreguntas(contenido) };
 }
 
 export function conUsoTokens(uso: ResultadoGeneracion['usoTokens']): Partial<ResultadoGeneracion> {

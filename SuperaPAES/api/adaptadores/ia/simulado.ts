@@ -1,11 +1,26 @@
 // Proveedor de IA simulado: devuelve siempre la misma pregunta, para desarrollo y pruebas.
-import type { ProveedorIA, ResultadoGeneracion } from './proveedor.js';
+import type { ProveedorIA, ResultadoGeneracion, SolicitudGeneracion } from './proveedor.js';
+
+function textoSimulado(): ResultadoGeneracion {
+  const parrafo =
+    'La ciudad había crecido junto al río durante siglos, y sus habitantes aprendieron a leer el agua como quien lee un libro: ' +
+    'sabían cuándo subiría, cuándo traería barro fértil y cuándo era mejor guardar las barcas. ';
+  return {
+    proveedor: 'simulado',
+    modelo: 'simulado',
+    tokensUsados: 0,
+    costoUsd: 0,
+    preguntas: [],
+    texto: { titulo: 'La ciudad y el río', contenido: parrafo.repeat(4).trim() },
+  };
+}
 
 export class ProveedorIASimulado implements ProveedorIA {
   readonly nombre = 'simulado';
   readonly usa = [] as const;
 
-  generarPreguntas(): Promise<ResultadoGeneracion> {
+  generarPreguntas(solicitud?: SolicitudGeneracion): Promise<ResultadoGeneracion> {
+    if (solicitud?.salida === 'texto') return Promise.resolve(textoSimulado());
     return Promise.resolve({
       proveedor: 'simulado',
       modelo: 'simulado',

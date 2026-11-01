@@ -120,10 +120,10 @@ export interface AvanceDeLote {
 /** Lecturas del worker: qué lotes hay que trabajar y la fila reservada de uno. */
 function lecturasDelWorker(bd: Ejecutor) {
   return {
-    /** Los lotes pendientes sin texto de lectura (los de texto llegan con HU-18), los más antiguos primero. */
+    /** Los lotes pendientes, los más antiguos primero. */
     async idsPendientes(tx: Ejecutor = bd): Promise<string[]> {
       const { rows } = await tx.query<{ id: string }>(
-        `SELECT l.id::text AS id ${LOTE_CON_ESTADO} WHERE e.codigo = 'pendiente' AND NOT l.con_texto ORDER BY l.id`,
+        `SELECT l.id::text AS id ${LOTE_CON_ESTADO} WHERE e.codigo = 'pendiente' ORDER BY l.id`,
       );
       return rows.map((fila) => fila.id);
     },

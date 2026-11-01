@@ -4,6 +4,7 @@ import {
   anotarCierre,
   anotarDescarte,
   anotarFalla,
+  anotarTextoDescartado,
   leerMotivos,
 } from '../modulos/generador/generador.motivos.js';
 
@@ -45,5 +46,19 @@ describe('motivos del lote', () => {
       cierre: 'plazo',
     });
     expect(leerMotivos(final).cierre).toBeUndefined();
+  });
+
+  it('los textos de lectura descartados se cuentan aparte y se conservan al leer el JSON', () => {
+    const inicial = leerMotivos(null);
+    const uno = anotarTextoDescartado(inicial, [
+      { motivo: 'texto_corto', detalle: 'x' },
+      { motivo: 'sin_tildes', detalle: 'x' },
+    ]);
+    const dos = anotarTextoDescartado(uno, [{ motivo: 'texto_corto', detalle: 'x' }]);
+
+    expect(dos.textos).toEqual({ texto_corto: 2, sin_tildes: 1 });
+    expect(leerMotivos(dos).textos).toEqual({ texto_corto: 2, sin_tildes: 1 });
+    expect(inicial).not.toHaveProperty('textos');
+    expect(dos.porMotivo).toEqual({});
   });
 });

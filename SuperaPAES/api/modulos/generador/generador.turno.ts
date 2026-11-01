@@ -12,6 +12,7 @@ import { armarFichas, type Ficha } from './generador.fichas.js';
 import { construirInstruccion, contextosDe, esNumerica } from './generador.instrucciones.js';
 import type { FilaLote } from './generador.lotes.repositorio.js';
 import type { CierreDeLote } from './generador.motivos.js';
+import { construirInstruccionTexto, temaDeTexto, tipoDeTextoDe } from './generador.texto.js';
 import type { DependenciasProcesador, Intento, Turno } from './generador.procesador.tipos.js';
 
 const EJEMPLOS_POR_PREGUNTA = 3;
@@ -118,6 +119,7 @@ function solicitudDe(turno: Turno, ficha: Ficha): SolicitudGeneracion {
       alternativas: prueba.opcionesMax,
       ejemplos: turno.ejemplos,
       enunciadosPrevios: turno.existentes,
+      ...(turno.texto && { texto: turno.texto }),
     }),
     formato: {
       alternativas: prueba.opcionesMax,
@@ -127,17 +129,45 @@ function solicitudDe(turno: Turno, ficha: Ficha): SolicitudGeneracion {
   };
 }
 
-/** Pide a la IA la pregunta de una ficha; las fallas conocidas vuelven como dato, las demás suben. */
-export async function pedirPropuesta(
-  d: DependenciasProcesador,
-  turno: Turno,
-  ficha: Ficha,
-): Promise<Intento> {
+async function llamar(d: DependenciasProcesador, solicitud: SolicitudGeneracion): Promise<Intento> {
   try {
-    return { tipo: 'respuesta', resultado: await d.ia.generarPreguntas(solicitudDe(turno, ficha)) };
+    return { tipo: 'respuesta', resultado: await d.ia.generarPreguntas(solicitud) };
   } catch (error) {
     const falla = comoFalla(error);
     if (falla) return falla;
     throw error;
   }
+}
+
+/** Pide a la IA la pregunta de una ficha; las fallas conocidas vuelven como dato, las demás suben. */
+export const pedirPropuesta = (d: DependenciasProcesador, turno: Turno, ficha: Ficha) =>
+  llamar(d, solicitudDe(turno, ficha));
+
+/** Pide a la IA el texto de lectura del lote (HU-18.1), de un tema sorteado y del tipo que dice el eje. */
+export function pedirTexto(d: DependenciasProcesador, turno: Turno): Promise<Intento> {
+  const { contenido } = turno;
+  return llamar(d, {
+    instruccion: construirInstruccionTexto({
+      prueba: contenido.prueba,
+      eje: contenido.eje.nombre,
+      contenido: contenido.nombre,
+      curso: contenido.curso,
+      tema: temaDeTexto(azarDe(d)),
+      tipo: tipoDeTextoDe(contenido.eje.nombre),
+    }),
+    salida: 'texto',
+    temperaturas: turno.temperaturas,
+  });
+}
+
+/** Antes de cada llamada: el plazo del turno y el tope mensual de gasto (RNF-03), con lo ya gastado. */
+export async function motivoParaParar(
+  d: DependenciasProcesador,
+  turno: Turno,
+): Promise<CierreDeLote | null> {
+  const ahora = d.reloj();
+  if (ahora.getTime() >= turno.limiteMs) return 'plazo';
+  const { gastado, sinCosto } = await d.lotes.gastoMensual(ahora);
+  if (sinCosto) return 'precio_no_configurado';
+  return gastado >= turno.maximoMensual ? 'tope_mensual' : null;
 }

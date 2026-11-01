@@ -18,6 +18,14 @@ export interface SolicitudGeneracion {
   formato?: FormatoPregunta;
   /** Temperatura configurada de cada proveedor; cada adaptador usa la suya. Sin ella, la del proveedor. */
   temperaturas?: Partial<Record<'deepseek' | 'gemini', number>>;
+  /** Qué se pide: una pregunta (por defecto) o un texto de lectura, cada uno con su esquema (HU-18.1). */
+  salida?: 'pregunta' | 'texto';
+}
+
+/** El texto de lectura que acompaña a las preguntas de Competencia Lectora (HU-18.1). */
+export interface TextoPropuesto {
+  titulo: string;
+  contenido: string;
 }
 
 /** Textos en Markdown con fórmulas en LaTeX, como se guardan en contenido.pregunta y alternativa. */
@@ -40,6 +48,8 @@ export interface ResultadoGeneracion {
   proveedor: ProveedorIA['nombre'];
   modelo: string;
   preguntas: PreguntaPropuesta[];
+  /** Solo cuando se pidió salida «texto»: entonces `preguntas` va vacío. */
+  texto?: TextoPropuesto;
   tokensUsados?: number;
   usoTokens?: { entrada?: number; salida?: number; total?: number };
   /** Costo de la solicitud (contenido.lote_generacion.costo_usd), para el tope mensual de gasto. */
