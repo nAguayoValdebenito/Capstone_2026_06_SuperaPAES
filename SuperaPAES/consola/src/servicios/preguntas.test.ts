@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { consultaDelBanco, listarBanco, obtenerFiltrosBanco } from './preguntas';
+import { responderUnaVez } from '../pruebas/sesion';
+import {
+  consultaDelBanco,
+  importarPreguntas,
+  listarBanco,
+  obtenerFiltrosBanco,
+  revisarImportacion,
+} from './preguntas';
 
 function responder(cuerpo: unknown) {
   const urls: string[] = [];
@@ -45,5 +52,44 @@ describe('servicios del banco de preguntas (C02)', () => {
 
     expect(await obtenerFiltrosBanco()).toEqual(opciones);
     expect(urls).toEqual(['/admin/preguntas/filtros']);
+  });
+});
+
+describe('servicios de la importación (C04, HU-13.2)', () => {
+  /** El método, la ruta y el cuerpo de la única llamada a la API. */
+  function llamada() {
+    const [url, init] = vi.mocked(fetch).mock.calls[0] ?? [];
+    return {
+      metodo: init?.method,
+      ruta: (url as string).replace(/^.*\/api\/v1/, ''),
+      cuerpo: JSON.parse(init?.body as string) as unknown,
+    };
+  }
+
+  const archivos = {
+    preguntas: { nombre: 'preguntas.csv', contenido: 'prueba;eje' },
+    textos: null,
+  };
+
+  it('revisa los archivos sin declarar el origen', async () => {
+    responderUnaVez({ data: { porCrear: 1 }, error: null, meta: null });
+
+    expect(await revisarImportacion(archivos)).toEqual({ porCrear: 1 });
+    expect(llamada()).toEqual({
+      metodo: 'POST',
+      ruta: '/admin/preguntas/importaciones/revision',
+      cuerpo: archivos,
+    });
+  });
+
+  it('importa los mismos archivos con la declaración del origen (RN-29)', async () => {
+    responderUnaVez({ data: { id: 4, porCrear: 1 }, error: null, meta: null });
+
+    expect(await importarPreguntas(archivos)).toEqual({ id: 4, porCrear: 1 });
+    expect(llamada()).toEqual({
+      metodo: 'POST',
+      ruta: '/admin/preguntas/importaciones',
+      cuerpo: { ...archivos, declaraOrigen: true },
+    });
   });
 });

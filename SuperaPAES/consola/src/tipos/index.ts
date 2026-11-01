@@ -187,6 +187,40 @@ export interface TextoDeLectura {
   creadoEn: string;
 }
 
+/** Un archivo CSV de la importación (HU-13), leído como UTF-8. */
+export interface ArchivoCsv {
+  nombre: string;
+  contenido: string;
+}
+
+/** Los archivos que se revisan o importan: preguntas y, si hay, textos de lectura. */
+export interface ArchivosImportacion {
+  preguntas: ArchivoCsv;
+  textos: ArchivoCsv | null;
+}
+
+/** Una fila que no se importa, con sus motivos (tabla «Filas con errores» de C04). */
+export interface ErrorDeFila {
+  archivo: 'preguntas' | 'textos';
+  fila: number;
+  resumen: string;
+  motivos: string[];
+}
+
+/** El informe de C04 (CU-16 paso 5). */
+export interface InformeImportacion {
+  filasLeidas: number;
+  porCrear: number;
+  omitidas: number;
+  conError: number;
+  textosPorCrear: number;
+  errores: ErrorDeFila[];
+}
+
+export interface ImportacionHecha extends InformeImportacion {
+  id: number;
+}
+
 /** Paginación de un listado de la API (`meta`). */
 export interface Paginacion {
   pagina: number;

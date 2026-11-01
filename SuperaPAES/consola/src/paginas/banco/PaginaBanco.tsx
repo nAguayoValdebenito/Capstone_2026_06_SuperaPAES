@@ -1,8 +1,10 @@
 // C02 · Banco de preguntas (HU-11, RF-G01): filtros por prueba, eje, contenido, habilidad, estado, origen
 // y dificultad asignada; tabla con el estado de cada pregunta; de a páginas. La lógica está en
-// src/estado/banco.ts. Las acciones de la tabla y la publicación de varias llegan con sus historias.
+// src/estado/banco.ts. Desde aquí se crea una pregunta (C03) o se importa un archivo (C04, HU-13.2), que
+// vuelve con su aviso. Las acciones de la tabla y la publicación de varias llegan con sus historias.
 import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
+import { useAvisoDeNavegacion } from '../../estado/aviso-de-navegacion';
 import { type CargaBanco, totalDePaginas, useBanco } from '../../estado/banco';
 import { FiltrosBanco } from './FiltrosBanco';
 import { TablaBanco } from './TablaBanco';
@@ -42,6 +44,7 @@ export function ResultadoBanco({
 
 export function PaginaBanco() {
   const { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina } = useBanco();
+  const aviso = useAvisoDeNavegacion();
 
   return (
     <section className="pagina pagina--ancha">
@@ -54,11 +57,19 @@ export function PaginaBanco() {
           </p>
         </div>
         <div className="pagina__acciones">
+          <Link className="boton" to="/banco/importar">
+            Importar archivo
+          </Link>
           <Link className="boton boton--primario" to="/banco/nueva">
             Nueva pregunta
           </Link>
         </div>
       </header>
+      {aviso && (
+        <p className="aviso aviso--exito" role="status">
+          {aviso}
+        </p>
+      )}
       {opciones.tipo === 'lista' && (
         <FiltrosBanco
           opciones={opciones.opciones}

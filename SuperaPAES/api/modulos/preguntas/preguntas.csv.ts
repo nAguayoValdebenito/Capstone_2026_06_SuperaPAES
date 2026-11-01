@@ -2,10 +2,11 @@
 // punto y coma (Excel en español guarda con «;»), con comillas dobles en los campos que llevan el
 // separador, saltos de línea o comillas (RFC 4180). Solo convierte el texto en filas de celdas: qué
 // columnas debe tener cada archivo lo decide preguntas.plantilla.ts.
+import { normalizarParaComparar } from '../../comun/contrasenas.js';
 
 /** Quita tildes, mayúsculas y espacios de más: así se comparan columnas y nombres del temario. */
 export function normalizar(texto: string): string {
-  return texto.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return normalizarParaComparar(texto).replace(/\s+/g, ' ');
 }
 
 /** El separador del archivo: el que más aparece en la primera línea, que es la de las columnas. */
@@ -53,7 +54,7 @@ function leerCelda(
 
 const MARCA_UTF8 = String.fromCodePoint(0xfeff);
 
-const filaEnBlanco = (fila: readonly string[]) => fila.every((celda) => !celda.trim());
+export const filaEnBlanco = (fila: readonly string[]) => fila.every((celda) => !celda.trim());
 
 /**
  * Sin las filas en blanco del final: el último salto de línea y las que Excel deja con solo

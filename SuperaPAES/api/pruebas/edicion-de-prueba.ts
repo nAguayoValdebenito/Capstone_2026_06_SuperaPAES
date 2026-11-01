@@ -3,6 +3,7 @@
 // por letra, importaciones).
 import { vi } from 'vitest';
 import type {
+  AlternativaNueva,
   FilaPregunta,
   PreguntasEdicionRepositorio,
 } from '../modulos/preguntas/preguntas.edicion.repositorio.js';
@@ -144,6 +145,14 @@ function repositorioEnMemoria() {
           String(siguienteAlternativa++),
         ...nueva,
       }));
+      return Promise.resolve();
+    }),
+    insertarAlternativas: vi.fn((nuevas: readonly AlternativaNueva[]) => {
+      for (const { preguntaId, ...nueva } of nuevas) {
+        preguntas
+          .get(preguntaId)
+          ?.alternativas.push({ id: String(siguienteAlternativa++), ...nueva });
+      }
       return Promise.resolve();
     }),
     quitarAlternativas: vi.fn(() => Promise.resolve()),

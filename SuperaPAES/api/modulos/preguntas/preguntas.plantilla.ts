@@ -3,7 +3,7 @@
 // según su plantilla. Un archivo que no la sigue se rechaza completo con una explicación (2.a); los
 // problemas de cada fila los revisa preguntas.importacion.filas.ts.
 import { ErrorValidacion } from '../../comun/errores.js';
-import { leerCsv, normalizar } from './preguntas.csv.js';
+import { filaEnBlanco, leerCsv, normalizar } from './preguntas.csv.js';
 import type { ArchivoCsv } from './preguntas.validadores.js';
 
 /**
@@ -77,23 +77,28 @@ function filasDe(archivo: ArchivoCsv): string[][] | string {
   }
   const filas = leerCsv(archivo.contenido);
   if (!filas) return 'tiene comillas sin cerrar o mal puestas.';
-  if (filas.length < 2) return 'no tiene filas después de la de las columnas.';
+  if (filas.length === 0) return 'está vacío.';
   return filas;
 }
 
 /**
  * Las filas del archivo, con sus celdas por columna. Lanza ErrorValidacion si el archivo no se puede
- * leer o sus columnas no son las de la plantilla (CU-16 2.a): así no se importa nada a medias.
+ * leer o sus columnas no son las de la plantilla (CU-16 2.a): así no se importa nada a medias. El de
+ * preguntas debe traer filas; el de textos es opcional y puede venir con solo las columnas.
  */
 export function leerArchivo<C extends string>(
   archivo: ArchivoCsv,
   columnas: readonly C[],
+  { exigeFilas = true }: { exigeFilas?: boolean } = {},
 ): FilaDelArchivo<C>[] {
   const filas = filasDe(archivo);
   if (typeof filas === 'string') throw rechazar(archivo, filas);
   const encabezados = (filas[0] ?? []).map(nombreDeColumna);
   const problema = problemaDeColumnas(encabezados, columnas);
   if (problema) throw rechazar(archivo, problema);
+  if (exigeFilas && filas.length < 2) {
+    throw rechazar(archivo, 'no tiene filas después de la de las columnas.');
+  }
   return filas.slice(1).map((celdas, i) => {
     const porColumna = Object.fromEntries(columnas.map((columna) => [columna, ''])) as Record<
       C,
@@ -105,7 +110,7 @@ export function leerArchivo<C extends string>(
     return {
       numero: i + 2,
       celdas: porColumna,
-      enBlanco: celdas.every((celda) => !celda.trim()),
+      enBlanco: filaEnBlanco(celdas),
       sobran: celdas.slice(encabezados.length).some((celda) => celda.trim() !== ''),
     };
   });

@@ -1,6 +1,7 @@
 // SQL de las importaciones (contenido.importacion, HU-13.1): cada archivo importado con su resultado y
-// el detalle de las filas con error. Las preguntas se crean con preguntas.edicion.repositorio.ts, que
-// les pone el id de la importación: de ahí sale su origen «importación».
+// el detalle de las filas con error. Las preguntas y sus alternativas se crean con
+// preguntas.edicion.repositorio.ts, que les pone el id de la importación: de ahí sale su origen
+// «importación».
 import type { Ejecutor } from '../../db/transaccion.js';
 
 export interface RegistroImportacion {

@@ -44,6 +44,11 @@ export interface FilaPregunta {
   actualizadoEn: Date;
 }
 
+/** Una alternativa de una pregunta recién creada (la importación las crea todas juntas). */
+export interface AlternativaNueva extends AlternativaPregunta {
+  preguntaId: string;
+}
+
 export interface PreguntasEdicionRepositorio {
   /** Usuario que registran los triggers en el historial y las versiones, hasta el fin de la transacción. */
   fijarAutor(usuarioId: string, tx: Ejecutor): Promise<void>;
@@ -60,6 +65,11 @@ export interface PreguntasEdicionRepositorio {
   actualizar(id: string, datos: DatosPregunta, tx: Ejecutor): Promise<void>;
   /** Crea o cambia las alternativas por letra; las que no cambian no se tocan. */
   guardarAlternativas(id: string, alternativas: AlternativaPregunta[], tx: Ejecutor): Promise<void>;
+  /**
+   * Crea de una vez las alternativas de varias preguntas nuevas (HU-13.1): un archivo grande no paga una
+   * ida y vuelta a la base por pregunta.
+   */
+  insertarAlternativas(alternativas: readonly AlternativaNueva[], tx: Ejecutor): Promise<void>;
   /** Quita las alternativas cuyas letras ya no vienen. */
   quitarAlternativas(id: string, letrasQueQuedan: string[], tx: Ejecutor): Promise<void>;
   /** La pregunta o null. `bloquear` la reserva (FOR UPDATE) hasta el fin de la transacción. */
@@ -102,6 +112,12 @@ const GUARDAR_ALTERNATIVAS = `
      SET texto = EXCLUDED.texto, es_correcta = EXCLUDED.es_correcta, explicacion = EXCLUDED.explicacion
    WHERE (alternativa.texto, alternativa.es_correcta, alternativa.explicacion)
          IS DISTINCT FROM (EXCLUDED.texto, EXCLUDED.es_correcta, EXCLUDED.explicacion)`;
+
+const INSERTAR_ALTERNATIVAS = `
+  INSERT INTO contenido.alternativa (pregunta_id, letra, texto, es_correcta, explicacion)
+  SELECT a.pregunta_id, a.letra, a.texto, a.es_correcta, a.explicacion
+    FROM unnest($1::bigint[], $2::text[], $3::text[], $4::boolean[], $5::text[])
+         AS a (pregunta_id, letra, texto, es_correcta, explicacion)`;
 
 const OBTENER = `
   SELECT p.id::text AS id, p.prueba_id AS "pruebaId", p.contenido_id AS "contenidoId",
@@ -161,6 +177,16 @@ function escrituras(): Omit<PreguntasEdicionRepositorio, 'obtener' | 'existeText
       await tx.query(DESMARCAR_CORRECTA, [id, correctas]);
       await tx.query(GUARDAR_ALTERNATIVAS, [
         id,
+        alternativas.map((a) => a.letra),
+        alternativas.map((a) => a.texto),
+        alternativas.map((a) => a.esCorrecta),
+        alternativas.map((a) => a.explicacion),
+      ]);
+    },
+
+    async insertarAlternativas(alternativas, tx) {
+      await tx.query(INSERTAR_ALTERNATIVAS, [
+        alternativas.map((a) => a.preguntaId),
         alternativas.map((a) => a.letra),
         alternativas.map((a) => a.texto),
         alternativas.map((a) => a.esCorrecta),

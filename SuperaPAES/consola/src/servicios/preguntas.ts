@@ -2,8 +2,11 @@
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
 import type {
+  ArchivosImportacion,
   DatosPregunta,
   FiltrosBanco,
+  ImportacionHecha,
+  InformeImportacion,
   Opcion,
   OpcionesFiltrosBanco,
   PaginaDelBanco,
@@ -104,5 +107,27 @@ export async function listarTextos(buscar: string, senal?: AbortSignal): Promise
 
 export async function listarTiposDeTexto(senal?: AbortSignal): Promise<Opcion[]> {
   const { data } = await solicitarAdmin<Opcion[]>(`${PREGUNTAS}/textos/tipos`, opciones(senal));
+  return data;
+}
+
+/** HU-13.2: el informe de la importación (C04), sin guardar nada. */
+export async function revisarImportacion(
+  archivos: ArchivosImportacion,
+  senal?: AbortSignal,
+): Promise<InformeImportacion> {
+  const { data } = await solicitarAdmin<InformeImportacion>(`${PREGUNTAS}/importaciones/revision`, {
+    method: 'POST',
+    body: JSON.stringify(archivos),
+    ...opciones(senal),
+  });
+  return data;
+}
+
+/** HU-13.2 y RN-29: importa las preguntas válidas con la declaración del origen. */
+export async function importarPreguntas(archivos: ArchivosImportacion): Promise<ImportacionHecha> {
+  const { data } = await solicitarAdmin<ImportacionHecha>(`${PREGUNTAS}/importaciones`, {
+    method: 'POST',
+    body: JSON.stringify({ ...archivos, declaraOrigen: true }),
+  });
   return data;
 }

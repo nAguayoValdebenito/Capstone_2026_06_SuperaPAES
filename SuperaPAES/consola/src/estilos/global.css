@@ -303,6 +303,11 @@ a {
   margin: 0;
 }
 
+/* Un panel que ocupa el ancho de la página, no el de un formulario (por ejemplo, el informe de C04). */
+.panel--ancho {
+  max-width: none;
+}
+
 .panel__acciones {
   display: flex;
   gap: 0.75rem;
@@ -712,6 +717,117 @@ a.boton {
   font-family: var(--fuente-formulas);
 }
 
+/* Importar preguntas (C04): los dos archivos, la plantilla, los contadores del informe y la
+   declaración del origen. */
+.importar__archivos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.importar__archivo {
+  display: grid;
+  gap: 0.375rem;
+  align-content: start;
+}
+
+.importar__titulo {
+  font-weight: 600;
+}
+
+.importar__elegido {
+  margin: 0;
+  color: var(--texto-secundario);
+  overflow-wrap: anywhere;
+}
+
+.importar__elegido strong {
+  color: var(--texto);
+}
+
+.importar__botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* El selector del navegador queda oculto pero se puede enfocar: su botón visible es la etiqueta. */
+.importar__entrada {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.importar__entrada:disabled + .boton {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.importar__entrada:focus-visible + .boton {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.importar__plantilla summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.importar__plantilla code {
+  overflow-wrap: anywhere;
+}
+
+.contadores {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.contador {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.contador dt {
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.contador dd {
+  margin: 0;
+  font-size: var(--texto-lg);
+  font-weight: 600;
+}
+
+.contador--error dd {
+  color: var(--error);
+}
+
+.importar__motivos {
+  margin: 0;
+  padding-left: 1.125rem;
+}
+
+.importar__confirmar .campo__opcion {
+  align-items: flex-start;
+}
+
+.importar__confirmar .campo__opcion input {
+  margin-top: 0.3rem;
+}
+
+.tabla caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+}
+
 @media (max-width: 72rem) {
   .editor-pregunta {
     grid-template-columns: minmax(0, 1fr);
@@ -737,7 +853,12 @@ a.boton {
     padding: 1.5rem 1rem;
   }
 
-  .formulario-pregunta__grilla {
+  .formulario-pregunta__grilla,
+  .importar__archivos {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contadores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

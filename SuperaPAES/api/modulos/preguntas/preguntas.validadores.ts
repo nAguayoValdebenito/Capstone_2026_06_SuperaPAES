@@ -72,6 +72,10 @@ const alternativa = z.strictObject({
  * Dirección de la imagen de un texto (tablas, gráficos): https://… o una ruta relativa que la app pide a
  * la API. Sin «:» fuera de http(s), así no pasa javascript: ni data:. Subir archivos no es de HU-12.
  */
+/** Largo del título de un texto de lectura (contenido.texto_estimulo.titulo, VARCHAR(200)). */
+export const LARGO_TITULO_TEXTO = 200;
+export const TITULO_DEMASIADO_LARGO = `El título puede tener hasta ${String(LARGO_TITULO_TEXTO)} caracteres.`;
+
 const DIRECCION_IMAGEN = /^(https?:\/\/[^\s<>"']+|[\w.~/-]+)$/;
 
 /**
@@ -82,8 +86,8 @@ export const esquemaTexto = z
   .strictObject({
     tipoTexto: codigoDeLista,
     titulo: textoObligatorio('Escribe el título del texto.').max(
-      200,
-      'El título puede tener hasta 200 caracteres.',
+      LARGO_TITULO_TEXTO,
+      TITULO_DEMASIADO_LARGO,
     ),
     contenido: z
       .string()

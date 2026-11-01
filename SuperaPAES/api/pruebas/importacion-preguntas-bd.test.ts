@@ -18,7 +18,7 @@ import {
   MINUTO,
   urlBase,
 } from './base-temporal.js';
-import { archivos, csvPreguntas, csvTextos } from './importacion-de-prueba.js';
+import { archivos, csvPreguntas, csvTextos, PREGUNTA_M1 } from './importacion-de-prueba.js';
 
 describe('importar preguntas sin base de datos', () => {
   exigirBaseEnCi();
@@ -93,7 +93,7 @@ describe.skipIf(!urlBase)('importar preguntas con PostgreSQL (HU-13.1, CP-10)', 
         { contenido: 'Contenido que no existe', enunciado: 'Fuera del temario' },
         { ...cl, enunciado: 'Segunda del texto' },
       ],
-      { base: { ...csvBase(), ...m1 } },
+      { base: { ...PREGUNTA_M1, ...m1 } },
     );
     const textos = csvTextos([
       { codigo: 'T1', tipo_texto: 'No literario', titulo: 'Las aves', contenido: 'Cada otoño…' },
@@ -190,16 +190,3 @@ describe.skipIf(!urlBase)('importar preguntas con PostgreSQL (HU-13.1, CP-10)', 
     ]);
   });
 });
-
-/** Las celdas de la pregunta base que no dependen del temario. */
-function csvBase() {
-  return {
-    enunciado: 'Si $2x + 3 = 11$, ¿cuánto vale $x$?',
-    alternativa_a: '2',
-    alternativa_b: '4',
-    alternativa_c: '6',
-    alternativa_d: '8',
-    correcta: 'B',
-    explicacion: 'Se despeja: $x = 4$.',
-  };
-}
