@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,6 +44,10 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
     super.initState();
     _ciclo = AppLifecycleListener(
       onResume: () {
+        // El correo pudo verificarse con el enlace mientras no estaba.
+        unawaited(
+          ref.read(sesionProvider.notifier).comprobarCorreoVerificado(),
+        );
         // Y lo que quedó sin terminar: el reloj siguió corriendo (RN-21).
         ref
           ..invalidate(perfilProvider)
@@ -51,6 +57,7 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
       },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      unawaited(ref.read(sesionProvider.notifier).comprobarCorreoVerificado());
       await _revisarCurso(ref.read(perfilProvider).value);
       await _revisarAbierta(ref.read(evaluacionAbiertaProvider).value);
     });
@@ -86,6 +93,7 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
   /// Deslizar hacia abajo relee el cupo y el perfil. Si falla, la tarjeta
   /// del cupo muestra el error con «Reintentar».
   Future<void> _actualizar() async {
+    unawaited(ref.read(sesionProvider.notifier).comprobarCorreoVerificado());
     ref
       ..invalidate(cupoDeHoyProvider)
       ..invalidate(perfilProvider)

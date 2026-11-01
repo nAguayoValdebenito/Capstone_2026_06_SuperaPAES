@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +15,8 @@ import 'package:supera_paes/presentacion/verificar_correo/campo_codigo.dart';
 /// sus bocetos en Figma: pide el código de 6 dígitos del correo, muestra los
 /// intentos que quedan y, cuando el código ya no sirve, pide un correo nuevo.
 /// «‹ Inicio» deja verificar más tarde: sin verificar, el cupo es de 10
-/// preguntas diarias (RN-01).
+/// preguntas diarias (RN-01). Si se verificó con el enlace, lo nota al
+/// abrirse y al volver a la app.
 class PantallaVerificarCorreo extends ConsumerStatefulWidget {
   const PantallaVerificarCorreo({super.key});
 
@@ -53,8 +56,23 @@ class _PantallaVerificarCorreoState
 
   bool get _ocupado => _verificando || _reenviando;
 
+  /// Quien verifica con el enlace del correo vuelve a la app desde el
+  /// navegador: al volver se pregunta a la API (DAS 4.3.3).
+  late final AppLifecycleListener _ciclo;
+
+  @override
+  void initState() {
+    super.initState();
+    _ciclo = AppLifecycleListener(onResume: _comprobar);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _comprobar());
+  }
+
+  void _comprobar() =>
+      unawaited(ref.read(sesionProvider.notifier).comprobarCorreoVerificado());
+
   @override
   void dispose() {
+    _ciclo.dispose();
     _codigo.dispose();
     super.dispose();
   }

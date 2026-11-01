@@ -176,7 +176,10 @@ void main() {
 
   group('repositorioVerificacionProvider', () {
     test('las rutas de verificación llevan el token de la sesión', () async {
-      final contenedor = crearContenedor(sesion: sesionDeEjemplo);
+      final contenedor = crearContenedor(
+        sesion: sesionDeEjemplo,
+        verificacionReal: true,
+      );
       await contenedor.read(sesionProvider.future);
       final adaptador = AdaptadorHttpFalso(
         (_) => respuestaOk({'enviado': true, 'yaVerificado': false}),
@@ -200,6 +203,7 @@ void main() {
         final contenedor = crearContenedor(
           repositorio: repositorio,
           almacen: almacen,
+          verificacionReal: true,
         );
         await contenedor.read(sesionProvider.future);
         // La API rechaza el token guardado y acepta el de la renovación.

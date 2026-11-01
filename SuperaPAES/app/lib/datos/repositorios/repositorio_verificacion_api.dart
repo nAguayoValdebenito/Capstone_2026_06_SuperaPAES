@@ -13,4 +13,7 @@ class RepositorioVerificacionApi implements RepositorioVerificacion {
 
   @override
   Future<ResultadoReenvio> reenviar() => _fuente.reenviar();
+
+  @override
+  Future<bool> correoVerificado() => _fuente.correoVerificado();
 }
