@@ -37,7 +37,8 @@ class RepositorioEvaluacionesFalso implements RepositorioEvaluaciones {
     disponible: true,
   );
 
-  bool diagnosticoDisponible = true;
+  /// Por defecto ya rendido, así empezar una práctica no ofrece A16.
+  bool diagnosticoDisponible = false;
 
   /// Errores que responde iniciar, uno por intento, antes de empezar.
   final List<ErrorApi> erroresAlIniciar = [];
@@ -47,6 +48,7 @@ class RepositorioEvaluacionesFalso implements RepositorioEvaluaciones {
 
   final List<int> consultadas = [];
   final List<int> iniciadas = [];
+  final List<int> diagnosticosIniciados = [];
 
   /// Respuestas guardadas: (evaluación, ítem, alternativa).
   final List<(int, int, int)> guardadas = [];
@@ -74,6 +76,10 @@ class RepositorioEvaluacionesFalso implements RepositorioEvaluaciones {
     int pruebaId,
   ) async => DisponibilidadDiagnostico(
     pruebaId: pruebaId,
+    cantidad: 15,
+    duracionMin: 30,
+    ejes: 3,
+    habilidades: 0,
     anioEscolar: 2026,
     disponible: diagnosticoDisponible,
   );
@@ -81,10 +87,20 @@ class RepositorioEvaluacionesFalso implements RepositorioEvaluaciones {
   @override
   Future<EvaluacionConTiempo> iniciarMiniEnsayo(int pruebaId) async {
     iniciadas.add(pruebaId);
+    return _iniciada(77, 'Mini-ensayo', pruebaId);
+  }
+
+  @override
+  Future<EvaluacionConTiempo> iniciarDiagnostico(int pruebaId) async {
+    diagnosticosIniciados.add(pruebaId);
+    return _iniciada(78, 'Diagnóstico', pruebaId);
+  }
+
+  EvaluacionConTiempo _iniciada(int id, String tipoNombre, int pruebaId) {
     if (erroresAlIniciar.isNotEmpty) throw erroresAlIniciar.removeAt(0);
     return EvaluacionConTiempo(
-      id: 77,
-      tipoNombre: 'Mini-ensayo',
+      id: id,
+      tipoNombre: tipoNombre,
       pruebaId: pruebaId,
       preguntas: [
         for (var orden = 1; orden <= 3; orden++) preguntaConTiempo(orden),

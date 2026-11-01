@@ -35,11 +35,20 @@ export function crearResultadoServicio(dependencias: DependenciasResultado) {
   const { repositorio, progreso } = dependencias;
   return {
     obtenerResultado: async (estudianteId: string, id: string) => {
-      const resultado = await consultarCerrada(dependencias, estudianteId, id, async (tx) => {
-        const resultado = await repositorio.leerResultado(id, estudianteId, tx);
-        if (!resultado) throw new Error('La evaluación cerrada no tiene un resultado guardado.');
-        return resultado;
-      });
+      const { resultado, ejesOmitidos } = await consultarCerrada(
+        dependencias,
+        estudianteId,
+        id,
+        async (tx) => {
+          const resultado = await repositorio.leerResultado(id, estudianteId, tx);
+          if (!resultado) throw new Error('La evaluación cerrada no tiene un resultado guardado.');
+          const ejesOmitidos =
+            resultado.tipo.codigo === 'diagnostico'
+              ? await repositorio.leerEjesOmitidos(id, estudianteId, tx)
+              : [];
+          return { resultado, ejesOmitidos };
+        },
+      );
       if (resultado.tipo.codigo !== 'diagnostico') return resultado;
       const prueba = (await progreso.obtenerProgreso(estudianteId)).pruebas.find(
         (p) => p.pruebaId === resultado.prueba.id,
@@ -57,6 +66,8 @@ export function crearResultadoServicio(dependencias: DependenciasResultado) {
         ejes,
         habilidades,
         ejesAReforzar: ejes.filter((eje) => eje.aReforzar).map((eje) => eje.id),
+        // HU-36.2 (A31): los ejes que el curso todavía no ve y que no se incluyeron (RN-28).
+        ejesOmitidos,
         habilidadesAReforzar: habilidades
           .filter((habilidad) => habilidad.aReforzar)
           .map((habilidad) => habilidad.id),

@@ -31,15 +31,26 @@ class DisponibilidadMiniEnsayo {
   final bool disponible;
 }
 
-/// Si el diagnóstico de una prueba se puede rendir este año escolar (HU-36).
+/// Si el diagnóstico de una prueba se puede rendir este año escolar, con lo
+/// que A16 muestra para ofrecerlo (HU-36, RN-20).
 class DisponibilidadDiagnostico {
   const DisponibilidadDiagnostico({
     required this.pruebaId,
+    required this.cantidad,
+    required this.duracionMin,
+    required this.ejes,
+    required this.habilidades,
     required this.anioEscolar,
     required this.disponible,
   });
 
   final int pruebaId;
+  final int cantidad;
+  final int duracionMin;
+
+  /// Ejes que ya vio según su curso (RN-28); Lectora reparte por habilidad.
+  final int ejes;
+  final int habilidades;
   final int anioEscolar;
 
   /// `false`: ya lo rindió este año escolar.

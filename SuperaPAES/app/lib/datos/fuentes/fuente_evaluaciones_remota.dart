@@ -40,6 +40,15 @@ class FuenteEvaluacionesRemota {
         await publicarObjeto(_dio, '/evaluaciones/mini-ensayos', {
           'pruebaId': pruebaId,
         }, sinData: 'La API respondió sin el mini-ensayo.'),
+        tipoNombre: 'Mini-ensayo',
+      );
+
+  Future<EvaluacionConTiempo> iniciarDiagnostico(int pruebaId) async =>
+      EvaluacionConTiempoModelo.iniciada(
+        await publicarObjeto(_dio, '/evaluaciones/diagnosticos', {
+          'pruebaId': pruebaId,
+        }, sinData: 'La API respondió sin el diagnóstico.'),
+        tipoNombre: 'Diagnóstico',
       );
 
   Future<void> guardarRespuesta(

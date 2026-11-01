@@ -17,6 +17,11 @@ abstract interface class RepositorioEvaluaciones {
   /// `SIN_PREGUNTAS_SUFICIENTES`.
   Future<EvaluacionConTiempo> iniciarMiniEnsayo(int pruebaId);
 
+  /// Arma el diagnóstico (CU-10a): una vez por año escolar, sin cupo ni uso
+  /// gratis. Ya rendido llega `DIAGNOSTICO_YA_RENDIDO`; los demás rechazos,
+  /// como en [iniciarMiniEnsayo].
+  Future<EvaluacionConTiempo> iniciarDiagnostico(int pruebaId);
+
   /// Guarda o cambia la respuesta sin corregirla (CU-10 paso 6). Vencido el
   /// tiempo llega `EVALUACION_CERRADA`.
   Future<void> guardarRespuesta(

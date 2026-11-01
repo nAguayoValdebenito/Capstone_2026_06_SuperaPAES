@@ -13,8 +13,8 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 
-/// Diagnóstico de A25 (HU-36): una vez por año escolar. Su inicio llega con
-/// la HU-36.2; por ahora dice si ya lo rindió.
+/// Diagnóstico de A25 (HU-36): una vez por año escolar, solo con lo que ya
+/// vio. «Rendir diagnóstico» lo ofrece en A16.
 class TarjetaDiagnostico extends ConsumerWidget {
   const TarjetaDiagnostico({required this.pruebaId, super.key});
 
@@ -33,12 +33,26 @@ class TarjetaDiagnostico extends ConsumerWidget {
       hijos: switch (consulta) {
         AsyncData(:final value) => [
           _Detalle(
-            value.disponible
-                ? 'Una vez por año escolar, solo con lo que ya viste. Marca '
-                      'los ejes que tu práctica va a reforzar.'
-                : 'Ya lo rendiste este año escolar. El próximo, desde marzo '
-                      'de ${value.anioEscolar + 1}.',
+            '${value.cantidad} preguntas · ${value.duracionMin} min · solo '
+            'con lo que ya viste',
           ),
+          if (value.disponible) ...[
+            const _Detalle(
+              'Una vez por año escolar. Marca lo que tu práctica va a '
+              'reforzar.',
+            ),
+            FilledButton(
+              onPressed: () {
+                ref.read(ofertaDiagnosticoProvider.notifier).ofrecer(value);
+                unawaited(context.push(Rutas.ofrecerDiagnostico));
+              },
+              child: const Text('Rendir diagnóstico'),
+            ),
+          ] else
+            _Detalle(
+              'Ya lo rendiste este año escolar. El próximo, desde marzo de '
+              '${value.anioEscolar + 1}.',
+            ),
         ],
         AsyncError(:final error) => [
           _NoCargo(

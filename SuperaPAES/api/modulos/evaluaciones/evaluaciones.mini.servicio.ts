@@ -61,31 +61,61 @@ function contar(detalles: DetalleEstructura[], campo: 'ejeId' | 'habilidadId') {
     .size;
 }
 
+/** Preguntas, minutos, ejes y habilidades de la estructura según el curso del estudiante (A16 y A26). */
+async function cifrasAntesDeEmpezar(
+  dependencias: DependenciasMini,
+  datos: { tipo: 'mini_ensayo' | 'diagnostico'; estudianteId: string; pruebaId: number },
+  tx: Ejecutor,
+) {
+  const { tipo, estudianteId, pruebaId } = datos;
+  const perfil = await perfilParaMini(dependencias.cuentas, estudianteId, pruebaId, tx);
+  const { ahora, nivelId } = await repositorio.contexto(perfil.anioEgreso, tx);
+  const estructura = await leerEstructura(tipo, pruebaId, nivelId, tx);
+  const cifras = {
+    pruebaId,
+    cantidad: estructura.cantidad,
+    duracionMin: estructura.duracionMin,
+    ejes: contar(estructura.detalles, 'ejeId'),
+    habilidades: contar(estructura.detalles, 'habilidadId'),
+  };
+  return { ahora, estructura, cifras };
+}
+
 // HU-40.3 (A25 y A26): lo que se muestra antes de empezar, sin crear la evaluación ni gastar el uso.
-async function disponibilidadMini(
+function disponibilidadMini(
   dependencias: DependenciasMini,
   estudianteId: string,
   pruebaId: number,
 ) {
   return dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
-    const perfil = await perfilParaMini(dependencias.cuentas, estudianteId, pruebaId, tx);
-    const { ahora, nivelId } = await repositorio.contexto(perfil.anioEgreso, tx);
-    const estructura = await leerEstructura('mini_ensayo', pruebaId, nivelId, tx);
+    const { ahora, estructura, cifras } = await cifrasAntesDeEmpezar(
+      dependencias,
+      { tipo: 'mini_ensayo', estudianteId, pruebaId },
+      tx,
+    );
     const usos = await dependencias.cupo.usosGratisDelMes(
       { estudianteId, pruebaId, estructuraId: estructura.id, ahora },
       tx,
     );
     const disponible = usos.conPlan || (usos.gratisRestantes ?? 0) > 0;
-    return {
-      pruebaId,
-      cantidad: estructura.cantidad,
-      duracionMin: estructura.duracionMin,
-      ejes: contar(estructura.detalles, 'ejeId'),
-      habilidades: contar(estructura.detalles, 'habilidadId'),
-      ...usos,
-      disponible,
-      motivo: disponible ? null : 'limite_mensual',
-    };
+    return { ...cifras, ...usos, disponible, motivo: disponible ? null : 'limite_mensual' };
+  });
+}
+
+// HU-36.2 (A16 y A25): si ya lo rindió este año escolar, con sus cifras para ofrecerlo.
+function disponibilidadDiagnostico(
+  dependencias: DependenciasMini,
+  estudianteId: string,
+  pruebaId: number,
+) {
+  return dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
+    const { cifras } = await cifrasAntesDeEmpezar(
+      dependencias,
+      { tipo: 'diagnostico', estudianteId, pruebaId },
+      tx,
+    );
+    const estado = await repositorio.disponibilidadDiagnostico(estudianteId, pruebaId, tx);
+    return { ...cifras, ...estado, motivo: estado.disponible ? null : 'ya_rendido' };
   });
 }
 
@@ -174,11 +204,7 @@ async function iniciar(
 export function crearMiniServicio(dependencias: DependenciasMini) {
   return {
     disponibilidadDiagnostico: (estudianteId: string, pruebaId: number) =>
-      dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
-        await perfilParaMini(dependencias.cuentas, estudianteId, pruebaId, tx);
-        const estado = await repositorio.disponibilidadDiagnostico(estudianteId, pruebaId, tx);
-        return { pruebaId, ...estado, motivo: estado.disponible ? null : 'ya_rendido' };
-      }),
+      disponibilidadDiagnostico(dependencias, estudianteId, pruebaId),
     disponibilidadMiniEnsayo: (estudianteId: string, pruebaId: number) =>
       disponibilidadMini(dependencias, estudianteId, pruebaId),
     iniciarMiniEnsayo: (estudianteId: string, pruebaId: number) =>

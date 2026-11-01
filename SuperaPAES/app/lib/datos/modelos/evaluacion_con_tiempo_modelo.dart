@@ -23,20 +23,26 @@ abstract final class EvaluacionConTiempoModelo {
     Map<String, dynamic> json,
   ) => DisponibilidadDiagnostico(
     pruebaId: leerId(json['pruebaId']),
+    cantidad: json['cantidad'] as int,
+    duracionMin: json['duracionMin'] as int,
+    ejes: json['ejes'] as int,
+    habilidades: json['habilidades'] as int,
     anioEscolar: json['anioEscolar'] as int,
     disponible: json['disponible'] == true,
   );
 
-  /// `data` de POST /evaluaciones/mini-ensayos: recién empezado, le queda
-  /// toda la duración.
-  static EvaluacionConTiempo iniciada(Map<String, dynamic> json) =>
-      EvaluacionConTiempo(
-        id: leerId(json['id']),
-        tipoNombre: 'Mini-ensayo',
-        pruebaId: leerId(json['pruebaId']),
-        preguntas: preguntas(json['preguntas']),
-        segundosRestantes: (json['duracionMin'] as int) * 60,
-      );
+  /// `data` de POST /evaluaciones/mini-ensayos o /diagnosticos: recién
+  /// empezado, le queda toda la duración.
+  static EvaluacionConTiempo iniciada(
+    Map<String, dynamic> json, {
+    required String tipoNombre,
+  }) => EvaluacionConTiempo(
+    id: leerId(json['id']),
+    tipoNombre: tipoNombre,
+    pruebaId: leerId(json['pruebaId']),
+    preguntas: preguntas(json['preguntas']),
+    segundosRestantes: (json['duracionMin'] as int) * 60,
+  );
 
   /// Las preguntas del inicio y de GET /evaluaciones/abierta, en orden.
   static List<PreguntaConTiempo> preguntas(Object? lista) => [

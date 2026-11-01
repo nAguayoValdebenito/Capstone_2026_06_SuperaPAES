@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
+import 'package:supera_paes/presentacion/evaluaciones/empezar_con_tiempo.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
-import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
@@ -27,50 +25,8 @@ class PantallaAntesDeEmpezar extends ConsumerStatefulWidget {
       _PantallaAntesDeEmpezarState();
 }
 
-class _PantallaAntesDeEmpezarState
-    extends ConsumerState<PantallaAntesDeEmpezar> {
-  bool _empezando = false;
-  String? _error;
-
-  Future<void> _empezar(int pruebaId) async {
-    setState(() {
-      _empezando = true;
-      _error = null;
-    });
-    try {
-      await ref
-          .read(evaluacionConTiempoProvider.notifier)
-          .empezarMiniEnsayo(pruebaId);
-      if (mounted) context.go(Rutas.preguntaConReloj);
-    } on ErrorApi catch (error) {
-      if (!mounted) return;
-      if (error.codigo == 'EVALUACION_CON_TIEMPO_ABIERTA' &&
-          await _ofrecerRetomar()) {
-        return;
-      }
-      ref.invalidate(disponibilidadMiniProvider(pruebaId));
-      if (mounted) {
-        setState(
-          () => _error = error.problemas.isEmpty
-              ? error.mensaje
-              : error.problemas.first.mensaje,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _empezando = false);
-    }
-  }
-
-  /// CU-10 2.b: primero hay que terminar la otra evaluación con tiempo.
-  Future<bool> _ofrecerRetomar() async {
-    ref.invalidate(evaluacionAbiertaProvider);
-    final abierta = (await ref.read(evaluacionAbiertaProvider.future))?.abierta;
-    if (!mounted || abierta == null || !abierta.conTiempo) return false;
-    setState(() => _empezando = false);
-    await ofrecerRetomar(context, ref, abierta);
-    return true;
-  }
-
+class _PantallaAntesDeEmpezarState extends ConsumerState<PantallaAntesDeEmpezar>
+    with EmpezarConTiempo {
   @override
   Widget build(BuildContext context) {
     final perfil = ref.watch(perfilProvider).value;
@@ -110,12 +66,18 @@ class _PantallaAntesDeEmpezarState
         },
       ],
       pie: PieConError(
-        error: _error,
+        error: errorConTiempo,
         boton: FilledButton(
-          onPressed: mini == null || !mini.disponible || _empezando
+          onPressed: mini == null || !mini.disponible || empezandoConTiempo
               ? null
-              : () => _empezar(pruebaId),
-          child: _empezando
+              : () => empezarConTiempo(
+                  () => ref
+                      .read(evaluacionConTiempoProvider.notifier)
+                      .empezarMiniEnsayo(pruebaId),
+                  alRechazar: () =>
+                      ref.invalidate(disponibilidadMiniProvider(pruebaId)),
+                ),
+          child: empezandoConTiempo
               ? const CargandoEnBoton()
               : const Text('Empezar ahora'),
         ),

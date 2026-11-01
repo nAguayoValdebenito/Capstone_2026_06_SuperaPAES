@@ -41,6 +41,14 @@ export interface ResultadoEvaluacion {
   habilidades: ResultadoDeGrupo[];
 }
 
+/** Eje de la estructura que el curso todavía no ve (RN-28), con el curso en que se empieza a enseñar. */
+export interface EjeOmitido {
+  id: number;
+  nombre: string;
+  /** «4° medio»; `null` si sus contenidos no tienen curso. */
+  curso: string | null;
+}
+
 export interface PreguntaRevisada {
   orden: number;
   preguntaId: string;
@@ -76,6 +84,24 @@ const CONSULTA_RESULTADO = `SELECT e.id::text AS id,
  LEFT JOIN contenido.tabla_conversion tc ON tc.id=r.tabla_conversion_id
  LEFT JOIN contenido.proceso_admision pa ON pa.id=tc.proceso_admision_id
  WHERE e.id=$1 AND e.estudiante_id=$2`;
+
+// HU-36.2 (A31): el armado reparte las preguntas entre los ejes ya enseñados y nunca deja un eje
+// disponible sin preguntas, así que un eje de la estructura sin ítems es uno que el curso no ve.
+const CONSULTA_EJES_OMITIDOS = `SELECT ej.id, ej.nombre, curso.nombre AS curso
+ FROM app.evaluacion e
+ JOIN contenido.estructura_detalle d ON d.estructura_id=e.estructura_id AND d.eje_id IS NOT NULL
+ JOIN contenido.eje_tematico ej ON ej.id=d.eje_id
+ LEFT JOIN LATERAL (
+   SELECT n.nombre FROM contenido.contenido_tematico c
+   JOIN contenido.nivel_escolar n ON n.id=c.nivel_escolar_id
+   WHERE c.eje_id=ej.id AND c.activo ORDER BY n.orden LIMIT 1
+ ) curso ON true
+ WHERE e.id=$1 AND e.estudiante_id=$2 AND NOT d.es_electivo
+   AND NOT EXISTS (
+     SELECT 1 FROM app.evaluacion_item i
+     JOIN contenido.pregunta_version v ON (v.pregunta_id,v.version)=(i.pregunta_id,i.version_pregunta)
+     WHERE i.evaluacion_id=e.id AND v.eje_id=ej.id)
+ ORDER BY ej.orden`;
 
 // En la práctica y el repaso solo cuentan las respondidas (RN-22): la que quedó sin responder al
 // cerrar no se revisa. En las demás, las sin responder son omitidas.
@@ -138,6 +164,10 @@ const consultasResultado = {
   ): Promise<ResultadoEvaluacion | null> {
     const { rows } = await tx.query<ResultadoEvaluacion>(CONSULTA_RESULTADO, [id, estudianteId]);
     return rows[0] ?? null;
+  },
+  async leerEjesOmitidos(id: string, estudianteId: string, tx: Ejecutor): Promise<EjeOmitido[]> {
+    const { rows } = await tx.query<EjeOmitido>(CONSULTA_EJES_OMITIDOS, [id, estudianteId]);
+    return rows;
   },
   async leerRevision(id: string, estudianteId: string, tx: Ejecutor): Promise<PreguntaRevisada[]> {
     const { rows } = await tx.query<PreguntaRevisada>(CONSULTA_REVISION, [id, estudianteId]);

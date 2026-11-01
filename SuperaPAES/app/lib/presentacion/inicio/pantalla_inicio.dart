@@ -5,6 +5,7 @@ import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/inicio/aviso_verificar_correo.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/inicio/evaluacion_sin_terminar.dart';
@@ -45,7 +46,8 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
         ref
           ..invalidate(perfilProvider)
           ..invalidate(cupoDeHoyProvider)
-          ..invalidate(evaluacionAbiertaProvider);
+          ..invalidate(evaluacionAbiertaProvider)
+          ..invalidate(disponibilidadDiagnosticoProvider);
       },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -87,7 +89,8 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
     ref
       ..invalidate(cupoDeHoyProvider)
       ..invalidate(perfilProvider)
-      ..invalidate(evaluacionAbiertaProvider);
+      ..invalidate(evaluacionAbiertaProvider)
+      ..invalidate(disponibilidadDiagnosticoProvider);
     try {
       await ref.read(cupoDeHoyProvider.future);
     } on Object {
