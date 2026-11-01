@@ -2,7 +2,7 @@
 // worker toma el lote pendiente, llama a la IA una vez por pregunta, revisa cada propuesta y guarda las válidas
 // como borrador de origen IA, con el costo calculado por proveedor. Anota por qué descarta y cierra el lote como
 // completado si alguna pregunta fue válida y fallido si ninguna.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { SolicitudGeneracion } from '../adaptadores/ia/proveedor.js';
 import { ErrorIANoDisponible, ErrorIASaldoAgotado } from '../comun/errores.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
@@ -325,6 +325,23 @@ describe.skipIf(!urlBase)('el worker procesa un lote con PostgreSQL (CU-17)', ()
       expect(ia.generarPreguntas).not.toHaveBeenCalled();
       expect(await g.filaDeLote(id)).toMatchObject({ estado: 'fallido' });
     });
+  });
+
+  it('la respuesta del lote cuenta qué pasó sin devolver el texto del modelo ni la instrucción (HU-16.5)', async () => {
+    const sesion = await g.sesionAdmin();
+    const creado = await g.pedirLote(sesion, { contenidoId: g.contenidos.m1, cantidad: 2 });
+    const canario = 'CANARIO-DEL-MODELO';
+    ia.encolar(conCambios({ enunciado: `¿Qué es ${canario}?`, habilidad: 'XX' }));
+    const registrados = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await g.trabajador().procesarPendientes();
+    const lote = await g.leerLote(sesion, creado.body.data.id as number);
+
+    expect(lote.status).toBe(200);
+    expect(lote.body.data).toMatchObject({ estado: 'completado', validas: 1, descartadas: 1 });
+    const salida = JSON.stringify({ lote: lote.body, logs: registrados.mock.calls });
+    expect(salida).not.toContain(canario);
+    expect(salida).not.toContain('Subtema pedido');
   });
 
   it('un lote ya cerrado no se vuelve a procesar', async () => {
