@@ -59,7 +59,11 @@ export function asignarPreguntasAgrupadas(
     conectar(grafo, 0, i + 1, grupo.cupo);
     candidatas.forEach((p, j) => {
       if (corresponde(grupo, p))
-        asignaciones.push({ grupo, pregunta: p, arista: conectar(grafo, i + 1, inicioPreguntas + j, 1) });
+        asignaciones.push({
+          grupo,
+          pregunta: p,
+          arista: conectar(grafo, i + 1, inicioPreguntas + j, 1),
+        });
     });
   });
   candidatas.forEach((p, j) =>
@@ -70,12 +74,19 @@ export function asignarPreguntasAgrupadas(
   let elegidas = 0;
   while (elegidas < total && aumentar(grafo, fin)) elegidas++;
   return elegidas === total
-    ? asignaciones.filter((a) => a.arista.capacidad === 0).map(({ pregunta, grupo }) => ({ pregunta, grupo }))
+    ? asignaciones
+        .filter((a) => a.arista.capacidad === 0)
+        .map(({ pregunta, grupo }) => ({ pregunta, grupo }))
     : null;
 }
 
 export function asignarPreguntas(
-  grupos: GrupoArmado[], candidatas: CandidataEstructura[], cuotas: CuotasDificultad,
+  grupos: GrupoArmado[],
+  candidatas: CandidataEstructura[],
+  cuotas: CuotasDificultad,
 ): CandidataEstructura[] | null {
-  return asignarPreguntasAgrupadas(grupos, candidatas, cuotas)?.map((a) => a.pregunta) ?? null;
+  const asignadas = asignarPreguntasAgrupadas(grupos, candidatas, cuotas);
+  if (!asignadas) return null;
+  const elegidas = new Set(asignadas.map(({ pregunta }) => pregunta.preguntaId));
+  return candidatas.filter((p) => elegidas.has(p.preguntaId));
 }

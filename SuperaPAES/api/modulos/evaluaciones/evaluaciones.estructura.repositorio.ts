@@ -6,6 +6,20 @@ import type {
 } from './evaluaciones.estructura.js';
 
 const consultasEstructura = {
+  async tablaReciente(
+    pruebaId: number,
+    electivoId: number | null,
+    tx: Ejecutor,
+  ): Promise<number | null> {
+    const { rows } = await tx.query<{ id: number }>(
+      `SELECT t.id FROM contenido.tabla_conversion t
+       WHERE t.prueba_id=$1 AND t.electivo_area_id IS NOT DISTINCT FROM $2::int
+         AND EXISTS (SELECT 1 FROM contenido.tabla_conversion_fila f WHERE f.tabla_conversion_id=t.id)
+       ORDER BY t.publicada_en DESC,t.anio_admision DESC,t.id DESC LIMIT 1`,
+      [pruebaId, electivoId],
+    );
+    return rows[0]?.id ?? null;
+  },
   async leer(
     tipo: 'mini_ensayo' | 'diagnostico' | 'ensayo',
     pruebaId: number,

@@ -45,6 +45,7 @@ import { crearAbiertaRepositorio } from './evaluaciones.abierta.repositorio.js';
 import { crearAbiertaServicio, type AbiertaServicio } from './evaluaciones.abierta.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 import { crearMiniServicio, type MiniServicio } from './evaluaciones.mini.servicio.js';
+import { crearEnsayoServicio, type EnsayoServicio } from './evaluaciones.ensayo.servicio.js';
 import { crearEntregaServicio, type EntregaServicio } from './evaluaciones.entrega.servicio.js';
 
 export interface DependenciasEvaluacionesServicio {
@@ -63,6 +64,7 @@ export interface DependenciasEvaluacionesServicio {
 }
 
 export type EvaluacionesServicio = MiniServicio &
+  EnsayoServicio &
   EntregaServicio &
   SeleccionPractica &
   PracticasServicio &
@@ -78,9 +80,17 @@ function crearMini(dependencias: DependenciasEvaluacionesServicio) {
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
     cuentas: dependencias.cuentas,
     cupo: dependencias.cupoInvitaciones,
-    suscripciones: dependencias.suscripciones,
-    azar: dependencias.azar ?? Math.random,
     seleccion: dependencias.repositorio ?? crearEvaluacionesRepositorio(dependencias.bd),
+  });
+}
+
+function crearEnsayo(dependencias: DependenciasEvaluacionesServicio) {
+  return crearEnsayoServicio({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    cuentas: dependencias.cuentas,
+    suscripciones: dependencias.suscripciones,
+    seleccion: dependencias.repositorio ?? crearEvaluacionesRepositorio(dependencias.bd),
+    azar: dependencias.azar ?? Math.random,
   });
 }
 
@@ -104,6 +114,7 @@ function crearServicioSinReintento(
   return {
     ...seleccion,
     ...crearMini(dependencias),
+    ...crearEnsayo(dependencias),
     ...crearEntregaServicio(dependencias.unidadDeTrabajo, dependencias.cuentas),
     ...crearPracticasServicio({
       repositorio: crearPracticasRepositorio(),

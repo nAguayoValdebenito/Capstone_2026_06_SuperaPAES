@@ -61,7 +61,16 @@ const consultasConTiempo = {
     return rows[0] ?? null;
   },
   async crear(
-    { tipo, estudianteId, estructura, ahora, preguntas, electivoId, tablaConversionId = null, noPuntuables }: NuevaConTiempo,
+    {
+      tipo,
+      estudianteId,
+      estructura,
+      ahora,
+      preguntas,
+      electivoId,
+      tablaConversionId = null,
+      noPuntuables,
+    }: NuevaConTiempo,
     tx: Ejecutor,
   ): Promise<string> {
     const { rows } = await tx.query<{ id: string }>(

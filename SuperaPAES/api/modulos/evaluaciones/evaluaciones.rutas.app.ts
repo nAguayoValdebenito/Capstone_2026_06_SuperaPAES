@@ -22,7 +22,11 @@ import {
 } from './evaluaciones.validadores.js';
 
 function registrarConTiempo(router: Router, controlador: EvaluacionesControlador) {
-  router.get('/ensayos/disponibilidad', validar({ consulta: esquemaDisponibilidad }), controlador.disponibilidadEnsayo);
+  router.get(
+    '/ensayos/disponibilidad',
+    validar({ consulta: esquemaDisponibilidad }),
+    controlador.disponibilidadEnsayo,
+  );
   router.post('/ensayos', validar({ cuerpo: esquemaInicioMini }), controlador.iniciarEnsayo);
   router.get(
     '/diagnosticos/disponibilidad',

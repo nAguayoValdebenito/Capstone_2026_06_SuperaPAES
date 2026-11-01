@@ -66,18 +66,31 @@ function controladoresMini(servicio: EvaluacionesServicio) {
   return { disponibilidadMiniEnsayo, iniciarMiniEnsayo };
 }
 
+function controladoresEnsayo(servicio: EvaluacionesServicio) {
+  const disponibilidadEnsayo: EvaluacionesControlador['disponibilidadEnsayo'] = async (
+    req,
+    res,
+  ) => {
+    responder(
+      res,
+      await servicio.disponibilidadEnsayo(estudianteDe(req), Number(req.query.pruebaId)),
+    );
+  };
+  const iniciarEnsayo: EvaluacionesControlador['iniciarEnsayo'] = async (req, res) => {
+    responder(res, await servicio.iniciarEnsayo(estudianteDe(req), req.body.pruebaId), {
+      estado: 201,
+    });
+  };
+  return { disponibilidadEnsayo, iniciarEnsayo };
+}
+
 export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
   return {
     ...controladoresDiagnostico(servicio),
     ...controladoresMini(servicio),
-    disponibilidadEnsayo: async (req, res) => {
-      responder(res, await servicio.disponibilidadEnsayo(estudianteDe(req), Number(req.query.pruebaId)));
-    },
-    iniciarEnsayo: async (req, res) => {
-      responder(res, await servicio.iniciarEnsayo(estudianteDe(req), req.body.pruebaId), { estado: 201 });
-    },
+    ...controladoresEnsayo(servicio),
     entregarEvaluacion: async (req, res) => {
       responder(res, await servicio.entregarEvaluacion(estudianteDe(req), String(req.params.id)));
     },

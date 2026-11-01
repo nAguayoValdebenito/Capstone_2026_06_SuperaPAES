@@ -40,6 +40,12 @@ export function crearResultadoServicio(dependencias: DependenciasResultado) {
         if (!resultado) throw new Error('La evaluación cerrada no tiene un resultado guardado.');
         return resultado;
       });
+      if (resultado.tipo.codigo === 'ensayo')
+        return {
+          ...resultado,
+          puntajeEstimado: true,
+          motivoSinPuntaje: resultado.puntaje === null ? 'tabla_no_disponible' : null,
+        };
       if (resultado.tipo.codigo !== 'diagnostico') return resultado;
       const prueba = (await progreso.obtenerProgreso(estudianteId)).pruebas.find(
         (p) => p.pruebaId === resultado.prueba.id,

@@ -46,15 +46,18 @@ export function armarEvaluacion(
 
 /** En Ciencias conserva el grupo asignado para sortear 1 no puntuable por eje y 2 del electivo. */
 export function armarEnsayo(
-  estructura: EstructuraConTiempo, candidatas: CandidataEstructura[],
-  mezcla: ObjetivoDificultad[], electivoId: number | null,
+  estructura: EstructuraConTiempo,
+  candidatas: CandidataEstructura[],
+  mezcla: ObjetivoDificultad[],
+  electivoId: number | null,
 ) {
   if (estructura.codigo !== 'CIE') {
     const preguntas = armarEvaluacion(estructura, candidatas, mezcla, electivoId);
     return preguntas?.map((pregunta) => ({ pregunta, grupo: null })) ?? null;
   }
   return asignarPreguntasAgrupadas(
-    repartirEjes(estructura, electivoId), candidatas,
+    repartirEjes(estructura, electivoId),
+    candidatas,
     calcularCuotas(estructura.cantidad, mezcla),
   );
 }
