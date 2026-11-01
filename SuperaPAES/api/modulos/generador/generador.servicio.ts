@@ -6,11 +6,13 @@
 // válidas a través del servicio de preguntas.
 import type { ProveedorIA } from '../../adaptadores/fabrica.js';
 import type { Reloj } from '../../comun/reloj.js';
+import type { CandadosDeSesion } from '../../db/candados.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PreguntasServicio } from '../preguntas/index.js';
 import type { TemarioServicio } from '../temario/index.js';
 import { crearLotesRepositorio, type LotesRepositorio } from './generador.lotes.repositorio.js';
+import { crearProcesador, type OpcionesProcesador } from './generador.procesador.servicio.js';
 import { crearProductor, type Productor } from './generador.productor.servicio.js';
 
 export interface DependenciasGeneradorServicio {
@@ -21,6 +23,10 @@ export interface DependenciasGeneradorServicio {
   administracion: AdministracionServicio;
   preguntas: PreguntasServicio;
   temario: TemarioServicio;
+  /** Candados de sesión: un solo proceso trabaja cada lote. */
+  candados: CandadosDeSesion;
+  /** Solo para pruebas: azar, plazo y resultado objetivo del worker. */
+  opciones?: OpcionesProcesador;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearLotesRepositorio(bd). */
   repositorio?: LotesRepositorio;
 }
@@ -42,9 +48,16 @@ export function crearGeneradorServicio(
     administracion: dependencias.administracion,
     ia: dependencias.ia,
   });
-  return {
-    ...productor,
-    // Se implementa con el worker (tarea siguiente): por ahora no hay nada que procesar.
-    procesarPendientes: () => Promise.resolve(0),
-  };
+  const procesador = crearProcesador({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    lotes,
+    candados: dependencias.candados,
+    temario: dependencias.temario,
+    preguntas: dependencias.preguntas,
+    administracion: dependencias.administracion,
+    ia: dependencias.ia,
+    ...(dependencias.opciones && { opciones: dependencias.opciones }),
+  });
+  return { ...productor, ...procesador };
 }

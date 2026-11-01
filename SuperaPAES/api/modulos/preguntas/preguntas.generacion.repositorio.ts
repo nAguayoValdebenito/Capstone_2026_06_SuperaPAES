@@ -1,4 +1,5 @@
-// SQL de las lecturas del banco para el generador con IA (HU-16.2 y HU-17.2). Solo lecturas, parametrizadas.
+// SQL del banco para el generador con IA (HU-16.2 y HU-17.2): las lecturas que usa para armar la instrucción
+// y la escritura de las propuestas válidas. Consultas siempre parametrizadas.
 import type { Ejecutor } from '../../db/transaccion.js';
 
 /** Una pregunta ya aprobada que se le muestra a la IA como ejemplo de lo que se espera. */
@@ -6,6 +7,37 @@ export interface EjemploDePregunta {
   enunciado: string;
   alternativas: { letra: string; texto: string; esCorrecta: boolean }[];
 }
+
+/** Una propuesta de la IA que pasó la revisión automática, lista para entrar al banco como borrador. */
+export interface PropuestaDeIa {
+  loteId: string;
+  pruebaId: number;
+  contenidoId: number;
+  habilidadId: number;
+  dificultadSugerida: 'facil' | 'media' | 'dificil';
+  enunciado: string;
+  explicacion: string;
+  textoEstimuloId: string | null;
+  ordenEnTexto: number | null;
+  /** Con las letras ya asignadas (el orden lo decide el servidor) y la explicación de cada una. */
+  alternativas: { letra: string; texto: string; esCorrecta: boolean; explicacion: string }[];
+}
+
+// La pregunta nace en borrador, sin autor humano: su origen «ia» sale de lote_id (HU-11).
+const INSERTAR_PROPUESTA = `
+  INSERT INTO contenido.pregunta (prueba_id, contenido_id, habilidad_id, tipo_pregunta_id,
+                                  dificultad_sugerida_id, enunciado, explicacion, texto_estimulo_id,
+                                  orden_en_texto, lote_id, estado_pregunta_id, creado_en, actualizado_en)
+  VALUES ($1, $2, $3, (SELECT id FROM contenido.tipo_pregunta WHERE codigo = 'seleccion_multiple'),
+          (SELECT id FROM contenido.dificultad WHERE codigo = $4), $5, $6, $7, $8, $9,
+          (SELECT id FROM contenido.estado_pregunta WHERE es_inicial), now(), now())
+  RETURNING id::text AS id`;
+
+const INSERTAR_ALTERNATIVAS = `
+  INSERT INTO contenido.alternativa (pregunta_id, letra, texto, es_correcta, explicacion)
+  SELECT $1, a.letra, a.texto, a.es_correcta, a.explicacion
+    FROM unnest($2::text[], $3::text[], $4::boolean[], $5::text[])
+         AS a (letra, texto, es_correcta, explicacion)`;
 
 // Ejemplos: aprobadas o publicadas, de origen manual o IA. Las importadas quedan fuera (RN-29): no se
 // sabe de dónde vienen y no deben servir de modelo para la IA.
@@ -17,8 +49,36 @@ const EJEMPLOS = `
    ORDER BY p.id DESC
    LIMIT $2`;
 
+async function guardarPropuesta(tx: Ejecutor, propuesta: PropuestaDeIa): Promise<string> {
+  const { rows } = await tx.query<{ id: string }>(INSERTAR_PROPUESTA, [
+    propuesta.pruebaId,
+    propuesta.contenidoId,
+    propuesta.habilidadId,
+    propuesta.dificultadSugerida,
+    propuesta.enunciado,
+    propuesta.explicacion,
+    propuesta.textoEstimuloId,
+    propuesta.ordenEnTexto,
+    propuesta.loteId,
+  ]);
+  const id = rows[0]!.id;
+  const alternativas = propuesta.alternativas;
+  await tx.query(INSERTAR_ALTERNATIVAS, [
+    id,
+    alternativas.map((a) => a.letra),
+    alternativas.map((a) => a.texto),
+    alternativas.map((a) => a.esCorrecta),
+    alternativas.map((a) => a.explicacion),
+  ]);
+  return id;
+}
+
 export function crearPreguntasGeneracionRepositorio(bd: Ejecutor) {
   return {
+    /** Guarda la propuesta como pregunta en borrador con sus alternativas; devuelve su id. */
+    guardarPropuesta: (propuesta: PropuestaDeIa, tx: Ejecutor = bd) =>
+      guardarPropuesta(tx, propuesta),
+
     /** Los enunciados del contenido en cualquier estado, también rechazadas y retiradas. */
     async enunciadosDelContenido(contenidoId: number, tx: Ejecutor = bd): Promise<string[]> {
       const { rows } = await tx.query<{ enunciado: string }>(

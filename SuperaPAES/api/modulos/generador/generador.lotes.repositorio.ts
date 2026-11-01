@@ -106,6 +106,84 @@ function escrituras(bd: Ejecutor) {
   };
 }
 
+/** Lo que un resultado suma al lote: una pregunta válida o descartada, y los tokens y el costo de la llamada. */
+export interface AvanceDeLote {
+  validas: number;
+  descartadas: number;
+  tokens: number | null;
+  costoUsd: number | null;
+  /** El modelo que respondió, si hubo respuesta. */
+  modelo: string | null;
+  motivos: unknown;
+}
+
+/** Lecturas del worker: qué lotes hay que trabajar y la fila reservada de uno. */
+function lecturasDelWorker(bd: Ejecutor) {
+  return {
+    /** Los lotes pendientes sin texto de lectura (los de texto llegan con HU-18), los más antiguos primero. */
+    async idsPendientes(tx: Ejecutor = bd): Promise<string[]> {
+      const { rows } = await tx.query<{ id: string }>(
+        `SELECT l.id::text AS id ${LOTE_CON_ESTADO} WHERE e.codigo = 'pendiente' AND NOT l.con_texto ORDER BY l.id`,
+      );
+      return rows.map((fila) => fila.id);
+    },
+
+    /** Reserva la fila del lote hasta el fin de la transacción y la devuelve con sus conteos al día. */
+    async obtenerParaActualizar(id: string, tx: Ejecutor): Promise<FilaLote | null> {
+      const { rows } = await tx.query<FilaLote>(
+        `SELECT ${CAMPOS_DE_LOTE} ${LOTE_CON_ESTADO} WHERE l.id = $1 FOR UPDATE OF l`,
+        [id],
+      );
+      return rows[0] ?? null;
+    },
+  };
+}
+
+/** Escrituras del worker sobre un lote: avance y cierre. Cada resultado se guarda en la transacción de su pregunta. */
+function escriturasDelWorker(bd: Ejecutor) {
+  return {
+    async registrarAvance(id: string, avance: AvanceDeLote, tx: Ejecutor): Promise<void> {
+      await tx.query(
+        `UPDATE contenido.lote_generacion
+            SET validas = validas + $2, descartadas = descartadas + $3,
+                tokens_usados = CASE WHEN $4::int IS NULL THEN tokens_usados
+                                     ELSE COALESCE(tokens_usados, 0) + $4::int END,
+                costo_usd = CASE WHEN $5::numeric IS NULL THEN costo_usd
+                                 ELSE COALESCE(costo_usd, 0) + $5::numeric END,
+                modelo = COALESCE(left($6::text, 50), modelo), motivos_descarte = $7::jsonb
+          WHERE id = $1`,
+        [
+          id,
+          avance.validas,
+          avance.descartadas,
+          avance.tokens,
+          avance.costoUsd,
+          avance.modelo,
+          JSON.stringify(avance.motivos),
+        ],
+      );
+    },
+
+    /** Cierra un lote pendiente; si otro proceso ya lo cerró, no hace nada y devuelve false. */
+    async cerrar(
+      id: string,
+      estado: 'completado' | 'fallido',
+      motivos: unknown,
+      tx: Ejecutor = bd,
+    ): Promise<boolean> {
+      const { rowCount } = await tx.query(
+        `UPDATE contenido.lote_generacion
+            SET estado_lote_id = (SELECT id FROM contenido.estado_lote WHERE codigo = $2),
+                motivos_descarte = $3::jsonb
+          WHERE id = $1
+            AND estado_lote_id = (SELECT id FROM contenido.estado_lote WHERE codigo = 'pendiente')`,
+        [id, estado, JSON.stringify(motivos)],
+      );
+      return (rowCount ?? 0) > 0;
+    },
+  };
+}
+
 /** Totales para los topes (RNF-03). */
 function totales(bd: Ejecutor) {
   return {
@@ -144,7 +222,13 @@ function totales(bd: Ejecutor) {
 }
 
 export function crearLotesRepositorio(bd: Ejecutor) {
-  return { ...consultas(bd), ...escrituras(bd), ...totales(bd) };
+  return {
+    ...consultas(bd),
+    ...escrituras(bd),
+    ...lecturasDelWorker(bd),
+    ...escriturasDelWorker(bd),
+    ...totales(bd),
+  };
 }
 
 export type LotesRepositorio = ReturnType<typeof crearLotesRepositorio>;

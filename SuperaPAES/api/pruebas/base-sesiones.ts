@@ -7,8 +7,9 @@ import type { Express } from 'express';
 import type { MensajeCorreo, ProveedorCorreo } from '../adaptadores/fabrica.js';
 import type pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
-import { crearApp, type Dependencias } from '../app.js';
+import { crearApp, crearServicios, type Dependencias, type Servicios } from '../app.js';
 import type { OpcionesLimiteIntentos } from '../comun/middleware/limite-intentos.js';
+import { crearCandadosDeSesion } from '../db/candados.js';
 import { crearPool } from '../db/conexion.js';
 import { crearPrimerAdministrador } from '../db/primer-administrador.js';
 import { crearUnidadDeTrabajo, type UnidadDeTrabajo } from '../db/transaccion.js';
@@ -26,6 +27,8 @@ export interface EntornoSesiones {
   crearAppConLimite(limite: OpcionesLimiteIntentos): Express;
   /** App nueva sobre la misma base con dependencias cambiadas (por ejemplo, cubrePrueba). */
   crearAppCon(cambios: Partial<Dependencias>): Express;
+  /** Servicios nuevos sobre la misma base (como los de otro proceso), por ejemplo para el worker. */
+  crearServiciosCon(cambios: Partial<Dependencias>): Servicios;
   /** App nueva sobre la misma base que usa un proveedor de correo real de integración. */
   crearAppConCorreo(correo: ProveedorCorreo): Express;
   /** Hora del reloj de la app. */
@@ -79,18 +82,24 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
     pendientes.add(ejecucion);
   };
 
-  const crearAppSobreElPool = (
-    cambios: Partial<Dependencias> = {},
-    correo: ProveedorCorreo = buzon.proveedor,
-  ) => {
+  const crearDependenciasSobreElPool = (cambios: Partial<Dependencias> = {}) => {
     const dependencias = crearDependenciasDePrueba({
       bd: pool,
       unidadDeTrabajo: crearUnidadDeTrabajo(pool),
+      candados: crearCandadosDeSesion(pool),
       reloj: () => new Date(ahora),
       ...cambios,
     });
     // Comprobación real de la cuenta de cada token de la consola, contra PostgreSQL.
     delete dependencias.verificarCuentaInterna;
+    return dependencias;
+  };
+
+  const crearAppSobreElPool = (
+    cambios: Partial<Dependencias> = {},
+    correo: ProveedorCorreo = buzon.proveedor,
+  ) => {
+    const dependencias = crearDependenciasSobreElPool(cambios);
     return crearApp({
       ...dependencias,
       proveedores: { ...dependencias.proveedores, correo },
@@ -108,6 +117,8 @@ export function usarBaseDeSesiones(prefijo: string): EntornoSesiones {
       crearAppConLimite: (limiteIntentos: OpcionesLimiteIntentos) =>
         crearAppSobreElPool({ limiteIntentos }),
       crearAppCon: crearAppSobreElPool,
+      crearServiciosCon: (cambios: Partial<Dependencias> = {}) =>
+        crearServicios(crearDependenciasSobreElPool(cambios)),
       crearAppConCorreo: (correo: ProveedorCorreo) => crearAppSobreElPool({}, correo),
       correos: buzon.correos,
       fallarCorreo: buzon.fallar,

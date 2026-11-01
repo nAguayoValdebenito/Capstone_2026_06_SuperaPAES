@@ -6,6 +6,7 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { beforeAll, beforeEach, expect } from 'vitest';
 import { ejecutarSemillas } from '../db/semillas.js';
+import type { Dependencias } from '../app.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
 import { usarBaseDeSesiones } from './base-sesiones.js';
 import { conToken, RUTA_INGRESO, RUTA_USUARIOS } from './escenario-sesiones.js';
@@ -95,9 +96,28 @@ export function prepararGenerador(prefijo: string) {
       .get(`${RUTA_LOTES}/${String(id)}`)
       .set(sesion);
 
+  /** El generador de «otro proceso»: servicios nuevos sobre la misma base, con la IA falsa o la que se indique. */
+  const trabajador = (cambios: Partial<Dependencias> = {}) =>
+    entorno.crearServiciosCon({
+      proveedores: { ...crearDependenciasDePrueba().proveedores, ia: ia.proveedor },
+      ...cambios,
+    }).generador;
+
+  /** El lote como quedó en la base, con su estado. */
+  const filaDeLote = async (id: number | string) =>
+    (
+      await entorno.bd.query<Record<string, unknown>>(
+        `SELECT l.*, e.codigo AS estado FROM contenido.lote_generacion l
+           JOIN contenido.estado_lote e ON e.id = l.estado_lote_id WHERE l.id = $1`,
+        [id],
+      )
+    ).rows[0]!;
+
   return {
     entorno,
     ia,
+    trabajador,
+    filaDeLote,
     contenidos,
     parametro,
     sesionAdmin,

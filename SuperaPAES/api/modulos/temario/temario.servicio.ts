@@ -155,6 +155,8 @@ export interface ContenidoParaGenerar {
 export interface TemarioServicio {
   /** HU-16.2: el contenido con su eje, su prueba y las habilidades de la prueba; null si no existe. */
   contenidoParaGenerar(contenidoId: number): Promise<ContenidoParaGenerar | null>;
+  /** HU-16.2 y RN-09: la mezcla objetivo de dificultad en porcentaje (fácil, media y difícil). */
+  mezclaDeDificultad(): Promise<Record<'facil' | 'media' | 'dificil', number>>;
   /** Áreas de especialidad de los docentes, ordenadas por nombre (C10, HU-04). */
   listarAreas(): Promise<Area[]>;
   /** Valida pertenencia a la prueba y RN-24 para un contenido concreto. */
@@ -192,6 +194,17 @@ const cursoInexistente = () =>
     'El curso indicado no existe.',
   );
 
+/** RN-09: la mezcla objetivo de dificultad en porcentaje, por código. */
+function mezclaDe(dificultades: readonly { codigo: string; mezcla: number }[]) {
+  const mezcla = { facil: 0, media: 0, dificil: 0 };
+  for (const d of dificultades) {
+    if (d.codigo === 'facil' || d.codigo === 'media' || d.codigo === 'dificil') {
+      mezcla[d.codigo] = d.mezcla;
+    }
+  }
+  return mezcla;
+}
+
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
   const repositorio = dependencias.repositorio ?? crearTemarioRepositorio(dependencias.bd);
   const generacion = crearTemarioGeneracionRepositorio(dependencias.bd);
@@ -225,6 +238,7 @@ export function crearTemarioServicio(dependencias: DependenciasTemarioServicio):
       const habilidades = await repositorio.listarHabilidades();
       return armarTemario(filas, habilidades, await repositorio.listarTiposPregunta());
     },
+    mezclaDeDificultad: async () => mezclaDe(await repositorio.listarDificultades()),
     opcionesPerfil: async () => ({
       cursos: await repositorio.listarCursosPerfil(),
       pruebas: await repositorio.listarPruebasPerfil(),

@@ -15,6 +15,7 @@ import { crearEdicionPreguntas, type EdicionPreguntas } from './preguntas.edicio
 import {
   crearPreguntasGeneracionRepositorio,
   type EjemploDePregunta,
+  type PropuestaDeIa,
 } from './preguntas.generacion.repositorio.js';
 import {
   crearPreguntasRepositorio,
@@ -83,6 +84,8 @@ export interface LecturasParaGenerar {
   enunciadosDelContenido(contenidoId: number, tx?: Ejecutor): Promise<string[]>;
   /** Preguntas aprobadas o publicadas del contenido, de origen manual o IA, las más recientes primero. */
   ejemplosAprobados(contenidoId: number, limite: number): Promise<EjemploDePregunta[]>;
+  /** HU-16.2: guarda una propuesta de la IA revisada como borrador, en la transacción del lote. */
+  guardarPropuestaDeIa(propuesta: PropuestaDeIa, tx: Ejecutor): Promise<string>;
 }
 
 export interface PreguntasServicio
@@ -277,6 +280,7 @@ export function crearPreguntasServicio(
     ...edicion,
     enunciadosDelContenido: (contenidoId, tx) => generacion.enunciadosDelContenido(contenidoId, tx),
     ejemplosAprobados: (contenidoId, limite) => generacion.ejemplosAprobados(contenidoId, limite),
+    guardarPropuestaDeIa: (propuesta, tx) => generacion.guardarPropuesta(propuesta, tx),
     listarTextos: (consulta) => textos.listarTextos(consulta),
     obtenerTexto: (id) => textos.obtenerTexto(id),
     crearTexto: (autorId, datos) => textos.crearTexto(autorId, datos),

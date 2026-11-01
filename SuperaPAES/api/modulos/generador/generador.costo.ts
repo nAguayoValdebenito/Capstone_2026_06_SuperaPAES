@@ -47,7 +47,7 @@ const DECIMALES_DEL_COSTO = 10_000;
  * solo el total de tokens, se cobra todo al precio más alto: nunca se subestima. Sin conteo de tokens no
  * se puede calcular y devuelve null.
  */
-function calcularCostoUsd(
+export function calcularCostoUsd(
   uso: { entrada?: number; salida?: number; total?: number } | undefined,
   precio: PrecioPorMillon,
 ): number | null {
