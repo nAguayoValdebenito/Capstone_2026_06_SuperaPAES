@@ -4,7 +4,11 @@
 // consultarla (RN-21).
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { evaluacionInexistente, evaluacionSinEntregar } from './evaluaciones.errores.js';
-import type { ResultadoRepositorio } from './evaluaciones.resultado.repositorio.js';
+import type {
+  EjeOmitido,
+  ResultadoEvaluacion,
+  ResultadoRepositorio,
+} from './evaluaciones.resultado.repositorio.js';
 import type { ProgresoServicio } from './evaluaciones.progreso.servicio.js';
 import { conTransaccionDeCierre } from './evaluaciones.cierre-transaccion.js';
 
@@ -31,6 +35,37 @@ async function consultarCerrada<T>(
   });
 }
 
+// HU-36.3: el diagnóstico marca los ejes y habilidades a reforzar según el progreso acumulado (RN-14) y,
+// desde la HU-36.2 (A31), los ejes que el curso todavía no ve y que no se incluyeron (RN-28).
+async function conLoAReforzar(
+  resultado: ResultadoEvaluacion,
+  ejesOmitidos: EjeOmitido[],
+  progreso: DependenciasResultado['progreso'],
+  estudianteId: string,
+) {
+  const prueba = (await progreso.obtenerProgreso(estudianteId)).pruebas.find(
+    (p) => p.pruebaId === resultado.prueba.id,
+  );
+  const ejes = resultado.ejes.map((eje) => ({
+    ...eje,
+    aReforzar: prueba?.ejes.find((p) => p.id === eje.id)?.aReforzar ?? false,
+  }));
+  const habilidades = resultado.habilidades.map((habilidad) => ({
+    ...habilidad,
+    aReforzar: prueba?.habilidades.find((p) => p.id === habilidad.id)?.aReforzar ?? false,
+  }));
+  return {
+    ...resultado,
+    ejes,
+    habilidades,
+    ejesAReforzar: ejes.filter((eje) => eje.aReforzar).map((eje) => eje.id),
+    ejesOmitidos,
+    habilidadesAReforzar: habilidades
+      .filter((habilidad) => habilidad.aReforzar)
+      .map((habilidad) => habilidad.id),
+  };
+}
+
 export function crearResultadoServicio(dependencias: DependenciasResultado) {
   const { repositorio, progreso } = dependencias;
   return {
@@ -49,29 +84,14 @@ export function crearResultadoServicio(dependencias: DependenciasResultado) {
           return { resultado, ejesOmitidos };
         },
       );
+      if (resultado.tipo.codigo === 'ensayo')
+        return {
+          ...resultado,
+          puntajeEstimado: true,
+          motivoSinPuntaje: resultado.puntaje === null ? 'tabla_no_disponible' : null,
+        };
       if (resultado.tipo.codigo !== 'diagnostico') return resultado;
-      const prueba = (await progreso.obtenerProgreso(estudianteId)).pruebas.find(
-        (p) => p.pruebaId === resultado.prueba.id,
-      );
-      const ejes = resultado.ejes.map((eje) => ({
-        ...eje,
-        aReforzar: prueba?.ejes.find((p) => p.id === eje.id)?.aReforzar ?? false,
-      }));
-      const habilidades = resultado.habilidades.map((habilidad) => ({
-        ...habilidad,
-        aReforzar: prueba?.habilidades.find((p) => p.id === habilidad.id)?.aReforzar ?? false,
-      }));
-      return {
-        ...resultado,
-        ejes,
-        habilidades,
-        ejesAReforzar: ejes.filter((eje) => eje.aReforzar).map((eje) => eje.id),
-        // HU-36.2 (A31): los ejes que el curso todavía no ve y que no se incluyeron (RN-28).
-        ejesOmitidos,
-        habilidadesAReforzar: habilidades
-          .filter((habilidad) => habilidad.aReforzar)
-          .map((habilidad) => habilidad.id),
-      };
+      return conLoAReforzar(resultado, ejesOmitidos, progreso, estudianteId);
     },
     obtenerRevision: (estudianteId: string, id: string) =>
       consultarCerrada(dependencias, estudianteId, id, async (tx) => ({

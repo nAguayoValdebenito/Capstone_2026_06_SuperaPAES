@@ -5,6 +5,7 @@ export interface DetalleEstructura {
   habilidadId: number | null;
   esElectivo: boolean;
   cantidad: number;
+  noPuntuables?: number;
   orden: number;
   disponible: boolean;
 }
@@ -13,6 +14,7 @@ export interface EstructuraConTiempo {
   pruebaId: number;
   codigo: string;
   cantidad: number;
+  noPuntuables?: number;
   duracionMin: number;
   textos: number | null;
   detalles: DetalleEstructura[];

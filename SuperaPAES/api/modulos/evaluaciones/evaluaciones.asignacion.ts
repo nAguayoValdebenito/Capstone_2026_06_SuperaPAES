@@ -44,28 +44,49 @@ export function corresponde(grupo: GrupoArmado, p: CandidataEstructura): boolean
   return grupo.ejeId !== null ? grupo.ejeId === p.ejeId : grupo.habilidadId === p.habilidadId;
 }
 
-export function asignarPreguntas(
+export function asignarPreguntasAgrupadas(
   grupos: GrupoArmado[],
   candidatas: CandidataEstructura[],
   cuotas: CuotasDificultad,
-): CandidataEstructura[] | null {
+): { pregunta: CandidataEstructura; grupo: GrupoArmado }[] | null {
   const dificultades = ['facil', 'media', 'dificil'] as const;
   const inicioPreguntas = grupos.length + 1;
   const inicioDificultad = inicioPreguntas + candidatas.length;
   const fin = inicioDificultad + 3;
   const grafo: Grafo = Array.from({ length: fin + 1 }, () => []);
+  const asignaciones: { grupo: GrupoArmado; pregunta: CandidataEstructura; arista: Arista }[] = [];
   grupos.forEach((grupo, i) => {
     conectar(grafo, 0, i + 1, grupo.cupo);
     candidatas.forEach((p, j) => {
-      if (corresponde(grupo, p)) conectar(grafo, i + 1, inicioPreguntas + j, 1);
+      if (corresponde(grupo, p))
+        asignaciones.push({
+          grupo,
+          pregunta: p,
+          arista: conectar(grafo, i + 1, inicioPreguntas + j, 1),
+        });
     });
   });
-  const salidas = candidatas.map((p, j) =>
+  candidatas.forEach((p, j) =>
     conectar(grafo, inicioPreguntas + j, inicioDificultad + dificultades.indexOf(p.dificultad), 1),
   );
   dificultades.forEach((d, i) => conectar(grafo, inicioDificultad + i, fin, cuotas[d]));
   const total = grupos.reduce((s, g) => s + g.cupo, 0);
   let elegidas = 0;
   while (elegidas < total && aumentar(grafo, fin)) elegidas++;
-  return elegidas === total ? candidatas.filter((_, j) => salidas[j]!.capacidad === 0) : null;
+  return elegidas === total
+    ? asignaciones
+        .filter((a) => a.arista.capacidad === 0)
+        .map(({ pregunta, grupo }) => ({ pregunta, grupo }))
+    : null;
+}
+
+export function asignarPreguntas(
+  grupos: GrupoArmado[],
+  candidatas: CandidataEstructura[],
+  cuotas: CuotasDificultad,
+): CandidataEstructura[] | null {
+  const asignadas = asignarPreguntasAgrupadas(grupos, candidatas, cuotas);
+  if (!asignadas) return null;
+  const elegidas = new Set(asignadas.map(({ pregunta }) => pregunta.preguntaId));
+  return candidatas.filter((p) => elegidas.has(p.preguntaId));
 }

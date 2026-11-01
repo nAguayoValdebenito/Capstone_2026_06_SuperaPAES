@@ -61,9 +61,11 @@ describe.skipIf(!urlBase)('candados de sesión con PostgreSQL', () => {
     expect(despues).toEqual({ tomado: true, valor: 'de nuevo' });
     expect(pool.waitingCount).toBe(0);
     const { rows } = await base.bd.query<{ candados: number }>(
-      "SELECT COUNT(*)::int AS candados FROM pg_locks WHERE locktype = 'advisory' AND granted",
+      `SELECT COUNT(*)::int AS candados FROM pg_locks
+       WHERE locktype = 'advisory' AND granted
+         AND database = (SELECT oid FROM pg_database WHERE datname = current_database())`,
     );
-    // Ningún candado de sesión queda tomado por una conexión del pool.
+    // Ningún candado de esta base temporal queda tomado por una conexión del pool.
     expect(rows[0]?.candados).toBe(0);
   });
 

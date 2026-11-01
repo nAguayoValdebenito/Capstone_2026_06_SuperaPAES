@@ -104,6 +104,8 @@ export interface Dependencias {
   limiteIntentos?: OpcionesLimiteIntentos;
   /** Solo para pruebas: azar, plazo y resultado objetivo del worker del generador. */
   opcionesGenerador?: OpcionesProcesador;
+  /** Solo para pruebas: sorteo reproducible de preguntas sin puntaje del ensayo. */
+  azarEvaluaciones?: () => number;
   /**
    * Solo para pruebas: reemplaza la comprobación de la cuenta interna en cada petición de la consola,
    * que por defecto consulta la base por el servicio de administracion.
@@ -216,6 +218,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     preguntas,
     suscripciones,
     administracion,
+    ...(dependencias.azarEvaluaciones ? { azar: dependencias.azarEvaluaciones } : {}),
   });
   const privacidad = crearPrivacidadServicio({ ...conReloj, cuentas, evaluaciones, suscripciones });
 

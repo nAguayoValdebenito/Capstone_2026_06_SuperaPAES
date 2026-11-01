@@ -23,7 +23,7 @@ interface DependenciasMini {
 const repositorio = crearConTiempoRepositorio();
 const estructuras = crearEstructuraRepositorio();
 
-async function perfilParaMini(
+export async function perfilParaMini(
   cuentas: DependenciasMini['cuentas'],
   estudianteId: string,
   pruebaId: number,
@@ -39,8 +39,8 @@ async function perfilParaMini(
   return { ...perfil, anioEgreso: perfil.anioEgreso };
 }
 
-async function leerEstructura(
-  tipo: 'mini_ensayo' | 'diagnostico',
+export async function leerEstructura(
+  tipo: 'mini_ensayo' | 'diagnostico' | 'ensayo',
   pruebaId: number,
   nivelId: number | null,
   tx: Ejecutor,
@@ -49,7 +49,7 @@ async function leerEstructura(
   if (!estructura)
     throw validacion(
       'pruebaId',
-      `No hay una estructura activa de ${tipo === 'diagnostico' ? 'diagnóstico' : 'mini-ensayo'} para esta prueba.`,
+      `No hay una estructura activa de ${tipo === 'diagnostico' ? 'diagnóstico' : tipo === 'ensayo' ? 'ensayo completo' : 'mini-ensayo'} para esta prueba.`,
       'prueba_sin_estructura',
     );
   return estructura;
