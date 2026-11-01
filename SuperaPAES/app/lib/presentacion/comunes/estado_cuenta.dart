@@ -79,6 +79,22 @@ class EstadoSesion extends AsyncNotifier<SesionEstudiante?> {
     await abrir(actual.conCorreoVerificado());
   }
 
+  /// Con el correo sin verificar, pregunta a la API si ya lo está: pudo
+  /// verificarse con el enlace del correo, que se abre en la consola (DAS
+  /// 4.3.3). Lo usan Inicio y Verificar correo al abrirse, al volver a la app
+  /// y al deslizar. Sin conexión no cambia nada.
+  Future<void> comprobarCorreoVerificado() async {
+    final actual = state.value;
+    if (actual == null || actual.estudiante.correoVerificado) return;
+    try {
+      if (await ref.read(repositorioVerificacionProvider).correoVerificado()) {
+        await marcarCorreoVerificado();
+      }
+    } on ErrorApi {
+      // Sin conexión o la sesión venció: se vuelve a preguntar más tarde.
+    }
+  }
+
   /// Cierra la sesión en la API y en el teléfono. Si la API no responde, la
   /// borra igual del teléfono.
   Future<void> cerrar() async {

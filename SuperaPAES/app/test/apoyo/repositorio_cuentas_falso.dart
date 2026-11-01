@@ -121,6 +121,12 @@ class RepositorioVerificacionFalso implements RepositorioVerificacion {
   final List<String> codigos = [];
   int reenvios = 0;
 
+  /// Lo que responde GET /cuentas/yo: si el correo se verificó con el
+  /// enlace. Con [errorEstado], la consulta falla.
+  bool verificadoConElEnlace = false;
+  Exception? errorEstado;
+  int consultasEstado = 0;
+
   @override
   Future<void> verificarCodigo(String codigo) async {
     codigos.add(codigo);
@@ -132,6 +138,13 @@ class RepositorioVerificacionFalso implements RepositorioVerificacion {
     reenvios++;
     if (errorAlReenviar case final error?) throw error;
     return resultadoReenvio;
+  }
+
+  @override
+  Future<bool> correoVerificado() async {
+    consultasEstado++;
+    if (errorEstado case final error?) throw error;
+    return verificadoConElEnlace;
   }
 }
 

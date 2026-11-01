@@ -31,6 +31,7 @@ import 'repositorio_resultados_falso.dart';
 ProviderContainer crearContenedor({
   RepositorioCuentasFalso? repositorio,
   RepositorioVerificacionFalso? verificacion,
+  bool verificacionReal = false,
   RepositorioPerfilFalso? perfil,
   RepositorioCupoFalso? cupo,
   RepositorioPracticaFalso? practica,
@@ -87,10 +88,12 @@ ProviderContainer crearContenedor({
       repositorioPerfilProvider.overrideWithValue(
         perfil ?? RepositorioPerfilFalso(),
       ),
-      // Sin `verificacion` queda el repositorio real, con el cliente con
-      // sesión.
-      if (verificacion != null)
-        repositorioVerificacionProvider.overrideWithValue(verificacion),
+      // Sin `verificacion`, el correo no se verificó con el enlace. Con
+      // `verificacionReal`, el repositorio real con el cliente con sesión.
+      if (!verificacionReal)
+        repositorioVerificacionProvider.overrideWithValue(
+          verificacion ?? RepositorioVerificacionFalso(),
+        ),
     ],
   );
   addTearDown(contenedor.dispose);

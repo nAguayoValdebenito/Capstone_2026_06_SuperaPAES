@@ -2,7 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_verificacion.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
 
-/// Llama a /api/v1/app/cuentas/verificacion. Recibe el cliente con sesión,
+/// Llama a /api/v1/app/cuentas/verificacion y al estado de la cuenta
+/// (/cuentas/yo). Recibe el cliente con sesión,
 /// que agrega el token de acceso y lo renueva si venció.
 class FuenteVerificacionRemota {
   const FuenteVerificacionRemota(this._dio);
@@ -26,5 +27,15 @@ class FuenteVerificacionRemota {
       enviado: data['enviado'] as bool,
       yaVerificado: data['yaVerificado'] as bool,
     );
+  }
+
+  Future<bool> correoVerificado() async {
+    final data = await pedirObjeto(
+      _dio,
+      'GET',
+      '/cuentas/yo',
+      sinData: 'La API respondió sin el estado de la cuenta.',
+    );
+    return data['correoVerificado'] == true;
   }
 }
