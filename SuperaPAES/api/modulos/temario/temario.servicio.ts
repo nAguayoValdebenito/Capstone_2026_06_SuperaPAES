@@ -3,6 +3,7 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import { ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
+import { crearTemarioGeneracionRepositorio } from './temario.generacion.repositorio.js';
 import {
   type Area,
   type AreaCarreraPerfil,
@@ -129,7 +130,31 @@ export interface DependenciasTemarioServicio {
   repositorio?: TemarioRepositorio;
 }
 
+/** HU-16.2: lo que se sabe de un contenido para pedirle una pregunta a la IA. */
+export interface ContenidoParaGenerar {
+  contenidoId: number;
+  nombre: string;
+  /** Texto con oraciones separadas por punto; null si el contenido no trae descriptores. */
+  descriptores: string | null;
+  activo: boolean;
+  /** Curso en que se enseña (por ejemplo «2° medio»); null si no se fija. */
+  curso: string | null;
+  eje: { id: number; nombre: string };
+  prueba: {
+    id: number;
+    codigo: string;
+    nombre: string;
+    /** RN-08: la cantidad máxima de alternativas de la prueba (4 o 5). */
+    opcionesMax: number;
+    requiereTexto: boolean;
+    habilidades: { id: number; codigo: string; nombre: string; criterios: string | null }[];
+    tiposPregunta: string[];
+  };
+}
+
 export interface TemarioServicio {
+  /** HU-16.2: el contenido con su eje, su prueba y las habilidades de la prueba; null si no existe. */
+  contenidoParaGenerar(contenidoId: number): Promise<ContenidoParaGenerar | null>;
   /** Áreas de especialidad de los docentes, ordenadas por nombre (C10, HU-04). */
   listarAreas(): Promise<Area[]>;
   /** Valida pertenencia a la prueba y RN-24 para un contenido concreto. */
@@ -169,7 +194,29 @@ const cursoInexistente = () =>
 
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
   const repositorio = dependencias.repositorio ?? crearTemarioRepositorio(dependencias.bd);
+  const generacion = crearTemarioGeneracionRepositorio(dependencias.bd);
   return {
+    contenidoParaGenerar: async (contenidoId) => {
+      const fila = await generacion.contenido(contenidoId);
+      if (fila === null) return null;
+      return {
+        contenidoId: fila.contenidoId,
+        nombre: fila.nombre,
+        descriptores: fila.descriptores,
+        activo: fila.activo,
+        curso: fila.curso,
+        eje: { id: fila.ejeId, nombre: fila.ejeNombre },
+        prueba: {
+          id: fila.pruebaId,
+          codigo: fila.pruebaCodigo,
+          nombre: fila.pruebaNombre,
+          opcionesMax: fila.opcionesMax,
+          requiereTexto: fila.requiereTexto,
+          habilidades: await generacion.habilidades(fila.pruebaId),
+          tiposPregunta: await generacion.tiposPregunta(fila.pruebaId),
+        },
+      };
+    },
     listarAreas: () => repositorio.listarAreas(),
     alcancePracticaValido: (datos, tx) => repositorio.alcancePracticaValido(datos, tx),
     // Una consulta tras otra: así también sirve con una sola conexión.
