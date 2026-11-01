@@ -78,6 +78,8 @@ function crearMini(dependencias: DependenciasEvaluacionesServicio) {
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
     cuentas: dependencias.cuentas,
     cupo: dependencias.cupoInvitaciones,
+    suscripciones: dependencias.suscripciones,
+    azar: dependencias.azar ?? Math.random,
     seleccion: dependencias.repositorio ?? crearEvaluacionesRepositorio(dependencias.bd),
   });
 }

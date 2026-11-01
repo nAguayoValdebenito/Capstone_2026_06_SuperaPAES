@@ -11,6 +11,8 @@ export interface EvaluacionesControlador {
   disponibilidadMiniEnsayo: RequestHandler;
   iniciarDiagnostico: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
   disponibilidadDiagnostico: RequestHandler;
+  iniciarEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  disponibilidadEnsayo: RequestHandler;
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
   siguientePregunta: RequestHandler;
   cerrarPractica: RequestHandler;
@@ -70,6 +72,12 @@ export function crearEvaluacionesControlador(
   return {
     ...controladoresDiagnostico(servicio),
     ...controladoresMini(servicio),
+    disponibilidadEnsayo: async (req, res) => {
+      responder(res, await servicio.disponibilidadEnsayo(estudianteDe(req), Number(req.query.pruebaId)));
+    },
+    iniciarEnsayo: async (req, res) => {
+      responder(res, await servicio.iniciarEnsayo(estudianteDe(req), req.body.pruebaId), { estado: 201 });
+    },
     entregarEvaluacion: async (req, res) => {
       responder(res, await servicio.entregarEvaluacion(estudianteDe(req), String(req.params.id)));
     },

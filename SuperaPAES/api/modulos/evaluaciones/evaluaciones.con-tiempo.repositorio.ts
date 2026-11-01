@@ -20,12 +20,14 @@ export interface PreguntaConTiempo {
 }
 
 interface NuevaConTiempo {
-  tipo: 'mini_ensayo' | 'diagnostico';
+  tipo: 'mini_ensayo' | 'diagnostico' | 'ensayo';
   estudianteId: string;
   estructura: EstructuraConTiempo;
   ahora: Date;
   preguntas: PreguntaSeleccionada[];
   electivoId: number | null;
+  tablaConversionId?: number | null;
+  noPuntuables?: Set<string>;
 }
 const consultasConTiempo = {
   async disponibilidadDiagnostico(estudianteId: string, pruebaId: number, tx: Ejecutor) {
@@ -59,13 +61,13 @@ const consultasConTiempo = {
     return rows[0] ?? null;
   },
   async crear(
-    { tipo, estudianteId, estructura, ahora, preguntas, electivoId }: NuevaConTiempo,
+    { tipo, estudianteId, estructura, ahora, preguntas, electivoId, tablaConversionId = null, noPuntuables }: NuevaConTiempo,
     tx: Ejecutor,
   ): Promise<string> {
     const { rows } = await tx.query<{ id: string }>(
       `INSERT INTO app.evaluacion (estudiante_id,tipo_evaluacion_id,unica_por_anio_escolar,prueba_id,estructura_id,
-          anio_escolar,cantidad_preguntas,duracion_min,estado_evaluacion_id,iniciada_en,vence_en,electivo_area_id)
-         SELECT $1,t.id,t.unica_por_anio_escolar,$2,$3,0,$4,$5::smallint,e.id,$6::timestamptz,$6::timestamptz+$5::smallint*INTERVAL '1 minute',$7
+          anio_escolar,cantidad_preguntas,duracion_min,estado_evaluacion_id,iniciada_en,vence_en,electivo_area_id,tabla_conversion_id)
+         SELECT $1,t.id,t.unica_por_anio_escolar,$2,$3,0,$4,$5::smallint,e.id,$6::timestamptz,$6::timestamptz+$5::smallint*INTERVAL '1 minute',$7,$9
          FROM contenido.tipo_evaluacion t,contenido.estado_evaluacion e
          WHERE t.codigo=$8 AND e.codigo='en_curso' RETURNING id::text`,
       [
@@ -77,18 +79,20 @@ const consultasConTiempo = {
         ahora,
         electivoId,
         tipo,
+        tablaConversionId,
       ],
     );
     const id = rows[0]!.id;
     await tx.query(
-      `INSERT INTO app.evaluacion_item (evaluacion_id,prueba_id,pregunta_id,version_pregunta,orden,entregada_en)
-         SELECT $1,$2,p.id,p.version,p.orden,$5 FROM unnest($3::bigint[],$4::int[]) WITH ORDINALITY p(id,version,orden)`,
+      `INSERT INTO app.evaluacion_item (evaluacion_id,prueba_id,pregunta_id,version_pregunta,orden,entregada_en,puntuable)
+         SELECT $1,$2,p.id,p.version,p.orden,$5,p.puntuable FROM unnest($3::bigint[],$4::int[],$6::boolean[]) WITH ORDINALITY p(id,version,puntuable,orden)`,
       [
         id,
         estructura.pruebaId,
         preguntas.map((p) => p.preguntaId),
         preguntas.map((p) => p.version),
         ahora,
+        preguntas.map((p) => !noPuntuables?.has(p.preguntaId)),
       ],
     );
     return id;
