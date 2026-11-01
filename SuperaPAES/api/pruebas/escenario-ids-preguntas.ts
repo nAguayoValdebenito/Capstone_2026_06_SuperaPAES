@@ -1,4 +1,4 @@
-// Datos del escenario de ids para las rutas de preguntas de la consola (HU-11, HU-12.1 y HU-12.2): un
+// Datos del escenario de ids para las rutas de preguntas de la consola (HU-11, HU-12 y HU-13.1): un
 // servicio de preguntas falso y los cuerpos de las rutas que reciben datos.
 import { vi } from 'vitest';
 import type { PreguntasServicio } from '../modulos/preguntas/index.js';
@@ -90,6 +90,22 @@ const textoParaEditar = {
   creadoEn: fecha.toISOString(),
 };
 
+/** Importación hecha (HU-13.1): el id BIGINT como texto, como lo entrega la base. */
+const importacionHecha = {
+  id: '9',
+  filasLeidas: 1,
+  porCrear: 1,
+  omitidas: 0,
+  conError: 0,
+  textosPorCrear: 0,
+  errores: [],
+};
+
+const cuerpoImportacion = {
+  preguntas: { nombre: 'preguntas.csv', contenido: 'prueba' },
+  declaraOrigen: true,
+};
+
 const cuerpoTexto = {
   tipoTexto: 'literario',
   titulo: 'El faro',
@@ -124,12 +140,14 @@ export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
     obtenerTexto: vi.fn(() => Promise.resolve(textoParaEditar)),
     crearTexto: vi.fn(() => Promise.resolve(textoParaEditar)),
     editarTexto: vi.fn(() => Promise.resolve(textoParaEditar)),
+    importarPreguntas: vi.fn(() => Promise.resolve(importacionHecha)),
   };
 }
 
 /** Cuerpo de las rutas de preguntas y textos que reciben datos, o undefined si la ruta es otra. */
 export function cuerpoDePreguntas(ruta: string): Record<string, unknown> | undefined {
   if (/^(POST|PUT) .*\/preguntas\/textos(\/:id)?$/.test(ruta)) return cuerpoTexto;
+  if (ruta.endsWith('/preguntas/importaciones')) return cuerpoImportacion;
   if (/^(POST|PUT) .*\/preguntas\/(:id)?$/.test(ruta)) return cuerpoPregunta;
   return undefined;
 }

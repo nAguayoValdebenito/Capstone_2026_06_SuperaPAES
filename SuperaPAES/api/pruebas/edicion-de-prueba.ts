@@ -1,11 +1,13 @@
-// Crear y editar preguntas sin PostgreSQL (HU-12): un temario con M1, M2 y Competencia Lectora, y un
-// repositorio de edición en memoria que imita lo que hace la base (borrador, alternativas por letra).
+// Crear, editar e importar preguntas sin PostgreSQL (HU-12 y HU-13.1): un temario con M1, M2 y
+// Competencia Lectora, y repositorios en memoria que imitan lo que hace la base (borrador, alternativas
+// por letra, importaciones).
 import { vi } from 'vitest';
 import type {
   FilaPregunta,
   PreguntasEdicionRepositorio,
 } from '../modulos/preguntas/preguntas.edicion.repositorio.js';
 import { crearPreguntasServicio } from '../modulos/preguntas/index.js';
+import type { PreguntasImportacionRepositorio } from '../modulos/preguntas/preguntas.importacion.repositorio.js';
 import type { PreguntasRepositorio } from '../modulos/preguntas/preguntas.repositorio.js';
 import type { DatosPregunta } from '../modulos/preguntas/preguntas.validadores.js';
 import type { PruebaTemario } from '../modulos/temario/index.js';
@@ -167,9 +169,18 @@ const LISTAS: PreguntasRepositorio = {
     ]),
 };
 
+/** Importaciones en memoria (HU-13.1): cada una recibe el id siguiente, desde el 1. */
+function importacionesEnMemoria() {
+  let siguienteId = 1;
+  return {
+    insertar: vi.fn(() => Promise.resolve(String(siguienteId++))),
+  } satisfies PreguntasImportacionRepositorio;
+}
+
 /** App con el servicio de preguntas real sobre el temario y los repositorios en memoria. */
 export function escenarioEdicion() {
   const { repositorio, ponerEtapa } = repositorioEnMemoria();
+  const importaciones = importacionesEnMemoria();
   const textos = textosEnMemoria();
   const auditoria = { registrarAuditoria: vi.fn(() => Promise.resolve()) };
   const temario = temarioEnMemoria(TEMARIO);
@@ -183,7 +194,8 @@ export function escenarioEdicion() {
     repositorio: LISTAS,
     repositorioEdicion: repositorio,
     repositorioTextos: textos.repositorio,
+    repositorioImportacion: importaciones,
   });
   const app = crearAppDePrueba({}, { preguntas, temario });
-  return { app, repositorio, auditoria, ponerEtapa, textos };
+  return { app, repositorio, auditoria, ponerEtapa, textos, importaciones };
 }

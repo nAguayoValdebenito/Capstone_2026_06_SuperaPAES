@@ -5,7 +5,9 @@ import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
 import type {
+  ArchivosImportacion,
   ConsultaTextos,
+  DatosImportacion,
   DatosPregunta,
   DatosTexto,
   FiltrosBanco,
@@ -25,6 +27,8 @@ export interface PreguntasControlador {
   crearTexto: Validado<DatosTexto>;
   editarTexto: Validado<DatosTexto>;
   tiposDeTexto: RequestHandler;
+  revisarImportacion: Validado<ArchivosImportacion>;
+  importarPreguntas: Validado<DatosImportacion>;
 }
 
 /** Administrador que crea o edita: autor de la pregunta y de la auditoría. Lo deja autenticarAdmin. */
@@ -70,6 +74,12 @@ export function crearPreguntasControlador(servicio: PreguntasServicio): Pregunta
     },
     tiposDeTexto: async (_req, res) => {
       responder(res, await servicio.tiposDeTexto());
+    },
+    revisarImportacion: async (req, res) => {
+      responder(res, await servicio.revisarImportacion(req.body));
+    },
+    importarPreguntas: async (req, res) => {
+      responder(res, await servicio.importarPreguntas(autorDe(req), req.body), { estado: 201 });
     },
   };
 }

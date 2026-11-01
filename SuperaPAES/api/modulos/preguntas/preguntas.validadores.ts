@@ -146,6 +146,35 @@ export const esquemaPregunta = z
     },
   );
 
+/**
+ * HU-13.1 y RF-G05: un archivo CSV de la importación, con su nombre y su texto. La consola lo lee como
+ * UTF-8 y lo envía dentro del JSON, así que el límite de 1 MB del cuerpo es el del archivo.
+ */
+const archivoCsv = (cual: string) =>
+  z.strictObject({
+    nombre: z
+      .string()
+      .trim()
+      .min(1, `Indica el nombre del archivo de ${cual}.`)
+      .max(200, 'El nombre del archivo puede tener hasta 200 caracteres.')
+      .regex(/\.csv$/i, `El archivo de ${cual} debe ser CSV (UTF-8).`),
+    contenido: z.string(),
+  });
+
+/** Los archivos que se revisan antes de importar (CU-16, pasos 2 a 5): preguntas y, si hay, textos. */
+export const esquemaArchivosImportacion = z.strictObject({
+  preguntas: archivoCsv('preguntas'),
+  textos: archivoCsv('textos').nullable().default(null),
+});
+
+/** CU-16 paso 6 y 6.a: sin la declaración del origen de las preguntas no se importa (RN-29). */
+export const esquemaImportacion = esquemaArchivosImportacion.extend({
+  declaraOrigen: z.literal(
+    true,
+    'Declara que las preguntas son propias o tienen permiso de uso para importarlas (RN-29).',
+  ),
+});
+
 export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
 
 export const esquemaIdTexto = z.strictObject({ id: idDeRuta });
@@ -154,3 +183,6 @@ export type DatosPregunta = z.output<typeof esquemaPregunta>;
 export type DatosTexto = z.output<typeof esquemaTexto>;
 export type ConsultaTextos = z.output<typeof esquemaConsultaTextos>;
 export type AlternativaPregunta = DatosPregunta['alternativas'][number];
+export type ArchivosImportacion = z.output<typeof esquemaArchivosImportacion>;
+export type DatosImportacion = z.output<typeof esquemaImportacion>;
+export type ArchivoCsv = ArchivosImportacion['preguntas'];
