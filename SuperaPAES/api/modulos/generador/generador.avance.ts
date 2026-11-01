@@ -2,7 +2,7 @@
 // los conteos, los tokens, el costo y los motivos del lote. Si el proceso muere, lo ya hecho queda guardado y
 // el siguiente turno sigue desde ahí. Una llamada ya pagada se anota siempre, aunque la pregunta no se pueda guardar.
 import type { PreguntaPropuesta, ResultadoGeneracion } from '../../adaptadores/ia/proveedor.js';
-import { mensajeDeError, registro } from '../../comun/registro.js';
+import { claseDeError, registro } from '../../comun/registro.js';
 import type { Ejecutor } from '../../db/transaccion.js';
 import type { PropuestaDeIa } from '../preguntas/index.js';
 import { calcularCostoUsd, type Precios } from './generador.costo.js';
@@ -157,7 +157,7 @@ async function guardarValida(
   } catch (error) {
     registro.error('No se pudo guardar una pregunta de la IA', {
       loteId: turno.lote.id,
-      error: mensajeDeError(error),
+      error: claseDeError(error),
     });
     await guardarAvance(d, turno, {
       validas: 0,

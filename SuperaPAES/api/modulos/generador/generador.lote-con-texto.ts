@@ -4,7 +4,7 @@
 // huérfano ni preguntas sueltas, y el siguiente turno parte de cero. Lo que sí se anota al instante es el gasto de
 // cada llamada, porque es dinero real y cuenta para el tope mensual.
 import type { ResultadoGeneracion } from '../../adaptadores/ia/proveedor.js';
-import { mensajeDeError, registro } from '../../comun/registro.js';
+import { claseDeError, registro } from '../../comun/registro.js';
 import type { PropuestaDeIa } from '../preguntas/index.js';
 import {
   cierreTrasFalla,
@@ -169,7 +169,7 @@ async function guardarTodoOCerrarSinEllas(
   } catch (error) {
     registro.error('No se pudo guardar un texto de la IA con sus preguntas', {
       loteId: turno.lote.id,
-      error: mensajeDeError(error),
+      error: claseDeError(error),
     });
     await guardarTodo(d, turno, {
       propuestas: [],

@@ -6,7 +6,7 @@
 // Un candado de sesión de PostgreSQL, por lote, impide que dos procesos trabajen el mismo lote a la vez.
 // Un lote se cierra «completado» si alguna pregunta fue válida y «fallido» si ninguna (decisión sobre el DAS 4.a
 // y 4.b, que se anota en el PR); la falla, si la hubo, queda en motivos_descarte.
-import { mensajeDeError, registro } from '../../comun/registro.js';
+import { claseDeError, registro } from '../../comun/registro.js';
 import { registrarFalla, registrarRespuesta } from './generador.avance.js';
 import { anotarCierre, leerMotivos, type CierreDeLote } from './generador.motivos.js';
 import type { DependenciasProcesador, Turno } from './generador.procesador.tipos.js';
@@ -64,7 +64,7 @@ export function crearProcesador(d: DependenciasProcesador) {
         } catch (error) {
           registro.error('Falló un lote de generación', {
             loteId: id,
-            error: mensajeDeError(error),
+            error: claseDeError(error),
           });
         }
       }

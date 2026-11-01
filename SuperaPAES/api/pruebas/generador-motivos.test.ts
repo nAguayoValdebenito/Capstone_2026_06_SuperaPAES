@@ -1,5 +1,6 @@
 // HU-17.1: el JSON de motivos del lote cuenta cuántas preguntas descartó cada regla, las fallas de la IA y el cierre.
 import { describe, expect, it } from 'vitest';
+import { claseDeError } from '../comun/registro.js';
 import {
   anotarCierre,
   anotarDescarte,
@@ -60,5 +61,15 @@ describe('motivos del lote', () => {
     expect(leerMotivos(dos).textos).toEqual({ texto_corto: 2, sin_tildes: 1 });
     expect(inicial).not.toHaveProperty('textos');
     expect(dos.porMotivo).toEqual({});
+  });
+});
+
+describe('claseDeError', () => {
+  it('devuelve la clase y el código, sin el mensaje', () => {
+    expect(claseDeError(Object.assign(new TypeError('secreto'), { code: 42 }))).toBe(
+      'TypeError:42',
+    );
+    expect(claseDeError(new Error('secreto'))).toBe('Error');
+    expect(claseDeError('texto con secreto')).toBe('desconocido');
   });
 });

@@ -344,6 +344,21 @@ describe.skipIf(!urlBase)('el worker procesa un lote con PostgreSQL (CU-17)', ()
     expect(salida).not.toContain('Subtema pedido');
   });
 
+  it('un error inesperado se registra con su clase y su código, nunca con su mensaje', async () => {
+    await pedir(2);
+    const canario = 'CANARIO-EN-EL-MENSAJE-DEL-ERROR';
+    const falla = Object.assign(new Error(`fila con ${canario}`), { code: '23505' });
+    ia.encolar(falla);
+    const registrados = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await g.trabajador().procesarPendientes();
+
+    const salida = JSON.stringify(registrados.mock.calls);
+    expect(salida).toContain('Falló un lote de generación');
+    expect(salida).toContain('Error:23505');
+    expect(salida).not.toContain(canario);
+  });
+
   it('un lote ya cerrado no se vuelve a procesar', async () => {
     await pedir(2);
     await g.trabajador().procesarPendientes();
