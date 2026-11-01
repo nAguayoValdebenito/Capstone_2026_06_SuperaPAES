@@ -2,7 +2,7 @@
 // al editar, la pregunta; aplica las reglas de formulario-pregunta.ts y guarda. Una pregunta nueva
 // guardada abre su edición con el aviso «Guardada como borrador». Cancela las cargas al desmontar.
 import { type FormEvent, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
   crearPregunta,
   editarPregunta,
@@ -18,6 +18,7 @@ import type {
   PreguntaParaEditar,
   TextoDeLectura,
 } from '../tipos';
+import { useAvisoDeNavegacion } from './aviso-de-navegacion';
 import {
   armarDatos,
   type CamposAlternativa,
@@ -133,14 +134,6 @@ function useCampos(carga: CargaEditor, alCambiar: () => void) {
       })),
   };
   return { campos, acciones };
-}
-
-/** El aviso que dejó la página anterior al navegar, si hay. */
-function useAvisoDeNavegacion(): string | null {
-  const estado: unknown = useLocation().state;
-  return typeof estado === 'object' && estado !== null && 'aviso' in estado
-    ? String(estado.aviso)
-    : null;
 }
 
 /**

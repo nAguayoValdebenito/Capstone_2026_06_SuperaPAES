@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { DisenoGeneral } from '../componentes/DisenoGeneral';
 import { useSesion } from '../estado/contexto-sesion';
+import { PaginaImportar } from '../paginas/importar/PaginaImportar';
 import { PaginaIngreso } from '../paginas/ingreso/PaginaIngreso';
 import { PaginaInvitar } from '../paginas/invitar/PaginaInvitar';
 import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada';
@@ -41,6 +42,15 @@ export function RutasConsola() {
             }
           />
         ))}
+        {/* C04 (HU-13.2): importar preguntas. Se abre desde el banco y vuelve a él; no va en el menú. */}
+        <Route
+          path="/banco/importar"
+          element={
+            <RutaProtegida roles={['admin']}>
+              <PaginaImportar />
+            </RutaProtegida>
+          }
+        />
         {/* C03 (HU-12.3): crear o editar una pregunta. Se abre desde el banco; no va en el menú. */}
         {['/banco/nueva', '/banco/:id'].map((ruta) => (
           <Route

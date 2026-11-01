@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { consultaDelBanco, listarBanco, obtenerFiltrosBanco } from './preguntas';
+import {
+  consultaDelBanco,
+  importarPreguntas,
+  listarBanco,
+  obtenerFiltrosBanco,
+  revisarImportacion,
+} from './preguntas';
 
 function responder(cuerpo: unknown) {
   const urls: string[] = [];
@@ -45,5 +51,48 @@ describe('servicios del banco de preguntas (C02)', () => {
 
     expect(await obtenerFiltrosBanco()).toEqual(opciones);
     expect(urls).toEqual(['/admin/preguntas/filtros']);
+  });
+});
+
+describe('servicios de la importación (C04, HU-13.2)', () => {
+  /** Responde con `data` y guarda el método, la ruta y el cuerpo de cada llamada. */
+  function registrar(data: unknown) {
+    const llamadas: { metodo: string; ruta: string; cuerpo: unknown }[] = [];
+    vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
+      llamadas.push({
+        metodo: init.method ?? 'GET',
+        ruta: url.replace(/^.*\/api\/v1/, ''),
+        cuerpo: JSON.parse(init.body as string),
+      });
+      return Promise.resolve(new Response(JSON.stringify({ data, error: null, meta: null })));
+    });
+    return llamadas;
+  }
+
+  const archivos = {
+    preguntas: { nombre: 'preguntas.csv', contenido: 'prueba;eje' },
+    textos: null,
+  };
+
+  it('revisa los archivos sin declarar el origen', async () => {
+    const llamadas = registrar({ porCrear: 1 });
+
+    expect(await revisarImportacion(archivos)).toEqual({ porCrear: 1 });
+    expect(llamadas).toEqual([
+      { metodo: 'POST', ruta: '/admin/preguntas/importaciones/revision', cuerpo: archivos },
+    ]);
+  });
+
+  it('importa los mismos archivos con la declaración del origen (RN-29)', async () => {
+    const llamadas = registrar({ id: 4, porCrear: 1 });
+
+    expect(await importarPreguntas(archivos)).toEqual({ id: 4, porCrear: 1 });
+    expect(llamadas).toEqual([
+      {
+        metodo: 'POST',
+        ruta: '/admin/preguntas/importaciones',
+        cuerpo: { ...archivos, declaraOrigen: true },
+      },
+    ]);
   });
 });
