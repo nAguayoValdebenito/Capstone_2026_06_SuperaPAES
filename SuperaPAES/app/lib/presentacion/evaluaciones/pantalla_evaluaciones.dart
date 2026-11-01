@@ -39,7 +39,8 @@ class PantallaEvaluaciones extends ConsumerWidget {
         if (pruebaId != null) {
           ref
             ..invalidate(disponibilidadMiniProvider(pruebaId))
-            ..invalidate(disponibilidadDiagnosticoProvider(pruebaId));
+            ..invalidate(disponibilidadDiagnosticoProvider(pruebaId))
+            ..invalidate(disponibilidadEnsayoProvider(pruebaId));
         }
       },
       hijos: [
@@ -60,7 +61,7 @@ class PantallaEvaluaciones extends ConsumerWidget {
           if (pruebaId != null) ...[
             TarjetaDiagnostico(pruebaId: pruebaId),
             TarjetaMiniEnsayo(pruebaId: pruebaId),
-            const TarjetaEnsayoCompleto(),
+            TarjetaEnsayoCompleto(pruebaId: pruebaId),
           ] else
             const Aviso(
               tono: TonoAviso.info,

@@ -12,6 +12,7 @@ import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
+import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
 
 /// Diagnóstico de A25 (HU-36): una vez por año escolar, solo con lo que ya
 /// vio. «Rendir diagnóstico» lo ofrece en A16.
@@ -129,25 +130,64 @@ class TarjetaMiniEnsayo extends ConsumerWidget {
   }
 }
 
-/// Ensayo completo de A25 (HU-42): solo con el plan Todas las pruebas.
-class TarjetaEnsayoCompleto extends StatelessWidget {
-  const TarjetaEnsayoCompleto({super.key});
+/// Ensayo completo de A25 (HU-42, RF-A19): en formato oficial, solo con el
+/// plan Todas las pruebas (RN-04). En Ciencias pide el electivo.
+class TarjetaEnsayoCompleto extends ConsumerWidget {
+  const TarjetaEnsayoCompleto({required this.pruebaId, super.key});
+
+  final int pruebaId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final consulta = ref.watch(disponibilidadEnsayoProvider(pruebaId));
     return TarjetaEvaluacion(
       titulo: 'Ensayo completo',
-      etiqueta: const Etiqueta(texto: 'Todas las pruebas'),
-      hijos: [
-        const _Detalle(
-          'La prueba entera, con el tiempo y el formato oficial, y tu puntaje '
-          'estimado de 100 a 1.000.',
+      etiqueta: switch (consulta.value) {
+        DisponibilidadEnsayo(faltaElPlan: false) => const Etiqueta(
+          texto: 'Incluido en tu plan',
         ),
-        OutlinedButton(
-          onPressed: () => context.push(Rutas.planes),
-          child: const Text('Ver planes'),
-        ),
-      ],
+        _ => const Etiqueta(texto: 'Todas las pruebas'),
+      },
+      hijos: switch (consulta) {
+        AsyncData(:final value) => [
+          _Detalle(
+            '${value.cantidad} preguntas (${value.sinPuntaje} no puntúan) · '
+            '${duracionLegible(value.duracionMin * 60)} · puntaje estimado '
+            'de 100 a 1.000',
+          ),
+          if (value.disponible)
+            FilledButton(
+              onPressed: () {
+                ref.read(pruebaDeEvaluacionesProvider.notifier).prueba =
+                    pruebaId;
+                unawaited(context.push(Rutas.antesDelEnsayo));
+              },
+              child: const Text('Rendir ensayo completo'),
+            )
+          else if (value.faltaElPlan)
+            OutlinedButton(
+              onPressed: () => context.push(Rutas.planes),
+              child: const Text('Ver planes'),
+            )
+          else ...[
+            const _Detalle(
+              'Elige tu electivo de Ciencias en tu perfil para rendirlo.',
+            ),
+            OutlinedButton(
+              onPressed: () => context.push(Rutas.perfilPruebas),
+              child: const Text('Elegir electivo'),
+            ),
+          ],
+        ],
+        AsyncError(:final error) => [
+          _NoCargo(
+            error: error,
+            alReintentar: () =>
+                ref.invalidate(disponibilidadEnsayoProvider(pruebaId)),
+          ),
+        ],
+        _ => const [_Cargando()],
+      },
     );
   }
 }

@@ -31,6 +31,37 @@ class DisponibilidadMiniEnsayo {
   final bool disponible;
 }
 
+/// El ensayo completo de una prueba en formato oficial (A25 y su «Antes de
+/// empezar»; HU-42, RF-A19): solo con el plan Todas las pruebas (RN-04).
+class DisponibilidadEnsayo {
+  const DisponibilidadEnsayo({
+    required this.pruebaId,
+    required this.cantidad,
+    required this.duracionMin,
+    required this.sinPuntaje,
+    required this.disponible,
+    this.textos,
+    this.motivo,
+  });
+
+  final int pruebaId;
+  final int cantidad;
+  final int duracionMin;
+
+  /// Las que no puntúan, como en la PAES: no se sabe cuáles hasta revisar.
+  final int sinPuntaje;
+
+  /// Textos de lectura de Competencia Lectora; `null` en las demás.
+  final int? textos;
+  final bool disponible;
+
+  /// `plan_todas_requerido` o `electivo_requerido`; `null` si está
+  /// disponible.
+  final String? motivo;
+
+  bool get faltaElPlan => motivo == 'plan_todas_requerido';
+}
+
 /// Si el diagnóstico de una prueba se puede rendir este año escolar, con lo
 /// que A16 muestra para ofrecerlo (HU-36, RN-20).
 class DisponibilidadDiagnostico {

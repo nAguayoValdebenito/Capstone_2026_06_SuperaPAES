@@ -4,13 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
+import 'package:supera_paes/presentacion/evaluaciones/condiciones_evaluacion.dart';
 import 'package:supera_paes/presentacion/evaluaciones/empezar_con_tiempo.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
-import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 /// Antes de empezar el mini-ensayo (A26; HU-40 esc. 1, 2 y 5, CU-10 pasos 3
 /// y 4): las condiciones antes de fijar la hora de término. El reloj sigue
@@ -91,12 +90,7 @@ class _PantallaAntesDeEmpezarState extends ConsumerState<PantallaAntesDeEmpezar>
     PruebaPerfil prueba,
   ) {
     final curso = perfil.curso;
-    final abierta = ref.watch(evaluacionAbiertaProvider).value?.abierta;
-    // RN-19: la práctica o el repaso abiertos se cierran al empezar.
-    final cierre = abierta == null || abierta.conTiempo
-        ? null
-        : 'Tu ${abierta.tipoNombre.toLowerCase()} sin terminar se cerrará y '
-              'conservará lo respondido.';
+    final cierre = avisoDeCierre(ref);
     final uso = mini.conPlan
         ? 'Está incluido en tu plan.'
         : 'Usarás tu mini-ensayo gratis de ${prueba.nombreCorto} de este mes.';
@@ -111,27 +105,10 @@ class _PantallaAntesDeEmpezarState extends ConsumerState<PantallaAntesDeEmpezar>
             DatoResumen(valor: '${mini.habilidades}', texto: 'habilidades'),
         ],
       ),
-      const _Condicion(
-        icono: Icons.timer_outlined,
-        texto:
-            'El reloj sigue corriendo aunque cierres la app. Al acabarse el '
-            'tiempo, se entrega solo.',
-      ),
-      const _Condicion(
-        icono: Icons.edit_outlined,
-        texto:
-            'Puedes cambiar tus respuestas hasta entregar. Se corrige al '
-            'final.',
-      ),
-      const _Condicion(
-        icono: Icons.remove_circle_outline,
-        texto:
-            'Las que dejes sin responder cuentan como incorrectas y pasan a '
-            'tu repaso.',
-      ),
+      ...condicionesConTiempo,
       // Lectora no depende del curso: sus textos son de cualquier nivel.
       if (curso != null && !curso.esEgresado && prueba.codigo != 'CL')
-        _Condicion(
+        CondicionEvaluacion(
           icono: Icons.school_outlined,
           texto: 'Solo contenidos que se enseñan hasta ${curso.nombre}.',
         ),
@@ -145,25 +122,5 @@ class _PantallaAntesDeEmpezarState extends ConsumerState<PantallaAntesDeEmpezar>
               'Puedes esperar al próximo mes o ver los planes.',
         ),
     ];
-  }
-}
-
-/// Una condición con su ícono a la izquierda.
-class _Condicion extends StatelessWidget {
-  const _Condicion({required this.icono, required this.texto});
-
-  final IconData icono;
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icono, size: 20, color: TemaSuperaPaes.primario),
-        const SizedBox(width: 12),
-        Expanded(child: Text(texto, style: TemaSuperaPaes.cuerpo)),
-      ],
-    );
   }
 }
