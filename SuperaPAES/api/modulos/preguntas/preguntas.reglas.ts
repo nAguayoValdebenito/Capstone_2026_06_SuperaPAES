@@ -12,8 +12,11 @@ const problema = (ruta: string, mensaje: string): ProblemaDeCampo => ({
   mensaje,
 });
 
-/** RN-08: cuántas alternativas, con letras seguidas desde la A y una sola correcta. */
-export function problemasDeAlternativas(
+/**
+ * RN-08: cuántas alternativas, con letras seguidas desde la A. La importación (HU-13.1) lo usa sin la
+ * revisión de la correcta, que lee de su propia columna.
+ */
+export function problemasDeCantidad(
   alternativas: readonly AlternativaPregunta[],
   prueba: PruebaTemario,
 ): ProblemaDeCampo[] {
@@ -29,6 +32,19 @@ export function problemasDeAlternativas(
       problema('alternativas', 'Las alternativas van con letras seguidas desde la A, sin repetir.'),
     );
   }
+  return problemas;
+}
+
+/** RN-08: toda pregunta de la prueba que lo exige (Competencia Lectora) va con su texto de lectura. */
+export const faltaElTexto = (prueba: PruebaTemario): ProblemaDeCampo =>
+  problema('textoEstimuloId', `En ${prueba.nombre} cada pregunta va con su texto de lectura.`);
+
+/** RN-08: cuántas alternativas, con letras seguidas desde la A y una sola correcta. */
+export function problemasDeAlternativas(
+  alternativas: readonly AlternativaPregunta[],
+  prueba: PruebaTemario,
+): ProblemaDeCampo[] {
+  const problemas = problemasDeCantidad(alternativas, prueba);
   const correctas = alternativas.filter((alternativa) => alternativa.esCorrecta).length;
   if (correctas !== 1) {
     const mensaje =
@@ -79,9 +95,7 @@ export function problemasDePregunta(
   ];
   const sinTexto = datos.textoEstimuloId === null && datos.textoNuevo === null;
   if (prueba.requiereTexto && sinTexto) {
-    problemas.push(
-      problema('textoEstimuloId', `En ${prueba.nombre} cada pregunta va con su texto de lectura.`),
-    );
+    problemas.push(faltaElTexto(prueba));
   } else if (datos.textoEstimuloId !== null && !existeTexto) {
     problemas.push(problema('textoEstimuloId', 'El texto de lectura no existe.'));
   }

@@ -13,6 +13,14 @@ import {
 } from './preguntas.edicion.repositorio.js';
 import { crearEdicionPreguntas, type EdicionPreguntas } from './preguntas.edicion.servicio.js';
 import {
+  crearPreguntasImportacionRepositorio,
+  type PreguntasImportacionRepositorio,
+} from './preguntas.importacion.repositorio.js';
+import {
+  crearImportacionPreguntas,
+  type ImportacionPreguntas,
+} from './preguntas.importacion.servicio.js';
+import {
   crearPreguntasRepositorio,
   type FilaBanco,
   type Opcion,
@@ -37,6 +45,8 @@ export interface DependenciasPreguntasServicio {
   repositorioEdicion?: PreguntasEdicionRepositorio;
   /** Solo para pruebas: reemplaza al de crearPreguntasTextosRepositorio(bd). */
   repositorioTextos?: PreguntasTextosRepositorio;
+  /** Solo para pruebas: reemplaza al de crearPreguntasImportacionRepositorio(). */
+  repositorioImportacion?: PreguntasImportacionRepositorio;
 }
 
 /** Lo que la consola hace con los textos de lectura (HU-12.2); lo demás es para crear preguntas. */
@@ -73,7 +83,8 @@ export interface FiltrosDelBanco {
   dificultades: Opcion[];
 }
 
-export interface PreguntasServicio extends EdicionPreguntas, TextosDeLaConsola {
+export interface PreguntasServicio
+  extends EdicionPreguntas, TextosDeLaConsola, ImportacionPreguntas {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.
@@ -250,17 +261,28 @@ export function crearPreguntasServicio(
     auditoria,
     repositorio: dependencias.repositorioTextos ?? crearPreguntasTextosRepositorio(dependencias.bd),
   });
+  const repositorioEdicion =
+    dependencias.repositorioEdicion ?? crearPreguntasEdicionRepositorio(dependencias.bd);
   const edicion = crearEdicionPreguntas({
     unidadDeTrabajo,
     temario,
     auditoria,
-    repositorio:
-      dependencias.repositorioEdicion ?? crearPreguntasEdicionRepositorio(dependencias.bd),
+    repositorio: repositorioEdicion,
+    listas: repositorio,
+    textos,
+  });
+  const importacion = crearImportacionPreguntas({
+    unidadDeTrabajo,
+    temario,
+    auditoria,
+    repositorio: dependencias.repositorioImportacion ?? crearPreguntasImportacionRepositorio(),
+    preguntas: repositorioEdicion,
     listas: repositorio,
     textos,
   });
   return {
     ...edicion,
+    ...importacion,
     listarTextos: (consulta) => textos.listarTextos(consulta),
     obtenerTexto: (id) => textos.obtenerTexto(id),
     crearTexto: (autorId, datos) => textos.crearTexto(autorId, datos),

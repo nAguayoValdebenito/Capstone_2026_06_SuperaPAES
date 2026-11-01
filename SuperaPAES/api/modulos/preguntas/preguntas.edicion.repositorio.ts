@@ -47,8 +47,16 @@ export interface FilaPregunta {
 export interface PreguntasEdicionRepositorio {
   /** Usuario que registran los triggers en el historial y las versiones, hasta el fin de la transacción. */
   fijarAutor(usuarioId: string, tx: Ejecutor): Promise<void>;
-  /** Devuelve el id de la pregunta nueva, en la etapa inicial. */
-  insertar(datos: DatosPregunta, autorId: string, tx: Ejecutor): Promise<string>;
+  /**
+   * Devuelve el id de la pregunta nueva, en la etapa inicial. `importacionId` es la importación de la
+   * que viene (HU-13.1); sin ella, la pregunta es manual.
+   */
+  insertar(
+    datos: DatosPregunta,
+    autorId: string,
+    tx: Ejecutor,
+    importacionId?: string,
+  ): Promise<string>;
   actualizar(id: string, datos: DatosPregunta, tx: Ejecutor): Promise<void>;
   /** Crea o cambia las alternativas por letra; las que no cambian no se tocan. */
   guardarAlternativas(id: string, alternativas: AlternativaPregunta[], tx: Ejecutor): Promise<void>;
@@ -62,10 +70,11 @@ export interface PreguntasEdicionRepositorio {
 const INSERTAR = `
   INSERT INTO contenido.pregunta (prueba_id, contenido_id, habilidad_id, tipo_pregunta_id,
                                   dificultad_sugerida_id, enunciado, explicacion, texto_estimulo_id,
-                                  orden_en_texto, autor_id, estado_pregunta_id, creado_en, actualizado_en)
+                                  orden_en_texto, autor_id, estado_pregunta_id, importacion_id,
+                                  creado_en, actualizado_en)
   VALUES ($1, $2, $3, (SELECT id FROM contenido.tipo_pregunta WHERE codigo = $4),
           (SELECT id FROM contenido.dificultad WHERE codigo = $5), $6, $7, $8, $9, $10,
-          (SELECT id FROM contenido.estado_pregunta WHERE codigo = $11), now(), now())
+          (SELECT id FROM contenido.estado_pregunta WHERE codigo = $11), $12, now(), now())
   RETURNING id::text AS id`;
 
 const ACTUALIZAR = `
@@ -131,11 +140,12 @@ function escrituras(): Omit<PreguntasEdicionRepositorio, 'obtener' | 'existeText
       await tx.query("SELECT set_config('supera.usuario_id', $1, true)", [usuarioId]);
     },
 
-    async insertar(datos, autorId, tx) {
+    async insertar(datos, autorId, tx, importacionId) {
       const { rows } = await tx.query<{ id: string }>(INSERTAR, [
         ...columnas(datos),
         autorId,
         ESTADO_INICIAL,
+        importacionId ?? null,
       ]);
       const id = rows[0]?.id;
       if (id === undefined) throw new Error('La pregunta no se guardó.');

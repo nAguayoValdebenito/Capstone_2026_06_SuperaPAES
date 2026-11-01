@@ -9,10 +9,12 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearPreguntasControlador, type PreguntasControlador } from './preguntas.controlador.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
 import {
+  esquemaArchivosImportacion,
   esquemaConsultaTextos,
   esquemaFiltrosBanco,
   esquemaIdPregunta,
   esquemaIdTexto,
+  esquemaImportacion,
   esquemaPregunta,
   esquemaTexto,
 } from './preguntas.validadores.js';
@@ -60,6 +62,21 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   router.get('/filtros', exigirRol('admin'), controlador.filtrosDelBanco);
 
   agregarRutasTextos(router, controlador);
+
+  // Importar preguntas con la plantilla CSV (C04, HU-13.1, RF-G05, CU-16): revisar entrega el informe
+  // sin guardar nada; importar exige la declaración del origen (RN-29) y crea las válidas.
+  router.post(
+    '/importaciones/revision',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaArchivosImportacion }),
+    controlador.revisarImportacion,
+  );
+  router.post(
+    '/importaciones',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaImportacion }),
+    controlador.importarPreguntas,
+  );
 
   // Crear y editar preguntas (C03, HU-12.1, RF-G02, RF-G09): la consola del administrador recibe la
   // pregunta completa, con la alternativa correcta.
