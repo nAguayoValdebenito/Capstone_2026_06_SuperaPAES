@@ -5,14 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
-import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
-import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/pregunta/cuerpo_pregunta.dart';
 import 'package:supera_paes/presentacion/pregunta/hoja_confirmar_respuesta.dart';
 import 'package:supera_paes/presentacion/pregunta/partes_pregunta.dart';
-import 'package:supera_paes/presentacion/pregunta/texto_de_lectura.dart';
 
 /// Pregunta de la práctica (A17, y A20 con texto de lectura; HU-34.1,
 /// CU-06 paso 4, CU-07 paso 1): lo que se practica, el avance, las preguntas
@@ -70,6 +68,8 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
   bool _enviando = false;
   String? _error;
 
+  void _elegir(int alternativaId) => setState(() => _elegida = alternativaId);
+
   /// Confirma la alternativa (A18; en la práctica la respuesta es
   /// definitiva, HU-32 esc. 4) y la envía para que la corrija el servidor.
   Future<void> _responder() async {
@@ -109,24 +109,13 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
       hijos: [
         const CabeceraPractica(),
         AvancePractica(pregunta: pregunta),
-        if (pregunta.texto case final texto?)
-          TarjetaTextoDeLectura(texto: texto),
-        Semantics(
-          header: true,
-          child: TextoConFormulas(
-            pregunta.enunciado,
-            estilo: TemaSuperaPaes.cuerpoFuerte,
-          ),
+        ...cuerpoDePregunta(
+          texto: pregunta.texto,
+          enunciado: pregunta.enunciado,
+          alternativas: pregunta.alternativas,
+          elegida: _elegida,
+          alElegir: _enviando ? null : _elegir,
         ),
-        for (final alternativa in pregunta.alternativas)
-          OpcionAlternativa(
-            letra: alternativa.letra,
-            texto: alternativa.texto,
-            seleccionada: alternativa.id == _elegida,
-            onTap: _enviando
-                ? null
-                : () => setState(() => _elegida = alternativa.id),
-          ),
       ],
       pie: PieConError(
         error: _error,

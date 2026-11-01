@@ -1,3 +1,4 @@
+import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 
 /// La evaluación sin terminar del estudiante, para retomarla donde quedó
@@ -14,6 +15,7 @@ class EvaluacionAbierta {
     required this.cantidad,
     required this.respondidas,
     this.segundosRestantes,
+    this.preguntas = const [],
   });
 
   final int id;
@@ -39,6 +41,10 @@ class EvaluacionAbierta {
   /// Lo que le quedaba según el servidor al consultarla; `null` sin tiempo.
   final int? segundosRestantes;
 
+  /// Con tiempo, sus preguntas con lo que ya respondió (A27); vacía en la
+  /// práctica.
+  final List<PreguntaConTiempo> preguntas;
+
   bool get conTiempo => segundosRestantes != null;
   bool get esPractica => tipo == 'practica';
 
@@ -50,6 +56,15 @@ class EvaluacionAbierta {
     alcance: alcance,
     dificultadId: dificultadId,
     cantidad: cantidad,
+  );
+
+  /// Para seguirla en A27 con el reloj donde quedó (RN-21).
+  EvaluacionConTiempo get conReloj => EvaluacionConTiempo(
+    id: id,
+    tipoNombre: tipoNombre,
+    pruebaId: pruebaId,
+    preguntas: preguntas,
+    segundosRestantes: segundosRestantes ?? 0,
   );
 }
 

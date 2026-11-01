@@ -1,3 +1,5 @@
+import 'package:supera_paes/datos/modelos/evaluacion_con_tiempo_modelo.dart';
+import 'package:supera_paes/datos/modelos/pregunta_modelo.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
@@ -75,32 +77,14 @@ abstract final class PracticaModelo {
         cantidad: json['cantidad'] as int,
       );
 
-  static PreguntaDePractica pregunta(Map<String, dynamic> json) {
-    final texto = json['texto'] as Map<String, dynamic>?;
-    return PreguntaDePractica(
-      itemId: leerId(json['id']),
-      orden: json['orden'] as int,
-      total: json['total'] as int,
-      enunciado: json['enunciado'] as String,
-      texto: texto == null
-          ? null
-          : TextoDeLectura(
-              titulo: texto['titulo'] as String?,
-              contenido: texto['contenido'] as String?,
-              imagen: texto['imagen'] as String?,
-            ),
-      alternativas: [
-        for (final valor in json['alternativas'] as List<Object?>)
-          _alternativa(valor! as Map<String, dynamic>),
-      ],
-    );
-  }
-
-  static AlternativaVisible _alternativa(Map<String, dynamic> json) =>
-      AlternativaVisible(
-        id: leerId(json['id']),
-        letra: json['letra'] as String,
-        texto: json['texto'] as String,
+  static PreguntaDePractica pregunta(Map<String, dynamic> json) =>
+      PreguntaDePractica(
+        itemId: leerId(json['id']),
+        orden: json['orden'] as int,
+        total: json['total'] as int,
+        enunciado: json['enunciado'] as String,
+        texto: PreguntaModelo.textoDeLectura(json['texto']),
+        alternativas: PreguntaModelo.alternativas(json['alternativas']),
       );
 
   static Correccion correccion(Map<String, dynamic> json) => Correccion(
@@ -197,6 +181,7 @@ abstract final class PracticaModelo {
       cantidad: json['cantidad'] as int,
       respondidas: json['respondidas'] as int,
       segundosRestantes: json['segundosRestantes'] as int?,
+      preguntas: EvaluacionConTiempoModelo.preguntas(json['preguntas']),
     );
   }
 }

@@ -5,7 +5,8 @@ import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 const identificador = z.number().int().positive().max(32767);
 const identificadorContenido = z.number().int().positive().max(2147483647);
 export const esquemaInicioMini = z.strictObject({ pruebaId: identificador });
-export const esquemaDisponibilidadDiagnostico = z.strictObject({
+/** La prueba de la que se consulta la disponibilidad del diagnóstico o del mini-ensayo. */
+export const esquemaDisponibilidad = z.strictObject({
   pruebaId: z.coerce.number().int().positive().max(32767),
 });
 
