@@ -6,6 +6,8 @@ export const preguntaIa = {
   enunciado: '¿Cuánto es $2+2$?',
   alternativas: [{ letra: 'A', texto: '4', esCorrecta: true, explicacion: 'Suma.' }],
   explicacion: 'Se suman dos y dos.',
+  resolucion: 'Se suman los dos sumandos: $2 + 2 = 4$.',
+  habilidad: 'RP',
   dificultadSugerida: 'facil',
 };
 export const contenidoIa = JSON.stringify({ preguntas: [preguntaIa] });

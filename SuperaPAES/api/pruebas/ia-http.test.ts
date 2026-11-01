@@ -26,6 +26,7 @@ describe('transporte de IA con tiempos acotados', () => {
       esperaReintentoMs: 1500,
       maxReintentos: 1,
       maxTokens: 8192,
+      maxBytes: 262144,
     });
   });
 
@@ -53,13 +54,15 @@ describe('transporte de IA con tiempos acotados', () => {
     let senal: AbortSignal | undefined;
     fetchFalso.mockImplementation((_url, opciones) => {
       senal = opciones?.signal ?? undefined;
-      const respuesta = Response.json(sobreDeepSeek());
-      vi.spyOn(respuesta, 'text').mockImplementation(
-        () =>
-          new Promise((_resolver, rechazar) => {
-            senal?.addEventListener('abort', () => rechazar(new Error('Abortado')), { once: true });
-          }),
-      );
+      // El cuerpo llega por trozos: este no avanza hasta que se aborta la lectura.
+      const detenido = new ReadableStream<Uint8Array>({
+        start(controlador) {
+          senal?.addEventListener('abort', () => controlador.error(new Error('Abortado')), {
+            once: true,
+          });
+        },
+      });
+      const respuesta = new Response(detenido);
       return Promise.resolve(respuesta);
     });
     const observado = expect(

@@ -7,10 +7,10 @@ import type { ProveedorIA, ResultadoGeneracion, SolicitudGeneracion } from './pr
 import {
   conUsoTokens,
   cuentaTokens,
-  ESQUEMA_JSON_IA,
+  esquemaDeSalida,
   exigirModelo,
-  FORMATO_JSON_IA,
-  leerPreguntas,
+  formatoDeSalida,
+  leerSalida,
   leerSobre,
 } from './respuesta.js';
 
@@ -39,12 +39,16 @@ const esquemaSobre = z.object({
     .optional(),
 });
 
-/** JSON válido por construcción: el modelo responde con el esquema de las preguntas. */
-const CONFIGURACION_GENERACION = {
-  maxOutputTokens: LIMITES_IA.maxTokens,
-  responseMimeType: 'application/json',
-  responseJsonSchema: ESQUEMA_JSON_IA,
-} as const;
+/** JSON válido por construcción: el modelo responde con el esquema de las preguntas del pedido. */
+function configuracionDe(solicitud: SolicitudGeneracion) {
+  const temperatura = solicitud.temperaturas?.gemini;
+  return {
+    maxOutputTokens: LIMITES_IA.maxTokens,
+    responseMimeType: 'application/json',
+    responseJsonSchema: esquemaDeSalida(solicitud),
+    ...(temperatura !== undefined && { temperature: temperatura }),
+  };
+}
 
 interface OpcionesGemini {
   claveApi: string;
@@ -53,6 +57,7 @@ interface OpcionesGemini {
 
 export class ProveedorIAGemini implements ProveedorIA {
   readonly nombre = 'gemini';
+  readonly usa = ['gemini'] as const;
 
   constructor(private readonly opciones: OpcionesGemini) {}
 
@@ -72,8 +77,8 @@ export class ProveedorIAGemini implements ProveedorIA {
         cabeceras: { 'x-goog-api-key': this.opciones.claveApi },
         cuerpo: {
           contents: [{ role: 'user', parts: [{ text: solicitud.instruccion }] }],
-          systemInstruction: { parts: [{ text: FORMATO_JSON_IA }] },
-          generationConfig: CONFIGURACION_GENERACION,
+          systemInstruction: { parts: [{ text: formatoDeSalida(solicitud) }] },
+          generationConfig: configuracionDe(solicitud),
         },
         interpretar: (datos) => {
           const sobre = leerSobre(esquemaSobre, datos);
@@ -87,7 +92,7 @@ export class ProveedorIAGemini implements ProveedorIA {
           return {
             proveedor: this.nombre,
             modelo: sobre.modelVersion ?? modelo,
-            preguntas: leerPreguntas(texto),
+            ...leerSalida(solicitud, texto),
             ...conUsoTokens(
               sobre.usageMetadata && {
                 ...(sobre.usageMetadata.promptTokenCount !== undefined && {

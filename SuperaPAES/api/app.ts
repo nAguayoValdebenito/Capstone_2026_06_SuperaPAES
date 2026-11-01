@@ -22,6 +22,7 @@ import type { ConfiguracionVerificacionCorreo } from './comun/configuracion.js';
 import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
 import { crearRutasTareas } from './trabajos/tareas-periodicas.js';
+import type { CandadosDeSesion } from './db/candados.js';
 import type { Ejecutor, UnidadDeTrabajo } from './db/transaccion.js';
 import {
   crearAdministracionServicio,
@@ -43,6 +44,7 @@ import {
   crearGeneradorServicio,
   crearRutasAdminGenerador,
   type GeneradorServicio,
+  type OpcionesProcesador,
 } from './modulos/generador/index.js';
 import {
   crearEvaluacionesServicio,
@@ -86,6 +88,8 @@ export interface Dependencias {
   /** Pool de PostgreSQL (o un reemplazo en las pruebas). */
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
+  /** Candados de sesión de PostgreSQL (un solo worker por lote). */
+  candados: CandadosDeSesion;
   comprobarBaseDeDatos: () => Promise<void>;
   proveedores: Proveedores;
   /** Hora actual (sesiones y vencimientos); en las pruebas se reemplaza para simular el paso del tiempo. */
@@ -98,6 +102,8 @@ export interface Dependencias {
   /** Clave de la ruta de tareas periódicas (DAS 4.3.3); sin ella, la ruta no se monta. */
   claveTareas?: string;
   limiteIntentos?: OpcionesLimiteIntentos;
+  /** Solo para pruebas: azar, plazo y resultado objetivo del worker del generador. */
+  opcionesGenerador?: OpcionesProcesador;
   /**
    * Solo para pruebas: reemplaza la comprobación de la cuenta interna en cada petición de la consola,
    * que por defecto consulta la base por el servicio de administracion.
@@ -158,11 +164,23 @@ function crearSuscripcionesYCupo(
   return { suscripciones, cupoInvitaciones };
 }
 
+/** El generador con IA: usa la IA y los candados de la API, y los servicios de los módulos que lee. */
+function crearGenerador(
+  d: Dependencias,
+  servicios: Pick<Servicios, 'administracion' | 'preguntas' | 'temario'>,
+): GeneradorServicio {
+  return crearGeneradorServicio({
+    ...{ bd: d.bd, unidadDeTrabajo: d.unidadDeTrabajo, reloj: d.reloj },
+    ...{ ia: d.proveedores.ia, candados: d.candados, ...servicios },
+    ...(d.opcionesGenerador && { opciones: d.opcionesGenerador }),
+  });
+}
+
 /** Crea los servicios en orden de dependencia: cada módulo recibe los servicios que usa. */
 export function crearServicios(dependencias: Dependencias): Servicios {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const conReloj = { ...base, reloj: dependencias.reloj };
-  const { ia, correo } = dependencias.proveedores;
+  const { correo } = dependencias.proveedores;
 
   // Al desactivar una cuenta interna, administracion cierra sus sesiones, que son de cuentas. Cuentas
   // se crea después porque usa administracion: la función solo se llama una vez creados los dos.
@@ -188,7 +206,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   });
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario, administracion });
-  const generador = crearGeneradorServicio({ ...base, ia, administracion, preguntas });
+  const generador = crearGenerador(dependencias, { administracion, preguntas, temario });
   const revision = crearRevisionServicio({ ...base, administracion, preguntas });
   const evaluaciones = crearEvaluacionesServicio({
     ...conReloj,

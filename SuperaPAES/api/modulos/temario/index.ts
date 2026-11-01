@@ -5,6 +5,7 @@ export { crearRutasAppTemario } from './temario.rutas.app.js';
 export { crearRutasAdminTemario } from './temario.rutas.admin.js';
 export {
   crearTemarioServicio,
+  type ContenidoParaGenerar,
   type PruebaTemario,
   type TemarioServicio,
 } from './temario.servicio.js';

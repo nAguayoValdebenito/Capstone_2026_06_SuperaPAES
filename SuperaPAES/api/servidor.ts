@@ -8,6 +8,7 @@ import {
 } from './comun/configuracion.js';
 import { registro } from './comun/registro.js';
 import { relojDelSistema } from './comun/reloj.js';
+import { crearCandadosDeSesion } from './db/candados.js';
 import { comprobarBaseDeDatos, crearPool } from './db/conexion.js';
 import { crearUnidadDeTrabajo } from './db/transaccion.js';
 import { crearWorkerGeneracion } from './trabajos/worker-generacion.js';
@@ -18,6 +19,7 @@ function iniciar(): void {
   const dependencias: Dependencias = {
     bd: pool,
     unidadDeTrabajo: crearUnidadDeTrabajo(pool),
+    candados: crearCandadosDeSesion(pool),
     comprobarBaseDeDatos: () => comprobarBaseDeDatos(pool),
     proveedores: FabricaProveedores.crear(config, relojDelSistema, () =>
       servicios.administracion.obtenerParametroTexto('modelo_ia'),

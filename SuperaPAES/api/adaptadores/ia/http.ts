@@ -12,6 +12,8 @@ export const LIMITES_IA = {
   esperaReintentoMs: 1_500,
   maxReintentos: 1,
   maxTokens: 8192,
+  // 8.192 tokens caben en unos 35 KB de JSON; el tope deja holgura pero corta una respuesta sin fin.
+  maxBytes: 262_144,
 } as const;
 
 export interface PresupuestoIA {
@@ -55,6 +57,31 @@ function comprobarEstado(respuesta: Response, proveedor: PeticionIA<unknown>['pr
   throw new ErrorIANoDisponible();
 }
 
+/** Lee el cuerpo por trozos y se detiene (cancelando la lectura) al pasar el límite de bytes. */
+async function leerCuerpoAcotado(respuesta: Response): Promise<string> {
+  const declarado = Number(respuesta.headers.get('content-length'));
+  const lector = respuesta.body?.getReader();
+  if (!lector) return '';
+  if (Number.isFinite(declarado) && declarado > LIMITES_IA.maxBytes) {
+    await lector.cancel();
+    throw new ErrorIARespuestaInvalida();
+  }
+  const trozos: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const lectura = (await lector.read()) as { done: boolean; value?: Uint8Array };
+    const value = lectura.value;
+    if (lectura.done || value === undefined) break;
+    total += value.byteLength;
+    if (total > LIMITES_IA.maxBytes) {
+      await lector.cancel();
+      throw new ErrorIARespuestaInvalida();
+    }
+    trozos.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(trozos));
+}
+
 async function intentar<T>(peticion: PeticionIA<T>, presupuesto: PresupuestoIA): Promise<T> {
   const restante = presupuesto.venceEn - Date.now();
   if (restante <= 0) throw new ErrorIANoDisponible();
@@ -77,7 +104,7 @@ async function intentar<T>(peticion: PeticionIA<T>, presupuesto: PresupuestoIA):
       Math.max(0, Math.min(presupuesto.venceEn - Date.now(), LIMITES_IA.cuerpoMs)),
     );
     comprobarEstado(respuesta, peticion.proveedor);
-    const texto = await respuesta.text();
+    const texto = await leerCuerpoAcotado(respuesta);
     let datos: unknown;
     try {
       datos = JSON.parse(texto) as unknown;
