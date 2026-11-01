@@ -60,6 +60,17 @@ export function crearSuscripcionesRepositorio(bd: Ejecutor) {
       const { rows } = await tx.query<{ cubre: boolean }>(CUBRE_PRUEBA, [estudianteId, pruebaId]);
       return rows[0]?.cubre ?? false;
     },
+    async permiteEnsayoCompleto(estudianteId: string, tx: Ejecutor = bd): Promise<boolean> {
+      const { rows } = await tx.query<{ permite: boolean }>(
+        `SELECT EXISTS (SELECT 1 FROM app.suscripcion s
+          JOIN contenido.estado_suscripcion e ON e.id=s.estado_suscripcion_id
+          JOIN contenido.plan p ON p.id=s.plan_id
+          JOIN contenido.alcance_plan a ON a.id=p.alcance_plan_id
+          WHERE s.estudiante_id=$1 AND e.codigo IN ('activa','en_mora') AND a.codigo='todas') AS permite`,
+        [estudianteId],
+      );
+      return rows[0]?.permite ?? false;
+    },
   };
 }
 

@@ -46,6 +46,8 @@ export interface SuscripcionesServicio extends ComprasServicio, ValidacionServic
    * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta).
    */
   cubrePrueba(estudianteId: string, pruebaId: number, tx: Ejecutor): Promise<boolean>;
+  /** HU-42: el ensayo oficial exige alcance Todas las pruebas. */
+  permiteEnsayoCompleto(estudianteId: string, tx: Ejecutor): Promise<boolean>;
   /**
    * RN-34: la suscripción activa o en mora del estudiante, que la tienda sigue cobrando; `null` si
    * no tiene. La pide privacidad antes de borrar la cuenta (HU-08.2, A42b).
@@ -78,6 +80,8 @@ export function crearSuscripcionesServicio(
     // terminar su período, así que una activa sigue cubriendo después de periodo_fin.
     cubrePrueba: (estudianteId, pruebaId, tx) =>
       repositorio.cubrePrueba(estudianteId, pruebaId, tx),
+    permiteEnsayoCompleto: (estudianteId, tx) =>
+      repositorio.permiteEnsayoCompleto(estudianteId, tx),
     vigenteDe: (estudianteId) => repositorio.vigenteDe(estudianteId),
   };
 }
