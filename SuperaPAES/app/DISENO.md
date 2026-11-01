@@ -199,6 +199,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A13      | Personalizar la práctica                 | `33:883`  | `practicar/pantalla_personalizar_practica.dart` |
 | A14      | Elegir eje, contenido o habilidad        | `33:983`  | `practicar/pantalla_elegir_alcance.dart` |
 | A15      | Sin preguntas suficientes                | `33:1059` | `practicar/pantalla_sin_preguntas.dart` |
+| A16      | Ofrecer el diagnóstico                   | por anotar | `evaluaciones/pantalla_ofrecer_diagnostico.dart` (se abre al tocar «Empezar práctica» con el diagnóstico pendiente y desde A25) |
 | A17      | Pregunta de práctica                     | `33:1134` | `pregunta/pantalla_pregunta.dart` (sin «Avisar un error», que llega con HU-37) |
 | A18      | Confirmar respuesta                      | `33:1187` | `pregunta/hoja_confirmar_respuesta.dart` |
 | A19      | Corrección con explicación               | `33:1243` | `correccion/pantalla_correccion.dart` |
@@ -206,12 +207,13 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
 | A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43) |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
-| A25      | Evaluaciones                             | por anotar | `evaluaciones/pantalla_evaluaciones.dart` y `tarjetas_evaluaciones.dart` (el diagnóstico sin «Rendir» hasta la HU-36.2; el ensayo completo solo con «Ver planes» hasta la HU-42) |
+| A25      | Evaluaciones                             | por anotar | `evaluaciones/pantalla_evaluaciones.dart` y `tarjetas_evaluaciones.dart` (el ensayo completo solo con «Ver planes» hasta la HU-42) |
 | A26      | Antes de empezar                         | por anotar | `evaluaciones/pantalla_antes_de_empezar.dart` |
 | A27      | Pregunta con reloj                       | por anotar | `evaluaciones/pantalla_pregunta_con_reloj.dart` (el reloj en `cabecera_con_reloj.dart`; sin el eje de la pregunta, que la API no entrega) |
 | A28      | Ver todas y entregar                     | por anotar | `evaluaciones/pantalla_ver_todas.dart` |
 | A29      | Retomar una evaluación                   | por anotar | `inicio/hoja_retomar_evaluacion.dart` («Continuar» abre A27 y «Entregar ahora», A28) |
 | A30      | Resultado de mini-ensayo                 | por anotar | `resultado/pantalla_resultado.dart` (sin «Ir al historial», que llega con HU-62) |
+| A31      | Resultado del diagnóstico                | por anotar | `resultado/pantalla_resultado.dart` y `partes_diagnostico.dart` (con «Diagnóstico · Entregado» en vez del año) |
 | A32      | Resultado de ensayo completo             | por anotar | `resultado/pantalla_resultado.dart` (el puntaje con el año y el proceso de la tabla) |
 | A32b     | Ensayo sin tabla de conversión           | por anotar | `resultado/pantalla_resultado.dart` |
 | A33      | Revisión pregunta por pregunta           | por anotar | `resultado/pantalla_revision.dart` (alternativas y explicación de `correccion/partes_correccion.dart`) |

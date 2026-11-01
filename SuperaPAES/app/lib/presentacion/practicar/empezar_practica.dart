@@ -1,17 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
-/// Empezar la práctica desde A13 o desde el aviso de A15 (CU-06 paso 3).
-/// Si empieza, va a la pregunta; sin preguntas suficientes, abre A15 (o se
-/// queda en ella con el aviso nuevo); sin cupo, va a Cupo agotado (A22); con
-/// una evaluación con tiempo abierta, ofrece retomarla (A29, CU-10 2.b). Otro
-/// rechazo queda en [errorEmpezar], sobre el botón.
+/// Empezar la práctica desde A13, el aviso de A15 o «Ahora no» de A16
+/// (CU-06 paso 3). Si el diagnóstico de la prueba está pendiente, primero lo
+/// ofrece (A16, CU-06 alternativo 2.a). Si empieza, va a la pregunta; sin
+/// preguntas suficientes, abre A15 (o se queda en ella con el aviso nuevo);
+/// sin cupo, va a Cupo agotado (A22); con una evaluación con tiempo abierta,
+/// ofrece retomarla (A29, CU-10 2.b). Otro rechazo queda en [errorEmpezar],
+/// sobre el botón.
 mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   String? errorEmpezar;
   bool empezando = false;
@@ -24,6 +28,7 @@ mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       empezando = true;
       errorEmpezar = null;
     });
+    if (await _ofrecerDiagnostico(datos)) return;
     try {
       final empezo = await ref.read(practicaProvider.notifier).iniciar(datos);
       if (!mounted) return;
@@ -49,6 +54,29 @@ mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     } finally {
       if (mounted) setState(() => empezando = false);
     }
+  }
+
+  /// A16 una vez por prueba hasta que se abra de nuevo la app: si dijo
+  /// «Ahora no», no se vuelve a ofrecer. Si no se pudo consultar, practica.
+  Future<bool> _ofrecerDiagnostico(DatosPractica datos) async {
+    if (ref.read(diagnosticosPospuestosProvider).contains(datos.pruebaId)) {
+      return false;
+    }
+    final DisponibilidadDiagnostico diagnostico;
+    try {
+      diagnostico = await ref
+          .read(repositorioEvaluacionesProvider)
+          .disponibilidadDiagnostico(datos.pruebaId);
+    } on Object {
+      return false;
+    }
+    if (!mounted || !diagnostico.disponible) return false;
+    setState(() => empezando = false);
+    ref
+        .read(ofertaDiagnosticoProvider.notifier)
+        .ofrecer(diagnostico, practica: datos);
+    await context.push(Rutas.ofrecerDiagnostico);
+    return true;
   }
 
   /// RN-19: primero hay que terminar la evaluación con tiempo. Devuelve si

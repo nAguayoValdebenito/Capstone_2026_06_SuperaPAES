@@ -6,6 +6,7 @@ import 'package:supera_paes/presentacion/crear_cuenta/pantalla_crear_cuenta.dart
 import 'package:supera_paes/presentacion/cupo_agotado/pantalla_cupo_agotado.dart';
 import 'package:supera_paes/presentacion/evaluaciones/pantalla_antes_de_empezar.dart';
 import 'package:supera_paes/presentacion/evaluaciones/pantalla_evaluaciones.dart';
+import 'package:supera_paes/presentacion/evaluaciones/pantalla_ofrecer_diagnostico.dart';
 import 'package:supera_paes/presentacion/evaluaciones/pantalla_pregunta_con_reloj.dart';
 import 'package:supera_paes/presentacion/evaluaciones/pantalla_ver_todas.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
@@ -168,7 +169,13 @@ const List<Seccion> secciones = [
     PantallaCupoAgotado.new,
   ),
   Seccion('Repaso de errores', Rutas.repaso, Icons.replay, PantallaRepaso.new),
-  // Evaluaciones con tiempo (HU-40): A26, A27 y A28
+  // Evaluaciones con tiempo (HU-36 y HU-40): A16, A26, A27 y A28
+  Seccion(
+    'Ofrecer el diagnóstico',
+    Rutas.ofrecerDiagnostico,
+    Icons.insights_outlined,
+    PantallaOfrecerDiagnostico.new,
+  ),
   Seccion(
     'Antes de empezar',
     Rutas.antesDeEmpezar,

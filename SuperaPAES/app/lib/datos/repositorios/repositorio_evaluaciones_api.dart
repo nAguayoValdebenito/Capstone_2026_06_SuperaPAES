@@ -21,6 +21,10 @@ class RepositorioEvaluacionesApi implements RepositorioEvaluaciones {
       _fuente.iniciarMiniEnsayo(pruebaId);
 
   @override
+  Future<EvaluacionConTiempo> iniciarDiagnostico(int pruebaId) =>
+      _fuente.iniciarDiagnostico(pruebaId);
+
+  @override
   Future<void> guardarRespuesta(
     int evaluacionId,
     int itemId,

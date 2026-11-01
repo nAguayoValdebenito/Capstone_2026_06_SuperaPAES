@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/misc.dart' show FutureProviderFamily;
 import 'package:supera_paes/datos/fuentes/fuente_evaluaciones_remota.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_evaluaciones_api.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
+import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_evaluaciones.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
@@ -35,22 +36,27 @@ final pruebaDeEvaluacionesProvider =
     NotifierProvider<PruebaDeEvaluaciones, int?>(PruebaDeEvaluaciones.new);
 
 /// Preguntas, minutos y uso gratis del mes del mini-ensayo de una prueba.
+/// Se vuelve a leer al cambiar de estudiante, al empezar o entregar una
+/// evaluación y al deslizar en A25.
 final FutureProviderFamily<DisponibilidadMiniEnsayo, int>
-disponibilidadMiniProvider = FutureProvider.autoDispose
-    .family<DisponibilidadMiniEnsayo, int>(
-      (ref, pruebaId) => ref
+disponibilidadMiniProvider =
+    FutureProvider.family<DisponibilidadMiniEnsayo, int>((ref, pruebaId) {
+      ref.watch(sesionProvider.select((sesion) => sesion.value?.estudiante.id));
+      return ref
           .watch(repositorioEvaluacionesProvider)
-          .disponibilidadMiniEnsayo(pruebaId),
-    );
+          .disponibilidadMiniEnsayo(pruebaId);
+    });
 
-/// Si el diagnóstico de una prueba se puede rendir este año escolar.
+/// Si el diagnóstico de una prueba se puede rendir este año escolar, con
+/// sus cifras (A12, A16 y A25). Se relee como [disponibilidadMiniProvider].
 final FutureProviderFamily<DisponibilidadDiagnostico, int>
-disponibilidadDiagnosticoProvider = FutureProvider.autoDispose
-    .family<DisponibilidadDiagnostico, int>(
-      (ref, pruebaId) => ref
+disponibilidadDiagnosticoProvider =
+    FutureProvider.family<DisponibilidadDiagnostico, int>((ref, pruebaId) {
+      ref.watch(sesionProvider.select((sesion) => sesion.value?.estudiante.id));
+      return ref
           .watch(repositorioEvaluacionesProvider)
-          .disponibilidadDiagnostico(pruebaId),
-    );
+          .disponibilidadDiagnostico(pruebaId);
+    });
 
 /// La evaluación con tiempo que se está respondiendo (A27 y A28): sus
 /// preguntas con lo elegido, la que se ve y la hora de término en el reloj
@@ -103,14 +109,24 @@ class EstadoEvaluacionConTiempo extends Notifier<EvaluacionEnCurso?> {
 
   /// Arma el mini-ensayo y fija su hora de término (CU-10 pasos 3 y 4). Los
   /// rechazos llegan como `ErrorApi`.
-  Future<void> empezarMiniEnsayo(int pruebaId) async {
-    final evaluacion = await _repositorio.iniciarMiniEnsayo(pruebaId);
+  Future<void> empezarMiniEnsayo(int pruebaId) =>
+      _empezar(_repositorio.iniciarMiniEnsayo(pruebaId));
+
+  /// Arma el diagnóstico (CU-10a); los rechazos llegan como `ErrorApi`.
+  Future<void> empezarDiagnostico(int pruebaId) =>
+      _empezar(_repositorio.iniciarDiagnostico(pruebaId));
+
+  Future<void> _empezar(Future<EvaluacionConTiempo> inicio) async {
+    final evaluacion = await inicio;
     // Una práctica abierta se cerró como abandonada (RN-19).
-    ref
-      ..invalidate(evaluacionAbiertaProvider)
-      ..invalidate(disponibilidadMiniProvider(pruebaId));
+    ref.invalidate(evaluacionAbiertaProvider);
+    _releerDisponibilidad(evaluacion.pruebaId);
     retomar(evaluacion);
   }
+
+  void _releerDisponibilidad(int pruebaId) => ref
+    ..invalidate(disponibilidadMiniProvider(pruebaId))
+    ..invalidate(disponibilidadDiagnosticoProvider(pruebaId));
 
   /// Sigue la evaluación donde quedó (CU-28): en la primera sin responder,
   /// con el reloj que siguió corriendo.
@@ -170,18 +186,62 @@ class EstadoEvaluacionConTiempo extends Notifier<EvaluacionEnCurso?> {
     return entrega.id;
   }
 
-  /// Se entregó o se acabó el tiempo: el progreso suma el resultado.
+  /// Se entregó o se acabó el tiempo: el progreso suma el resultado y, tras
+  /// el diagnóstico, sus ejes a reforzar (RN-14).
   void terminar() {
     final pruebaId = state?.evaluacion.pruebaId;
     state = null;
     ref
       ..invalidate(evaluacionAbiertaProvider)
       ..invalidate(progresoProvider);
-    if (pruebaId != null) ref.invalidate(disponibilidadMiniProvider(pruebaId));
+    if (pruebaId != null) _releerDisponibilidad(pruebaId);
   }
 }
 
 final evaluacionConTiempoProvider =
     NotifierProvider<EstadoEvaluacionConTiempo, EvaluacionEnCurso?>(
       EstadoEvaluacionConTiempo.new,
+    );
+
+/// El diagnóstico que ofrece A16: de qué prueba, con sus cifras y, si se
+/// ofreció al empezar una práctica (CU-06 alternativo 2.a), esa práctica
+/// para «Ahora no, practicar igual».
+typedef OfertaDiagnostico = ({
+  DisponibilidadDiagnostico diagnostico,
+  DatosPractica? practica,
+});
+
+class EstadoOfertaDiagnostico extends Notifier<OfertaDiagnostico?> {
+  @override
+  OfertaDiagnostico? build() {
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.estudiante.id));
+    return null;
+  }
+
+  void ofrecer(
+    DisponibilidadDiagnostico diagnostico, {
+    DatosPractica? practica,
+  }) => state = (diagnostico: diagnostico, practica: practica);
+}
+
+final ofertaDiagnosticoProvider =
+    NotifierProvider<EstadoOfertaDiagnostico, OfertaDiagnostico?>(
+      EstadoOfertaDiagnostico.new,
+    );
+
+/// Las pruebas cuyo diagnóstico se dejó para después con «Ahora no»: no se
+/// vuelve a ofrecer al practicarlas hasta que se abra de nuevo la app.
+class DiagnosticosPospuestos extends Notifier<Set<int>> {
+  @override
+  Set<int> build() {
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.estudiante.id));
+    return const {};
+  }
+
+  void posponer(int pruebaId) => state = {...state, pruebaId};
+}
+
+final diagnosticosPospuestosProvider =
+    NotifierProvider<DiagnosticosPospuestos, Set<int>>(
+      DiagnosticosPospuestos.new,
     );

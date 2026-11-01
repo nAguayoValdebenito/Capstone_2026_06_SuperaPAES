@@ -181,7 +181,11 @@ void main() {
   group('Evaluaciones (A25)', () {
     testWidgets('muestra el diagnóstico, el mini-ensayo y el ensayo completo '
         'de la prueba a reforzar', (tester) async {
-      final (repo, _) = await _abrirEvaluaciones(tester);
+      final (repo, _) = await _abrirEvaluaciones(
+        tester,
+        evaluaciones: RepositorioEvaluacionesFalso()
+          ..diagnosticoDisponible = true,
+      );
 
       expect(repo.consultadas, [2]);
       expect(find.text('Diagnóstico'), findsOne);
@@ -221,8 +225,7 @@ void main() {
           conPlan: false,
           gratisRestantes: 0,
           disponible: false,
-        )
-        ..diagnosticoDisponible = false;
+        );
       final (_, contenedor) = await _abrirEvaluaciones(
         tester,
         evaluaciones: repo,

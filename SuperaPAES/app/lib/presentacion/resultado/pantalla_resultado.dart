@@ -7,12 +7,14 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
+import 'package:supera_paes/presentacion/resultado/partes_diagnostico.dart';
 import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
 
-/// Resultado de una evaluación (A30 mini-ensayo, A32 ensayo completo y A32b
-/// sin tabla de conversión; HU-61 esc. 1, RF-A23, RN-22 y RN-23): correctas,
-/// incorrectas y omitidas, porcentaje o puntaje estimado, tiempo usado y
-/// resultado por eje y por habilidad. «Ir al historial» llega con HU-62.
+/// Resultado de una evaluación (A30 mini-ensayo, A31 diagnóstico, A32 ensayo
+/// completo y A32b sin tabla de conversión; HU-61 esc. 1, RF-A23, RN-22 y
+/// RN-23): correctas, incorrectas y omitidas, porcentaje o puntaje estimado,
+/// tiempo usado y resultado por eje y por habilidad. En el diagnóstico, lo
+/// que se reforzará y «Practicar». «Ir al historial» llega con HU-62.
 class PantallaResultado extends ConsumerWidget {
   const PantallaResultado({super.key});
 
@@ -58,12 +60,29 @@ class PantallaResultado extends ConsumerWidget {
           _ => const [Center(child: CircularProgressIndicator())],
         },
       ],
-      pie: datos == null
-          ? null
-          : FilledButton(
+      pie: switch (datos) {
+        null => null,
+        // A31: primero practicar lo que marcó; la revisión queda abajo.
+        ResultadoEvaluacion(esDiagnostico: true) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: () => practicarLoReforzado(context, ref, datos),
+              child: Text(textoPracticar(datos)),
+            ),
+            const SizedBox(height: 4),
+            BotonTexto(
               onPressed: () => abrirRevision(context, ref, datos.id),
               child: const Text('Revisar pregunta por pregunta'),
             ),
+          ],
+        ),
+        _ => FilledButton(
+          onPressed: () => abrirRevision(context, ref, datos.id),
+          child: const Text('Revisar pregunta por pregunta'),
+        ),
+      },
     );
   }
 }

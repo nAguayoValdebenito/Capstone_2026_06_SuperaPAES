@@ -5,8 +5,10 @@ import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/practicar/pantalla_resumen_practica.dart';
+import 'package:supera_paes/presentacion/resultado/partes_diagnostico.dart';
 
-/// Las partes del resultado (A30, A32 y A32b), en el orden de los bocetos.
+/// Las partes del resultado (A30, A31, A32 y A32b), en el orden de los
+/// bocetos.
 abstract final class ContenidoResultado {
   static List<Widget> de(ResultadoEvaluacion datos) {
     final secundario = TemaSuperaPaes.pequeno.copyWith(
@@ -47,7 +49,9 @@ abstract final class ContenidoResultado {
               'Este resultado se recalculó porque se anuló una pregunta con '
               'error.',
         ),
-      if (datos.ejes.isNotEmpty || datos.habilidades.isNotEmpty)
+      if (datos.esDiagnostico)
+        ...partesDiagnostico(datos)
+      else if (datos.ejes.isNotEmpty || datos.habilidades.isNotEmpty)
         _TarjetaGrupos(datos: datos),
       if (datos.incorrectas + datos.omitidas > 0)
         Aviso(tono: TonoAviso.info, textoRico: _avisoRepaso(datos)),

@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
@@ -45,8 +49,9 @@ List<PruebaDeInicio> pruebasDeInicio(
 }
 
 /// «Tus pruebas» de A12 (HU-35 esc. 3): cada prueba del perfil lleva a
-/// practicarla (A13 con esa prueba elegida). Repasar errores (HU-39) y el
-/// diagnóstico pendiente (HU-36) llegan con sus historias.
+/// practicarla (A13 con esa prueba elegida) y, si no rindió su diagnóstico
+/// este año escolar, lo ofrece (A16, HU-36). Repasar errores llega con la
+/// HU-39.
 class PruebasInicio extends ConsumerWidget {
   const PruebasInicio({super.key});
 
@@ -77,6 +82,12 @@ class PruebasInicio extends ConsumerWidget {
           )) ...[
             _TarjetaPrueba(
               prueba: prueba,
+              diagnostico: switch (ref
+                  .watch(disponibilidadDiagnosticoProvider(prueba.id))
+                  .value) {
+                final DisponibilidadDiagnostico d when d.disponible => d,
+                _ => null,
+              },
               onTap: () {
                 ref
                     .read(borradorPracticaProvider.notifier)
@@ -94,15 +105,34 @@ class PruebasInicio extends ConsumerWidget {
 }
 
 /// Tarjeta de una prueba (relleno 16 × 14, radio 14). La prueba a reforzar
-/// lleva su etiqueta y el botón «Reforzar»; las demás se tocan enteras.
-class _TarjetaPrueba extends StatelessWidget {
-  const _TarjetaPrueba({required this.prueba, required this.onTap});
+/// lleva su etiqueta y el botón «Reforzar»; con el diagnóstico pendiente,
+/// «Diagnóstico pendiente este año» y el botón «Diagnóstico»; las demás se
+/// tocan enteras.
+class _TarjetaPrueba extends ConsumerWidget {
+  const _TarjetaPrueba({
+    required this.prueba,
+    required this.onTap,
+    this.diagnostico,
+  });
 
   final PruebaDeInicio prueba;
   final VoidCallback onTap;
 
+  /// El diagnóstico pendiente de la prueba; `null` si ya lo rindió.
+  final DisponibilidadDiagnostico? diagnostico;
+
+  void _ofrecerDiagnostico(
+    BuildContext context,
+    WidgetRef ref,
+    DisponibilidadDiagnostico diagnostico,
+  ) {
+    ref.read(ofertaDiagnosticoProvider.notifier).ofrecer(diagnostico);
+    unawaited(context.push(Rutas.ofrecerDiagnostico));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final diagnostico = this.diagnostico;
     final forma = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(TemaSuperaPaes.radioBoton),
       side: const BorderSide(color: TemaSuperaPaes.borde),
@@ -112,8 +142,8 @@ class _TarjetaPrueba extends StatelessWidget {
       shape: forma,
       child: InkWell(
         customBorder: forma,
-        // Con «Reforzar», el botón es la única acción.
-        onTap: prueba.reforzar ? null : onTap,
+        // Con un botón, el botón es la única acción.
+        onTap: prueba.reforzar || diagnostico != null ? null : onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
@@ -130,12 +160,27 @@ class _TarjetaPrueba extends StatelessWidget {
                         tono: TonoEtiqueta.aviso,
                       ),
                     ],
+                    if (diagnostico != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Diagnóstico pendiente este año',
+                        style: TemaSuperaPaes.pequeno.copyWith(
+                          color: TemaSuperaPaes.textoSecundario,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(width: 12),
               if (prueba.reforzar)
                 BotonChico(texto: 'Reforzar', onPressed: onTap)
+              else if (diagnostico != null)
+                BotonChico(
+                  texto: 'Diagnóstico',
+                  onPressed: () =>
+                      _ofrecerDiagnostico(context, ref, diagnostico),
+                )
               else
                 const Icon(
                   Icons.chevron_right,
