@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/evaluaciones/condiciones_evaluacion.dart';
 import 'package:supera_paes/presentacion/evaluaciones/empezar_con_tiempo.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/empezar_practica.dart';
-import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 /// Ofrecer el diagnóstico (A16; HU-36, CU-06 alternativo 2.a, CU-10a,
 /// RF-A11, RN-20): si no lo ha rendido este año escolar, antes de practicar
@@ -64,13 +64,8 @@ class _PantallaOfrecerDiagnosticoState
         .value
         ?.prueba(diagnostico.pruebaId);
     final nombre = prueba?.nombreCorto ?? '';
-    final abierta = ref.watch(evaluacionAbiertaProvider).value?.abierta;
     final ocupado = empezando || empezandoConTiempo;
-    // RN-19: la práctica o el repaso abiertos se cierran al empezar.
-    final cierre = abierta == null || abierta.conTiempo
-        ? null
-        : 'Tu ${abierta.tipoNombre.toLowerCase()} sin terminar se cerrará y '
-              'conservará lo respondido.';
+    final cierre = avisoDeCierre(ref);
     return PantallaFormulario(
       separacion: 16,
       hijos: [

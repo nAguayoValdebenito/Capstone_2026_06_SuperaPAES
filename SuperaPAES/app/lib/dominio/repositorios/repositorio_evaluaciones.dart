@@ -22,6 +22,15 @@ abstract interface class RepositorioEvaluaciones {
   /// como en [iniciarMiniEnsayo].
   Future<EvaluacionConTiempo> iniciarDiagnostico(int pruebaId);
 
+  /// Preguntas, minutos y las que no puntúan del ensayo completo, y si se
+  /// puede rendir (A25).
+  Future<DisponibilidadEnsayo> disponibilidadEnsayo(int pruebaId);
+
+  /// Arma el ensayo completo con el formato oficial (CU-10c). Sin el plan
+  /// Todas las pruebas llega `SIN_PERMISO`; los demás rechazos, como en
+  /// [iniciarMiniEnsayo].
+  Future<EvaluacionConTiempo> iniciarEnsayo(int pruebaId);
+
   /// Guarda o cambia la respuesta sin corregirla (CU-10 paso 6). Vencido el
   /// tiempo llega `EVALUACION_CERRADA`.
   Future<void> guardarRespuesta(

@@ -37,6 +37,19 @@ class RepositorioEvaluacionesFalso implements RepositorioEvaluaciones {
     disponible: true,
   );
 
+  /// Por qué no se puede rendir el ensayo completo: por defecto, sin el plan
+  /// Todas las pruebas; con `null`, el M1 oficial disponible.
+  String? motivoEnsayo = 'plan_todas_requerido';
+
+  DisponibilidadEnsayo get ensayo => DisponibilidadEnsayo(
+    pruebaId: 2,
+    cantidad: 65,
+    duracionMin: 140,
+    sinPuntaje: 5,
+    disponible: motivoEnsayo == null,
+    motivo: motivoEnsayo,
+  );
+
   /// Por defecto ya rendido, así empezar una práctica no ofrece A16.
   bool diagnosticoDisponible = false;
 
@@ -49,6 +62,7 @@ class RepositorioEvaluacionesFalso implements RepositorioEvaluaciones {
   final List<int> consultadas = [];
   final List<int> iniciadas = [];
   final List<int> diagnosticosIniciados = [];
+  final List<int> ensayosIniciados = [];
 
   /// Respuestas guardadas: (evaluación, ítem, alternativa).
   final List<(int, int, int)> guardadas = [];
@@ -94,6 +108,16 @@ class RepositorioEvaluacionesFalso implements RepositorioEvaluaciones {
   Future<EvaluacionConTiempo> iniciarDiagnostico(int pruebaId) async {
     diagnosticosIniciados.add(pruebaId);
     return _iniciada(78, 'Diagnóstico', pruebaId);
+  }
+
+  @override
+  Future<DisponibilidadEnsayo> disponibilidadEnsayo(int pruebaId) async =>
+      ensayo;
+
+  @override
+  Future<EvaluacionConTiempo> iniciarEnsayo(int pruebaId) async {
+    ensayosIniciados.add(pruebaId);
+    return _iniciada(79, 'Ensayo completo', pruebaId);
   }
 
   EvaluacionConTiempo _iniciada(int id, String tipoNombre, int pruebaId) {

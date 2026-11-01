@@ -31,7 +31,18 @@ abstract final class EvaluacionConTiempoModelo {
     disponible: json['disponible'] == true,
   );
 
-  /// `data` de POST /evaluaciones/mini-ensayos o /diagnosticos: recién
+  static DisponibilidadEnsayo disponibilidadEnsayo(Map<String, dynamic> json) =>
+      DisponibilidadEnsayo(
+        pruebaId: leerId(json['pruebaId']),
+        cantidad: json['cantidad'] as int,
+        duracionMin: json['duracionMin'] as int,
+        sinPuntaje: json['sinPuntaje'] as int? ?? 0,
+        textos: json['textos'] as int?,
+        disponible: json['disponible'] == true,
+        motivo: json['motivo'] as String?,
+      );
+
+  /// `data` de POST /evaluaciones/mini-ensayos, /diagnosticos o /ensayos: recién
   /// empezado, le queda toda la duración.
   static EvaluacionConTiempo iniciada(
     Map<String, dynamic> json, {

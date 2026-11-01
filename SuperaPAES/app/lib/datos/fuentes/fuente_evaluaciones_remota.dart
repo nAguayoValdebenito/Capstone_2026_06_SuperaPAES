@@ -51,6 +51,25 @@ class FuenteEvaluacionesRemota {
         tipoNombre: 'Diagnóstico',
       );
 
+  Future<DisponibilidadEnsayo> disponibilidadEnsayo(int pruebaId) async =>
+      EvaluacionConTiempoModelo.disponibilidadEnsayo(
+        await pedirObjeto(
+          _dio,
+          'GET',
+          '/evaluaciones/ensayos/disponibilidad',
+          consulta: {'pruebaId': pruebaId},
+          sinData: 'La API respondió sin la disponibilidad del ensayo.',
+        ),
+      );
+
+  Future<EvaluacionConTiempo> iniciarEnsayo(int pruebaId) async =>
+      EvaluacionConTiempoModelo.iniciada(
+        await publicarObjeto(_dio, '/evaluaciones/ensayos', {
+          'pruebaId': pruebaId,
+        }, sinData: 'La API respondió sin el ensayo.'),
+        tipoNombre: 'Ensayo completo',
+      );
+
   Future<void> guardarRespuesta(
     int evaluacionId,
     int itemId,

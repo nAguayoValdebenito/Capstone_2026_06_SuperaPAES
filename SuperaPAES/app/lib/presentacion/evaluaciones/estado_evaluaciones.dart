@@ -58,6 +58,18 @@ disponibilidadDiagnosticoProvider =
           .disponibilidadDiagnostico(pruebaId);
     });
 
+/// El ensayo completo de una prueba: si lo cubre el plan y sus cifras.
+/// Se relee como [disponibilidadMiniProvider].
+final FutureProviderFamily<DisponibilidadEnsayo, int>
+disponibilidadEnsayoProvider = FutureProvider.family<DisponibilidadEnsayo, int>(
+  (ref, pruebaId) {
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.estudiante.id));
+    return ref
+        .watch(repositorioEvaluacionesProvider)
+        .disponibilidadEnsayo(pruebaId);
+  },
+);
+
 /// La evaluación con tiempo que se está respondiendo (A27 y A28): sus
 /// preguntas con lo elegido, la que se ve y la hora de término en el reloj
 /// del teléfono, calculada con lo que quedaba según el servidor (RN-21).
@@ -112,6 +124,10 @@ class EstadoEvaluacionConTiempo extends Notifier<EvaluacionEnCurso?> {
   Future<void> empezarMiniEnsayo(int pruebaId) =>
       _empezar(_repositorio.iniciarMiniEnsayo(pruebaId));
 
+  /// Arma el ensayo completo (CU-10c); los rechazos llegan como `ErrorApi`.
+  Future<void> empezarEnsayo(int pruebaId) =>
+      _empezar(_repositorio.iniciarEnsayo(pruebaId));
+
   /// Arma el diagnóstico (CU-10a); los rechazos llegan como `ErrorApi`.
   Future<void> empezarDiagnostico(int pruebaId) =>
       _empezar(_repositorio.iniciarDiagnostico(pruebaId));
@@ -126,7 +142,8 @@ class EstadoEvaluacionConTiempo extends Notifier<EvaluacionEnCurso?> {
 
   void _releerDisponibilidad(int pruebaId) => ref
     ..invalidate(disponibilidadMiniProvider(pruebaId))
-    ..invalidate(disponibilidadDiagnosticoProvider(pruebaId));
+    ..invalidate(disponibilidadDiagnosticoProvider(pruebaId))
+    ..invalidate(disponibilidadEnsayoProvider(pruebaId));
 
   /// Sigue la evaluación donde quedó (CU-28): en la primera sin responder,
   /// con el reloj que siguió corriendo.

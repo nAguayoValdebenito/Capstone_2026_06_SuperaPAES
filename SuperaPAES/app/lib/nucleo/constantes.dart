@@ -28,9 +28,10 @@ abstract final class Rutas {
   static const String cupoAgotado = '/cupo-agotado';
   static const String repaso = '/repaso';
 
-  // Evaluaciones con tiempo (HU-40): antes de empezar, la pregunta con reloj
-  // y ver todas para entregar.
+  // Evaluaciones con tiempo (HU-40 y HU-42): antes de empezar el mini-ensayo
+  // o el ensayo completo, la pregunta con reloj y ver todas para entregar.
   static const String antesDeEmpezar = '/evaluaciones/antes-de-empezar';
+  static const String antesDelEnsayo = '/evaluaciones/antes-del-ensayo';
   static const String preguntaConReloj = '/evaluaciones/pregunta';
   static const String verTodas = '/evaluaciones/ver-todas';
 
