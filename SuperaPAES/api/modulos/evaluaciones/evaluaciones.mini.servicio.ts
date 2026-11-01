@@ -3,7 +3,7 @@ import type { CuentasServicio } from '../cuentas/index.js';
 import type { CupoInvitacionesServicio } from '../cupo-invitaciones/index.js';
 import { crearConTiempoRepositorio } from './evaluaciones.con-tiempo.repositorio.js';
 import { crearEstructuraRepositorio } from './evaluaciones.estructura.repositorio.js';
-import { armarEvaluacion } from './evaluaciones.estructura.js';
+import { armarEvaluacion, type DetalleEstructura } from './evaluaciones.estructura.js';
 import {
   diagnosticoYaRendido,
   evaluacionConTiempoAbierta,
@@ -17,7 +17,7 @@ import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 interface DependenciasMini {
   unidadDeTrabajo: UnidadDeTrabajo;
   cuentas: Pick<CuentasServicio, 'obtenerPerfilPractica'>;
-  cupo: Pick<CupoInvitacionesServicio, 'registrarUsoGratis'>;
+  cupo: Pick<CupoInvitacionesServicio, 'registrarUsoGratis' | 'usosGratisDelMes'>;
   seleccion: EvaluacionesRepositorio;
 }
 const repositorio = crearConTiempoRepositorio();
@@ -39,6 +39,56 @@ async function perfilParaMini(
   return { ...perfil, anioEgreso: perfil.anioEgreso };
 }
 
+async function leerEstructura(
+  tipo: 'mini_ensayo' | 'diagnostico',
+  pruebaId: number,
+  nivelId: number | null,
+  tx: Ejecutor,
+) {
+  const estructura = await estructuras.leer(tipo, pruebaId, nivelId, tx);
+  if (!estructura)
+    throw validacion(
+      'pruebaId',
+      `No hay una estructura activa de ${tipo === 'diagnostico' ? 'diagnóstico' : 'mini-ensayo'} para esta prueba.`,
+      'prueba_sin_estructura',
+    );
+  return estructura;
+}
+
+/** Cuántos ejes o habilidades distintos tiene, sin los que el curso todavía no ve (RN-28). */
+function contar(detalles: DetalleEstructura[], campo: 'ejeId' | 'habilidadId') {
+  return new Set(detalles.filter((d) => d.disponible && d[campo] !== null).map((d) => d[campo]))
+    .size;
+}
+
+// HU-40.3 (A25 y A26): lo que se muestra antes de empezar, sin crear la evaluación ni gastar el uso.
+async function disponibilidadMini(
+  dependencias: DependenciasMini,
+  estudianteId: string,
+  pruebaId: number,
+) {
+  return dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
+    const perfil = await perfilParaMini(dependencias.cuentas, estudianteId, pruebaId, tx);
+    const { ahora, nivelId } = await repositorio.contexto(perfil.anioEgreso, tx);
+    const estructura = await leerEstructura('mini_ensayo', pruebaId, nivelId, tx);
+    const usos = await dependencias.cupo.usosGratisDelMes(
+      { estudianteId, pruebaId, estructuraId: estructura.id, ahora },
+      tx,
+    );
+    const disponible = usos.conPlan || (usos.gratisRestantes ?? 0) > 0;
+    return {
+      pruebaId,
+      cantidad: estructura.cantidad,
+      duracionMin: estructura.duracionMin,
+      ejes: contar(estructura.detalles, 'ejeId'),
+      habilidades: contar(estructura.detalles, 'habilidadId'),
+      ...usos,
+      disponible,
+      motivo: disponible ? null : 'limite_mensual',
+    };
+  });
+}
+
 async function prepararArmado(
   datos: {
     tipo: 'mini_ensayo' | 'diagnostico';
@@ -50,13 +100,7 @@ async function prepararArmado(
   tx: Ejecutor,
 ) {
   const { tipo, pruebaId, nivelId, electivoId } = datos;
-  const estructura = await estructuras.leer(tipo, pruebaId, nivelId, tx);
-  if (!estructura)
-    throw validacion(
-      'pruebaId',
-      `No hay una estructura activa de ${tipo === 'diagnostico' ? 'diagnóstico' : 'mini-ensayo'} para esta prueba.`,
-      'prueba_sin_estructura',
-    );
+  const estructura = await leerEstructura(tipo, pruebaId, nivelId, tx);
   if (tipo === 'mini_ensayo' && estructura.codigo === 'CIE' && !electivoId)
     throw validacion(
       'pruebaId',
@@ -135,6 +179,8 @@ export function crearMiniServicio(dependencias: DependenciasMini) {
         const estado = await repositorio.disponibilidadDiagnostico(estudianteId, pruebaId, tx);
         return { pruebaId, ...estado, motivo: estado.disponible ? null : 'ya_rendido' };
       }),
+    disponibilidadMiniEnsayo: (estudianteId: string, pruebaId: number) =>
+      disponibilidadMini(dependencias, estudianteId, pruebaId),
     iniciarMiniEnsayo: (estudianteId: string, pruebaId: number) =>
       conReintentoDeInicio(() => iniciar(dependencias, estudianteId, pruebaId, 'mini_ensayo')),
     iniciarDiagnostico: (estudianteId: string, pruebaId: number) =>

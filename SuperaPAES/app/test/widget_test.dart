@@ -12,9 +12,9 @@ import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
-  test('las 28 pantallas de la app están declaradas una sola vez', () {
-    expect(secciones, hasLength(28));
-    expect(secciones.map((s) => s.ruta).toSet(), hasLength(28));
+  test('las 31 pantallas de la app están declaradas una sola vez', () {
+    expect(secciones, hasLength(31));
+    expect(secciones.map((s) => s.ruta).toSet(), hasLength(31));
     // Barra inferior del DAS 7.4: Planes pasa a Perfil.
     expect(pestanas.map((s) => s.etiquetaPestana ?? s.titulo), [
       'Inicio',
@@ -68,7 +68,11 @@ void main() {
 
     await tester.tap(find.text('Evaluaciones').last);
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Evaluaciones'), findsOneWidget);
+    expect(rutaActual(contenedor), Rutas.evaluaciones);
+    expect(
+      find.text('Con tiempo, como la PAES real. No usan tu cupo.'),
+      findsOne,
+    );
   });
 
   testWidgets('desde Perfil se abre Mi suscripción (Planes) y se vuelve '

@@ -8,9 +8,29 @@ export interface UsoGratis {
   ahora: Date;
 }
 
+/** Los usos gratis del mes de Chile (RN-02) de una estructura: cuántos permite y cuántos van. */
+export interface UsosDelMes {
+  maximo: number;
+  usados: number;
+}
+
 /** Se usa con el cliente de la transacción del inicio, nunca con otra conexión. */
 export function crearUsosRepositorio() {
   return {
+    async delMes(
+      datos: Pick<UsoGratis, 'estudianteId' | 'estructuraId' | 'ahora'>,
+      tx: Ejecutor,
+    ): Promise<UsosDelMes> {
+      const { rows } = await tx.query<UsosDelMes>(
+        `SELECT s.usos_gratis_mes AS maximo,
+           (SELECT count(*)::int FROM app.uso_gratis u
+             WHERE u.estudiante_id=$1 AND u.estructura_id=s.id
+               AND u.periodo=date_trunc('month', $3::timestamptz AT TIME ZONE 'America/Santiago')::date) AS usados
+           FROM contenido.estructura_evaluacion s WHERE s.id=$2`,
+        [datos.estudianteId, datos.estructuraId, datos.ahora],
+      );
+      return rows[0] ?? { maximo: 0, usados: 0 };
+    },
     async registrar(datos: UsoGratis, tx: Ejecutor): Promise<boolean> {
       await tx.query('SELECT id FROM app.estudiante WHERE id=$1 FOR UPDATE', [datos.estudianteId]);
       const previa = await tx.query(

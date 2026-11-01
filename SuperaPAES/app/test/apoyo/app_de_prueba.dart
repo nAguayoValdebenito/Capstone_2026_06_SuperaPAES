@@ -6,6 +6,7 @@ import 'package:supera_paes/presentacion/aplicacion.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
+import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/invitaciones/estado_invitaciones.dart';
 import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
@@ -17,6 +18,7 @@ import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 import 'repositorio_cuentas_falso.dart';
 import 'repositorio_cupo_falso.dart';
+import 'repositorio_evaluaciones_falso.dart';
 import 'repositorio_mis_datos_falso.dart';
 import 'repositorio_perfil_falso.dart';
 import 'repositorio_practica_falso.dart';
@@ -36,6 +38,7 @@ ProviderContainer crearContenedor({
   RepositorioPuntajesFalso? puntajes,
   RepositorioMisDatosFalso? misDatos,
   RepositorioResultadosFalso? resultados,
+  RepositorioEvaluacionesFalso? evaluaciones,
   CompartirArchivo? compartir,
   AbrirEnlace? abrirEnlace,
   CompartirTexto? compartirTexto,
@@ -60,6 +63,10 @@ ProviderContainer crearContenedor({
       // Sin `resultados`, el mini-ensayo del boceto A30.
       repositorioResultadosProvider.overrideWithValue(
         resultados ?? RepositorioResultadosFalso(),
+      ),
+      // Sin `evaluaciones`, el mini-ensayo de M1 del boceto A25.
+      repositorioEvaluacionesProvider.overrideWithValue(
+        evaluaciones ?? RepositorioEvaluacionesFalso(),
       ),
       repositorioMisDatosProvider.overrideWithValue(
         misDatos ?? RepositorioMisDatosFalso(),

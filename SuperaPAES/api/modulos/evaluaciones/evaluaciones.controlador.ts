@@ -8,6 +8,7 @@ import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones
 
 export interface EvaluacionesControlador {
   iniciarMiniEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
+  disponibilidadMiniEnsayo: RequestHandler;
   iniciarDiagnostico: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
   disponibilidadDiagnostico: RequestHandler;
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
@@ -45,18 +46,32 @@ function controladoresDiagnostico(servicio: EvaluacionesServicio) {
   return { iniciarDiagnostico, disponibilidadDiagnostico };
 }
 
+function controladoresMini(servicio: EvaluacionesServicio) {
+  const disponibilidadMiniEnsayo: EvaluacionesControlador['disponibilidadMiniEnsayo'] = async (
+    req,
+    res,
+  ) => {
+    responder(
+      res,
+      await servicio.disponibilidadMiniEnsayo(estudianteDe(req), Number(req.query.pruebaId)),
+    );
+  };
+  const iniciarMiniEnsayo: EvaluacionesControlador['iniciarMiniEnsayo'] = async (req, res) => {
+    responder(res, await servicio.iniciarMiniEnsayo(estudianteDe(req), req.body.pruebaId), {
+      estado: 201,
+    });
+  };
+  return { disponibilidadMiniEnsayo, iniciarMiniEnsayo };
+}
+
 export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
   return {
     ...controladoresDiagnostico(servicio),
+    ...controladoresMini(servicio),
     entregarEvaluacion: async (req, res) => {
       responder(res, await servicio.entregarEvaluacion(estudianteDe(req), String(req.params.id)));
-    },
-    iniciarMiniEnsayo: async (req, res) => {
-      responder(res, await servicio.iniciarMiniEnsayo(estudianteDe(req), req.body.pruebaId), {
-        estado: 201,
-      });
     },
     iniciarPractica: async (req, res) => {
       responder(res, await servicio.iniciarPractica(estudianteDe(req), req.body), { estado: 201 });

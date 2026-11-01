@@ -9,11 +9,12 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/hoja_confirmacion.dart';
+import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 /// Lo que se eligió en A29.
-enum AccionRetomar { continuar, verResultado }
+enum AccionRetomar { continuar, entregar, verResultado }
 
 /// A29 se muestra de a una (Inicio sigue montado detrás de las otras
 /// pestañas y también la ofrece), y Inicio la abre sola una vez por
@@ -39,8 +40,10 @@ final hojaRetomarProvider =
 
 /// Retomar una evaluación con tiempo (A29; HU-60 esc. 2, CU-28, CU-10 2.b y
 /// 5.a): al volver a la app, o al intentar empezar otra cosa, ofrece seguir
-/// donde quedó; el reloj siguió corriendo (RN-21). Si el tiempo se acaba con
-/// la hoja abierta, ofrece el resultado (A30).
+/// donde quedó; el reloj siguió corriendo (RN-21). «Continuar» vuelve a la
+/// pregunta sin responder (A27) y «Entregar ahora» abre el mapa para
+/// entregar (A28). Si el tiempo se acaba con la hoja abierta, ofrece el
+/// resultado (A30).
 Future<void> ofrecerRetomar(
   BuildContext context,
   WidgetRef ref,
@@ -59,10 +62,16 @@ Future<void> ofrecerRetomar(
   }
   if (!context.mounted) return;
   switch (accion) {
-    // La evaluación con reloj (A27) se conecta con el paso 27 (HU-40.3);
-    // mientras tanto, Continuar lleva a Evaluaciones (A25).
-    case AccionRetomar.continuar:
+    case AccionRetomar.continuar || AccionRetomar.entregar
+        when abierta.preguntas.isEmpty:
+      // Sin sus preguntas no se puede seguir aquí: Evaluaciones la ofrece.
       context.go(Rutas.evaluaciones);
+    case AccionRetomar.continuar:
+      ref.read(evaluacionConTiempoProvider.notifier).retomar(abierta.conReloj);
+      context.go(Rutas.preguntaConReloj);
+    case AccionRetomar.entregar:
+      ref.read(evaluacionConTiempoProvider.notifier).retomar(abierta.conReloj);
+      context.go(Rutas.verTodas);
     case AccionRetomar.verResultado:
       // Al consultarlo, el servidor la cierra y la corrige (RN-21).
       ref.invalidate(evaluacionAbiertaProvider);
@@ -165,6 +174,11 @@ class _HojaRetomarEvaluacionState extends State<HojaRetomarEvaluacion> {
               onPressed: () =>
                   Navigator.of(context).pop(AccionRetomar.continuar),
               child: const Text('Continuar'),
+            ),
+            OutlinedButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(AccionRetomar.entregar),
+              child: const Text('Entregar ahora'),
             ),
           ];
     return SafeArea(
