@@ -13,6 +13,10 @@ import {
 } from './preguntas.edicion.repositorio.js';
 import { crearEdicionPreguntas, type EdicionPreguntas } from './preguntas.edicion.servicio.js';
 import {
+  crearPreguntasGeneracionRepositorio,
+  type EjemploDePregunta,
+} from './preguntas.generacion.repositorio.js';
+import {
   crearPreguntasRepositorio,
   type FilaBanco,
   type Opcion,
@@ -73,7 +77,16 @@ export interface FiltrosDelBanco {
   dificultades: Opcion[];
 }
 
-export interface PreguntasServicio extends EdicionPreguntas, TextosDeLaConsola {
+/** HU-16.2 y HU-17.2: lo que el generador con IA lee del banco. */
+export interface LecturasParaGenerar {
+  /** Los enunciados del contenido en cualquier estado (también rechazadas y retiradas). */
+  enunciadosDelContenido(contenidoId: number, tx?: Ejecutor): Promise<string[]>;
+  /** Preguntas aprobadas o publicadas del contenido, de origen manual o IA, las más recientes primero. */
+  ejemplosAprobados(contenidoId: number, limite: number): Promise<EjemploDePregunta[]>;
+}
+
+export interface PreguntasServicio
+  extends EdicionPreguntas, TextosDeLaConsola, LecturasParaGenerar {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.
@@ -259,8 +272,11 @@ export function crearPreguntasServicio(
     listas: repositorio,
     textos,
   });
+  const generacion = crearPreguntasGeneracionRepositorio(dependencias.bd);
   return {
     ...edicion,
+    enunciadosDelContenido: (contenidoId, tx) => generacion.enunciadosDelContenido(contenidoId, tx),
+    ejemplosAprobados: (contenidoId, limite) => generacion.ejemplosAprobados(contenidoId, limite),
     listarTextos: (consulta) => textos.listarTextos(consulta),
     obtenerTexto: (id) => textos.obtenerTexto(id),
     crearTexto: (autorId, datos) => textos.crearTexto(autorId, datos),
