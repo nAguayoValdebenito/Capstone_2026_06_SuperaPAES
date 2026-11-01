@@ -139,7 +139,7 @@ describe('C04 · importar preguntas (HU-13.2)', () => {
   it('CP-10: un archivo que no sigue la plantilla muestra la explicación, sin informe', () => {
     const mensaje =
       'El archivo «preguntas.csv» no sigue la plantilla: faltan las columnas «correcta».';
-    const html = dibujar({ revision: { tipo: 'rechazada', codigo: 'VALIDACION', mensaje } });
+    const html = dibujar({ revision: { tipo: 'rechazada', mensaje } });
 
     expect(html).toContain(mensaje);
     expect(html).toContain('role="alert"');
@@ -156,6 +156,16 @@ describe('C04 · importar preguntas (HU-13.2)', () => {
     expect(html).toContain('<label for="archivo-textos" class="boton">Cambiar archivo</label>');
     expect(html).toContain('Quitar</button>');
     expect(html).toMatch(/aviso--error" role="alert">El archivo no tiene preguntas válidas/);
+  });
+
+  it('mientras se importa, los archivos no se pueden cambiar ni quitar', () => {
+    const nombres = { preguntas: 'preguntas.csv', textos: 'textos.csv' };
+    const libre = dibujar({ declara: true, nombres });
+    const importando = dibujar({ declara: true, enviando: true, nombres });
+
+    expect(libre).not.toMatch(/type="file"[^>]*disabled/);
+    expect(importando.match(/<input id="archivo-[a-z]+"[^>]*disabled=""/g)).toHaveLength(2);
+    expect(importando).toMatch(/<button type="button" class="boton" disabled="">Quitar<\/button>/);
   });
 
   it('escapa los textos que vienen del archivo', () => {

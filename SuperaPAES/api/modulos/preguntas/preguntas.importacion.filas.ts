@@ -4,24 +4,25 @@
 // del boceto C04 («No indica la alternativa correcta.»).
 import type { PruebaTemario } from '../temario/index.js';
 import { normalizar } from './preguntas.csv.js';
-import type { ColumnaPregunta, ColumnaTexto, FilaDelArchivo } from './preguntas.plantilla.js';
+import {
+  type Buscar,
+  conEsquema,
+  type ErrorDeFila,
+  esMotivo,
+  faltaONoExiste,
+  MOTIVO_SOBRAN,
+  resumir,
+  type TextoDelArchivo,
+} from './preguntas.importacion.comun.js';
+import type { ColumnaPregunta, FilaDelArchivo } from './preguntas.plantilla.js';
 import { faltaElTexto, problemasDeCantidad } from './preguntas.reglas.js';
 import type { Opcion } from './preguntas.repositorio.js';
 import {
   type AlternativaPregunta,
   type DatosPregunta,
-  type DatosTexto,
+  esquemaPregunta,
   LETRAS,
 } from './preguntas.validadores.js';
-
-/** Una fila que no se importa, con sus motivos (la tabla «Filas con errores» de C04). */
-export interface ErrorDeFila {
-  archivo: 'preguntas' | 'textos';
-  fila: number;
-  /** Comienzo del enunciado o el título del texto, para reconocer la fila. */
-  resumen: string;
-  motivos: string[];
-}
 
 /** Una pregunta válida. Su texto se nombra por el código: el id existe solo al crearlo. */
 export interface PreguntaDelArchivo {
@@ -30,15 +31,9 @@ export interface PreguntaDelArchivo {
   codigoTexto: string | null;
 }
 
-/** Un texto del archivo de textos; sin datos si su fila tiene errores. */
-export interface TextoDelArchivo {
-  fila: number;
-  codigo: string;
-  datos: DatosTexto | null;
-}
-
 /** Lo que se necesita para revisar las filas de preguntas. */
 export interface ContextoDeFilas {
+  buscar: Buscar;
   pruebas: readonly PruebaTemario[];
   dificultades: readonly Opcion[];
   /** Los textos del archivo de textos, por su código normalizado. */
@@ -47,8 +42,6 @@ export interface ContextoDeFilas {
 
 type Celdas = Record<ColumnaPregunta, string>;
 
-const LARGO_RESUMEN = 80;
-const LARGO_TITULO = 200;
 const CANTIDADES = ['', 'una', 'dos', 'tres', 'cuatro', 'cinco'];
 const COLUMNA_DE_LETRA = {
   A: 'alternativa_a',
@@ -58,60 +51,37 @@ const COLUMNA_DE_LETRA = {
   E: 'alternativa_e',
 } as const satisfies Record<(typeof LETRAS)[number], ColumnaPregunta>;
 
-const MOTIVO_SOBRAN =
-  'Tiene más celdas que columnas: revisa las comillas de los textos con «;» o «,».';
-
-/** Los motivos de una lista armada con condiciones: quedan los textos no vacíos. */
-const esMotivo = (motivo: unknown): motivo is string => typeof motivo === 'string' && motivo !== '';
-
-function resumir(texto: string): string {
-  const limpio = texto.replace(/\s+/g, ' ').trim();
-  return limpio.length > LARGO_RESUMEN ? `${limpio.slice(0, LARGO_RESUMEN - 1)}…` : limpio;
+interface EnTemario {
+  /** La prueba, si existe: con ella se revisan las alternativas y el texto aunque falte lo demás. */
+  prueba: PruebaTemario | undefined;
+  ids: { contenidoId: number; habilidadId: number; tipoPregunta: string } | null;
+  motivos: string[];
 }
 
-/** La opción que se llama como `valor` o tiene ese código, sin mirar tildes ni mayúsculas. */
-function buscar<T extends { nombre: string; codigo?: string }>(
-  lista: readonly T[],
-  valor: string,
-): T | undefined {
-  const buscado = normalizar(valor);
-  if (!buscado) return undefined;
-  return lista.find(
-    (opcion) =>
-      normalizar(opcion.nombre) === buscado ||
-      (opcion.codigo !== undefined && normalizar(opcion.codigo) === buscado),
-  );
-}
-
-/** «Falta el eje.» si la celda está vacía, o que el valor no existe. */
-const faltaONoExiste = (valor: string, falta: string, noExiste: string) =>
-  valor ? noExiste : falta;
-
-interface Ubicacion {
-  prueba: PruebaTemario;
-  contenidoId: number;
-  habilidadId: number;
-  tipoPregunta: string;
-}
-
-/** La prueba, el contenido, la habilidad y el tipo de la fila, o por qué no están en el temario. */
-function enTemario(c: Celdas, pruebas: readonly PruebaTemario[]): Ubicacion | string[] {
+/** La prueba, el contenido, la habilidad y el tipo de la fila, y por qué no están en el temario. */
+function enTemario(c: Celdas, { buscar, pruebas }: ContextoDeFilas): EnTemario {
   const prueba = buscar(pruebas, c.prueba);
-  if (!prueba)
-    return [faltaONoExiste(c.prueba, 'Falta la prueba.', `La prueba «${c.prueba}» no existe.`)];
+  if (!prueba) {
+    const motivo = faltaONoExiste(
+      c.prueba,
+      'Falta la prueba.',
+      `La prueba «${c.prueba}» no existe.`,
+    );
+    return { prueba, ids: null, motivos: [motivo] };
+  }
   const eje = buscar(prueba.ejes, c.eje);
   const contenido = eje && buscar(eje.contenidos, c.contenido);
   const habilidad = buscar(prueba.habilidades, c.habilidad);
   const tipo = buscar(prueba.tiposPregunta, c.tipo);
   if (eje && contenido && habilidad && tipo) {
-    return {
-      prueba,
-      contenidoId: contenido.id,
-      habilidadId: habilidad.id,
-      tipoPregunta: tipo.codigo,
-    };
+    const ids = { contenidoId: contenido.id, habilidadId: habilidad.id, tipoPregunta: tipo.codigo };
+    return { prueba, ids, motivos: [] };
   }
-  return motivosDelTemario(c, prueba, { eje, contenido, habilidad, tipo });
+  return {
+    prueba,
+    ids: null,
+    motivos: motivosDelTemario(c, prueba, { eje, contenido, habilidad, tipo }),
+  };
 }
 
 /** Por qué el eje, el contenido, la habilidad o el tipo de la fila no están en la prueba. */
@@ -153,12 +123,13 @@ function motivosDelTemario(
 
 /** La letra de la columna «correcta», o por qué no sirve; `cuantas` son las alternativas escritas. */
 function correctaDe(valor: string, cuantas: number): { letra: string } | { motivo: string } {
+  // «B», «b», «A, C» o «A y C». Cualquier otra cosa («2», «BC») no es una letra.
   const marcadas = [
     ...new Set(
       valor
         .toUpperCase()
-        .split(/[^A-Z]+/)
-        .filter(Boolean),
+        .split(/[\s,;/]+/)
+        .filter((marca) => marca && marca !== 'Y'),
     ),
   ];
   if (marcadas.length === 0) return { motivo: 'No indica la alternativa correcta.' };
@@ -224,7 +195,7 @@ function textoDe(
 }
 
 /** RN-12: la dificultad del archivo es solo una sugerencia, y es opcional. */
-function dificultadDe(valor: string, dificultades: readonly Opcion[]) {
+function dificultadDe(valor: string, { buscar, dificultades }: ContextoDeFilas) {
   if (!valor) return { codigo: null };
   const dificultad = buscar(dificultades, valor);
   return dificultad
@@ -232,10 +203,33 @@ function dificultadDe(valor: string, dificultades: readonly Opcion[]) {
     : { motivo: `La dificultad «${valor}» no existe.` };
 }
 
+/**
+ * Todo lo que tiene la fila, en el orden de sus columnas. Con la prueba encontrada se revisan las
+ * alternativas y el texto aunque falte el eje o la habilidad: el informe trae todos los motivos de una
+ * vez (CU-16 paso 4).
+ */
+function revisarFila(fila: FilaDelArchivo<ColumnaPregunta>, contexto: ContextoDeFilas) {
+  const c = fila.celdas;
+  const temario = enTemario(c, contexto);
+  const { prueba } = temario;
+  const { alternativas, motivos: deAlternativas } = alternativasDe(c);
+  const dificultad = dificultadDe(c.dificultad_sugerida, contexto);
+  const texto = prueba ? textoDe(c.codigo_texto, prueba, contexto.textos) : { codigo: null };
+  const cantidad = prueba ? problemasDeCantidad(alternativas, prueba) : [];
+  const motivos = [
+    ...temario.motivos,
+    ...motivosDeLosTextos(fila),
+    ...deAlternativas,
+    ...cantidad.map((problema) => problema.mensaje),
+    ...[texto, dificultad].flatMap((parte) => ('motivo' in parte ? [parte.motivo] : [])),
+  ];
+  return { temario, alternativas, dificultad, texto, motivos };
+}
+
 /** La pregunta de la fila lista para crear, o la fila con todos sus motivos (CU-16 paso 4). */
 export function leerPregunta(
   fila: FilaDelArchivo<ColumnaPregunta>,
-  { pruebas, dificultades, textos }: ContextoDeFilas,
+  contexto: ContextoDeFilas,
 ): PreguntaDelArchivo | ErrorDeFila {
   const c = fila.celdas;
   const conError = (motivos: string[]): ErrorDeFila => ({
@@ -244,77 +238,19 @@ export function leerPregunta(
     resumen: resumir(c.enunciado),
     motivos,
   });
-  const ubicacion = enTemario(c, pruebas);
-  const { alternativas, motivos: deAlternativas } = alternativasDe(c);
-  const motivos = [...motivosDeLosTextos(fila), ...deAlternativas];
-  const dificultad = dificultadDe(c.dificultad_sugerida, dificultades);
-  if ('motivo' in dificultad) motivos.push(dificultad.motivo);
-  if (Array.isArray(ubicacion)) return conError([...ubicacion, ...motivos]);
-  const { prueba, ...ids } = ubicacion;
-  motivos.push(...problemasDeCantidad(alternativas, prueba).map((problema) => problema.mensaje));
-  const texto = textoDe(c.codigo_texto, prueba, textos);
-  if ('motivo' in texto) motivos.push(texto.motivo);
-  if (motivos.length > 0 || 'motivo' in texto || 'motivo' in dificultad) return conError(motivos);
-  return {
-    fila: fila.numero,
-    codigoTexto: texto.codigo,
-    datos: {
-      pruebaId: prueba.id,
-      ...ids,
-      dificultadSugerida: dificultad.codigo,
-      enunciado: c.enunciado,
-      explicacion: c.explicacion,
-      textoEstimuloId: null,
-      textoNuevo: null,
-      ordenEnTexto: null,
-      alternativas,
-    },
-  };
-}
-
-/** Los motivos de una fila del archivo de textos. */
-function motivosDelTexto(
-  fila: FilaDelArchivo<ColumnaTexto>,
-  tipo: Opcion | undefined,
-  repetido: TextoDelArchivo | undefined,
-): string[] {
-  const c = fila.celdas;
-  return [
-    !c.codigo && 'Falta el código del texto.',
-    repetido && `El código «${c.codigo}» ya está en la fila ${String(repetido.fila)}.`,
-    !tipo &&
-      faltaONoExiste(
-        c.tipo_texto,
-        'Falta el tipo de texto.',
-        `El tipo de texto «${c.tipo_texto}» no existe.`,
-      ),
-    !c.titulo && 'Falta el título del texto.',
-    c.titulo.length > LARGO_TITULO && 'El título puede tener hasta 200 caracteres.',
-    !c.contenido && 'Falta el contenido del texto.',
-    fila.sobran && MOTIVO_SOBRAN,
-  ].filter(esMotivo);
-}
-
-/** CU-16 3.a: los textos del archivo de textos por su código, y las filas con problemas. */
-export function leerTextos(
-  filas: readonly FilaDelArchivo<ColumnaTexto>[],
-  tipos: readonly Opcion[],
-): { textos: Map<string, TextoDelArchivo>; errores: ErrorDeFila[] } {
-  const textos = new Map<string, TextoDelArchivo>();
-  const errores: ErrorDeFila[] = [];
-  for (const fila of filas.filter((candidata) => !candidata.enBlanco)) {
-    const c = fila.celdas;
-    const clave = normalizar(c.codigo);
-    const tipo = buscar(tipos, c.tipo_texto);
-    const motivos = motivosDelTexto(fila, tipo, clave ? textos.get(clave) : undefined);
-    const datos =
-      motivos.length === 0 && tipo
-        ? { tipoTexto: tipo.codigo, titulo: c.titulo, contenido: c.contenido, imagenUrl: null }
-        : null;
-    if (!datos)
-      errores.push({ archivo: 'textos', fila: fila.numero, resumen: resumir(c.titulo), motivos });
-    if (clave && !textos.has(clave))
-      textos.set(clave, { fila: fila.numero, codigo: c.codigo, datos });
+  const { temario, alternativas, dificultad, texto, motivos } = revisarFila(fila, contexto);
+  const { prueba, ids } = temario;
+  if (motivos.length > 0 || !prueba || !ids || 'motivo' in texto || 'motivo' in dificultad) {
+    return conError(motivos);
   }
-  return { textos, errores };
+  const validada = conEsquema(esquemaPregunta, {
+    pruebaId: prueba.id,
+    ...ids,
+    dificultadSugerida: dificultad.codigo,
+    enunciado: c.enunciado,
+    explicacion: c.explicacion,
+    alternativas,
+  });
+  if ('motivos' in validada) return conError(validada.motivos);
+  return { fila: fila.numero, codigoTexto: texto.codigo, datos: validada.datos };
 }

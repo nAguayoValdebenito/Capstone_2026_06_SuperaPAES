@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest';
 import type { InformeImportacion } from '../tipos';
 import {
   avisoDeImportacion,
+  esCsv,
   PESO_MAXIMO,
-  problemaDeLosArchivos,
+  pesaDemasiado,
   puedeConfirmar,
   type RevisionImportacion,
 } from './importacion';
@@ -27,24 +28,26 @@ const lista = (cambios: Partial<InformeImportacion> = {}): RevisionImportacion =
 });
 
 describe('archivos de la importación', () => {
-  it('acepta CSV que juntos pesan hasta el máximo', () => {
-    expect(problemaDeLosArchivos([{ name: 'Preguntas.CSV', size: PESO_MAXIMO }])).toBeNull();
+  const archivos = (contenido: string) => ({
+    preguntas: { nombre: 'preguntas.csv', contenido },
+    textos: null,
   });
 
-  it('pide guardar la planilla como CSV si el archivo es otro', () => {
-    expect(problemaDeLosArchivos([{ name: 'preguntas.xlsx', size: 10 }])).toBe(
-      'Elige archivos CSV. En Excel, guarda la planilla como «CSV UTF-8 (delimitado por comas)».',
-    );
+  it('solo se envían archivos CSV, sin mirar mayúsculas', () => {
+    expect(esCsv('Preguntas.CSV')).toBe(true);
+    expect(esCsv('preguntas.xlsx')).toBe(false);
+    expect(esCsv('preguntas.csv.txt')).toBe(false);
   });
 
-  it('pide dividir las preguntas si los dos archivos pasan del máximo', () => {
-    const mitad = PESO_MAXIMO / 2;
-    expect(
-      problemaDeLosArchivos([
-        { name: 'preguntas.csv', size: mitad },
-        { name: 'textos.csv', size: mitad + 1 },
-      ]),
-    ).toBe('Los archivos pesan más de 900 KB en total: divide las preguntas en varios archivos.');
+  it('la petición con los archivos y la declaración cabe en el límite de la API', () => {
+    expect(pesaDemasiado(archivos('a;b\n1;2\n'))).toBe(false);
+    expect(pesaDemasiado(archivos('x'.repeat(PESO_MAXIMO)))).toBe(true);
+  });
+
+  it('cuenta los bytes de la petición, no las letras: las tildes ocupan dos', () => {
+    const casiAlLimite = PESO_MAXIMO - 200;
+    expect(pesaDemasiado(archivos('a'.repeat(casiAlLimite)))).toBe(false);
+    expect(pesaDemasiado(archivos('á'.repeat(casiAlLimite)))).toBe(true);
   });
 });
 
@@ -57,9 +60,7 @@ describe('confirmar la importación (CU-16 paso 6, RN-29)', () => {
 
   it('no mientras se revisa, si el archivo se rechazó o mientras se importa', () => {
     expect(puedeConfirmar({ tipo: 'revisando' }, true, false)).toBe(false);
-    expect(puedeConfirmar({ tipo: 'rechazada', codigo: 'X', mensaje: 'x' }, true, false)).toBe(
-      false,
-    );
+    expect(puedeConfirmar({ tipo: 'rechazada', mensaje: 'x' }, true, false)).toBe(false);
     expect(puedeConfirmar(lista(), true, true)).toBe(false);
   });
 

@@ -7,19 +7,22 @@ import { ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { TemarioServicio } from '../temario/index.js';
-import type { PreguntasEdicionRepositorio } from './preguntas.edicion.repositorio.js';
+import type {
+  AlternativaNueva,
+  PreguntasEdicionRepositorio,
+} from './preguntas.edicion.repositorio.js';
 import {
+  crearBuscador,
   type ErrorDeFila,
-  leerPregunta,
-  leerTextos,
-  type PreguntaDelArchivo,
   type TextoDelArchivo,
-} from './preguntas.importacion.filas.js';
+} from './preguntas.importacion.comun.js';
+import { leerPregunta, type PreguntaDelArchivo } from './preguntas.importacion.filas.js';
+import { leerTextos } from './preguntas.importacion.textos.js';
 import type { PreguntasImportacionRepositorio } from './preguntas.importacion.repositorio.js';
 import { COLUMNAS_PREGUNTAS, COLUMNAS_TEXTOS, leerArchivo } from './preguntas.plantilla.js';
 import type { PreguntasRepositorio } from './preguntas.repositorio.js';
 import type { TextosDeLectura } from './preguntas.textos.servicio.js';
-import type { ArchivosImportacion, DatosImportacion } from './preguntas.validadores.js';
+import type { ArchivosImportacion, DatosImportacion, DatosTexto } from './preguntas.validadores.js';
 
 /** El informe de C04: filas leídas, por crear, omitidas (en blanco) y con error, con sus motivos. */
 export interface InformeImportacion {
@@ -49,7 +52,7 @@ export interface DependenciasImportacion {
   temario: TemarioServicio;
   auditoria: Pick<AdministracionServicio, 'registrarAuditoria'>;
   repositorio: PreguntasImportacionRepositorio;
-  preguntas: Pick<PreguntasEdicionRepositorio, 'fijarAutor' | 'insertar' | 'guardarAlternativas'>;
+  preguntas: Pick<PreguntasEdicionRepositorio, 'fijarAutor' | 'insertar' | 'insertarAlternativas'>;
   listas: Pick<PreguntasRepositorio, 'listarDificultades'>;
   textos: Pick<TextosDeLectura, 'tiposDeTexto' | 'crearEnTransaccion'>;
 }
@@ -62,7 +65,7 @@ interface Revision {
   informe: InformeImportacion;
   preguntas: PreguntaDelArchivo[];
   /** Los textos que usan las preguntas por crear, por su código normalizado. */
-  textos: Map<string, TextoDelArchivo>;
+  textos: Map<string, DatosTexto>;
 }
 
 /** Cada pregunta con texto lleva su orden en él: el de sus filas, desde 1 (el modelo lo exige). */
@@ -82,7 +85,7 @@ async function textosDelArchivo(
   archivos: ArchivosImportacion,
 ) {
   if (!archivos.textos) return { textos: new Map<string, TextoDelArchivo>(), errores: [] };
-  const filas = leerArchivo(archivos.textos, COLUMNAS_TEXTOS);
+  const filas = leerArchivo(archivos.textos, COLUMNAS_TEXTOS, { exigeFilas: false });
   return leerTextos(filas, await dependencias.textos.tiposDeTexto());
 }
 
@@ -93,6 +96,7 @@ async function revisar(
   const filas = leerArchivo(archivos.preguntas, COLUMNAS_PREGUNTAS);
   const textos = await textosDelArchivo(dependencias, archivos);
   const contexto = {
+    buscar: crearBuscador(),
     pruebas: await dependencias.temario.listarTemario(),
     dificultades: await dependencias.listas.listarDificultades(),
     textos: textos.textos,
@@ -105,12 +109,11 @@ async function revisar(
     else validas.push(leida);
   }
   const preguntas = conOrdenEnTextos(validas);
-  const usados = new Map(
-    preguntas.flatMap(({ codigoTexto }) => {
-      const texto = codigoTexto === null ? undefined : textos.textos.get(codigoTexto);
-      return codigoTexto !== null && texto ? [[codigoTexto, texto] as const] : [];
-    }),
-  );
+  const usados = new Map<string, DatosTexto>();
+  for (const { codigoTexto } of preguntas) {
+    const datos = codigoTexto === null ? null : textos.textos.get(codigoTexto)?.datos;
+    if (codigoTexto !== null && datos) usados.set(codigoTexto, datos);
+  }
   const informe = {
     filasLeidas: filas.length,
     porCrear: preguntas.length,
@@ -128,27 +131,33 @@ async function crearTextos(
   autorId: string,
   porCrear: Revision['textos'],
   tx: Ejecutor,
-): Promise<Map<string, string>> {
-  const ids = new Map<string, string>();
-  for (const [codigo, texto] of porCrear) {
-    // Solo llegan aquí textos sin errores: leerPregunta rechaza las preguntas de un texto con errores.
-    if (texto.datos) ids.set(codigo, await textos.crearEnTransaccion(autorId, texto.datos, tx));
+): Promise<Map<string, number>> {
+  const ids = new Map<string, number>();
+  for (const [codigo, datos] of porCrear) {
+    ids.set(codigo, Number(await textos.crearEnTransaccion(autorId, datos, tx)));
   }
   return ids;
 }
 
+/** Crea cada pregunta con su texto y, al final, todas sus alternativas en una sola consulta. */
 async function crearPreguntas(
-  { preguntas: repositorio }: DependenciasImportacion,
-  [autorId, importacionId]: [string, string],
-  { preguntas, idsTextos }: { preguntas: PreguntaDelArchivo[]; idsTextos: Map<string, string> },
+  dependencias: DependenciasImportacion,
+  { autorId, importacionId }: { autorId: string; importacionId: string },
+  { preguntas, idsTextos }: { preguntas: PreguntaDelArchivo[]; idsTextos: Map<string, number> },
   tx: Ejecutor,
 ): Promise<void> {
+  const alternativas: AlternativaNueva[] = [];
   for (const { datos, codigoTexto } of preguntas) {
-    const textoId = codigoTexto === null ? undefined : idsTextos.get(codigoTexto);
-    const conTexto = { ...datos, textoEstimuloId: textoId === undefined ? null : Number(textoId) };
-    const id = await repositorio.insertar(conTexto, autorId, tx, importacionId);
-    await repositorio.guardarAlternativas(id, conTexto.alternativas, tx);
+    const textoEstimuloId = codigoTexto === null ? null : (idsTextos.get(codigoTexto) ?? null);
+    const preguntaId = await dependencias.preguntas.insertar(
+      { ...datos, textoEstimuloId },
+      autorId,
+      tx,
+      importacionId,
+    );
+    alternativas.push(...datos.alternativas.map((a) => ({ preguntaId, ...a })));
   }
+  await dependencias.preguntas.insertarAlternativas(alternativas, tx);
 }
 
 async function importar(
@@ -175,30 +184,44 @@ async function importar(
       tx,
     );
     const idsTextos = await crearTextos(dependencias, autorId, textos, tx);
-    await crearPreguntas(dependencias, [autorId, id], { preguntas, idsTextos }, tx);
-    const { filasLeidas, porCrear, omitidas, conError, textosPorCrear } = informe;
-    await dependencias.auditoria.registrarAuditoria(
-      {
-        usuarioId: autorId,
-        accion: 'importar_preguntas',
-        entidad: 'importacion',
-        entidadId: id,
-        antes: null,
-        despues: {
-          archivo: datos.preguntas.nombre,
-          archivoTextos: datos.textos?.nombre ?? null,
-          filasLeidas,
-          creadas: porCrear,
-          omitidas,
-          conError,
-          textosCreados: textosPorCrear,
-          declaracionOrigen: DECLARACION_ORIGEN,
-        },
-      },
+    await crearPreguntas(
+      dependencias,
+      { autorId, importacionId: id },
+      { preguntas, idsTextos },
       tx,
     );
-    return { id, ...informe };
+    const hecha = { id, ...informe };
+    await auditar(dependencias, [autorId, datos, hecha], tx);
+    return hecha;
   });
+}
+
+/** RN-29: la importación queda en la auditoría con quien la hizo y su declaración del origen. */
+async function auditar(
+  { auditoria }: DependenciasImportacion,
+  [autorId, datos, hecha]: [string, DatosImportacion, ImportacionHecha],
+  tx: Ejecutor,
+): Promise<void> {
+  await auditoria.registrarAuditoria(
+    {
+      usuarioId: autorId,
+      accion: 'importar_preguntas',
+      entidad: 'importacion',
+      entidadId: hecha.id,
+      antes: null,
+      despues: {
+        archivo: datos.preguntas.nombre,
+        archivoTextos: datos.textos?.nombre ?? null,
+        filasLeidas: hecha.filasLeidas,
+        creadas: hecha.porCrear,
+        omitidas: hecha.omitidas,
+        conError: hecha.conError,
+        textosCreados: hecha.textosPorCrear,
+        declaracionOrigen: DECLARACION_ORIGEN,
+      },
+    },
+    tx,
+  );
 }
 
 export function crearImportacionPreguntas(

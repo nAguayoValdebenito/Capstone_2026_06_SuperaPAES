@@ -58,13 +58,19 @@ describe('importar (CU-16 pasos 6 y 7, RN-29)', () => {
       expect.anything(),
       '1',
     );
-    expect(repositorio.guardarAlternativas).toHaveBeenLastCalledWith(
-      expect.any(String),
-      expect.arrayContaining([
-        expect.objectContaining({ letra: 'E', texto: '10', esCorrecta: true }),
-      ]),
-      expect.anything(),
+    // Las alternativas de las dos preguntas (7 y 8) van juntas en una sola consulta; «*» es la correcta.
+    expect(repositorio.insertarAlternativas).toHaveBeenCalledTimes(1);
+    const [alternativas] = repositorio.insertarAlternativas.mock.calls[0] ?? [];
+    expect(alternativas?.map((a) => `${a.preguntaId}${a.letra}${a.esCorrecta ? '*' : ''}`)).toEqual(
+      ['7A', '7B*', '7C', '7D', '8A', '8B', '8C', '8D', '8E*'],
     );
+    expect(alternativas?.at(-1)).toEqual({
+      preguntaId: '8',
+      letra: 'E',
+      texto: '10',
+      esCorrecta: true,
+      explicacion: null,
+    });
     expect(auditoria.registrarAuditoria).toHaveBeenCalledWith(
       {
         usuarioId: '5',

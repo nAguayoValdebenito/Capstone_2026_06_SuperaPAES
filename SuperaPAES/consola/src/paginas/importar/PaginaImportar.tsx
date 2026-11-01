@@ -21,13 +21,19 @@ interface PropiedadesArchivo {
   etiqueta: string;
   nombre: string | null;
   alCambiar: Importacion['cambiarArchivo'];
+  /** Mientras se importa, los archivos no cambian: lo que se importa es lo que se revisó. */
+  bloqueado: boolean;
 }
 
 /**
  * El selector del navegador, oculto (dice «Sin archivos seleccionados» aunque haya uno): su botón
  * visible es la etiqueta «Elegir archivo» o «Cambiar archivo», como en C04.
  */
-function SelectorOculto({ cual, alCambiar }: Pick<PropiedadesArchivo, 'cual' | 'alCambiar'>) {
+function SelectorOculto({
+  cual,
+  alCambiar,
+  bloqueado,
+}: Pick<PropiedadesArchivo, 'cual' | 'alCambiar' | 'bloqueado'>) {
   const id = `archivo-${cual}`;
   return (
     <input
@@ -36,6 +42,7 @@ function SelectorOculto({ cual, alCambiar }: Pick<PropiedadesArchivo, 'cual' | '
       type="file"
       accept=".csv,text/csv"
       aria-labelledby={`${id}-titulo`}
+      disabled={bloqueado}
       onChange={(evento) => {
         const archivo = evento.target.files?.[0];
         // Cancelar el diálogo no cambia el archivo elegido; vaciarlo permite elegir el mismo otra vez.
@@ -46,7 +53,7 @@ function SelectorOculto({ cual, alCambiar }: Pick<PropiedadesArchivo, 'cual' | '
   );
 }
 
-function ElegirArchivo({ cual, etiqueta, nombre, alCambiar }: PropiedadesArchivo) {
+function ElegirArchivo({ cual, etiqueta, nombre, alCambiar, bloqueado }: PropiedadesArchivo) {
   const id = `archivo-${cual}`;
   return (
     <div className="importar__archivo">
@@ -63,12 +70,17 @@ function ElegirArchivo({ cual, etiqueta, nombre, alCambiar }: PropiedadesArchivo
         )}
       </p>
       <div className="importar__botones">
-        <SelectorOculto cual={cual} alCambiar={alCambiar} />
+        <SelectorOculto cual={cual} alCambiar={alCambiar} bloqueado={bloqueado} />
         <label htmlFor={id} className="boton">
           {nombre ? 'Cambiar archivo' : 'Elegir archivo'}
         </label>
         {cual === 'textos' && nombre && (
-          <button type="button" className="boton" onClick={() => alCambiar('textos', null)}>
+          <button
+            type="button"
+            className="boton"
+            disabled={bloqueado}
+            onClick={() => alCambiar('textos', null)}
+          >
             Quitar
           </button>
         )}
@@ -79,7 +91,7 @@ function ElegirArchivo({ cual, etiqueta, nombre, alCambiar }: PropiedadesArchivo
 
 function Archivos({ importacion }: { importacion: Importacion }) {
   return (
-    <div className="panel importar__panel">
+    <div className="panel panel--ancho">
       <h2>Archivos</h2>
       <div className="importar__archivos">
         <ElegirArchivo
@@ -87,12 +99,14 @@ function Archivos({ importacion }: { importacion: Importacion }) {
           etiqueta="Preguntas (CSV UTF-8, una fila por pregunta)"
           nombre={importacion.nombres.preguntas}
           alCambiar={importacion.cambiarArchivo}
+          bloqueado={importacion.enviando}
         />
         <ElegirArchivo
           cual="textos"
           etiqueta="Textos de lectura (CSV UTF-8, opcional)"
           nombre={importacion.nombres.textos}
           alCambiar={importacion.cambiarArchivo}
+          bloqueado={importacion.enviando}
         />
       </div>
       <details className="importar__plantilla">
@@ -196,7 +210,7 @@ function Confirmacion({
 }) {
   const { revision, declara, enviando } = importacion;
   return (
-    <form className="panel importar__panel importar__confirmar" onSubmit={importacion.confirmar}>
+    <form className="panel panel--ancho importar__confirmar" onSubmit={importacion.confirmar}>
       <label className="campo__opcion">
         <input
           type="checkbox"

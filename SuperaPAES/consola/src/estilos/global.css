@@ -303,6 +303,11 @@ a {
   margin: 0;
 }
 
+/* Un panel que ocupa el ancho de la página, no el de un formulario (por ejemplo, el informe de C04). */
+.panel--ancho {
+  max-width: none;
+}
+
 .panel__acciones {
   display: flex;
   gap: 0.75rem;
@@ -714,11 +719,6 @@ a.boton {
 
 /* Importar preguntas (C04): los dos archivos, la plantilla, los contadores del informe y la
    declaración del origen. */
-/* El informe ocupa el ancho de la página: los paneles no se limitan a 36rem como un formulario. */
-.importar__panel {
-  max-width: none;
-}
-
 .importar__archivos {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -758,6 +758,11 @@ a.boton {
   height: 1px;
   opacity: 0;
   overflow: hidden;
+}
+
+.importar__entrada:disabled + .boton {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .importar__entrada:focus-visible + .boton {
