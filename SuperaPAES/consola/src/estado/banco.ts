@@ -107,14 +107,18 @@ function useOpciones(): CargaOpciones {
   return carga;
 }
 
-const claveDe = (filtros: FiltrosBanco, pagina: number) => JSON.stringify([filtros, pagina]);
+const claveDe = (filtros: FiltrosBanco, pagina: number, vuelta: number) =>
+  JSON.stringify([filtros, pagina, vuelta]);
 
-/** Mientras la respuesta guardada sea de otros filtros u otra página, la lista está cargando. */
-function usePagina(filtros: FiltrosBanco, pagina: number): CargaBanco {
+/**
+ * Mientras la respuesta guardada sea de otros filtros u otra página, la lista está cargando. `vuelta`
+ * cambia cuando hay que volver a pedir la misma página (después de enviar una pregunta a revisión).
+ */
+function usePagina(filtros: FiltrosBanco, pagina: number, vuelta: number): CargaBanco {
   const [resultado, setResultado] = useState<{ clave: string; carga: CargaBanco } | null>(null);
   useEffect(() => {
     const control = new AbortController();
-    const clave = claveDe(filtros, pagina);
+    const clave = claveDe(filtros, pagina, vuelta);
     listarBanco(filtros, pagina, control.signal).then(
       (respuesta) => setResultado({ clave, carga: { tipo: 'lista', pagina: respuesta } }),
       (error: unknown) => {
@@ -123,8 +127,12 @@ function usePagina(filtros: FiltrosBanco, pagina: number): CargaBanco {
       },
     );
     return () => control.abort();
-  }, [filtros, pagina]);
-  return resultado?.clave === claveDe(filtros, pagina) ? resultado.carga : { tipo: 'cargando' };
+  }, [filtros, pagina, vuelta]);
+  // Al recargar se sigue mostrando la página anterior hasta que llega la nueva.
+  if (resultado?.clave === claveDe(filtros, pagina, vuelta)) return resultado.carga;
+  return resultado?.clave === claveDe(filtros, pagina, vuelta - 1)
+    ? resultado.carga
+    : { tipo: 'cargando' };
 }
 
 export function useBanco() {
@@ -133,7 +141,9 @@ export function useBanco() {
   const texto = busqueda.toString();
   const { filtros, pagina } = useMemo(() => leerBusqueda(new URLSearchParams(texto)), [texto]);
   const opciones = useOpciones();
-  const carga = usePagina(filtros, pagina);
+  const [vuelta, setVuelta] = useState(0);
+  const carga = usePagina(filtros, pagina, vuelta);
+  const recargar = useCallback(() => setVuelta((actual) => actual + 1), []);
 
   const cambiarFiltro = useCallback(
     <C extends keyof FiltrosBanco>(campo: C, valor: FiltrosBanco[C] | undefined) => {
@@ -150,5 +160,5 @@ export function useBanco() {
     [setBusqueda],
   );
 
-  return { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina };
+  return { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar };
 }

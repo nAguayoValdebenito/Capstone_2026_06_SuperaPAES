@@ -1,8 +1,9 @@
 // Tabla del banco (C02, HU-11 esc. 2): cada pregunta con su prueba, eje y contenido, su estado, su
 // origen y su dificultad, y la marca de posiblemente confusa. Cada fila abre su pregunta en C03 (HU-12.3):
-// «Editar» en borrador u observada (RF-G09) y «Ver» en las demás. Publicar y enviar a revisión llegan
-// con sus historias.
+// «Editar» en borrador u observada (RF-G09) y «Ver» en las demás. Las preguntas en borrador u observadas
+// se envían a revisión desde aquí (HU-21). Publicar llega con su historia.
 import { Link } from 'react-router';
+import type { EnvioDelBanco } from '../../estado/envio-revision';
 import type { Opcion, OrigenPregunta, PreguntaDelBanco } from '../../tipos';
 
 /** Etapas en que la pregunta se edita (RF-G09); en las demás, C03 la muestra en solo lectura. */
@@ -29,7 +30,29 @@ function Dificultad({ pregunta }: { pregunta: PreguntaDelBanco }) {
   );
 }
 
-function FilaBanco({ pregunta }: { pregunta: PreguntaDelBanco }) {
+/** Enviar a revisión (HU-21): solo las preguntas en una etapa editable, de a una. */
+type EnvioDeLaTabla = Pick<EnvioDelBanco, 'enviando' | 'enviar'>;
+
+function Acciones({ pregunta, envio }: { pregunta: PreguntaDelBanco; envio?: EnvioDeLaTabla }) {
+  const editable = ETAPAS_EDITABLES.has(pregunta.estado.codigo);
+  return (
+    <div className="tabla__acciones">
+      <Link to={`/banco/${String(pregunta.id)}`}>{editable ? 'Editar' : 'Ver'}</Link>
+      {editable && envio && (
+        <button
+          type="button"
+          className="boton"
+          disabled={envio.enviando !== null}
+          onClick={() => envio.enviar(pregunta.id)}
+        >
+          {envio.enviando === pregunta.id ? 'Enviando…' : 'Enviar a revisión'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FilaBanco({ pregunta, envio }: { pregunta: PreguntaDelBanco; envio?: EnvioDeLaTabla }) {
   return (
     <tr>
       <td>
@@ -54,15 +77,19 @@ function FilaBanco({ pregunta }: { pregunta: PreguntaDelBanco }) {
       </td>
       <td>{fecha.format(new Date(pregunta.actualizadoEn))}</td>
       <td>
-        <Link to={`/banco/${String(pregunta.id)}`}>
-          {ETAPAS_EDITABLES.has(pregunta.estado.codigo) ? 'Editar' : 'Ver'}
-        </Link>
+        <Acciones pregunta={pregunta} {...(envio && { envio })} />
       </td>
     </tr>
   );
 }
 
-export function TablaBanco({ preguntas }: { preguntas: readonly PreguntaDelBanco[] }) {
+export function TablaBanco({
+  preguntas,
+  envio,
+}: {
+  preguntas: readonly PreguntaDelBanco[];
+  envio?: EnvioDeLaTabla;
+}) {
   if (preguntas.length === 0) {
     return <p className="pagina__aviso">No hay preguntas que cumplan el filtro.</p>;
   }
@@ -83,7 +110,7 @@ export function TablaBanco({ preguntas }: { preguntas: readonly PreguntaDelBanco
         </thead>
         <tbody>
           {preguntas.map((pregunta) => (
-            <FilaBanco key={pregunta.id} pregunta={pregunta} />
+            <FilaBanco key={pregunta.id} pregunta={pregunta} {...(envio && { envio })} />
           ))}
         </tbody>
       </table>

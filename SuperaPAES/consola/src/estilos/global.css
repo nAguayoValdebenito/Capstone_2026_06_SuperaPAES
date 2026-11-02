@@ -265,6 +265,11 @@ a {
 .tabla__acciones {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.tabla__acciones .boton {
+  white-space: nowrap;
 }
 
 .boton {
