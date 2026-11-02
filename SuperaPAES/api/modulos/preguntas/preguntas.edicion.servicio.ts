@@ -2,7 +2,8 @@
 // La pregunta y sus alternativas se guardan en una transacción con el autor fijado para los triggers, y
 // cada cambio queda en la auditoría (RNF-08). Las reglas de RN-08 están en preguntas.reglas.ts. Un texto
 // de lectura nuevo (HU-12.2) se crea en la misma transacción que la pregunta. Pasar a revisión (HU-21)
-// ocurre en la transacción del módulo revision, que asigna los docentes y lo deja en la auditoría.
+// ocurre en la transacción del módulo revision, que asigna los docentes y lo deja en la auditoría; ahí
+// mismo se aplica el resultado de la revisión (HU-23), que el historial registra a nombre del docente.
 import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
@@ -11,6 +12,7 @@ import type {
   FilaPregunta,
   PreguntaEnRevision,
   PreguntasEdicionRepositorio,
+  ResultadoDeRevision,
 } from './preguntas.edicion.repositorio.js';
 import { problemasDePregunta } from './preguntas.reglas.js';
 import type { PreguntasRepositorio } from './preguntas.repositorio.js';
@@ -34,6 +36,16 @@ export interface EdicionPreguntas {
    * de la transacción de quien asigna los revisores. Si no cumple RN-08 o está en otra etapa, 409.
    */
   pasarARevision(autorId: string, id: string, tx: Ejecutor): Promise<PreguntaEnRevision>;
+  /**
+   * HU-23 (RN-11, RN-12): deja la pregunta aprobada, rechazada, observada o en desempate según las
+   * revisiones, dentro de la transacción del módulo revision. `docenteId` queda en el historial.
+   */
+  resolverRevision(
+    docenteId: string,
+    id: string,
+    resultado: ResultadoDeRevision,
+    tx: Ejecutor,
+  ): Promise<void>;
 }
 
 export interface DependenciasEdicionPreguntas {
@@ -234,6 +246,15 @@ async function pasarARevision(
   return traducirErrores(() => repositorio.enviarARevision(id, tx));
 }
 
+async function resolverRevision(
+  { repositorio }: DependenciasEdicionPreguntas,
+  docenteId: string,
+  [id, resultado, tx]: [string, ResultadoDeRevision, Ejecutor],
+): Promise<void> {
+  await repositorio.fijarAutor(docenteId, tx);
+  await traducirErrores(() => repositorio.resolverRevision(id, resultado, tx));
+}
+
 export function crearEdicionPreguntas(
   dependencias: DependenciasEdicionPreguntas,
 ): EdicionPreguntas {
@@ -243,5 +264,7 @@ export function crearEdicionPreguntas(
     obtenerPregunta: async (id) => leer(repositorio, id, await temario.listarTemario()),
     editarPregunta: (autorId, id, datos) => editarPregunta(dependencias, autorId, [id, datos]),
     pasarARevision: (autorId, id, tx) => pasarARevision(dependencias, autorId, [id, tx]),
+    resolverRevision: (docenteId, id, resultado, tx) =>
+      resolverRevision(dependencias, docenteId, [id, resultado, tx]),
   };
 }

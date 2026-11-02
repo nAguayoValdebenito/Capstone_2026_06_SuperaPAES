@@ -55,6 +55,15 @@ export interface PreguntaEnRevision {
   ronda: number;
 }
 
+/** El resultado de la revisión de una pregunta (HU-23, RN-11 y RN-12). */
+export interface ResultadoDeRevision {
+  estado: 'aprobada' | 'rechazada' | 'observada' | 'en_desempate';
+  /** Código de la dificultad que asignaron los docentes; null la deja como está. */
+  dificultad: string | null;
+  /** Fácil contra difícil (posiblemente confusa); null la deja como está. */
+  posibleAmbigua: boolean | null;
+}
+
 export interface PreguntasEdicionRepositorio {
   /** Usuario que registran los triggers en el historial y las versiones, hasta el fin de la transacción. */
   fijarAutor(usuarioId: string, tx: Ejecutor): Promise<void>;
@@ -81,6 +90,8 @@ export interface PreguntasEdicionRepositorio {
    * RN-08, y guarda la versión que van a revisar los docentes.
    */
   enviarARevision(id: string, tx: Ejecutor): Promise<PreguntaEnRevision>;
+  /** HU-23: aplica el resultado de la revisión. La base revisa que el cambio de etapa esté permitido. */
+  resolverRevision(id: string, resultado: ResultadoDeRevision, tx: Ejecutor): Promise<void>;
   /** Quita las alternativas cuyas letras ya no vienen. */
   quitarAlternativas(id: string, letrasQueQuedan: string[], tx: Ejecutor): Promise<void>;
   /** La pregunta o null. `bloquear` la reserva (FOR UPDATE) hasta el fin de la transacción. */
@@ -137,6 +148,14 @@ const ENVIAR_A_REVISION = `
    WHERE id = $1
   RETURNING version, ronda_actual AS ronda`;
 
+const RESOLVER_REVISION = `
+  UPDATE contenido.pregunta
+     SET estado_pregunta_id = (SELECT id FROM contenido.estado_pregunta WHERE codigo = $2),
+         dificultad_asignada_id = COALESCE((SELECT id FROM contenido.dificultad WHERE codigo = $3),
+                                           dificultad_asignada_id),
+         posible_ambigua = COALESCE($4, posible_ambigua), actualizado_en = now()
+   WHERE id = $1`;
+
 const OBTENER = `
   SELECT p.id::text AS id, p.prueba_id AS "pruebaId", p.contenido_id AS "contenidoId",
          p.habilidad_id AS "habilidadId", tp.codigo AS "tipoPregunta", d.codigo AS "dificultadSugerida",
@@ -170,7 +189,7 @@ const columnas = (datos: DatosPregunta) => [
 /** Escrituras: la pregunta, sus alternativas y el autor para los triggers. */
 function escrituras(): Omit<
   PreguntasEdicionRepositorio,
-  'obtener' | 'existeTexto' | 'enviarARevision'
+  'obtener' | 'existeTexto' | 'enviarARevision' | 'resolverRevision'
 > {
   return {
     async fijarAutor(usuarioId, tx) {
@@ -241,6 +260,16 @@ export function crearPreguntasEdicionRepositorio(bd: Ejecutor): PreguntasEdicion
       const enviada = rows[0];
       if (!enviada) throw new Error('La pregunta no pasó a revisión.');
       return enviada;
+    },
+
+    async resolverRevision(id, resultado, tx) {
+      const { rowCount } = await tx.query(RESOLVER_REVISION, [
+        id,
+        resultado.estado,
+        resultado.dificultad,
+        resultado.posibleAmbigua,
+      ]);
+      if (rowCount !== 1) throw new Error('La pregunta no cambió de etapa.');
     },
 
     async existeTexto(id, tx = bd) {
