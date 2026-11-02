@@ -10,7 +10,12 @@ import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
 import { crearRevisionControlador } from './revision.controlador.js';
 import type { RevisionServicio } from './revision.servicio.js';
-import { esquemaIdPregunta, esquemaIdRevision, esquemaRevision } from './revision.validadores.js';
+import {
+  esquemaDesempate,
+  esquemaIdPregunta,
+  esquemaIdRevision,
+  esquemaRevision,
+} from './revision.validadores.js';
 
 export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
   const router = Router();
@@ -30,8 +35,21 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     validar({ parametros: esquemaIdRevision, cuerpo: esquemaRevision }),
     controlador.entregarRevision,
   );
-  // Docente revisor: Desempates (D02).
+  // Docente revisor: Desempates (D02, HU-23, CU-20): sus desempates, la pregunta con las dos revisiones
+  // y su decisión.
   router.get('/desempates', exigirRol('docente'), controlador.listarDesempates);
+  router.get(
+    '/desempates/:id',
+    exigirRol('docente'),
+    validar({ parametros: esquemaIdRevision }),
+    controlador.obtenerDesempate,
+  );
+  router.post(
+    '/desempates/:id',
+    exigirRol('docente'),
+    validar({ parametros: esquemaIdRevision, cuerpo: esquemaDesempate }),
+    controlador.entregarDesempate,
+  );
   // Administrador: seguimiento de las revisiones (C06).
   router.get('/seguimiento', exigirRol('admin'), controlador.listarSeguimiento);
   // Administrador: enviar una pregunta a revisión, que le asigna sus revisores (C02, HU-21, CU-18).

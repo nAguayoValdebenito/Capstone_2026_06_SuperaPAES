@@ -2,88 +2,24 @@
 // servicio real de revision con un repositorio de la bandeja falso. Lo que guarda la base y que la
 // consulta no lea la dificultad sugerida ni la revisión del otro docente está en revision-bandeja-bd.test.ts.
 import request from 'supertest';
-import { describe, expect, it, vi } from 'vitest';
-import type { BandejaRepositorio } from '../modulos/revision/revision.bandeja.repositorio.js';
-import { crearRevisionServicio } from '../modulos/revision/index.js';
-import { crearAppDePrueba, errorConFormato, tokenAdmin } from './ayudantes.js';
+import { describe, expect, it } from 'vitest';
+import { errorConFormato, tokenAdmin } from './ayudantes.js';
+import {
+  AHORA,
+  appDeRevision,
+  bandejaDePrueba,
+  comoDocente,
+  PAUTA,
+  PENDIENTE,
+} from './bandeja-de-prueba.js';
 import { problemas } from './edicion-de-prueba.js';
 
 const RUTA = '/api/v1/admin/revision/mis-revisiones';
-const AHORA = new Date('2026-11-03T15:00:00.000Z');
-const VENCE = new Date('2026-11-05T12:00:00.000Z');
-
-const PAUTA = [
-  { codigo: 'contenido', descripcion: 'La pregunta evalúa el contenido.' },
-  { codigo: 'enunciado', descripcion: 'El enunciado es claro.' },
-];
-
-const PENDIENTE = {
-  id: '900',
-  preguntaId: '7',
-  ronda: 1,
-  prueba: { codigo: 'M1', nombre: 'Competencia Matemática 1' },
-  contenido: 'Ecuaciones',
-  venceEn: VENCE,
-};
 
 /** Revisión de la bandeja; `estado` es el de su asignación al entregarla (null si no es del docente). */
 function escenario({ estado = 'pendiente' }: { estado?: string | null } = {}) {
-  const repositorio = {
-    listarPendientes: vi.fn(() => Promise.resolve([PENDIENTE])),
-    obtenerPendiente: vi.fn((id: string) =>
-      Promise.resolve(
-        id === '900'
-          ? {
-              ...PENDIENTE,
-              eje: 'Álgebra',
-              habilidad: 'Resolver problemas',
-              copia: {
-                enunciado: 'Si $2x = 8$, ¿cuánto vale $x$?',
-                explicacion: 'Se divide por 2.',
-                alternativas: [
-                  { id: 101, letra: 'A', texto: '2', explicacion: null },
-                  { id: 102, letra: 'B', texto: '4', explicacion: null },
-                ],
-              },
-              correctaId: '102',
-              texto: null,
-            }
-          : null,
-      ),
-    ),
-    listarCriterios: vi.fn(() => Promise.resolve(PAUTA)),
-    listarDificultades: vi.fn(() =>
-      Promise.resolve([
-        { codigo: 'facil', nombre: 'Fácil' },
-        { codigo: 'media', nombre: 'Media' },
-        { codigo: 'dificil', nombre: 'Difícil' },
-      ]),
-    ),
-    listarDecisiones: vi.fn(() =>
-      Promise.resolve([
-        { codigo: 'aprobar', nombre: 'Aprobar', requiereComentario: false },
-        { codigo: 'observar', nombre: 'Observar', requiereComentario: true },
-        { codigo: 'rechazar', nombre: 'Rechazar', requiereComentario: true },
-      ]),
-    ),
-    reservarAsignacion: vi.fn(() =>
-      Promise.resolve(estado === null ? null : { estado, preguntaId: PENDIENTE.preguntaId }),
-    ),
-    guardarRevision: vi.fn(() => Promise.resolve()),
-  } satisfies BandejaRepositorio;
-  const tx = { query: () => Promise.reject(new Error('sin base')) };
-  const revision = crearRevisionServicio({
-    bd: tx,
-    unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(tx) },
-    reloj: () => AHORA,
-    administracion: {
-      obtenerParametroEntero: () => Promise.resolve(2),
-      registrarAuditoria: () => Promise.resolve(),
-    },
-    preguntas: {
-      pasarARevision: () => Promise.reject(new Error('no se usa')),
-      resolverRevision: () => Promise.resolve(),
-    },
+  const repositorio = bandejaDePrueba(estado);
+  const { app } = appDeRevision({
     repositorioBandeja: repositorio,
     // La ronda sigue abierta: combinar las revisiones se prueba en revision-resolucion.test.ts.
     repositorioResolucion: {
@@ -91,12 +27,8 @@ function escenario({ estado = 'pendiente' }: { estado?: string | null } = {}) {
       asignacionesDeLaRonda: () => Promise.resolve([]),
     },
   });
-  return { app: crearAppDePrueba({}, { revision }), repositorio };
+  return { app, repositorio };
 }
-
-const comoDocente = async () => ({
-  Authorization: `Bearer ${await tokenAdmin('docente', '21')}`,
-});
 
 /** Una revisión completa que aprueba, con todos los puntos de la pauta cumplidos. */
 const revisionCompleta = (cambios: Record<string, unknown> = {}) => ({

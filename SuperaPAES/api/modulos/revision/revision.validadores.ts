@@ -5,7 +5,7 @@ import { idDeRuta } from '../../comun/identificadores.js';
 /** HU-21: la pregunta que se envía a revisión. */
 export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
 
-/** HU-22: la revisión (la asignación) que abre o entrega el docente. */
+/** HU-22 y HU-23: la revisión o el desempate (la asignación) que abre o entrega el docente. */
 export const esquemaIdRevision = z.strictObject({ id: idDeRuta });
 
 /** Código de una lista de opciones (criterio_pauta, dificultad, decision_revision). */
@@ -41,3 +41,11 @@ export const esquemaRevision = z.strictObject({
 });
 
 export type DatosRevision = z.output<typeof esquemaRevision>;
+
+/**
+ * HU-23 y CU-20 (D02): la dificultad final y la decisión del tercer docente, con el motivo al observar o
+ * rechazar. Sin pauta: decide entre las dos revisiones, que ve completas.
+ */
+export const esquemaDesempate = esquemaRevision.omit({ criterios: true });
+
+export type DatosDesempate = z.output<typeof esquemaDesempate>;

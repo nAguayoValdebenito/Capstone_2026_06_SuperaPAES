@@ -5,7 +5,8 @@
 // asigna a los docentes del área que no son su autor ni quien pidió su lote, en una sola transacción:
 // si no hay suficientes docentes, nada cambia y la pregunta sigue en su etapa. La bandeja del docente y
 // la entrega de su revisión con la pauta (HU-22) están en revision.bandeja.servicio.ts; al entregar la
-// última de la ronda se combinan las revisiones (HU-23, revision.resolucion.servicio.ts).
+// última de la ronda se combinan las revisiones (HU-23, revision.resolucion.servicio.ts), y los
+// desempates del tercer docente (D02, CU-20) están en revision.desempate.servicio.ts.
 import { ErrorConflicto, ErrorNoImplementado } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
@@ -16,6 +17,11 @@ import {
   crearBandejaRepositorio,
 } from './revision.bandeja.repositorio.js';
 import { type BandejaDocente, crearBandejaDocente } from './revision.bandeja.servicio.js';
+import {
+  crearDesempateRepositorio,
+  type DesempateRepositorio,
+} from './revision.desempate.repositorio.js';
+import { crearDesempatesDocente, type DesempatesDocente } from './revision.desempate.servicio.js';
 import {
   crearResolucionRepositorio,
   type ResolucionRepositorio,
@@ -41,6 +47,10 @@ export interface DependenciasRevisionServicio {
   repositorioBandeja?: BandejaRepositorio;
   /** Solo para pruebas: reemplaza al de crearResolucionRepositorio(). */
   repositorioResolucion?: ResolucionRepositorio;
+  /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd, 'desempate'). */
+  repositorioDesempates?: BandejaRepositorio;
+  /** Solo para pruebas: reemplaza al de crearDesempateRepositorio(bd). */
+  repositorioRevisiones?: DesempateRepositorio;
 }
 
 /** Un revisor asignado, con su fecha límite (RF-G17). */
@@ -58,12 +68,10 @@ export interface EnvioARevision {
   revisores: RevisorAsignado[];
 }
 
-/** HU-22: la bandeja del docente revisor (D01). */
-export interface RevisionServicio extends BandejaDocente {
+/** HU-22 y HU-23: la bandeja del docente revisor (D01) y la del tercer docente (D02). */
+export interface RevisionServicio extends BandejaDocente, DesempatesDocente {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
-  /** Preguntas en desempate asignadas al docente (D02, HU-23). */
-  listarDesempates(): Promise<never>;
   /** Seguimiento de las revisiones para el administrador (C06). */
   listarSeguimiento(): Promise<never>;
 }
@@ -180,12 +188,20 @@ export function crearRevisionServicio(
     alEntregar: (docenteId, preguntaId, tx) =>
       resolverRonda(resolucion, [docenteId, preguntaId], tx),
   });
+  const desempates = crearDesempatesDocente({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    repositorio:
+      dependencias.repositorioDesempates ?? crearBandejaRepositorio(dependencias.bd, 'desempate'),
+    revisiones: dependencias.repositorioRevisiones ?? crearDesempateRepositorio(dependencias.bd),
+    preguntas: dependencias.preguntas,
+  });
   return {
     ...bandeja,
+    ...desempates,
     enviarARevision: (administradorId, preguntaId) =>
       enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
     // Esqueleto: cada método se implementa en la historia de usuario correspondiente.
-    listarDesempates: () => Promise.reject(new ErrorNoImplementado('Los desempates')),
     listarSeguimiento: () =>
       Promise.reject(new ErrorNoImplementado('El seguimiento de las revisiones')),
   };

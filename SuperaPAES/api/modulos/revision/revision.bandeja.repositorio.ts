@@ -1,10 +1,11 @@
-// SQL de la bandeja del docente revisor (D01, HU-22, CU-19): sus revisiones pendientes, la pregunta tal
-// como se envió a revisión (la versión guardada en contenido.pregunta_version) y el registro de su
-// revisión con la pauta. Consultas siempre parametrizadas.
+// SQL de la bandeja del docente (D01, HU-22, CU-19; D02, HU-23, CU-20): sus asignaciones pendientes
+// con un papel (revisor o desempate), la pregunta tal como se envió a revisión (la versión guardada en
+// contenido.pregunta_version) y el registro de su revisión con la pauta. Consultas siempre parametrizadas.
 // Revisión a ciegas (HU-22 esc. 3): ninguna consulta de este archivo lee la dificultad sugerida de la
 // pregunta ni la revisión de otro docente. Lee, sin escribirlas, la pregunta, su prueba, su temario y su
 // texto de lectura, y por su código las listas criterio_pauta, dificultad, decision_revision,
 // rol_revision y estado_asignacion.
+import type { RolAsignacion } from '../../comun/roles.js';
 import type { Ejecutor } from '../../db/transaccion.js';
 
 /** Una revisión pendiente en la bandeja del docente. */
@@ -81,14 +82,14 @@ export interface BandejaRepositorio {
   guardarRevision(revision: RevisionNueva, tx: Ejecutor): Promise<void>;
 }
 
-/** Asignaciones como revisor (no como desempate, que es de D02), con su estado. */
-const COMO_REVISOR = `
+/** Asignaciones con su papel (r.codigo, que cada consulta filtra) y su estado. */
+const ASIGNACIONES = `
     FROM contenido.asignacion_revision a
-    JOIN contenido.rol_revision r ON r.id = a.rol_revision_id AND r.codigo = 'revisor'
+    JOIN contenido.rol_revision r ON r.id = a.rol_revision_id
     JOIN contenido.estado_asignacion e ON e.id = a.estado_asignacion_id`;
 
-/** Asignaciones del docente como revisor, con la versión que se revisa y su ubicación. */
-const DEL_DOCENTE = `${COMO_REVISOR}
+/** Asignaciones con la versión que se revisa y su ubicación. */
+const DEL_DOCENTE = `${ASIGNACIONES}
     JOIN contenido.pregunta_version v ON (v.pregunta_id, v.version) = (a.pregunta_id, a.version_revisada)
     JOIN contenido.pregunta p ON p.id = a.pregunta_id
     JOIN contenido.prueba pr ON pr.id = p.prueba_id
@@ -99,7 +100,7 @@ const LISTAR_PENDIENTES = `
          json_build_object('codigo', pr.codigo, 'nombre', pr.nombre) AS prueba,
          c.nombre AS contenido, a.vence_en AS "venceEn"
   ${DEL_DOCENTE}
-   WHERE a.docente_id = $1 AND e.codigo = 'pendiente'
+   WHERE a.docente_id = $1 AND r.codigo = $2 AND e.codigo = 'pendiente'
    ORDER BY a.vence_en, a.id`;
 
 const OBTENER_PENDIENTE = `
@@ -114,12 +115,12 @@ const OBTENER_PENDIENTE = `
     JOIN contenido.eje_tematico ej ON ej.id = v.eje_id
     JOIN contenido.habilidad h ON h.id = v.habilidad_id
     LEFT JOIN contenido.texto_estimulo t ON t.id = (v.copia ->> 'texto_estimulo_id')::bigint
-   WHERE a.id = $1 AND a.docente_id = $2 AND e.codigo = 'pendiente'`;
+   WHERE a.id = $1 AND a.docente_id = $2 AND r.codigo = $3 AND e.codigo = 'pendiente'`;
 
 const RESERVAR_ASIGNACION = `
   SELECT e.codigo AS estado, a.pregunta_id::text AS "preguntaId"
-  ${COMO_REVISOR}
-   WHERE a.id = $1 AND a.docente_id = $2
+  ${ASIGNACIONES}
+   WHERE a.id = $1 AND a.docente_id = $2 AND r.codigo = $3
      FOR UPDATE OF a`;
 
 const INSERTAR_REVISION = `
@@ -169,15 +170,19 @@ function listas(
   };
 }
 
-export function crearBandejaRepositorio(bd: Ejecutor): BandejaRepositorio {
+/** La bandeja de las asignaciones con un papel: las de revisor (D01) o las de desempate (D02). */
+export function crearBandejaRepositorio(
+  bd: Ejecutor,
+  rol: RolAsignacion = 'revisor',
+): BandejaRepositorio {
   return {
     async listarPendientes(docenteId, tx = bd) {
-      const { rows } = await tx.query<FilaBandeja>(LISTAR_PENDIENTES, [docenteId]);
+      const { rows } = await tx.query<FilaBandeja>(LISTAR_PENDIENTES, [docenteId, rol]);
       return rows;
     },
 
     async obtenerPendiente(id, docenteId, tx = bd) {
-      const { rows } = await tx.query<FilaRevisionAbierta>(OBTENER_PENDIENTE, [id, docenteId]);
+      const { rows } = await tx.query<FilaRevisionAbierta>(OBTENER_PENDIENTE, [id, docenteId, rol]);
       return rows[0] ?? null;
     },
 
@@ -187,6 +192,7 @@ export function crearBandejaRepositorio(bd: Ejecutor): BandejaRepositorio {
       const { rows } = await tx.query<{ estado: string; preguntaId: string }>(RESERVAR_ASIGNACION, [
         id,
         docenteId,
+        rol,
       ]);
       return rows[0] ?? null;
     },

@@ -2,8 +2,9 @@
 // base-temporal.ts): con el temario de las semillas y tres docentes de Historia, cada pregunta se envía a
 // revisión (HU-21) y sus dos revisores entregan (HU-22). Si coinciden, la pregunta queda aprobada con su
 // dificultad y el historial a nombre de quien entregó la última; si no, queda en desempate, marcada como
-// posiblemente confusa si una dijo fácil y la otra difícil, y con el tercer docente asignado; sin un
-// tercer docente disponible, sigue en revisión.
+// posiblemente confusa si una dijo fácil y la otra difícil, y con el tercer docente asignado, que ve las
+// dos revisiones sin sus autores y decide (D02, CU-20); sin un tercer docente disponible, sigue en
+// revisión.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Servicios } from '../app.js';
 import { esquemaPregunta } from '../modulos/preguntas/preguntas.validadores.js';
@@ -162,6 +163,54 @@ describe.skipIf(!urlBase)('resolver la ronda con PostgreSQL (HU-23, CP-16)', () 
       [tercero[0]?.id],
     );
     expect(plazo).toEqual([{ dias: 3 }]);
+  });
+
+  it('D02: el tercer docente ve las dos revisiones sin sus autores y su decisión deja la pregunta aprobada', async () => {
+    const preguntaId = await enRevision('admin@ronda.cl', '¿Quién desempata?');
+    const revisores = await entregar(preguntaId, [
+      ['aprobar', 'facil'],
+      ['rechazar', 'dificil'],
+    ]);
+    const tercero = (await asignaciones(preguntaId)).find((a) => a.rol === 'desempate');
+    if (!tercero) throw new Error('Sin tercer docente.');
+    const revisor = revisores[0] ?? '';
+
+    const bandeja = await servicios.revision.listarDesempates(tercero.docente);
+    const abierto = await servicios.revision.obtenerDesempate(tercero.docente, tercero.id);
+
+    expect(bandeja.map((desempate) => desempate.id)).toContain(tercero.id);
+    expect(await servicios.revision.listarDesempates(revisor)).toEqual([]);
+    expect(abierto.revisiones.map((r) => [r.decision.codigo, r.dificultad.codigo])).toEqual([
+      ['aprobar', 'facil'],
+      ['rechazar', 'dificil'],
+    ]);
+    expect(abierto.revisiones[1]?.criterios).toHaveLength(pauta.length);
+    expect(abierto.posibleAmbigua).toBe(true);
+    expect(JSON.stringify(abierto)).not.toMatch(/@ronda\.cl/);
+    await expect(servicios.revision.obtenerDesempate(revisor, tercero.id)).rejects.toThrow(
+      'El desempate no existe o ya lo entregaste.',
+    );
+
+    const decidido = await servicios.revision.entregarDesempate(tercero.docente, tercero.id, {
+      dificultad: 'dificil',
+      decision: 'aprobar',
+      comentario: null,
+    });
+
+    expect(decidido).toMatchObject({ estado: 'aprobada', dificultad: 'dificil' });
+    expect(await estadoDe(preguntaId)).toEqual({
+      estado: 'aprobada',
+      dificultad: 'dificil',
+      posibleAmbigua: true,
+      ultimoCambioPor: tercero.docente,
+    });
+    await expect(
+      servicios.revision.entregarDesempate(tercero.docente, tercero.id, {
+        dificultad: 'media',
+        decision: 'aprobar',
+        comentario: null,
+      }),
+    ).rejects.toThrow('Este desempate ya se entregó.');
   });
 
   it('sin un tercer docente disponible, la pregunta sigue en revisión con las dos revisiones', async () => {
