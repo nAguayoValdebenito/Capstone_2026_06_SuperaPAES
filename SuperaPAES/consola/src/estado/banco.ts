@@ -107,18 +107,18 @@ function useOpciones(): CargaOpciones {
   return carga;
 }
 
-const claveDe = (filtros: FiltrosBanco, pagina: number, vuelta: number) =>
-  JSON.stringify([filtros, pagina, vuelta]);
+const claveDe = (filtros: FiltrosBanco, pagina: number) => JSON.stringify([filtros, pagina]);
 
 /**
  * Mientras la respuesta guardada sea de otros filtros u otra página, la lista está cargando. `vuelta`
- * cambia cuando hay que volver a pedir la misma página (después de enviar una pregunta a revisión).
+ * cambia cuando hay que volver a pedir la misma página (después de enviar una pregunta a revisión):
+ * mientras llega, se sigue viendo la anterior.
  */
 function usePagina(filtros: FiltrosBanco, pagina: number, vuelta: number): CargaBanco {
   const [resultado, setResultado] = useState<{ clave: string; carga: CargaBanco } | null>(null);
   useEffect(() => {
     const control = new AbortController();
-    const clave = claveDe(filtros, pagina, vuelta);
+    const clave = claveDe(filtros, pagina);
     listarBanco(filtros, pagina, control.signal).then(
       (respuesta) => setResultado({ clave, carga: { tipo: 'lista', pagina: respuesta } }),
       (error: unknown) => {
@@ -128,11 +128,7 @@ function usePagina(filtros: FiltrosBanco, pagina: number, vuelta: number): Carga
     );
     return () => control.abort();
   }, [filtros, pagina, vuelta]);
-  // Al recargar se sigue mostrando la página anterior hasta que llega la nueva.
-  if (resultado?.clave === claveDe(filtros, pagina, vuelta)) return resultado.carga;
-  return resultado?.clave === claveDe(filtros, pagina, vuelta - 1)
-    ? resultado.carga
-    : { tipo: 'cargando' };
+  return resultado?.clave === claveDe(filtros, pagina) ? resultado.carga : { tipo: 'cargando' };
 }
 
 export function useBanco() {

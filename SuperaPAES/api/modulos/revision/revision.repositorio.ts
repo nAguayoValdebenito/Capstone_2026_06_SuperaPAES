@@ -37,6 +37,11 @@ export interface DatosAsignacion {
 
 export interface RevisionRepositorio {
   /**
+   * Reserva el área de la pregunta hasta el fin de la transacción: dos envíos del mismo área a la vez se
+   * turnan, así el segundo cuenta las revisiones que asignó el primero y la carga se reparte.
+   */
+  reservarArea(preguntaId: string, tx: Ejecutor): Promise<void>;
+  /**
    * RN-10 (CU-18a): los docentes activos con el área del contenido de la pregunta que no son su autor
    * ni quien pidió su lote a la IA, primero los que tienen menos revisiones pendientes.
    */
@@ -64,6 +69,15 @@ const DOCENTES_DISPONIBLES = `
               WHERE a.docente_id = u.id AND NOT e.es_final),
             u.id`;
 
+/** Primer número del candado de pg_advisory_xact_lock: «elegir revisores» (HU-21); el segundo es el área. */
+const CANDADO_REVISORES = 2101;
+
+const RESERVAR_AREA = `
+  SELECT pg_advisory_xact_lock($2, c.area_id)
+    FROM contenido.pregunta p
+    JOIN contenido.contenido_tematico c ON c.id = p.contenido_id
+   WHERE p.id = $1`;
+
 const AREA_DE_LA_PREGUNTA = `
   SELECT ar.nombre
     FROM contenido.pregunta p
@@ -82,6 +96,10 @@ const ASIGNAR_REVISORES = `
 
 export function crearRevisionRepositorio(bd: Ejecutor): RevisionRepositorio {
   return {
+    async reservarArea(preguntaId, tx) {
+      await tx.query(RESERVAR_AREA, [preguntaId, CANDADO_REVISORES]);
+    },
+
     async docentesDisponibles(preguntaId, tx = bd) {
       const { rows } = await tx.query<DocenteDisponible>(DOCENTES_DISPONIBLES, [preguntaId]);
       return rows;

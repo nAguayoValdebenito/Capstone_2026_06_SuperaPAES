@@ -7,6 +7,7 @@ import { ErrorConflicto } from '../comun/errores.js';
 import type { RevisionRepositorio } from '../modulos/revision/revision.repositorio.js';
 import { crearRevisionServicio } from '../modulos/revision/index.js';
 import { crearAppDePrueba, errorConFormato, tokenAdmin } from './ayudantes.js';
+import { comoAdmin } from './edicion-de-prueba.js';
 
 const RUTA = '/api/v1/admin/revision/preguntas';
 const AHORA = new Date('2026-11-02T12:00:00.000Z');
@@ -19,6 +20,7 @@ function escenario({
   pasarARevision = vi.fn(() => Promise.resolve({ version: 3, ronda: 2 })),
 } = {}) {
   const repositorio = {
+    reservarArea: vi.fn(() => Promise.resolve()),
     docentesDisponibles: vi.fn(() => Promise.resolve(disponibles)),
     areaDeLaPregunta: vi.fn(() => Promise.resolve('Historia')),
     asignarRevisores: vi.fn(
@@ -46,8 +48,6 @@ function escenario({
   const app = crearAppDePrueba({}, { revision });
   return { app, repositorio, administracion, pasarARevision };
 }
-
-const comoAdmin = async () => ({ Authorization: `Bearer ${await tokenAdmin('admin', '5')}` });
 
 describe('enviar una pregunta a revisión (HU-21, CU-18)', () => {
   it('CP-15: la pasa a en revisión y la asigna a los dos docentes con menos carga, con su plazo', async () => {
@@ -137,6 +137,36 @@ describe('enviar una pregunta a revisión (HU-21, CU-18)', () => {
     expect(respuesta.status).toBe(409);
     expect(respuesta.body.error.mensaje).toBe(motivo);
     expect(repositorio.docentesDisponibles).not.toHaveBeenCalled();
+  });
+
+  it('reserva el área antes de contar la carga de los docentes', async () => {
+    const { app, repositorio } = escenario();
+
+    await request(app)
+      .post(`${RUTA}/84`)
+      .set(await comoAdmin());
+
+    expect(repositorio.reservarArea).toHaveBeenCalledWith('84', expect.anything());
+    expect(repositorio.reservarArea.mock.invocationCallOrder[0]).toBeLessThan(
+      repositorio.docentesDisponibles.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it.each([
+    ['sin revisores', 0, 3],
+    ['sin plazo', 2, 0],
+  ])('una configuración %s no se usa: no envía nada', async (_caso, requeridos, dias) => {
+    const { app, administracion, pasarARevision } = escenario();
+    administracion.obtenerParametroEntero.mockImplementation((clave: string) =>
+      Promise.resolve(clave === 'revisores_requeridos' ? requeridos : dias),
+    );
+
+    const respuesta = await request(app)
+      .post(`${RUTA}/84`)
+      .set(await comoAdmin());
+
+    expect(respuesta.status).toBe(500);
+    expect(pasarARevision).not.toHaveBeenCalled();
   });
 
   it('solo el administrador envía a revisión, y el id de la pregunta debe ser válido', async () => {
