@@ -49,6 +49,12 @@ export interface AlternativaNueva extends AlternativaPregunta {
   preguntaId: string;
 }
 
+/** La versión que se revisa y la ronda de revisión que se abre (HU-21). */
+export interface PreguntaEnRevision {
+  version: number;
+  ronda: number;
+}
+
 export interface PreguntasEdicionRepositorio {
   /** Usuario que registran los triggers en el historial y las versiones, hasta el fin de la transacción. */
   fijarAutor(usuarioId: string, tx: Ejecutor): Promise<void>;
@@ -70,6 +76,11 @@ export interface PreguntasEdicionRepositorio {
    * ida y vuelta a la base por pregunta.
    */
   insertarAlternativas(alternativas: readonly AlternativaNueva[], tx: Ejecutor): Promise<void>;
+  /**
+   * HU-21: pasa la pregunta a en revisión y abre su ronda siguiente. La base revisa el cambio de etapa y
+   * RN-08, y guarda la versión que van a revisar los docentes.
+   */
+  enviarARevision(id: string, tx: Ejecutor): Promise<PreguntaEnRevision>;
   /** Quita las alternativas cuyas letras ya no vienen. */
   quitarAlternativas(id: string, letrasQueQuedan: string[], tx: Ejecutor): Promise<void>;
   /** La pregunta o null. `bloquear` la reserva (FOR UPDATE) hasta el fin de la transacción. */
@@ -119,6 +130,13 @@ const INSERTAR_ALTERNATIVAS = `
     FROM unnest($1::bigint[], $2::text[], $3::text[], $4::boolean[], $5::text[])
          AS a (pregunta_id, letra, texto, es_correcta, explicacion)`;
 
+const ENVIAR_A_REVISION = `
+  UPDATE contenido.pregunta
+     SET estado_pregunta_id = (SELECT id FROM contenido.estado_pregunta WHERE codigo = 'en_revision'),
+         ronda_actual = ronda_actual + 1, actualizado_en = now()
+   WHERE id = $1
+  RETURNING version, ronda_actual AS ronda`;
+
 const OBTENER = `
   SELECT p.id::text AS id, p.prueba_id AS "pruebaId", p.contenido_id AS "contenidoId",
          p.habilidad_id AS "habilidadId", tp.codigo AS "tipoPregunta", d.codigo AS "dificultadSugerida",
@@ -150,7 +168,10 @@ const columnas = (datos: DatosPregunta) => [
 ];
 
 /** Escrituras: la pregunta, sus alternativas y el autor para los triggers. */
-function escrituras(): Omit<PreguntasEdicionRepositorio, 'obtener' | 'existeTexto'> {
+function escrituras(): Omit<
+  PreguntasEdicionRepositorio,
+  'obtener' | 'existeTexto' | 'enviarARevision'
+> {
   return {
     async fijarAutor(usuarioId, tx) {
       await tx.query("SELECT set_config('supera.usuario_id', $1, true)", [usuarioId]);
@@ -213,6 +234,13 @@ export function crearPreguntasEdicionRepositorio(bd: Ejecutor): PreguntasEdicion
         [id],
       );
       return rows[0] ?? null;
+    },
+
+    async enviarARevision(id, tx) {
+      const { rows } = await tx.query<PreguntaEnRevision>(ENVIAR_A_REVISION, [id]);
+      const enviada = rows[0];
+      if (!enviada) throw new Error('La pregunta no pasó a revisión.');
+      return enviada;
     },
 
     async existeTexto(id, tx = bd) {

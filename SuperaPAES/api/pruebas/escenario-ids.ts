@@ -174,9 +174,27 @@ export function escenario() {
     privacidad: privacidadDePrueba,
     suscripciones: { ...servicios.suscripciones, ...suscripcionesDePrueba },
     generador: { ...servicios.generador, ...generadorDePrueba },
+    revision: {
+      ...servicios.revision,
+      enviarARevision: vi.fn(() => Promise.resolve(envioARevision)),
+    },
   });
   return { app, cuentas, administracion, evaluaciones };
 }
+
+/** Pregunta enviada a revisión (HU-21): los ids BIGINT como texto, como los entrega la base. */
+const envioARevision = {
+  preguntaId: '7',
+  ronda: 1,
+  version: 1,
+  revisores: [
+    {
+      asignacionId: '900',
+      docente: { id: '21', nombre: 'Docente', correo: 'docente@superapaes.cl' },
+      venceEn: '2026-11-05T12:00:00.000Z',
+    },
+  ],
+};
 
 function valoresDeCampo(valor: unknown, ruta: string): unknown[] {
   const [paso, ...resto] = ruta.split('.');
