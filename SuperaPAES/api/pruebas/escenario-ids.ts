@@ -4,6 +4,7 @@ import type { Express } from 'express';
 import { expect, vi } from 'vitest';
 import { crearApp, crearServicios } from '../app.js';
 import { cuerpoDePreguntas, preguntasDePrueba } from './escenario-ids-preguntas.js';
+import { cuerpoDeRevision, esDelDocente, revisionDePrueba } from './escenario-ids-revision.js';
 import {
   cuerpoPuntajes,
   generadorDePrueba,
@@ -174,27 +175,10 @@ export function escenario() {
     privacidad: privacidadDePrueba,
     suscripciones: { ...servicios.suscripciones, ...suscripcionesDePrueba },
     generador: { ...servicios.generador, ...generadorDePrueba },
-    revision: {
-      ...servicios.revision,
-      enviarARevision: vi.fn(() => Promise.resolve(envioARevision)),
-    },
+    revision: revisionDePrueba(servicios.revision),
   });
   return { app, cuentas, administracion, evaluaciones };
 }
-
-/** Pregunta enviada a revisión (HU-21): los ids BIGINT como texto, como los entrega la base. */
-const envioARevision = {
-  preguntaId: '7',
-  ronda: 1,
-  version: 1,
-  revisores: [
-    {
-      asignacionId: '900',
-      docente: { id: '21', nombre: 'Docente', correo: 'docente@superapaes.cl' },
-      venceEn: '2026-11-05T12:00:00.000Z',
-    },
-  ],
-};
 
 function valoresDeCampo(valor: unknown, ruta: string): unknown[] {
   const [paso, ...resto] = ruta.split('.');
@@ -209,6 +193,10 @@ function valoresDeCampo(valor: unknown, ruta: string): unknown[] {
       : [];
   return valoresDeCampo(siguiente, resto.join('.'));
 }
+
+/** Cuerpo de las rutas de preguntas, revisión, perfil y puntajes, que arma cada escenario. */
+const cuerpoDeOtrosModulos = (ruta: string) =>
+  cuerpoDePreguntas(ruta) ?? cuerpoDeRevision(ruta) ?? cuerpoPerfil(ruta);
 
 function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   if (ruta.endsWith('/mini-ensayos')) return { pruebaId: 2 };
@@ -236,7 +224,7 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
   if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };
-  return cuerpoDePreguntas(ruta) ?? cuerpoPerfil(ruta);
+  return cuerpoDeOtrosModulos(ruta);
 }
 
 /** Perfil del estudiante (HU-29.1) y puntajes PAES (HU-41.1). */
@@ -272,6 +260,7 @@ const CON_SESION_APP = [
 ];
 
 async function sesionPara(ruta: string): Promise<Record<string, string>> {
+  if (esDelDocente(ruta)) return { Authorization: `Bearer ${await tokenAdmin('docente')}` };
   if (ruta.startsWith(`${PREFIJO}/admin/`))
     return { Authorization: `Bearer ${await tokenAdmin()}` };
   if (CON_SESION_APP.some((prefijo) => ruta.startsWith(`${PREFIJO}${prefijo}`)))

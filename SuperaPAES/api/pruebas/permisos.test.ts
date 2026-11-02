@@ -253,8 +253,17 @@ describe('permisos por rol en la consola (CP-05 pasos 2 y 3)', () => {
     },
   );
 
+  it('el docente pasa la autorización de su bandeja (Mis revisiones, HU-22)', async () => {
+    const tokens = await sesiones();
+
+    const respuesta = await request(tokens.app)
+      .get(`${ADMIN_API}/revision/mis-revisiones`)
+      .set(tokens.docente);
+
+    expect([401, 403]).not.toContain(respuesta.status);
+  });
+
   it.each([
-    ['docente', '/revision/mis-revisiones'],
     ['docente', '/revision/desempates'],
     ['admin', '/revision/seguimiento'],
   ] as const)('el %s pasa la autorización de %s (todavía 501)', async (rol, ruta) => {

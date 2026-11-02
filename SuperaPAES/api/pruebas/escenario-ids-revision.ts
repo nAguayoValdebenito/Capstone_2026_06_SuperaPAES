@@ -1,0 +1,77 @@
+// Datos del escenario de ids para las rutas de revisión (HU-21 y HU-22): un servicio de revisión falso
+// con los ids BIGINT como texto, como los entrega la base, y el cuerpo de la revisión del docente.
+import { vi } from 'vitest';
+import type { RevisionServicio } from '../modulos/revision/index.js';
+
+const VENCE = '2026-11-05T12:00:00.000Z';
+
+/** Pregunta enviada a revisión (HU-21). */
+const envioARevision = {
+  preguntaId: '7',
+  ronda: 1,
+  version: 1,
+  revisores: [
+    {
+      asignacionId: '900',
+      docente: { id: '21', nombre: 'Docente', correo: 'docente@superapaes.cl' },
+      venceEn: VENCE,
+    },
+  ],
+};
+
+const pendiente = {
+  id: '900',
+  preguntaId: '7',
+  ronda: 1,
+  prueba: { codigo: 'M1', nombre: 'Matemática 1' },
+  contenido: 'Ecuaciones',
+  venceEn: VENCE,
+};
+
+/** La pregunta que abre el docente (HU-22), con sus alternativas. */
+const preguntaARevisar = {
+  ...pendiente,
+  eje: 'Álgebra',
+  habilidad: 'Resolver problemas',
+  enunciado: 'Pregunta',
+  explicacion: 'Explicación',
+  alternativas: [
+    { id: '101', letra: 'A', texto: 'Primera', explicacion: null, esCorrecta: true },
+    { id: '102', letra: 'B', texto: 'Segunda', explicacion: null, esCorrecta: false },
+  ],
+  texto: null,
+  pauta: [{ codigo: 'contenido', descripcion: 'Contenido' }],
+  dificultades: [{ codigo: 'facil', nombre: 'Fácil' }],
+  decisiones: [{ codigo: 'aprobar', nombre: 'Aprobar', requiereComentario: false }],
+};
+
+/** Servicio de revisión con las rutas que devuelven ids respondiendo datos fijos. */
+export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
+  return {
+    ...base,
+    enviarARevision: vi.fn(() => Promise.resolve(envioARevision)),
+    listarMisRevisiones: vi.fn(() => Promise.resolve([pendiente])),
+    obtenerMiRevision: vi.fn(() => Promise.resolve(preguntaARevisar)),
+    entregarRevision: vi.fn(() =>
+      Promise.resolve({
+        asignacionId: '900',
+        preguntaId: '7',
+        decision: 'aprobar',
+        dificultad: 'facil',
+      }),
+    ),
+  };
+}
+
+/** Las rutas del docente revisor se piden con la sesión de un docente. */
+export const esDelDocente = (ruta: string) => ruta.includes('/revision/mis-revisiones');
+
+/** Cuerpo de la revisión que entrega el docente, o undefined si la ruta es otra. */
+export function cuerpoDeRevision(contrato: string): Record<string, unknown> | undefined {
+  if (!/^POST .*\/mis-revisiones\/:id$/.test(contrato)) return undefined;
+  return {
+    criterios: [{ codigo: 'contenido', cumple: true }],
+    dificultad: 'facil',
+    decision: 'aprobar',
+  };
+}
