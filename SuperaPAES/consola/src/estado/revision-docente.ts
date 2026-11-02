@@ -1,6 +1,6 @@
 // Mis revisiones (D01, HU-22.2 y HU-22.3, CU-19): la bandeja del docente revisor, la pregunta que
-// abre (la primera de la bandeja si no eligió otra) y el formulario de su revisión. Al entregarla, la
-// bandeja se vuelve a cargar y se abre la siguiente. Cancela las cargas al cambiar o al desmontar.
+// abre (la primera de la bandeja si no eligió otra) y el formulario de su revisión. Al entregarla, sale
+// de la bandeja y se abre la siguiente. Cancela las cargas al cambiar o al desmontar.
 import { type FormEvent, useEffect, useState } from 'react';
 import { entregarRevision, listarMisRevisiones, obtenerMiRevision } from '../servicios/revision';
 import type { PreguntaARevisar, RevisionPendiente } from '../tipos';
@@ -10,6 +10,7 @@ import {
   camposVacios,
   type ErroresRevision,
   erroresDeApi,
+  type RespuestaCriterio,
   validarRevision,
 } from './formulario-revision';
 import { mensajeDeError } from './usuarios-internos';
@@ -25,7 +26,8 @@ export type CargaRevision =
   | { tipo: 'lista'; pregunta: PreguntaARevisar }
   | Fallida;
 
-function useBandeja(vuelta: number): CargaBandeja {
+/** La bandeja, que se pide al abrir la sección; `quitar` saca una revisión ya entregada. */
+function useBandeja() {
   const [carga, setCarga] = useState<CargaBandeja>({ tipo: 'cargando' });
   useEffect(() => {
     const control = new AbortController();
@@ -36,8 +38,14 @@ function useBandeja(vuelta: number): CargaBandeja {
       },
     );
     return () => control.abort();
-  }, [vuelta]);
-  return carga;
+  }, []);
+  const quitar = (id: number) =>
+    setCarga((actual) =>
+      actual.tipo === 'lista'
+        ? { tipo: 'lista', revisiones: actual.revisiones.filter((r) => r.id !== id) }
+        : actual,
+    );
+  return { carga, quitar };
 }
 
 /** La pregunta de la revisión abierta; mientras llega la de otra revisión, está cargando. */
@@ -60,85 +68,71 @@ function usePregunta(id: number | null): CargaRevision {
   return resultado?.id === id ? resultado.carga : { tipo: 'cargando' };
 }
 
-/** Los campos del formulario; vuelven a quedar vacíos al abrir otra revisión. */
-function useCampos(id: number | null) {
+/** Los campos, si ya intentó entregar y los errores de la API; todo se limpia al abrir otra revisión. */
+function useFormulario(id: number | null) {
   const [campos, setCampos] = useState<CamposRevision>(camposVacios);
+  const [intentado, setIntentado] = useState(false);
+  const [erroresApi, setErroresApi] = useState<ErroresRevision>({});
   const [deLaRevision, setDeLaRevision] = useState(id);
   if (id !== deLaRevision) {
     setDeLaRevision(id);
     setCampos(camposVacios());
+    setIntentado(false);
+    setErroresApi({});
   }
-  const cambiar = (cambio: (actual: CamposRevision) => CamposRevision) => setCampos(cambio);
+  const cambiarCriterio = (codigo: string, cambio: Partial<RespuestaCriterio>) =>
+    setCampos((actual) => {
+      const previa = actual.criterios[codigo] ?? { cumple: null, observacion: '' };
+      return { ...actual, criterios: { ...actual.criterios, [codigo]: { ...previa, ...cambio } } };
+    });
   const acciones = {
-    responder: (codigo: string, cumple: boolean) =>
-      cambiar((actual) => ({
-        ...actual,
-        criterios: {
-          ...actual.criterios,
-          [codigo]: { cumple, observacion: actual.criterios[codigo]?.observacion ?? '' },
-        },
-      })),
-    observar: (codigo: string, observacion: string) =>
-      cambiar((actual) => ({
-        ...actual,
-        criterios: { ...actual.criterios, [codigo]: { cumple: false, observacion } },
-      })),
-    elegirDificultad: (dificultad: string) => cambiar((actual) => ({ ...actual, dificultad })),
-    elegirDecision: (decision: string) => cambiar((actual) => ({ ...actual, decision })),
-    escribirMotivo: (comentario: string) => cambiar((actual) => ({ ...actual, comentario })),
+    responder: (codigo: string, cumple: boolean) => cambiarCriterio(codigo, { cumple }),
+    observar: (codigo: string, observacion: string) => cambiarCriterio(codigo, { observacion }),
+    elegirDificultad: (dificultad: string) => setCampos((actual) => ({ ...actual, dificultad })),
+    elegirDecision: (decision: string) => setCampos((actual) => ({ ...actual, decision })),
+    escribirMotivo: (comentario: string) => setCampos((actual) => ({ ...actual, comentario })),
   };
-  return { campos, acciones };
+  return { campos, intentado, setIntentado, erroresApi, setErroresApi, acciones };
 }
 
 /** La bandeja y la revisión abierta: la que eligió el docente o, si no eligió, la primera. */
 function useAbierta() {
-  const [vuelta, setVuelta] = useState(0);
-  const bandeja = useBandeja(vuelta);
+  const { carga: bandeja, quitar } = useBandeja();
   const [elegida, setElegida] = useState<number | null>(null);
   const primera = bandeja.tipo === 'lista' ? (bandeja.revisiones[0]?.id ?? null) : null;
   const abierta = elegida ?? primera;
-  const revision = usePregunta(abierta);
-  /** Después de entregar: vuelve a pedir la bandeja y abre la primera que quede. */
-  const recargar = () => {
+  /** Después de entregar: la saca de la bandeja y abre la primera que quede. */
+  const entregada = (id: number) => {
+    quitar(id);
     setElegida(null);
-    setVuelta((actual) => actual + 1);
   };
-  return { bandeja, abierta, revision, setElegida, recargar };
+  return { bandeja, abierta, revision: usePregunta(abierta), elegir: setElegida, entregada };
 }
 
 export function useRevisionDocente() {
-  const { bandeja, abierta, revision, setElegida, recargar } = useAbierta();
-  const { campos, acciones } = useCampos(abierta);
-  const [intentado, setIntentado] = useState(false);
-  const [erroresApi, setErroresApi] = useState<ErroresRevision>({});
+  const { bandeja, abierta, revision, elegir, entregada } = useAbierta();
+  const formulario = useFormulario(abierta);
+  const { campos, setIntentado, setErroresApi } = formulario;
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const pregunta = revision.tipo === 'lista' ? revision.pregunta : null;
   const errores: ErroresRevision = {
-    ...(intentado && pregunta ? validarRevision(campos, pregunta) : {}),
-    ...erroresApi,
-  };
-
-  const elegir = (id: number) => {
-    setElegida(id);
-    setIntentado(false);
-    setErroresApi({});
+    ...(formulario.intentado && pregunta ? validarRevision(campos, pregunta) : {}),
+    ...formulario.erroresApi,
   };
 
   const entregar = (evento: FormEvent) => {
     evento.preventDefault();
     setIntentado(true);
     setAviso(null);
-    if (!pregunta || abierta === null || enviando) return;
+    if (!pregunta || enviando) return;
     if (Object.keys(validarRevision(campos, pregunta)).length > 0) return;
     setEnviando(true);
-    entregarRevision(abierta, armarRevision(campos, pregunta.pauta))
+    entregarRevision(pregunta.id, armarRevision(campos, pregunta.pauta))
       .then(
         () => {
           setAviso(`Revisión de la pregunta ${String(pregunta.preguntaId)} entregada.`);
-          setIntentado(false);
-          setErroresApi({});
-          recargar();
+          entregada(pregunta.id);
         },
         (error: unknown) => setErroresApi(erroresDeApi(error)),
       )
@@ -155,7 +149,7 @@ export function useRevisionDocente() {
     aviso,
     elegir,
     entregar,
-    ...acciones,
+    ...formulario.acciones,
   };
 }
 

@@ -114,6 +114,19 @@ describe('D01 · la pregunta y la pauta (HU-22 esc. 2 y 3, CP-16 paso 3)', () =>
     expect(html).not.toMatch(/sugerida:/i);
   });
 
+  it('muestra el texto de lectura con su título y su imagen', () => {
+    const conTexto = {
+      ...PREGUNTA,
+      texto: { titulo: 'El faro', contenido: null, imagenUrl: 'https://ejemplo.cl/faro.png' },
+    };
+    const html = dibujar({ revision: { tipo: 'lista', pregunta: conTexto } });
+
+    expect(html).toContain('aria-label="Texto de lectura"><h3>El faro</h3>');
+    expect(html).toContain(
+      '<img class="formato__imagen" src="https://ejemplo.cl/faro.png" alt="El faro" loading="lazy"/>',
+    );
+  });
+
   it('cada punto de la pauta se responde con Sí o No; con No pide la observación', () => {
     const conNo = dibujar({
       campos: {

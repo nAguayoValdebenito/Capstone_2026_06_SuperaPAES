@@ -9,8 +9,7 @@ import {
   type PreguntaParaEditar,
   type PruebaTemario,
 } from '../tipos';
-import { detallesDeApi } from './detalles-de-api';
-import { mensajeDeError } from './usuarios-internos';
+import { erroresPorCampo } from './detalles-de-api';
 
 export interface CamposAlternativa {
   letra: Letra;
@@ -250,11 +249,5 @@ export function armarDatos(campos: CamposPregunta, prueba: PruebaTemario): Datos
  * Cada problema que devuelve la API va bajo su campo (textoNuevo.titulo va bajo textoNuevo); lo que no
  * es de un campo, como un 409 de RF-G09, va arriba del formulario.
  */
-export function erroresDeApi(error: unknown): ErroresPregunta {
-  const errores: ErroresPregunta = {};
-  for (const detalle of detallesDeApi(error)) {
-    const campo = CAMPOS_CON_ERROR.find((c) => c === detalle.ruta.split('.')[0]);
-    if (campo) errores[campo] ??= detalle.mensaje;
-  }
-  return Object.keys(errores).length > 0 ? errores : { general: mensajeDeError(error).mensaje };
-}
+export const erroresDeApi = (error: unknown): ErroresPregunta =>
+  erroresPorCampo(error, (ruta) => CAMPOS_CON_ERROR.find((c) => c === ruta.split('.')[0]));

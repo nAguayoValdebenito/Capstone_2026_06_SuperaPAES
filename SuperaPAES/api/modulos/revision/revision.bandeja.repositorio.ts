@@ -25,9 +25,8 @@ export interface CopiaPregunta {
 }
 
 /** La revisión abierta por el docente: la versión que se revisa, con su ubicación en el temario. */
-export interface FilaRevisionAbierta extends Omit<FilaBandeja, 'contenido'> {
+export interface FilaRevisionAbierta extends FilaBandeja {
   eje: string;
-  contenido: string;
   habilidad: string;
   copia: CopiaPregunta;
   correctaId: string;
@@ -70,19 +69,26 @@ export interface BandejaRepositorio {
   listarDificultades(tx?: Ejecutor): Promise<OpcionRevision[]>;
   listarDecisiones(tx?: Ejecutor): Promise<Decision[]>;
   /**
-   * Reserva la asignación del docente (FOR UPDATE) hasta el fin de la transacción y devuelve su estado;
-   * null si no es suya.
+   * Reserva la asignación del docente (FOR UPDATE) hasta el fin de la transacción y devuelve su estado y
+   * su pregunta; null si no es suya.
    */
-  reservarAsignacion(id: string, docenteId: string, tx: Ejecutor): Promise<string | null>;
+  reservarAsignacion(
+    id: string,
+    docenteId: string,
+    tx: Ejecutor,
+  ): Promise<{ estado: string; preguntaId: string } | null>;
   /** Guarda la revisión con cada punto de la pauta y marca la asignación como completada. */
   guardarRevision(revision: RevisionNueva, tx: Ejecutor): Promise<void>;
 }
 
-/** Asignaciones del docente como revisor (no como desempate, que es de D02). */
-const DEL_DOCENTE = `
+/** Asignaciones como revisor (no como desempate, que es de D02), con su estado. */
+const COMO_REVISOR = `
     FROM contenido.asignacion_revision a
     JOIN contenido.rol_revision r ON r.id = a.rol_revision_id AND r.codigo = 'revisor'
-    JOIN contenido.estado_asignacion e ON e.id = a.estado_asignacion_id
+    JOIN contenido.estado_asignacion e ON e.id = a.estado_asignacion_id`;
+
+/** Asignaciones del docente como revisor, con la versión que se revisa y su ubicación. */
+const DEL_DOCENTE = `${COMO_REVISOR}
     JOIN contenido.pregunta_version v ON (v.pregunta_id, v.version) = (a.pregunta_id, a.version_revisada)
     JOIN contenido.pregunta p ON p.id = a.pregunta_id
     JOIN contenido.prueba pr ON pr.id = p.prueba_id
@@ -111,10 +117,8 @@ const OBTENER_PENDIENTE = `
    WHERE a.id = $1 AND a.docente_id = $2 AND e.codigo = 'pendiente'`;
 
 const RESERVAR_ASIGNACION = `
-  SELECT e.codigo AS estado
-    FROM contenido.asignacion_revision a
-    JOIN contenido.rol_revision r ON r.id = a.rol_revision_id AND r.codigo = 'revisor'
-    JOIN contenido.estado_asignacion e ON e.id = a.estado_asignacion_id
+  SELECT e.codigo AS estado, a.pregunta_id::text AS "preguntaId"
+  ${COMO_REVISOR}
    WHERE a.id = $1 AND a.docente_id = $2
      FOR UPDATE OF a`;
 
@@ -180,8 +184,11 @@ export function crearBandejaRepositorio(bd: Ejecutor): BandejaRepositorio {
     ...listas(bd),
 
     async reservarAsignacion(id, docenteId, tx) {
-      const { rows } = await tx.query<{ estado: string }>(RESERVAR_ASIGNACION, [id, docenteId]);
-      return rows[0]?.estado ?? null;
+      const { rows } = await tx.query<{ estado: string; preguntaId: string }>(RESERVAR_ASIGNACION, [
+        id,
+        docenteId,
+      ]);
+      return rows[0] ?? null;
     },
 
     async guardarRevision(revision, tx) {
