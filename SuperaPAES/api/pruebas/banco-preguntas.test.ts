@@ -75,6 +75,7 @@ const fila = (cambios: Partial<FilaBanco> = {}): FilaBanco => ({
   dificultadSugerida: { codigo: 'facil', nombre: 'Fácil' },
   dificultadAsignada: null,
   posibleAmbigua: false,
+  editable: false,
   actualizadoEn: new Date('2026-10-20T12:00:00Z'),
   ...cambios,
 });
@@ -125,6 +126,7 @@ describe('banco de preguntas: lista (HU-11, CP-08)', () => {
         dificultadSugerida: { codigo: 'facil', nombre: 'Fácil' },
         dificultadAsignada: null,
         posibleAmbigua: false,
+        editable: false,
         actualizadoEn: '2026-10-20T12:00:00.000Z',
       },
     ]);

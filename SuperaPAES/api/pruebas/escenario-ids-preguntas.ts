@@ -19,6 +19,7 @@ const paginaBanco = {
       dificultadSugerida: null,
       dificultadAsignada: null,
       posibleAmbigua: false,
+      editable: false,
       actualizadoEn: fecha.toISOString(),
     },
   ],

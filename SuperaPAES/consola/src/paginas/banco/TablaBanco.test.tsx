@@ -3,8 +3,9 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { Paginacion } from '../../componentes/Paginacion';
+import { preguntaDelBanco } from '../../pruebas/banco';
 import { CUATRO_ALTERNATIVAS } from '../../pruebas/temario';
-import type { OpcionesFiltrosBanco, PreguntaDelBanco } from '../../tipos';
+import type { OpcionesFiltrosBanco } from '../../tipos';
 import { FiltrosBanco } from './FiltrosBanco';
 import { ResultadoBanco } from './PaginaBanco';
 import { TablaBanco } from './TablaBanco';
@@ -12,20 +13,7 @@ import { TablaBanco } from './TablaBanco';
 /** La tabla abre cada pregunta con un enlace: necesita un router. */
 const dibujar = (elemento: ReactElement) => renderToString(<MemoryRouter>{elemento}</MemoryRouter>);
 
-const pregunta = (cambios: Partial<PreguntaDelBanco> = {}): PreguntaDelBanco => ({
-  id: 7,
-  resumen: 'Si 2x + 3 = 11, ¿cuánto vale x?',
-  prueba: { id: 2, codigo: 'M1', nombre: 'Matemática 1' },
-  eje: { id: 11, nombre: 'Álgebra' },
-  contenido: { id: 110, nombre: 'Ecuaciones' },
-  estado: { codigo: 'en_revision', nombre: 'En revisión' },
-  origen: 'importacion',
-  dificultadSugerida: { codigo: 'facil', nombre: 'Fácil' },
-  dificultadAsignada: null,
-  posibleAmbigua: false,
-  actualizadoEn: '2026-10-20T12:00:00.000Z',
-  ...cambios,
-});
+const pregunta = preguntaDelBanco;
 
 const OPCIONES: OpcionesFiltrosBanco = {
   pruebas: [
@@ -76,12 +64,12 @@ describe('tabla del banco (C02, HU-11 esc. 2)', () => {
     expect(html).not.toContain('Posiblemente confusa');
   });
 
-  it('cada fila abre su pregunta en C03: «Editar» en borrador u observada, «Ver» en las demás (RF-G09)', () => {
+  it('cada fila abre su pregunta en C03: «Editar» en una etapa editable (borrador u observada), «Ver» en las demás (RF-G09)', () => {
     const html = dibujar(
       <TablaBanco
         preguntas={[
-          pregunta({ id: 7, estado: { codigo: 'borrador', nombre: 'Borrador' } }),
-          pregunta({ id: 8, estado: { codigo: 'observada', nombre: 'Observada' } }),
+          pregunta({ id: 7, estado: { codigo: 'borrador', nombre: 'Borrador' }, editable: true }),
+          pregunta({ id: 8, estado: { codigo: 'observada', nombre: 'Observada' }, editable: true }),
           pregunta({ id: 9, estado: { codigo: 'publicada', nombre: 'Publicada' } }),
         ]}
       />,

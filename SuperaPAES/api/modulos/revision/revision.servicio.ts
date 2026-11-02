@@ -55,12 +55,19 @@ export interface RevisionServicio {
 
 const DIA_EN_MS = 24 * 60 * 60 * 1000;
 
-/** Parámetros de contenido.configuracion: cuántos revisores y en cuántos días vence la revisión. */
+/**
+ * Parámetros de contenido.configuracion: cuántos revisores y en cuántos días vence la revisión. Un valor
+ * menor que 1 dejaría una pregunta en revisión sin revisores o con el plazo vencido: no se usa.
+ */
 async function parametros({ administracion }: DependenciasRevisionServicio) {
-  return {
-    requeridos: await administracion.obtenerParametroEntero('revisores_requeridos'),
-    dias: await administracion.obtenerParametroEntero('dias_plazo_revision'),
-  };
+  const requeridos = await administracion.obtenerParametroEntero('revisores_requeridos');
+  const dias = await administracion.obtenerParametroEntero('dias_plazo_revision');
+  if (requeridos < 1 || dias < 1) {
+    throw new Error(
+      'contenido.configuracion debe tener revisores_requeridos y dias_plazo_revision de al menos 1.',
+    );
+  }
+  return { requeridos, dias };
 }
 
 /** CU-18a: los revisores de la pregunta, o el aviso de que el área no tiene docentes suficientes. */
@@ -69,6 +76,7 @@ async function elegirRevisores(
   [preguntaId, requeridos]: [string, number],
   tx: Ejecutor,
 ): Promise<DocenteDisponible[]> {
+  await repositorio.reservarArea(preguntaId, tx);
   const disponibles = await repositorio.docentesDisponibles(preguntaId, tx);
   if (disponibles.length >= requeridos) return disponibles.slice(0, requeridos);
   const area = (await repositorio.areaDeLaPregunta(preguntaId, tx)) ?? 'su área';
@@ -82,8 +90,10 @@ function conDocentes(
   asignaciones: readonly AsignacionNueva[],
   docentes: readonly DocenteDisponible[],
 ): RevisorAsignado[] {
+  const porDocente = new Map(asignaciones.map((asignacion) => [asignacion.docenteId, asignacion]));
+  // Cada docente elegido recibe su asignación en la misma transacción.
   return docentes.flatMap((docente) => {
-    const asignacion = asignaciones.find((candidata) => candidata.docenteId === docente.id);
+    const asignacion = porDocente.get(docente.id);
     return asignacion
       ? [{ asignacionId: asignacion.id, docente, venceEn: asignacion.venceEn.toISOString() }]
       : [];

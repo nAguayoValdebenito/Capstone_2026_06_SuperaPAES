@@ -5,11 +5,7 @@
 import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
 import { useAvisoDeNavegacion } from '../../estado/aviso-de-navegacion';
-import {
-  type AvisoEnvio,
-  type EnvioDelBanco,
-  useEnvioARevision,
-} from '../../estado/envio-revision';
+import { type AccionEnvio, type AvisoEnvio, useEnvioARevision } from '../../estado/envio-revision';
 import { type CargaBanco, totalDePaginas, useBanco } from '../../estado/banco';
 import { FiltrosBanco } from './FiltrosBanco';
 import { TablaBanco } from './TablaBanco';
@@ -30,14 +26,14 @@ export function ResultadoBanco({
 }: {
   carga: CargaBanco;
   alCambiarPagina: (pagina: number) => void;
-  envio?: Pick<EnvioDelBanco, 'enviando' | 'enviar'>;
+  envio?: AccionEnvio;
 }) {
   if (carga.tipo === 'cargando') return <p aria-live="polite">Cargando preguntas…</p>;
   if (carga.tipo === 'fallida') return <Alerta texto={carga.mensaje} codigo={carga.codigo} />;
   const { preguntas, paginacion } = carga.pagina;
   return (
     <>
-      <TablaBanco preguntas={preguntas} {...(envio && { envio })} />
+      <TablaBanco preguntas={preguntas} envio={envio} />
       {paginacion.total > 0 && (
         <Paginacion
           paginacion={paginacion}
@@ -65,8 +61,7 @@ function AvisoDelBanco({ aviso }: { aviso: AvisoEnvio | null }) {
 export function PaginaBanco() {
   const { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar } =
     useBanco();
-  const avisoDeNavegacion = useAvisoDeNavegacion();
-  const envio = useEnvioARevision(recargar);
+  const envio = useEnvioARevision(recargar, useAvisoDeNavegacion());
 
   return (
     <section className="pagina pagina--ancha">
@@ -87,12 +82,7 @@ export function PaginaBanco() {
           </Link>
         </div>
       </header>
-      <AvisoDelBanco
-        aviso={
-          envio.aviso ??
-          (avisoDeNavegacion === null ? null : { tipo: 'exito', texto: avisoDeNavegacion })
-        }
-      />
+      <AvisoDelBanco aviso={envio.aviso} />
       {opciones.tipo === 'lista' && (
         <FiltrosBanco
           opciones={opciones.opciones}

@@ -44,6 +44,8 @@ export interface FilaBanco {
   dificultadSugerida: Opcion | null;
   dificultadAsignada: Opcion | null;
   posibleAmbigua: boolean;
+  /** La etapa permite editarla y enviarla a revisión (borrador u observada, RF-G09). */
+  editable: boolean;
   actualizadoEn: Date;
 }
 
@@ -89,7 +91,7 @@ const BANCO = `
          ${ORIGEN} AS origen,
          ${opcionJson('ds')} AS "dificultadSugerida",
          ${opcionJson('da')} AS "dificultadAsignada",
-         p.posible_ambigua AS "posibleAmbigua",
+         p.posible_ambigua AS "posibleAmbigua", ep.editable,
          p.actualizado_en AS "actualizadoEn",
          count(*) OVER ()::int AS total
   ${PREGUNTAS_FILTRADAS}

@@ -4,38 +4,30 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { avisoDeEnvio } from '../../estado/envio-revision';
+import { preguntaDelBanco } from '../../pruebas/banco';
 import { responderUnaVez } from '../../pruebas/sesion';
 import { enviarARevision } from '../../servicios/revision';
-import type { PreguntaDelBanco } from '../../tipos';
 import { TablaBanco } from './TablaBanco';
 
 afterEach(() => vi.unstubAllGlobals());
 
-const pregunta = (id: number, codigo: string, nombre: string): PreguntaDelBanco => ({
-  id,
-  resumen: `Pregunta ${String(id)}`,
-  prueba: { id: 4, codigo: 'HCS', nombre: 'Historia y Ciencias Sociales' },
-  eje: { id: 40, nombre: 'Historia' },
-  contenido: { id: 400, nombre: 'Derechos laborales' },
-  estado: { codigo, nombre },
-  origen: 'manual',
-  dificultadSugerida: null,
-  dificultadAsignada: null,
-  posibleAmbigua: false,
-  actualizadoEn: '2026-11-01T12:00:00.000Z',
-});
+const pregunta = (id: number, codigo: string, nombre: string, editable = false) =>
+  preguntaDelBanco({ id, resumen: `Pregunta ${String(id)}`, estado: { codigo, nombre }, editable });
 
 const PREGUNTAS = [
-  pregunta(1, 'borrador', 'Borrador'),
-  pregunta(2, 'observada', 'Observada'),
+  pregunta(1, 'borrador', 'Borrador', true),
+  pregunta(2, 'observada', 'Observada', true),
   pregunta(3, 'en_revision', 'En revisión'),
   pregunta(4, 'publicada', 'Publicada'),
 ];
 
-const dibujar = (enviando: number | null) =>
+const dibujar = (enviando: number | null, enviadas: number[] = []) =>
   renderToString(
     <MemoryRouter>
-      <TablaBanco preguntas={PREGUNTAS} envio={{ enviando, enviar: () => undefined }} />
+      <TablaBanco
+        preguntas={PREGUNTAS}
+        envio={{ enviando, enviadas: new Set(enviadas), enviar: () => undefined }}
+      />
     </MemoryRouter>,
   );
 
@@ -58,6 +50,15 @@ describe('enviar a revisión desde el banco (HU-21)', () => {
 
     expect(fila(html, 1)).toContain('disabled="">Enviando…</button>');
     expect(fila(html, 2)).toContain('disabled="">Enviar a revisión</button>');
+  });
+
+  it('una pregunta ya enviada no se vuelve a enviar mientras el banco se recarga', () => {
+    const html = dibujar(null, [1]);
+
+    expect(fila(html, 1)).toContain('disabled="">Enviada</button>');
+    expect(fila(html, 2)).toMatch(
+      /<button type="button" class="boton">Enviar a revisión<\/button>/,
+    );
   });
 
   it('sin la acción de envío (por ejemplo, en pruebas de solo lectura) la tabla no la muestra', () => {

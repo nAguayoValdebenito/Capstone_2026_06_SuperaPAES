@@ -73,6 +73,8 @@ export interface PreguntaDelBanco {
   dificultadAsignada: Opcion | null;
   /** Un revisor dijo fácil y el otro difícil (C02: "posiblemente confusa"). */
   posibleAmbigua: boolean;
+  /** La etapa permite editarla y enviarla a revisión (borrador u observada, RF-G09, HU-21). */
+  editable: boolean;
   actualizadoEn: string;
 }
 
@@ -232,6 +234,7 @@ function aPreguntaDelBanco(fila: FilaBanco, indice: IndiceTemario): PreguntaDelB
     dificultadSugerida: fila.dificultadSugerida,
     dificultadAsignada: fila.dificultadAsignada,
     posibleAmbigua: fila.posibleAmbigua,
+    editable: fila.editable,
     actualizadoEn: fila.actualizadoEn.toISOString(),
   };
 }

@@ -122,6 +122,8 @@ export interface PreguntaDelBanco {
   dificultadAsignada: Opcion | null;
   /** Un revisor dijo fácil y el otro difícil ("posiblemente confusa" en C02). */
   posibleAmbigua: boolean;
+  /** La etapa permite editarla y enviarla a revisión (borrador u observada). */
+  editable: boolean;
   actualizadoEn: string;
 }
 
