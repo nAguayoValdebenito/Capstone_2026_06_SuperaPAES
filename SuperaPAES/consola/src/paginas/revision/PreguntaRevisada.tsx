@@ -1,6 +1,7 @@
 // La pregunta que revisa el docente (D01, HU-22): tal como se envió a revisión, con su ubicación en el
-// temario, el texto de lectura si tiene (con su imagen), las alternativas con la correcta marcada y la explicación. Las
-// fórmulas se dibujan como en la app (TextoConFormulas, HU-12.4). A ciegas: no hay dificultad sugerida.
+// temario, el texto de lectura si tiene (con su imagen), las alternativas con la correcta marcada y la
+// explicación. Las fórmulas se dibujan como en la app (TextoConFormulas, HU-12.4). A ciegas: no hay
+// dificultad sugerida.
 import type { PreguntaARevisar } from '../../tipos';
 import { codigoDePregunta, fechaLimite } from '../../utilidades/revision';
 import { Imagen, TextoConFormulas } from '../pregunta/TextoConFormulas';
@@ -20,7 +21,10 @@ export function PreguntaRevisada({ pregunta }: { pregunta: PreguntaARevisar }) {
           {pregunta.texto.titulo && <h3>{pregunta.texto.titulo}</h3>}
           {pregunta.texto.contenido && <TextoConFormulas texto={pregunta.texto.contenido} />}
           {pregunta.texto.imagenUrl && (
-            <Imagen url={pregunta.texto.imagenUrl} alternativo={pregunta.texto.titulo ?? ''} />
+            <Imagen
+              url={pregunta.texto.imagenUrl}
+              alternativo={pregunta.texto.titulo ?? 'Imagen del texto de lectura'}
+            />
           )}
         </section>
       )}
