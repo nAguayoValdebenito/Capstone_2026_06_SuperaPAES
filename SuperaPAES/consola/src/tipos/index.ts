@@ -238,6 +238,59 @@ export interface EnvioARevision {
   revisores: RevisorAsignado[];
 }
 
+/** Una revisión pendiente en la bandeja del docente (D01, HU-22). */
+export interface RevisionPendiente {
+  id: number;
+  preguntaId: number;
+  ronda: number;
+  prueba: { codigo: string; nombre: string };
+  contenido: string;
+  venceEn: string;
+}
+
+/** Un punto de la pauta docente (contenido.criterio_pauta). */
+export interface CriterioPauta {
+  codigo: string;
+  descripcion: string;
+}
+
+/**
+ * La pregunta que revisa el docente, tal como se envió a revisión, con la correcta y la explicación.
+ * A ciegas (HU-22 esc. 3): no trae la dificultad sugerida ni la revisión del otro docente.
+ */
+export interface PreguntaARevisar extends RevisionPendiente {
+  eje: string;
+  habilidad: string;
+  enunciado: string;
+  explicacion: string;
+  alternativas: {
+    id: number;
+    letra: Letra;
+    texto: string;
+    explicacion: string | null;
+    esCorrecta: boolean;
+  }[];
+  texto: { titulo: string | null; contenido: string | null; imagenUrl: string | null } | null;
+  pauta: CriterioPauta[];
+  dificultades: Opcion[];
+  decisiones: (Opcion & { requiereComentario: boolean })[];
+}
+
+/** La revisión que entrega el docente (CU-19 pasos 3 a 5). */
+export interface DatosRevision {
+  criterios: { codigo: string; cumple: boolean; observacion: string | null }[];
+  dificultad: string;
+  decision: string;
+  comentario: string | null;
+}
+
+export interface RevisionEntregada {
+  asignacionId: number;
+  preguntaId: number;
+  decision: string;
+  dificultad: string;
+}
+
 /** Paginación de un listado de la API (`meta`). */
 export interface Paginacion {
   pagina: number;

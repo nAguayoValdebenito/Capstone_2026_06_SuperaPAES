@@ -1,7 +1,6 @@
 // Reglas del formulario de crear o editar una pregunta (C03, HU-12.3): temario encadenado, cantidad de
 // alternativas según la prueba (RN-08), una sola correcta, texto de lectura en Competencia Lectora y
 // validación previa con los mismos mensajes que la API, que vuelve a validar todo.
-import { ErrorApi } from '../api/cliente';
 import {
   type DatosPregunta,
   type DatosTexto,
@@ -10,6 +9,7 @@ import {
   type PreguntaParaEditar,
   type PruebaTemario,
 } from '../tipos';
+import { detallesDeApi } from './detalles-de-api';
 import { mensajeDeError } from './usuarios-internos';
 
 export interface CamposAlternativa {
@@ -246,23 +246,14 @@ export function armarDatos(campos: CamposPregunta, prueba: PruebaTemario): Datos
   };
 }
 
-interface DetalleApi {
-  ruta: string;
-  mensaje: string;
-}
-
-const esDetalle = (valor: unknown): valor is DetalleApi =>
-  typeof valor === 'object' && valor !== null && 'ruta' in valor && 'mensaje' in valor;
-
 /**
  * Cada problema que devuelve la API va bajo su campo (textoNuevo.titulo va bajo textoNuevo); lo que no
  * es de un campo, como un 409 de RF-G09, va arriba del formulario.
  */
 export function erroresDeApi(error: unknown): ErroresPregunta {
-  const detalles = error instanceof ErrorApi && Array.isArray(error.detalles) ? error.detalles : [];
   const errores: ErroresPregunta = {};
-  for (const detalle of detalles.filter(esDetalle)) {
-    const campo = CAMPOS_CON_ERROR.find((c) => c === String(detalle.ruta).split('.')[0]);
+  for (const detalle of detallesDeApi(error)) {
+    const campo = CAMPOS_CON_ERROR.find((c) => c === detalle.ruta.split('.')[0]);
     if (campo) errores[campo] ??= detalle.mensaje;
   }
   return Object.keys(errores).length > 0 ? errores : { general: mensajeDeError(error).mensaje };

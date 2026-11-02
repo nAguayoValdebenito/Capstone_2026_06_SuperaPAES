@@ -833,6 +833,251 @@ a.boton {
   padding-bottom: 0.5rem;
 }
 
+/* Mis revisiones (D01): la bandeja del docente a la izquierda y la pregunta con su pauta a la derecha. */
+.revision-docente {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.bandeja h2 {
+  margin: 0 0 0.75rem;
+  font-size: var(--texto-md);
+}
+
+.bandeja ul {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bandeja__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.125rem 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bandeja__item--abierta {
+  border-color: var(--primario);
+  box-shadow: inset 0 0 0 1px var(--primario);
+}
+
+.bandeja__titulo {
+  font-weight: 600;
+}
+
+.bandeja__item--abierta .bandeja__titulo {
+  color: var(--primario);
+}
+
+.bandeja__fecha {
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.bandeja__item .tabla__secundario {
+  grid-column: 1 / -1;
+}
+
+.revision-detalle {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.revision-detalle .panel {
+  margin-top: 0;
+}
+
+.revision-pregunta__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.revision-pregunta__encabezado h2 {
+  font-size: var(--texto-base);
+}
+
+.etiqueta--plazo {
+  color: var(--aviso);
+}
+
+.revision-pregunta__texto {
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--borde);
+  background: var(--fondo);
+}
+
+.revision-pregunta__texto h3 {
+  margin: 0 0 0.5rem;
+  font-size: var(--texto-base);
+}
+
+.revision-alternativas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.revision-alternativa {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.revision-alternativa--correcta {
+  border-color: var(--exito);
+  background: color-mix(in srgb, var(--exito) 8%, var(--superficie));
+}
+
+.revision-alternativa__letra {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--fondo);
+  font-weight: 600;
+}
+
+.revision-alternativa--correcta .revision-alternativa__letra {
+  background: var(--exito);
+  color: #ffffff;
+}
+
+.revision-alternativa__marca {
+  margin-left: auto;
+  color: var(--exito);
+  font-size: var(--texto-sm);
+  font-weight: 600;
+}
+
+.revision-pregunta__explicacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.revision-formulario {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.pauta__puntos {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pauta__pregunta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pauta__pregunta legend {
+  float: left;
+  max-width: 70%;
+}
+
+.pauta__observacion {
+  margin-top: 0.5rem;
+}
+
+/* Opciones como botones segmentados: Sí/No, la dificultad y la decisión. */
+.segmentado {
+  display: inline-flex;
+  flex: none;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  background: var(--fondo);
+}
+
+.segmentado__opcion {
+  position: relative;
+}
+
+.segmentado__opcion input {
+  position: absolute;
+  opacity: 0;
+}
+
+.segmentado__opcion span {
+  display: block;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.375rem;
+  color: var(--texto-secundario);
+  cursor: pointer;
+}
+
+.segmentado__opcion input:checked + span {
+  background: var(--superficie);
+  color: var(--primario);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--borde);
+}
+
+.segmentado__opcion input:focus-visible + span {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.decision {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+}
+
+.decision fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.decision legend {
+  margin-bottom: 0.375rem;
+  font-weight: 600;
+}
+
+.decision__pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.decision__pie .campo__ayuda {
+  margin: 0;
+}
+
 @media (max-width: 72rem) {
   .editor-pregunta {
     grid-template-columns: minmax(0, 1fr);
@@ -865,5 +1110,18 @@ a.boton {
 
   .contadores {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .revision-docente,
+  .revision-alternativas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pauta__pregunta {
+    flex-wrap: wrap;
+  }
+
+  .pauta__pregunta legend {
+    max-width: none;
   }
 }

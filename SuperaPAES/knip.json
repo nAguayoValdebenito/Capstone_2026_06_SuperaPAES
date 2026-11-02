@@ -4,17 +4,12 @@
   "tags": ["-esqueleto"],
   "workspaces": {
     "api": {
-      "ignore": [
-        "modulos/privacidad/privacidad.validadores.ts",
-        "modulos/revision/revision.validadores.ts",
-        "eslint.reglas-arquitectura.d.ts"
-      ]
+      "ignore": ["modulos/privacidad/privacidad.validadores.ts", "eslint.reglas-arquitectura.d.ts"]
     },
     "consola": {
       "ignore": [
         "src/servicios/generador.ts",
         "src/servicios/privacidad.ts",
-        "src/servicios/revision.ts",
         "src/servicios/suscripciones.ts"
       ]
     }
