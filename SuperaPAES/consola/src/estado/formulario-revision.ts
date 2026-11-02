@@ -2,8 +2,7 @@
 // «no» (y la observación cuando no se cumple), la dificultad, la decisión y el motivo al observar o
 // rechazar. Las mismas reglas que revisa la API, para avisar antes de enviar; la API decide igual.
 import type { CriterioPauta, DatosRevision, PreguntaARevisar } from '../tipos';
-import { detallesDeApi } from './detalles-de-api';
-import { mensajeDeError } from './usuarios-internos';
+import { erroresPorCampo } from './detalles-de-api';
 
 export interface RespuestaCriterio {
   cumple: boolean | null;
@@ -81,8 +80,5 @@ export function armarRevision(
 }
 
 /** Cada problema de la API bajo su campo; lo que no es de un campo va arriba del formulario. */
-export function erroresDeApi(error: unknown): ErroresRevision {
-  const errores: ErroresRevision = {};
-  for (const detalle of detallesDeApi(error)) errores[detalle.ruta] ??= detalle.mensaje;
-  return Object.keys(errores).length > 0 ? errores : { general: mensajeDeError(error).mensaje };
-}
+export const erroresDeApi = (error: unknown): ErroresRevision =>
+  erroresPorCampo(error, (ruta) => ruta);

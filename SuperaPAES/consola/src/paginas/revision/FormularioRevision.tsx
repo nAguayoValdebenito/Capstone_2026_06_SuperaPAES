@@ -3,7 +3,8 @@
 // el motivo al observar o rechazar. La lógica está en src/estado/revision-docente.ts.
 import { MensajeError } from '../../componentes/MensajeError';
 import type { RevisionDocente } from '../../estado/revision-docente';
-import type { CriterioPauta, Opcion, PreguntaARevisar } from '../../tipos';
+import type { CriterioPauta, PreguntaARevisar } from '../../tipos';
+import { deLista, type OpcionSelector } from '../../utilidades/opciones';
 
 /** Un grupo de opciones con forma de botones segmentados (Sí/No, Fácil/Media/Difícil…). */
 function Segmentado({
@@ -13,13 +14,13 @@ function Segmentado({
   alElegir,
 }: {
   nombre: string;
-  opciones: readonly { valor: string; etiqueta: string }[];
+  opciones: readonly OpcionSelector[];
   elegida: string | null;
   alElegir: (valor: string) => void;
 }) {
   return (
     <div className="segmentado">
-      {opciones.map(({ valor, etiqueta }) => (
+      {opciones.map(({ valor, texto }) => (
         <label key={valor} className="segmentado__opcion">
           <input
             type="radio"
@@ -28,16 +29,16 @@ function Segmentado({
             checked={elegida === valor}
             onChange={() => alElegir(valor)}
           />
-          <span>{etiqueta}</span>
+          <span>{texto}</span>
         </label>
       ))}
     </div>
   );
 }
 
-const SI_NO = [
-  { valor: 'si', etiqueta: 'Sí' },
-  { valor: 'no', etiqueta: 'No' },
+const SI_NO: OpcionSelector[] = [
+  { valor: 'si', texto: 'Sí' },
+  { valor: 'no', texto: 'No' },
 ];
 
 function PuntoDeLaPauta({
@@ -77,8 +78,20 @@ function PuntoDeLaPauta({
   );
 }
 
-const comoOpciones = (lista: readonly Opcion[]) =>
-  lista.map(({ codigo, nombre }) => ({ valor: codigo, etiqueta: nombre }));
+/** Un grupo segmentado con su leyenda y su error (la dificultad o la decisión). */
+function CampoSegmentado({
+  leyenda,
+  error,
+  ...segmentado
+}: Parameters<typeof Segmentado>[0] & { leyenda: string; error: string | undefined }) {
+  return (
+    <fieldset className="campo">
+      <legend>{leyenda}</legend>
+      <Segmentado {...segmentado} />
+      <MensajeError id={`error-${segmentado.nombre}`} texto={error} />
+    </fieldset>
+  );
+}
 
 function Decision({
   pregunta,
@@ -91,26 +104,22 @@ function Decision({
   return (
     <section className="panel panel--ancho">
       <div className="decision">
-        <fieldset className="campo">
-          <legend>Dificultad que asignas</legend>
-          <Segmentado
-            nombre="dificultad"
-            opciones={comoOpciones(pregunta.dificultades)}
-            elegida={campos.dificultad}
-            alElegir={revision.elegirDificultad}
-          />
-          <MensajeError id="error-dificultad" texto={errores.dificultad} />
-        </fieldset>
-        <fieldset className="campo">
-          <legend>Decisión</legend>
-          <Segmentado
-            nombre="decision"
-            opciones={comoOpciones(pregunta.decisiones)}
-            elegida={campos.decision}
-            alElegir={revision.elegirDecision}
-          />
-          <MensajeError id="error-decision" texto={errores.decision} />
-        </fieldset>
+        <CampoSegmentado
+          leyenda="Dificultad que asignas"
+          nombre="dificultad"
+          opciones={deLista(pregunta.dificultades)}
+          elegida={campos.dificultad}
+          alElegir={revision.elegirDificultad}
+          error={errores.dificultad}
+        />
+        <CampoSegmentado
+          leyenda="Decisión"
+          nombre="decision"
+          opciones={deLista(pregunta.decisiones)}
+          elegida={campos.decision}
+          alElegir={revision.elegirDecision}
+          error={errores.decision}
+        />
       </div>
       <Motivo revision={revision} />
     </section>

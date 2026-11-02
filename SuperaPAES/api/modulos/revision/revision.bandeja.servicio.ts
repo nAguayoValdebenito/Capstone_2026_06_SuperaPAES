@@ -75,16 +75,17 @@ const problema = (ruta: string, mensaje: string): ProblemaDeCampo => ({
 });
 
 async function opcionesDeLaPauta(repositorio: BandejaRepositorio) {
-  return {
-    pauta: await repositorio.listarCriterios(),
-    dificultades: await repositorio.listarDificultades(),
-    decisiones: await repositorio.listarDecisiones(),
-  };
+  const [pauta, dificultades, decisiones] = await Promise.all([
+    repositorio.listarCriterios(),
+    repositorio.listarDificultades(),
+    repositorio.listarDecisiones(),
+  ]);
+  return { pauta, dificultades, decisiones };
 }
 
 function aPreguntaARevisar(
   { copia, correctaId, ...fila }: FilaRevisionAbierta,
-  opciones: Awaited<ReturnType<typeof opcionesDeLaPauta>>,
+  opciones: Pick<PreguntaARevisar, 'pauta' | 'dificultades' | 'decisiones'>,
 ): PreguntaARevisar {
   return {
     ...fila,
@@ -103,11 +104,11 @@ function aPreguntaARevisar(
 /** Los puntos de la pauta: todos, una vez cada uno, con la observación de cada «no» (CU-19 paso 3). */
 function problemasDeLaPauta(datos: DatosRevision, pauta: readonly Criterio[]): ProblemaDeCampo[] {
   const respondidos = new Map(datos.criterios.map((criterio) => [criterio.codigo, criterio]));
-  const sobran = datos.criterios.length !== respondidos.size;
-  const fuera = datos.criterios.some(
-    (criterio) => !pauta.some((p) => p.codigo === criterio.codigo),
-  );
-  if (sobran || fuera || respondidos.size !== pauta.length) {
+  // Tantas respuestas como puntos y todos respondidos: no hay repetidos ni puntos ajenos a la pauta.
+  if (
+    datos.criterios.length !== pauta.length ||
+    pauta.some((criterio) => !respondidos.has(criterio.codigo))
+  ) {
     return [problema('criterios', `Responde los ${String(pauta.length)} puntos de la pauta.`)];
   }
   return pauta.flatMap((criterio) => {
@@ -128,18 +129,19 @@ function problemasDeLaDecision(
   datos: DatosRevision,
   { dificultades, decisiones }: Pick<PreguntaARevisar, 'dificultades' | 'decisiones'>,
 ): ProblemaDeCampo[] {
+  const problemas: ProblemaDeCampo[] = [];
+  if (!dificultades.some((d) => d.codigo === datos.dificultad)) {
+    problemas.push(problema('dificultad', 'Elige la dificultad: fácil, media o difícil.'));
+  }
   const decision = decisiones.find((candidata) => candidata.codigo === datos.decision);
-  return [
-    !dificultades.some((d) => d.codigo === datos.dificultad) &&
-      problema('dificultad', 'Elige la dificultad: fácil, media o difícil.'),
-    !decision && problema('decision', 'Elige si apruebas, observas o rechazas la pregunta.'),
-    decision?.requiereComentario &&
-      !datos.comentario &&
-      problema(
-        'comentario',
-        `Escribe el motivo para ${decision.nombre.toLowerCase()} la pregunta.`,
-      ),
-  ].filter((p): p is ProblemaDeCampo => typeof p === 'object' && p !== null);
+  if (!decision) {
+    problemas.push(problema('decision', 'Elige si apruebas, observas o rechazas la pregunta.'));
+  }
+  if (decision?.requiereComentario && !datos.comentario) {
+    const motivo = `Escribe el motivo para ${decision.nombre.toLowerCase()} la pregunta.`;
+    problemas.push(problema('comentario', motivo));
+  }
+  return problemas;
 }
 
 async function entregarRevision(
@@ -154,11 +156,9 @@ async function entregarRevision(
   ];
   if (problemas.length > 0) throw new ErrorValidacion(problemas, problemas[0]?.mensaje);
   return unidadDeTrabajo.enTransaccion(async (tx) => {
-    const estado = await repositorio.reservarAsignacion(id, docenteId, tx);
-    if (estado === null) throw new ErrorNoEncontrado(NO_EXISTE);
-    if (estado !== 'pendiente') throw new ErrorConflicto('Esta revisión ya se entregó.');
-    const pendiente = await repositorio.obtenerPendiente(id, docenteId, tx);
-    if (!pendiente) throw new ErrorNoEncontrado(NO_EXISTE);
+    const asignacion = await repositorio.reservarAsignacion(id, docenteId, tx);
+    if (asignacion === null) throw new ErrorNoEncontrado(NO_EXISTE);
+    if (asignacion.estado !== 'pendiente') throw new ErrorConflicto('Esta revisión ya se entregó.');
     await repositorio.guardarRevision(
       {
         asignacionId: id,
@@ -172,7 +172,7 @@ async function entregarRevision(
     );
     return {
       asignacionId: id,
-      preguntaId: pendiente.preguntaId,
+      preguntaId: asignacion.preguntaId,
       decision: datos.decision,
       dificultad: datos.dificultad,
     };

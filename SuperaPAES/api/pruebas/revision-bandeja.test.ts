@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { BandejaRepositorio } from '../modulos/revision/revision.bandeja.repositorio.js';
 import { crearRevisionServicio } from '../modulos/revision/index.js';
 import { crearAppDePrueba, errorConFormato, tokenAdmin } from './ayudantes.js';
+import { problemas } from './edicion-de-prueba.js';
 
 const RUTA = '/api/v1/admin/revision/mis-revisiones';
 const AHORA = new Date('2026-11-03T15:00:00.000Z');
@@ -65,7 +66,9 @@ function escenario({ estado = 'pendiente' }: { estado?: string | null } = {}) {
         { codigo: 'rechazar', nombre: 'Rechazar', requiereComentario: true },
       ]),
     ),
-    reservarAsignacion: vi.fn(() => Promise.resolve(estado)),
+    reservarAsignacion: vi.fn(() =>
+      Promise.resolve(estado === null ? null : { estado, preguntaId: PENDIENTE.preguntaId }),
+    ),
     guardarRevision: vi.fn(() => Promise.resolve()),
   } satisfies BandejaRepositorio;
   const tx = { query: () => Promise.reject(new Error('sin base')) };
@@ -94,11 +97,6 @@ const revisionCompleta = (cambios: Record<string, unknown> = {}) => ({
   decision: 'aprobar',
   ...cambios,
 });
-
-const problemas = (cuerpo: unknown) =>
-  (cuerpo as { error: { detalles: { ruta: string; mensaje: string }[] } }).error.detalles.map(
-    ({ ruta, mensaje }) => `${ruta}: ${mensaje}`,
-  );
 
 describe('bandeja del docente revisor (HU-22 esc. 1)', () => {
   it('lista sus revisiones pendientes con su fecha límite', async () => {
@@ -227,14 +225,14 @@ describe('entregar la revisión (CU-19 pasos 3 a 6)', () => {
       revisionCompleta({ dificultad: 'extrema', decision: 'dudar' }),
     );
 
-    expect(problemas(faltaUno.body)).toEqual(['criterios: Responde los 2 puntos de la pauta.']);
-    expect(problemas(sinObservacion.body)).toEqual([
+    expect(problemas(faltaUno)).toEqual(['criterios: Responde los 2 puntos de la pauta.']);
+    expect(problemas(sinObservacion)).toEqual([
       'criterios.enunciado: Escribe por qué no se cumple: «El enunciado es claro.»',
     ]);
-    expect(problemas(rechazaSinMotivo.body)).toEqual([
+    expect(problemas(rechazaSinMotivo)).toEqual([
       'comentario: Escribe el motivo para rechazar la pregunta.',
     ]);
-    expect(problemas(opcionesQueNoExisten.body)).toEqual([
+    expect(problemas(opcionesQueNoExisten)).toEqual([
       'dificultad: Elige la dificultad: fácil, media o difícil.',
       'decision: Elige si apruebas, observas o rechazas la pregunta.',
     ]);
