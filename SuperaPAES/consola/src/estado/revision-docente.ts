@@ -1,6 +1,7 @@
 // Mis revisiones (D01, HU-22.2 y HU-22.3, CU-19): la bandeja del docente revisor, la pregunta que
 // abre (la primera de la bandeja si no eligió otra) y el formulario de su revisión. Al entregarla, sale
-// de la bandeja y se abre la siguiente. Cancela las cargas al cambiar o al desmontar.
+// de la bandeja, se abre la siguiente y la bandeja se vuelve a pedir (por si le asignaron otras).
+// Mientras se guarda no se abre otra revisión. Cancela las cargas al cambiar o al desmontar.
 import { type FormEvent, useEffect, useState } from 'react';
 import { entregarRevision, listarMisRevisiones, obtenerMiRevision } from '../servicios/revision';
 import type { PreguntaARevisar, RevisionPendiente } from '../tipos';
@@ -26,8 +27,11 @@ export type CargaRevision =
   | { tipo: 'lista'; pregunta: PreguntaARevisar }
   | Fallida;
 
-/** La bandeja, que se pide al abrir la sección; `quitar` saca una revisión ya entregada. */
-function useBandeja() {
+/**
+ * La bandeja, que se pide al abrir la sección y otra vez en cada `vuelta` (sin volver a «cargando»:
+ * se sigue viendo la anterior); `quitar` saca al tiro una revisión ya entregada.
+ */
+function useBandeja(vuelta: number) {
   const [carga, setCarga] = useState<CargaBandeja>({ tipo: 'cargando' });
   useEffect(() => {
     const control = new AbortController();
@@ -38,7 +42,7 @@ function useBandeja() {
       },
     );
     return () => control.abort();
-  }, []);
+  }, [vuelta]);
   const quitar = (id: number) =>
     setCarga((actual) =>
       actual.tipo === 'lista'
@@ -97,14 +101,16 @@ function useFormulario(id: number | null) {
 
 /** La bandeja y la revisión abierta: la que eligió el docente o, si no eligió, la primera. */
 function useAbierta() {
-  const { carga: bandeja, quitar } = useBandeja();
+  const [vuelta, setVuelta] = useState(0);
+  const { carga: bandeja, quitar } = useBandeja(vuelta);
   const [elegida, setElegida] = useState<number | null>(null);
   const primera = bandeja.tipo === 'lista' ? (bandeja.revisiones[0]?.id ?? null) : null;
   const abierta = elegida ?? primera;
-  /** Después de entregar: la saca de la bandeja y abre la primera que quede. */
+  /** Después de entregar: la saca de la bandeja, abre la primera que quede y pide la bandeja otra vez. */
   const entregada = (id: number) => {
     quitar(id);
-    setElegida(null);
+    setElegida((actual) => (actual === id ? null : actual));
+    setVuelta((actual) => actual + 1);
   };
   return { bandeja, abierta, revision: usePregunta(abierta), elegir: setElegida, entregada };
 }
@@ -147,7 +153,10 @@ export function useRevisionDocente() {
     errores,
     enviando,
     aviso,
-    elegir,
+    /** Abre otra revisión, salvo mientras se guarda la abierta (su respuesta es de esa revisión). */
+    elegir: (id: number) => {
+      if (!enviando) elegir(id);
+    },
     entregar,
     ...formulario.acciones,
   };
