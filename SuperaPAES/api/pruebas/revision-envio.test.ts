@@ -42,7 +42,7 @@ function escenario({
     unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(tx) },
     reloj: () => AHORA,
     administracion,
-    preguntas: { pasarARevision },
+    preguntas: { pasarARevision, resolverRevision: () => Promise.reject(new Error('no se usa')) },
     repositorio,
   });
   const app = crearAppDePrueba({}, { revision });

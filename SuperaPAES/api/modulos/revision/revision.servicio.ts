@@ -4,7 +4,8 @@
 // HU-21 (CU-18 y CU-18a, RF-G06, RN-10): enviar una pregunta a revisión la pasa a en revisión y la
 // asigna a los docentes del área que no son su autor ni quien pidió su lote, en una sola transacción:
 // si no hay suficientes docentes, nada cambia y la pregunta sigue en su etapa. La bandeja del docente y
-// la entrega de su revisión con la pauta (HU-22) están en revision.bandeja.servicio.ts.
+// la entrega de su revisión con la pauta (HU-22) están en revision.bandeja.servicio.ts; al entregar la
+// última de la ronda se combinan las revisiones (HU-23, revision.resolucion.servicio.ts).
 import { ErrorConflicto, ErrorNoImplementado } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
@@ -15,6 +16,11 @@ import {
   crearBandejaRepositorio,
 } from './revision.bandeja.repositorio.js';
 import { type BandejaDocente, crearBandejaDocente } from './revision.bandeja.servicio.js';
+import {
+  crearResolucionRepositorio,
+  type ResolucionRepositorio,
+} from './revision.resolucion.repositorio.js';
+import { type Plazo, resolverRonda } from './revision.resolucion.servicio.js';
 import {
   type AsignacionNueva,
   crearRevisionRepositorio,
@@ -28,11 +34,13 @@ export interface DependenciasRevisionServicio {
   /** Hora de la asignación y su fecha límite. */
   reloj: Reloj;
   administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'registrarAuditoria'>;
-  preguntas: Pick<PreguntasServicio, 'pasarARevision'>;
+  preguntas: Pick<PreguntasServicio, 'pasarARevision' | 'resolverRevision'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearRevisionRepositorio(bd). */
   repositorio?: RevisionRepositorio;
   /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd). */
   repositorioBandeja?: BandejaRepositorio;
+  /** Solo para pruebas: reemplaza al de crearResolucionRepositorio(). */
+  repositorioResolucion?: ResolucionRepositorio;
 }
 
 /** Un revisor asignado, con su fecha límite (RF-G17). */
@@ -75,6 +83,13 @@ async function parametros({ administracion }: DependenciasRevisionServicio) {
     );
   }
   return { requeridos, dias };
+}
+
+/** La hora de la asignación y su fecha límite, desde ahora. */
+async function plazo(dependencias: DependenciasRevisionServicio): Promise<Plazo> {
+  const { dias } = await parametros(dependencias);
+  const asignadoEn = dependencias.reloj();
+  return { asignadoEn, venceEn: new Date(asignadoEn.getTime() + dias * DIA_EN_MS) };
 }
 
 /** CU-18a: los revisores de la pregunta, o el aviso de que el área no tiene docentes suficientes. */
@@ -152,10 +167,18 @@ export function crearRevisionServicio(
   dependencias: DependenciasRevisionServicio,
 ): RevisionServicio {
   const repositorio = dependencias.repositorio ?? crearRevisionRepositorio(dependencias.bd);
+  const resolucion = {
+    plazo: () => plazo(dependencias),
+    preguntas: dependencias.preguntas,
+    repositorio: dependencias.repositorioResolucion ?? crearResolucionRepositorio(),
+    revisores: repositorio,
+  };
   const bandeja = crearBandejaDocente({
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
     reloj: dependencias.reloj,
     repositorio: dependencias.repositorioBandeja ?? crearBandejaRepositorio(dependencias.bd),
+    alEntregar: (docenteId, preguntaId, tx) =>
+      resolverRonda(resolucion, [docenteId, preguntaId], tx),
   });
   return {
     ...bandeja,

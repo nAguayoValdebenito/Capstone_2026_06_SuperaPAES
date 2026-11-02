@@ -162,6 +162,7 @@ function repositorioEnMemoria() {
       if (pregunta) preguntas.set(id, { ...pregunta, estado: EN_REVISION, editable: false });
       return Promise.resolve({ version: pregunta?.version ?? 1, ronda: 1 });
     }),
+    resolverRevision: vi.fn(() => Promise.resolve()),
     obtener: vi.fn((id: string) => Promise.resolve(preguntas.get(id) ?? null)),
     existeTexto: vi.fn((id: number) => Promise.resolve(id === TEXTO_GUARDADO)),
   } satisfies PreguntasEdicionRepositorio;

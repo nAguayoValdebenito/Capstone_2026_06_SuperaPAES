@@ -1,11 +1,12 @@
 // Bandeja del docente revisor (D01, HU-22, CU-19, RF-G07): sus revisiones pendientes, la pregunta como se
 // envió a revisión y la entrega de su revisión con la pauta, la dificultad y la decisión.
 // Revisión a ciegas (HU-22 esc. 3, RN-12): el docente no recibe la dificultad sugerida ni la revisión del
-// otro docente. Combinar las dos revisiones (aprobar, rechazar, observar o desempatar) es de HU-23.
+// otro docente. Al entregar la última revisión de la ronda, `alEntregar` combina las revisiones en la
+// misma transacción (HU-23, revision.resolucion.servicio.ts).
 import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
 import type { ProblemaDeCampo } from '../../comun/middleware/validacion.js';
 import type { Reloj } from '../../comun/reloj.js';
-import type { UnidadDeTrabajo } from '../../db/transaccion.js';
+import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type {
   BandejaRepositorio,
   Criterio,
@@ -64,6 +65,8 @@ export interface DependenciasBandeja {
   unidadDeTrabajo: UnidadDeTrabajo;
   reloj: Reloj;
   repositorio: BandejaRepositorio;
+  /** Después de guardar la revisión, en su transacción: resuelve la ronda si era la última (HU-23). */
+  alEntregar: (docenteId: string, preguntaId: string, tx: Ejecutor) => Promise<void>;
 }
 
 const NO_EXISTE = 'La revisión no existe o ya la entregaste.';
@@ -145,7 +148,7 @@ function problemasDeLaDecision(
 }
 
 async function entregarRevision(
-  { unidadDeTrabajo, reloj, repositorio }: DependenciasBandeja,
+  { unidadDeTrabajo, reloj, repositorio, alEntregar }: DependenciasBandeja,
   [docenteId, id]: [string, string],
   datos: DatosRevision,
 ): Promise<RevisionEntregada> {
@@ -170,6 +173,7 @@ async function entregarRevision(
       },
       tx,
     );
+    await alEntregar(docenteId, asignacion.preguntaId, tx);
     return {
       asignacionId: id,
       preguntaId: asignacion.preguntaId,

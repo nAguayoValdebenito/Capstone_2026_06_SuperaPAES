@@ -2,24 +2,21 @@
 // base-temporal.ts): con el temario de las semillas, una pregunta de Historia con dificultad sugerida se
 // envía a revisión (HU-21). Cada docente ve solo sus revisiones; al abrirla recibe la versión enviada, sin
 // la dificultad sugerida ni la revisión del otro; al entregarla quedan la revisión, cada punto de la pauta
-// y la asignación completada, y la pregunta sigue en revisión (combinar las dos es de HU-23).
-import path from 'node:path';
+// y la asignación completada; con la otra revisión (un rechazo) y esta observación, la pregunta queda
+// observada (HU-23, RN-11).
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { crearServicios, type Servicios } from '../app.js';
-import { ejecutarEnTransaccion } from '../db/transaccion.js';
-import { ejecutarSemillas } from '../db/semillas.js';
+import type { Servicios } from '../app.js';
 import { esquemaPregunta } from '../modulos/preguntas/preguntas.validadores.js';
 import { esquemaRevision } from '../modulos/revision/revision.validadores.js';
-import { crearDependenciasDePrueba } from './ayudantes.js';
 import { uno } from './banco-de-prueba.js';
-import {
-  type BaseTemporal,
-  crearBaseTemporal,
-  exigirBaseEnCi,
-  MINUTO,
-  urlBase,
-} from './base-temporal.js';
+import { type BaseTemporal, exigirBaseEnCi, MINUTO, urlBase } from './base-temporal.js';
 import { alternativas } from './edicion-de-prueba.js';
+import {
+  crearCuenta,
+  pautaActiva,
+  prepararBaseDeRevision,
+  temarioDeHistoria,
+} from './revision-bd.js';
 
 describe('bandeja del docente sin base de datos', () => {
   exigirBaseEnCi();
@@ -34,22 +31,9 @@ describe.skipIf(!urlBase)('bandeja del docente con PostgreSQL (HU-22, CP-16)', (
 
   const id = (clave: string) => ids.get(clave) ?? '';
 
-  async function cuenta(correo: string, rol: string, areas: string[] = []) {
-    const usuario = String(
-      await uno(
-        base.bd,
-        `INSERT INTO contenido.usuario_interno (nombre, correo, hash_contrasena, rol_id, creado_en)
-         SELECT $1, $1, 'x', id, now() FROM contenido.rol WHERE codigo = $2 RETURNING id`,
-        [correo, rol],
-      ),
-    );
-    await base.bd.query(
-      `INSERT INTO contenido.docente_especialidad (usuario_interno_id, area_id)
-       SELECT $1, id FROM contenido.area WHERE nombre = ANY ($2::text[])`,
-      [usuario, areas],
-    );
-    ids.set(correo, usuario);
-  }
+  const cuenta = async (correo: string, rol: string, areas: string[] = []) => {
+    ids.set(correo, await crearCuenta(base.bd, [correo, rol], areas));
+  };
 
   /** La asignación del docente para la pregunta. */
   const asignacionDe = async (correo: string) =>
@@ -71,32 +55,13 @@ describe.skipIf(!urlBase)('bandeja del docente con PostgreSQL (HU-22, CP-16)', (
     });
 
   beforeAll(async () => {
-    base = await crearBaseTemporal('bandeja');
-    await ejecutarSemillas(base.bd, path.join(import.meta.dirname, '../db/semillas'));
-    servicios = crearServicios(
-      crearDependenciasDePrueba({
-        bd: base.bd,
-        unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(base.bd, trabajo) },
-      }),
-    );
+    ({ base, servicios } = await prepararBaseDeRevision('bandeja'));
     await cuenta('admin@bandeja.cl', 'admin');
     await cuenta('h1@bandeja.cl', 'docente', ['Historia']);
     await cuenta('h2@bandeja.cl', 'docente', ['Historia']);
     await cuenta('h3@bandeja.cl', 'docente', ['Historia']);
-    pauta = (
-      await base.bd.query<{ codigo: string }>(
-        'SELECT codigo FROM contenido.criterio_pauta WHERE activo ORDER BY orden',
-      )
-    ).rows.map((fila) => fila.codigo);
-    const { rows } = await base.bd.query<{ prueba: number; contenido: number; habilidad: number }>(
-      `SELECT c.prueba_id AS prueba, c.id AS contenido,
-              (SELECT min(h.id) FROM contenido.habilidad h WHERE h.prueba_id = c.prueba_id) AS habilidad
-         FROM contenido.contenido_tematico c JOIN contenido.area a ON a.id = c.area_id
-         JOIN contenido.prueba p ON p.id = c.prueba_id
-        WHERE a.nombre = 'Historia' AND p.textos IS NULL ORDER BY c.id LIMIT 1`,
-    );
-    const fila = rows[0];
-    if (!fila) throw new Error('Sin contenidos de Historia.');
+    pauta = await pautaActiva(base.bd);
+    const fila = await temarioDeHistoria(base.bd);
     const creada = await servicios.preguntas.crearPregunta(
       id('admin@bandeja.cl'),
       esquemaPregunta.parse({
@@ -157,7 +122,7 @@ describe.skipIf(!urlBase)('bandeja del docente con PostgreSQL (HU-22, CP-16)', (
     expect(Object.keys(abierta)).not.toContain('dificultad');
   });
 
-  it('al entregarla guarda la revisión, cada punto de la pauta y completa la asignación; la pregunta sigue en revisión', async () => {
+  it('al entregarla guarda la revisión, cada punto de la pauta y completa la asignación; con la otra revisión la pregunta queda observada', async () => {
     const asignacion = await asignacionDe('h1@bandeja.cl');
     const criterios = pauta.map((codigo, i) =>
       i === 0
@@ -206,7 +171,7 @@ describe.skipIf(!urlBase)('bandeja del docente con PostgreSQL (HU-22, CP-16)', (
          JOIN contenido.estado_pregunta e ON e.id = p.estado_pregunta_id WHERE p.id = $1`,
       [preguntaId],
     );
-    expect(estado).toEqual([{ codigo: 'en_revision' }]);
+    expect(estado).toEqual([{ codigo: 'observada' }]);
     expect(await servicios.revision.listarMisRevisiones(id('h1@bandeja.cl'))).toEqual([]);
   });
 

@@ -80,8 +80,16 @@ function escenario({ estado = 'pendiente' }: { estado?: string | null } = {}) {
       obtenerParametroEntero: () => Promise.resolve(2),
       registrarAuditoria: () => Promise.resolve(),
     },
-    preguntas: { pasarARevision: () => Promise.reject(new Error('no se usa')) },
+    preguntas: {
+      pasarARevision: () => Promise.reject(new Error('no se usa')),
+      resolverRevision: () => Promise.resolve(),
+    },
     repositorioBandeja: repositorio,
+    // La ronda sigue abierta: combinar las revisiones se prueba en revision-resolucion.test.ts.
+    repositorioResolucion: {
+      reservarPregunta: () => Promise.resolve(),
+      asignacionesDeLaRonda: () => Promise.resolve([]),
+    },
   });
   return { app: crearAppDePrueba({}, { revision }), repositorio };
 }

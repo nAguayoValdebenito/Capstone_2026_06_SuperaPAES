@@ -8,10 +8,7 @@ export function esRolCuentaInterna(valor: unknown): valor is RolCuentaInterna {
   return ROLES_CUENTA_INTERNA.some((rol) => rol === valor);
 }
 
-/**
- * Rol de un docente en una asignación (código de contenido.rol_revision). Es un dato, no un permiso.
- * @esqueleto Códigos de contenido.rol_revision; los usará el módulo revision.
- */
+/** Rol de un docente en una asignación (código de contenido.rol_revision). Es un dato, no un permiso. */
 export const ROLES_ASIGNACION = ['revisor', 'desempate'] as const;
-/** @esqueleto Rol de una asignación de revisión; lo usará el módulo revision. */
+/** Rol de una asignación de revisión (HU-21 y HU-23). */
 export type RolAsignacion = (typeof ROLES_ASIGNACION)[number];

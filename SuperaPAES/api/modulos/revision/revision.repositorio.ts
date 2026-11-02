@@ -10,6 +10,7 @@
 // de la IA (quién lo pidió) y los docentes con sus áreas. Lee por su código las listas rol, rol_revision
 // y estado_asignacion.
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
+import type { RolAsignacion } from '../../comun/roles.js';
 import type { Ejecutor } from '../../db/transaccion.js';
 
 /** Un docente que puede revisar la pregunta. */
@@ -33,6 +34,8 @@ export interface DatosAsignacion {
   docenteIds: readonly string[];
   asignadoEn: Date;
   venceEn: Date;
+  /** Papel en la revisión: uno de los revisores (si no se indica) o el tercer docente (HU-23). */
+  rol?: RolAsignacion;
 }
 
 export interface RevisionRepositorio {
@@ -48,7 +51,7 @@ export interface RevisionRepositorio {
   docentesDisponibles(preguntaId: string, tx?: Ejecutor): Promise<DocenteDisponible[]>;
   /** El área del contenido de la pregunta, para el aviso cuando no hay docentes. */
   areaDeLaPregunta(preguntaId: string, tx?: Ejecutor): Promise<string | null>;
-  /** Asigna la ronda de la pregunta a cada docente como revisor, pendiente hasta su fecha límite. */
+  /** Asigna la ronda de la pregunta a cada docente con su papel, pendiente hasta su fecha límite. */
   asignarRevisores(datos: DatosAsignacion, tx: Ejecutor): Promise<AsignacionNueva[]>;
 }
 
@@ -89,7 +92,7 @@ const ASIGNAR_REVISORES = `
   INSERT INTO contenido.asignacion_revision (pregunta_id, ronda, version_revisada, docente_id,
                                             rol_revision_id, estado_asignacion_id, asignado_en, vence_en)
   SELECT $1, $2, $3, d.docente_id,
-         (SELECT id FROM contenido.rol_revision WHERE codigo = 'revisor'),
+         (SELECT id FROM contenido.rol_revision WHERE codigo = $7),
          (SELECT id FROM contenido.estado_asignacion WHERE codigo = 'pendiente'), $5, $6
     FROM unnest($4::bigint[]) AS d (docente_id)
   RETURNING id::text AS id, docente_id::text AS "docenteId", vence_en AS "venceEn"`;
@@ -118,6 +121,7 @@ export function crearRevisionRepositorio(bd: Ejecutor): RevisionRepositorio {
         datos.docenteIds,
         datos.asignadoEn,
         datos.venceEn,
+        datos.rol ?? 'revisor',
       ]);
       return rows;
     },
