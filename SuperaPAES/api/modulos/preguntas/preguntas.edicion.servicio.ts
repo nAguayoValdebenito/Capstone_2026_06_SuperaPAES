@@ -1,12 +1,17 @@
 // Crear, obtener y editar preguntas con sus alternativas (HU-12.1, RF-G02, RF-G09, CU-15, C03).
 // La pregunta y sus alternativas se guardan en una transacción con el autor fijado para los triggers, y
 // cada cambio queda en la auditoría (RNF-08). Las reglas de RN-08 están en preguntas.reglas.ts. Un texto
-// de lectura nuevo (HU-12.2) se crea en la misma transacción que la pregunta.
+// de lectura nuevo (HU-12.2) se crea en la misma transacción que la pregunta. Pasar a revisión (HU-21)
+// ocurre en la transacción del módulo revision, que asigna los docentes y lo deja en la auditoría.
 import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PruebaTemario, TemarioServicio } from '../temario/index.js';
-import type { FilaPregunta, PreguntasEdicionRepositorio } from './preguntas.edicion.repositorio.js';
+import type {
+  FilaPregunta,
+  PreguntaEnRevision,
+  PreguntasEdicionRepositorio,
+} from './preguntas.edicion.repositorio.js';
 import { problemasDePregunta } from './preguntas.reglas.js';
 import type { PreguntasRepositorio } from './preguntas.repositorio.js';
 import type { TextosDeLectura } from './preguntas.textos.servicio.js';
@@ -24,6 +29,11 @@ export interface EdicionPreguntas {
   obtenerPregunta(id: string): Promise<PreguntaParaEditar>;
   /** RF-G09: solo en una etapa editable (borrador u observada); si no, 409. */
   editarPregunta(autorId: string, id: string, datos: DatosPregunta): Promise<PreguntaParaEditar>;
+  /**
+   * HU-21 (CU-18): pasa a en revisión una pregunta en una etapa editable (borrador u observada), dentro
+   * de la transacción de quien asigna los revisores. Si no cumple RN-08 o está en otra etapa, 409.
+   */
+  pasarARevision(autorId: string, id: string, tx: Ejecutor): Promise<PreguntaEnRevision>;
 }
 
 export interface DependenciasEdicionPreguntas {
@@ -208,6 +218,22 @@ async function editarPregunta(
   );
 }
 
+async function pasarARevision(
+  { repositorio }: DependenciasEdicionPreguntas,
+  autorId: string,
+  [id, tx]: [string, Ejecutor],
+): Promise<PreguntaEnRevision> {
+  await repositorio.fijarAutor(autorId, tx);
+  const fila = await repositorio.obtener(id, tx, true);
+  if (!fila) throw new ErrorNoEncontrado('La pregunta no existe.');
+  if (!fila.editable) {
+    throw new ErrorConflicto(
+      `La pregunta está «${fila.estado.nombre}»: solo se envían a revisión las preguntas en borrador u observadas.`,
+    );
+  }
+  return traducirErrores(() => repositorio.enviarARevision(id, tx));
+}
+
 export function crearEdicionPreguntas(
   dependencias: DependenciasEdicionPreguntas,
 ): EdicionPreguntas {
@@ -216,5 +242,6 @@ export function crearEdicionPreguntas(
     crearPregunta: (autorId, datos) => crearPregunta(dependencias, autorId, datos),
     obtenerPregunta: async (id) => leer(repositorio, id, await temario.listarTemario()),
     editarPregunta: (autorId, id, datos) => editarPregunta(dependencias, autorId, [id, datos]),
+    pasarARevision: (autorId, id, tx) => pasarARevision(dependencias, autorId, [id, tx]),
   };
 }

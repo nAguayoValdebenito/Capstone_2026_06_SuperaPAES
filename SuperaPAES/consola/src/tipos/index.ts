@@ -221,6 +221,21 @@ export interface ImportacionHecha extends InformeImportacion {
   id: number;
 }
 
+/** Un revisor asignado a la pregunta (HU-21), con su fecha límite. */
+export interface RevisorAsignado {
+  asignacionId: number;
+  docente: { id: number; nombre: string; correo: string };
+  venceEn: string;
+}
+
+/** La pregunta enviada a revisión (HU-21): su ronda, la versión que se revisa y sus revisores. */
+export interface EnvioARevision {
+  preguntaId: number;
+  ronda: number;
+  version: number;
+  revisores: RevisorAsignado[];
+}
+
 /** Paginación de un listado de la API (`meta`). */
 export interface Paginacion {
   pagina: number;

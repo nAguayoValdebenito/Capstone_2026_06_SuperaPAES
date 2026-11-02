@@ -101,6 +101,7 @@ export function cuerpo(cambios: Record<string, unknown> = {}): Record<string, un
 }
 
 const BORRADOR = { codigo: 'borrador', nombre: 'Borrador' };
+const EN_REVISION = { codigo: 'en_revision', nombre: 'En revisión' };
 
 /** Repositorio de edición en memoria: cada pregunta nueva parte en borrador. */
 function repositorioEnMemoria() {
@@ -156,6 +157,11 @@ function repositorioEnMemoria() {
       return Promise.resolve();
     }),
     quitarAlternativas: vi.fn(() => Promise.resolve()),
+    enviarARevision: vi.fn((id: string) => {
+      const pregunta = preguntas.get(id);
+      if (pregunta) preguntas.set(id, { ...pregunta, estado: EN_REVISION, editable: false });
+      return Promise.resolve({ version: pregunta?.version ?? 1, ronda: 1 });
+    }),
     obtener: vi.fn((id: string) => Promise.resolve(preguntas.get(id) ?? null)),
     existeTexto: vi.fn((id: number) => Promise.resolve(id === TEXTO_GUARDADO)),
   } satisfies PreguntasEdicionRepositorio;
