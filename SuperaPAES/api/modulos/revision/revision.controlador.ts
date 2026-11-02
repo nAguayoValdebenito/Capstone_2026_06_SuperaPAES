@@ -1,19 +1,28 @@
 // Controlador del módulo revision: traduce HTTP a llamadas del servicio y responde con responder().
 // Sin SQL ni adaptadores. Los parámetros ya vienen validados por validar().
 import type { Request, RequestHandler } from 'express';
+import type { DatosRevision } from './revision.validadores.js';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { RevisionServicio } from './revision.servicio.js';
 
+/** Manejador cuyo cuerpo y parámetros ya fueron validados y tipados por validar() en la ruta. */
+type Validado<C = unknown> = RequestHandler<Record<string, string>, unknown, C>;
+
 export interface RevisionControlador {
-  enviarARevision: RequestHandler;
-  listarMisRevisiones: RequestHandler;
+  enviarARevision: Validado;
+  listarMisRevisiones: Validado;
+  obtenerMiRevision: Validado;
+  entregarRevision: Validado<DatosRevision>;
   listarDesempates: RequestHandler;
   listarSeguimiento: RequestHandler;
 }
 
-/** Administrador que envía la pregunta: queda en el historial y en la auditoría. Lo deja autenticarAdmin. */
-function administradorDe(req: Request): string {
+/**
+ * Cuenta interna de la sesión: el administrador que envía la pregunta (queda en el historial y en la
+ * auditoría) o el docente de la bandeja. Lo deja autenticarAdmin.
+ */
+function usuarioDe(req: Request<Record<string, string>, unknown, unknown>): string {
   if (!req.usuarioInterno) throw new ErrorNoAutenticado();
   return req.usuarioInterno.id;
 }
@@ -21,11 +30,22 @@ function administradorDe(req: Request): string {
 export function crearRevisionControlador(servicio: RevisionServicio): RevisionControlador {
   return {
     enviarARevision: async (req, res) => {
-      const envio = await servicio.enviarARevision(administradorDe(req), String(req.params.id));
+      const envio = await servicio.enviarARevision(usuarioDe(req), String(req.params.id));
       responder(res, envio, { estado: 201 });
     },
-    listarMisRevisiones: async (_req, res) => {
-      responder(res, await servicio.listarMisRevisiones());
+    listarMisRevisiones: async (req, res) => {
+      responder(res, await servicio.listarMisRevisiones(usuarioDe(req)));
+    },
+    obtenerMiRevision: async (req, res) => {
+      responder(res, await servicio.obtenerMiRevision(usuarioDe(req), String(req.params.id)));
+    },
+    entregarRevision: async (req, res) => {
+      const entregada = await servicio.entregarRevision(
+        usuarioDe(req),
+        String(req.params.id),
+        req.body,
+      );
+      responder(res, entregada, { estado: 201 });
     },
     listarDesempates: async (_req, res) => {
       responder(res, await servicio.listarDesempates());

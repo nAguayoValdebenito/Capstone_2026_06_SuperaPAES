@@ -3,12 +3,18 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 // HU-21 (CU-18 y CU-18a, RF-G06, RN-10): enviar una pregunta a revisión la pasa a en revisión y la
 // asigna a los docentes del área que no son su autor ni quien pidió su lote, en una sola transacción:
-// si no hay suficientes docentes, nada cambia y la pregunta sigue en su etapa.
+// si no hay suficientes docentes, nada cambia y la pregunta sigue en su etapa. La bandeja del docente y
+// la entrega de su revisión con la pauta (HU-22) están en revision.bandeja.servicio.ts.
 import { ErrorConflicto, ErrorNoImplementado } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PreguntasServicio } from '../preguntas/index.js';
+import {
+  type BandejaRepositorio,
+  crearBandejaRepositorio,
+} from './revision.bandeja.repositorio.js';
+import { type BandejaDocente, crearBandejaDocente } from './revision.bandeja.servicio.js';
 import {
   type AsignacionNueva,
   crearRevisionRepositorio,
@@ -25,6 +31,8 @@ export interface DependenciasRevisionServicio {
   preguntas: Pick<PreguntasServicio, 'pasarARevision'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearRevisionRepositorio(bd). */
   repositorio?: RevisionRepositorio;
+  /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd). */
+  repositorioBandeja?: BandejaRepositorio;
 }
 
 /** Un revisor asignado, con su fecha límite (RF-G17). */
@@ -42,11 +50,10 @@ export interface EnvioARevision {
   revisores: RevisorAsignado[];
 }
 
-export interface RevisionServicio {
+/** HU-22: la bandeja del docente revisor (D01). */
+export interface RevisionServicio extends BandejaDocente {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
-  /** Asignaciones pendientes del docente (D01, HU-21 y HU-22). */
-  listarMisRevisiones(): Promise<never>;
   /** Preguntas en desempate asignadas al docente (D02, HU-23). */
   listarDesempates(): Promise<never>;
   /** Seguimiento de las revisiones para el administrador (C06). */
@@ -145,11 +152,16 @@ export function crearRevisionServicio(
   dependencias: DependenciasRevisionServicio,
 ): RevisionServicio {
   const repositorio = dependencias.repositorio ?? crearRevisionRepositorio(dependencias.bd);
+  const bandeja = crearBandejaDocente({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    repositorio: dependencias.repositorioBandeja ?? crearBandejaRepositorio(dependencias.bd),
+  });
   return {
+    ...bandeja,
     enviarARevision: (administradorId, preguntaId) =>
       enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
     // Esqueleto: cada método se implementa en la historia de usuario correspondiente.
-    listarMisRevisiones: () => Promise.reject(new ErrorNoImplementado('Mis revisiones')),
     listarDesempates: () => Promise.reject(new ErrorNoImplementado('Los desempates')),
     listarSeguimiento: () =>
       Promise.reject(new ErrorNoImplementado('El seguimiento de las revisiones')),
