@@ -91,6 +91,7 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
     final elegida = _guardando ?? pregunta.elegidaId;
     final esLaUltima = widget.indice >= widget.total - 1;
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       separacion: 14,
       hijos: [
         const CabeceraConReloj(),

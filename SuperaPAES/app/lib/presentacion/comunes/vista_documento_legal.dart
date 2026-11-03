@@ -21,6 +21,7 @@ class VistaDocumentoLegal extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final documentos = ref.watch(documentosVigentesProvider);
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       hijos: [
         const EnlaceVolver(texto: 'Volver', destino: Rutas.ingreso),
         const Encabezado(titulo: 'Términos y privacidad'),

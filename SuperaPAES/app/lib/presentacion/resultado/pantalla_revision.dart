@@ -51,6 +51,7 @@ class _PantallaRevisionState extends ConsumerState<PantallaRevision> {
         : _indice.clamp(0, filtradas.length - 1);
     final actual = filtradas.isEmpty ? null : filtradas[indice];
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       separacion: 14,
       hijos: [
         const EnlaceVolver(texto: 'Resultado', destino: Rutas.resultado),

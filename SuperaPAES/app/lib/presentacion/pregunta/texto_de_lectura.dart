@@ -92,6 +92,7 @@ class PantallaTextoCompleto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       hijos: [
         Align(
           alignment: Alignment.centerLeft,

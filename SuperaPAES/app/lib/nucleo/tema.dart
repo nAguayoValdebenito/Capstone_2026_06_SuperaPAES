@@ -73,6 +73,17 @@ abstract final class TemaSuperaPaes {
   /// ve sea más chico.
   static const double zonaTactil = 48;
 
+  /// En tablet (600 dp o más) el contenido va centrado con este ancho
+  /// máximo: 560 en formularios y 720 en pantallas de lectura (la pregunta,
+  /// su corrección y su revisión, y los textos legales). Bajo 600 dp la
+  /// pantalla usa todo el ancho, como siempre.
+  static const double anchoFormulario = 560;
+  static const double anchoLectura = 720;
+
+  /// Desde este ancho (el lado corto de la pantalla) el equipo es una tablet:
+  /// los teléfonos quedan fijos en vertical y la tablet gira libre.
+  static const double anchoTablet = 600;
+
   // Medidas de los componentes.
   static const double margenPantalla = espacio24;
   static const double altoBoton = 52;
@@ -317,6 +328,11 @@ abstract final class TemaSuperaPaes {
         ),
       ),
       dividerTheme: const DividerThemeData(color: borde, space: 1),
+      // Las hojas que suben desde abajo, con el ancho de un formulario en
+      // tablet.
+      bottomSheetTheme: const BottomSheetThemeData(
+        constraints: BoxConstraints(maxWidth: anchoFormulario),
+      ),
     );
   }
 }
