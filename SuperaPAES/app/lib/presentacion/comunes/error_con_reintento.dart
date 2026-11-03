@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:supera_paes/nucleo/errores.dart';
-import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart';
 
 /// Lo que no se pudo cargar (Progreso, A41): el mensaje de la API, o
-/// [mensaje] si el error es otro, y «Reintentar».
+/// [mensaje] si el error es otro, y «Reintentar». Se muestra con
+/// [EstadoError]: en tono neutro, con el trazo.
 class ErrorConReintento extends StatelessWidget {
   const ErrorConReintento({
     required this.error,
@@ -18,23 +18,6 @@ class ErrorConReintento extends StatelessWidget {
   final VoidCallback alReintentar;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Aviso(
-          tono: TonoAviso.error,
-          texto: switch (error) {
-            final ErrorApi api => api.mensaje,
-            _ => mensaje,
-          },
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton(
-          onPressed: alReintentar,
-          child: const Text('Reintentar'),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) =>
+      EstadoError(error: error, mensaje: mensaje, alReintentar: alReintentar);
 }
