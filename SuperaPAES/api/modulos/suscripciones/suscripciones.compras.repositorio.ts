@@ -32,8 +32,12 @@ export interface CambioSuscripcion {
   estadoNuevo: EstadoSuscripcion;
   planAnterior: number | null;
   planNuevo: number;
-  // HU-44 agrega pasarela (con su aviso) y sistema.
-  origen: 'estudiante';
+  /** Estudiante (HU-43.1), tienda con su aviso (HU-44) o sistema (la tarea horaria). */
+  origen: 'estudiante' | 'pasarela' | 'sistema';
+  /** El aviso de app.evento_pasarela que provocó el cambio; solo con origen pasarela. */
+  eventoPasarelaId?: string;
+  /** Motivo breve, como «reembolso» (hasta 200 caracteres). */
+  detalle?: string;
   ahora: Date;
 }
 
@@ -58,16 +62,29 @@ export const SUSCRIPCION = `
     JOIN contenido.plan_producto_tienda pt
       ON pt.plan_id = s.plan_id AND pt.canal_venta_id = s.canal_venta_id`;
 
-// Un registro del historial: el trigger exige que el estado y el plan anteriores sean los del último.
+// Un registro del historial: el trigger exige que el estado y el plan anteriores sean los del último, y
+// que solo un cambio de la tienda apunte a su aviso.
 const REGISTRAR_CAMBIO = `
   INSERT INTO app.suscripcion_evento
      (suscripcion_id, estado_anterior_id, estado_nuevo_id, plan_anterior_id, plan_nuevo_id,
-      origen_evento_id, creado_en)
-   SELECT $1, ea.id, en.id, $4, $5, o.id, $7
+      origen_evento_id, evento_pasarela_id, detalle, creado_en)
+   SELECT $1, ea.id, en.id, $4, $5, o.id, $8, $9, $7
      FROM contenido.estado_suscripcion en
      JOIN contenido.origen_evento o ON o.codigo = $6
      LEFT JOIN contenido.estado_suscripcion ea ON ea.codigo = $2::text
     WHERE en.codigo = $3`;
+
+const parametrosDelCambio = (cambio: CambioSuscripcion) => [
+  cambio.suscripcionId,
+  cambio.estadoAnterior,
+  cambio.estadoNuevo,
+  cambio.planAnterior,
+  cambio.planNuevo,
+  cambio.origen,
+  cambio.ahora,
+  cambio.eventoPasarelaId ?? null,
+  cambio.detalle ?? null,
+];
 
 /**
  * Bloquea la fila de la suscripción y recién entonces la lee completa. Se hace en dos consultas porque
@@ -155,15 +172,7 @@ function escrituras(bd: Ejecutor) {
     },
 
     async registrarCambio(cambio: CambioSuscripcion, tx: Ejecutor = bd) {
-      await tx.query(REGISTRAR_CAMBIO, [
-        cambio.suscripcionId,
-        cambio.estadoAnterior,
-        cambio.estadoNuevo,
-        cambio.planAnterior,
-        cambio.planNuevo,
-        cambio.origen,
-        cambio.ahora,
-      ]);
+      await tx.query(REGISTRAR_CAMBIO, parametrosDelCambio(cambio));
     },
   };
 }

@@ -2,10 +2,11 @@
 // App Store, pagos, historial de estados y avisos de las tiendas.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 // La pasarela de cada tienda llega desde la FabricaProveedores; este módulo nunca crea una.
-import type { AvisoEntrante, PasarelasPorTienda, Tienda } from '../../adaptadores/fabrica.js';
-import { ErrorNoImplementado } from '../../comun/errores.js';
+import type { PasarelasPorTienda } from '../../adaptadores/fabrica.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
+import { crearAvisosRepositorio } from './suscripciones.avisos.repositorio.js';
+import { crearAvisosServicio, type AvisosServicio } from './suscripciones.avisos.servicio.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
 import { crearComprasServicio, type ComprasServicio } from './suscripciones.compras.servicio.js';
 import {
@@ -39,19 +40,13 @@ export interface DependenciasSuscripcionesServicio {
   repositorioTrazabilidad?: TrazabilidadRepositorio;
 }
 
-const NOMBRE_TIENDA: Record<Tienda, string> = {
-  google_play: 'Google Play',
-  app_store: 'la App Store',
-};
-
+/**
+ * recibirAviso (HU-44.1) verifica y procesa un aviso de una tienda (RN-17): se registra una sola vez en
+ * app.evento_pasarela y cada cambio de estado o de plan queda en app.suscripcion_evento, con el plan
+ * anterior y el nuevo, partiendo del último registro.
+ */
 export interface SuscripcionesServicio
-  extends ComprasServicio, ValidacionServicio, TrazabilidadServicio {
-  /**
-   * Verifica y procesa un aviso de una tienda (RN-17): se registra una sola vez en
-   * app.evento_pasarela y cada cambio de estado o de plan queda en app.suscripcion_evento, con el
-   * plan anterior y el nuevo, partiendo del último registro.
-   */
-  recibirAviso(tienda: Tienda, aviso: AvisoEntrante): Promise<void>;
+  extends ComprasServicio, ValidacionServicio, TrazabilidadServicio, AvisosServicio {
   /**
    * RN-04: ¿una suscripción activa o en mora cubre la prueba? Si la cubre, responder no descuenta
    * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta).
@@ -66,7 +61,6 @@ export interface SuscripcionesServicio
   vigenteDe(estudianteId: string): Promise<SuscripcionVigente | null>;
 }
 
-// Esqueleto: el procesamiento de avisos se implementa en el sprint de suscripciones.
 export function crearSuscripcionesServicio(
   dependencias: DependenciasSuscripcionesServicio,
 ): SuscripcionesServicio {
@@ -74,11 +68,19 @@ export function crearSuscripcionesServicio(
   const comprasRepositorio = crearComprasRepositorio(dependencias.bd);
   const base = { unidadDeTrabajo: dependencias.unidadDeTrabajo, reloj: dependencias.reloj };
   const compras = crearComprasServicio({ ...base, repositorio: comprasRepositorio });
+  const validacionRepositorio = crearValidacionRepositorio(dependencias.bd);
   const validacion = crearValidacionServicio({
     ...base,
     pagos: dependencias.pagos,
     compras: comprasRepositorio,
-    validacion: crearValidacionRepositorio(dependencias.bd),
+    validacion: validacionRepositorio,
+  });
+  const avisos = crearAvisosServicio({
+    ...base,
+    pagos: dependencias.pagos,
+    avisos: crearAvisosRepositorio(dependencias.bd),
+    compras: comprasRepositorio,
+    validacion: validacionRepositorio,
   });
   const trazabilidad = crearTrazabilidadServicio(
     dependencias.repositorioTrazabilidad ?? crearTrazabilidadRepositorio(dependencias.bd),
@@ -87,12 +89,9 @@ export function crearSuscripcionesServicio(
     ...compras,
     ...validacion,
     ...trazabilidad,
-    recibirAviso: (tienda) =>
-      Promise.reject(
-        new ErrorNoImplementado(`El procesamiento de avisos de ${NOMBRE_TIENDA[tienda]}`),
-      ),
-    // Sigue solo el estado (RN-26): hasta HU-44 nada pasa una suscripción a cancelada o vencida al
-    // terminar su período, así que una activa sigue cubriendo después de periodo_fin.
+    ...avisos,
+    // Sigue solo el estado (RN-26): los avisos de las tiendas (HU-44) la pasan a cancelada o vencida
+    // al terminar su período; sin avisos, una activa sigue cubriendo después de periodo_fin (A-03).
     cubrePrueba: (estudianteId, pruebaId, tx) =>
       repositorio.cubrePrueba(estudianteId, pruebaId, tx),
     permiteEnsayoCompleto: (estudianteId, tx) =>

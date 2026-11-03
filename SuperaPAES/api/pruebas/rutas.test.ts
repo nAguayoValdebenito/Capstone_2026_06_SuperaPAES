@@ -170,14 +170,14 @@ describe('módulos montados', () => {
 
 describe('webhooks de las tiendas', () => {
   it.each(['google-play', 'app-store'])(
-    '/api/v1/webhooks/%s no exige JWT y responde 501 mientras no esté implementado',
+    '/api/v1/webhooks/%s no exige JWT: la pasarela verifica el aviso y rechaza uno mal formado',
     async (tienda) => {
       const respuesta = await request(app)
         .post(`/api/v1/webhooks/${tienda}`)
-        .send({ idEvento: 'evt-1', tipo: 'PRUEBA' });
+        .send({ tipo: 'PRUEBA' });
 
-      expect(respuesta.status).toBe(501);
-      expect(respuesta.body.error.codigo).toBe('NO_IMPLEMENTADO');
+      expect(respuesta.status).toBe(400);
+      expect(respuesta.body.error.codigo).toBe('SOLICITUD_INVALIDA');
     },
   );
 });
