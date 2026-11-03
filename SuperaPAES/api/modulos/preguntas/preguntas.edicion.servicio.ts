@@ -74,9 +74,8 @@ function esErrorDeBase(error: unknown): error is ErrorDeBase {
 
 /**
  * Los rechazos de la base llegan como 409 con un mensaje en español, sin el SQL. Los triggers del ciclo
- * de vida (P0001) ya escriben su motivo para personas.
+ * de vida (P0001) ya escriben su motivo para personas. También la usa la publicación (HU-24).
  */
-/** Los errores de las reglas de la base (P0001) y de las alternativas ya usadas, como 409. */
 export async function traducirErrores<T>(trabajo: () => Promise<T>): Promise<T> {
   try {
     return await trabajo();

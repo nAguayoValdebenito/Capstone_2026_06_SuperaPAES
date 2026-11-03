@@ -5,10 +5,9 @@
 import type { Ejecutor } from '../../db/transaccion.js';
 import type { Opcion } from './preguntas.repositorio.js';
 
-/** La etapa actual de la pregunta y si los docentes ya le asignaron dificultad. */
+/** La etapa actual de la pregunta. */
 export interface EtapaDePregunta {
   estado: Opcion;
-  conDificultad: boolean;
 }
 
 export interface PublicacionRepositorio {
@@ -19,8 +18,7 @@ export interface PublicacionRepositorio {
 }
 
 const RESERVAR = `
-  SELECT json_build_object('codigo', e.codigo, 'nombre', e.nombre) AS estado,
-         p.dificultad_asignada_id IS NOT NULL AS "conDificultad"
+  SELECT json_build_object('codigo', e.codigo, 'nombre', e.nombre) AS estado
     FROM contenido.pregunta p
     JOIN contenido.estado_pregunta e ON e.id = p.estado_pregunta_id
    WHERE p.id = $1

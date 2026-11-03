@@ -1,11 +1,16 @@
 // C02 · Banco de preguntas (HU-11, RF-G01): filtros por prueba, eje, contenido, habilidad, estado, origen
 // y dificultad asignada; tabla con el estado de cada pregunta; de a páginas. La lógica está en
 // src/estado/banco.ts. Desde aquí se crea una pregunta (C03) o se importa un archivo (C04, HU-13.2), que
-// vuelve con su aviso. Las acciones de la tabla y la publicación de varias llegan con sus historias.
+// vuelve con su aviso. Cada fila tiene la acción de su etapa: enviar a revisión (HU-21), publicar,
+// retirar o volver a borrador (HU-24); la publicación de varias a la vez llega con HU-53.
 import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
 import { useAvisoDeNavegacion } from '../../estado/aviso-de-navegacion';
-import { type AccionEnvio, type AvisoEnvio, useEnvioARevision } from '../../estado/envio-revision';
+import {
+  type AccionesDelBanco,
+  type AvisoDelBanco,
+  useAccionesDelBanco,
+} from '../../estado/acciones-banco';
 import { type CargaBanco, totalDePaginas, useBanco } from '../../estado/banco';
 import { FiltrosBanco } from './FiltrosBanco';
 import { TablaBanco } from './TablaBanco';
@@ -22,18 +27,18 @@ function Alerta({ texto, codigo }: { texto: string; codigo: string }) {
 export function ResultadoBanco({
   carga,
   alCambiarPagina,
-  envio,
+  acciones,
 }: {
   carga: CargaBanco;
   alCambiarPagina: (pagina: number) => void;
-  envio?: AccionEnvio;
+  acciones?: AccionesDelBanco;
 }) {
   if (carga.tipo === 'cargando') return <p aria-live="polite">Cargando preguntas…</p>;
   if (carga.tipo === 'fallida') return <Alerta texto={carga.mensaje} codigo={carga.codigo} />;
   const { preguntas, paginacion } = carga.pagina;
   return (
     <>
-      <TablaBanco preguntas={preguntas} envio={envio} />
+      <TablaBanco preguntas={preguntas} acciones={acciones} />
       {paginacion.total > 0 && (
         <Paginacion
           paginacion={paginacion}
@@ -46,10 +51,11 @@ export function ResultadoBanco({
 }
 
 /**
- * El aviso de lo último que pasó: el envío a revisión (HU-21), con quiénes la revisan o por qué no se
- * pudo, o lo que dejó la página anterior (por ejemplo, la importación).
+ * El aviso de lo último que pasó: el envío a revisión (HU-21) con quiénes la revisan, la publicación, el
+ * retiro o la vuelta a borrador (HU-24), o por qué no se pudo; o lo que dejó la página anterior (por
+ * ejemplo, la importación).
  */
-function AvisoDelBanco({ aviso }: { aviso: AvisoEnvio | null }) {
+function AvisoDeAccion({ aviso }: { aviso: AvisoDelBanco | null }) {
   if (!aviso) return null;
   return (
     <p className={`aviso aviso--${aviso.tipo}`} role={aviso.tipo === 'error' ? 'alert' : 'status'}>
@@ -61,7 +67,7 @@ function AvisoDelBanco({ aviso }: { aviso: AvisoEnvio | null }) {
 export function PaginaBanco() {
   const { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar } =
     useBanco();
-  const envio = useEnvioARevision(recargar, useAvisoDeNavegacion());
+  const acciones = useAccionesDelBanco(recargar, useAvisoDeNavegacion());
 
   return (
     <section className="pagina pagina--ancha">
@@ -82,7 +88,7 @@ export function PaginaBanco() {
           </Link>
         </div>
       </header>
-      <AvisoDelBanco aviso={envio.aviso} />
+      <AvisoDeAccion aviso={acciones.aviso} />
       {opciones.tipo === 'lista' && (
         <FiltrosBanco
           opciones={opciones.opciones}
@@ -92,7 +98,7 @@ export function PaginaBanco() {
         />
       )}
       {opciones.tipo === 'fallida' && <Alerta texto={opciones.mensaje} codigo={opciones.codigo} />}
-      <ResultadoBanco carga={carga} alCambiarPagina={irAPagina} envio={envio} />
+      <ResultadoBanco carga={carga} alCambiarPagina={irAPagina} acciones={acciones} />
     </section>
   );
 }

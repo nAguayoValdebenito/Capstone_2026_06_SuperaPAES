@@ -109,6 +109,15 @@ export interface FiltrosBanco {
   dificultad?: string;
 }
 
+/** HU-24 (CU-21): publicar una aprobada, retirar una publicada o volver a borrador una retirada. */
+export type CambioDeEtapa = 'publicar' | 'retirar' | 'borrador';
+
+/** La pregunta con la etapa en que quedó después de publicarla, retirarla o volverla a borrador. */
+export interface PreguntaConEtapa {
+  id: number;
+  estado: Opcion;
+}
+
 /** Pregunta tal como la lista el banco: con su estado, sin la alternativa correcta. */
 export interface PreguntaDelBanco {
   id: number;
