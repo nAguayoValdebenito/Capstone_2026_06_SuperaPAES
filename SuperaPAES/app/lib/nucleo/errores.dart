@@ -33,13 +33,14 @@ class ErrorApi implements Exception {
     if (respuesta == null) {
       return const ErrorApi(
         codigo: 'SIN_CONEXION',
-        mensaje: 'No se pudo conectar con la API. Revisa tu conexión.',
+        mensaje:
+            'Sin conexión por ahora. Revisa tu internet e inténtalo de nuevo.',
       );
     }
     return desdeCuerpo(respuesta.data, estadoHttp: respuesta.statusCode) ??
         ErrorApi(
           codigo: 'ERROR_DESCONOCIDO',
-          mensaje: 'La API respondió ${respuesta.statusCode}.',
+          mensaje: 'Tuvimos un problema. Inténtalo en un rato.',
           estadoHttp: respuesta.statusCode,
         );
   }

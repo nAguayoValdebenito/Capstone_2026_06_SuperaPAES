@@ -67,7 +67,7 @@ abstract final class MisDatosModelo {
         'app_store' => Tienda.appStore,
         _ => throw const ErrorApi(
           codigo: 'RESPUESTA_INVALIDA',
-          mensaje: 'La API respondió con una tienda desconocida.',
+          mensaje: 'Recibimos una tienda que no conocemos. Inténtalo de nuevo.',
         ),
       },
     );

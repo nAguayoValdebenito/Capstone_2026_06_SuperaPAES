@@ -38,15 +38,61 @@ abstract final class TemaSuperaPaes {
   /// Tipografía de fórmulas y texto matemático.
   static const String fuenteFormulas = 'STIX Two Text';
 
+  // Escala de espacios: los márgenes y separaciones salen de aquí, sin
+  // valores sueltos (plan de mejora visual del 02/11).
+  static const double espacio4 = 4;
+  static const double espacio8 = 8;
+  static const double espacio12 = 12;
+  static const double espacio16 = 16;
+  static const double espacio24 = 24;
+  static const double espacio32 = 32;
+
+  // Tres radios de la identidad: 20 en tarjetas y hojas, 14 en botones,
+  // campos y avisos, y 10 en lo chico (botón chico y datos).
+  static const double radioGrande = 20;
+  static const double radioMedio = 14;
+  static const double radioChico = 10;
+
+  // Movimiento: solo se animan opacidad, escala y color, nunca el diseño de
+  // la página, y todo respeta «reducir el movimiento» (ver `duracion` en
+  // `presentacion/comunes/movimiento.dart`).
+  static const Duration movimientoRapido = Duration(milliseconds: 150);
+  static const Duration movimientoNormal = Duration(milliseconds: 200);
+  static const Duration movimientoLento = Duration(milliseconds: 400);
+  static const Curve curvaEntrada = Curves.easeOutCubic;
+  static const Curve curvaSalida = Curves.easeInCubic;
+
+  /// Sombra suave de lo que se toca (el color [texto] al 6 %, a 2 de
+  /// distancia); lo que solo informa queda plano, con borde.
+  static const List<BoxShadow> sombraSuave = [
+    BoxShadow(color: Color(0x0F14213D), blurRadius: 12, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x0A14213D), blurRadius: 2, offset: Offset(0, 1)),
+  ];
+
+  /// Zona de toque mínima de Android (48 dp; 44 pt en iOS), aunque lo que se
+  /// ve sea más chico.
+  static const double zonaTactil = 48;
+
+  /// En tablet (600 dp o más) el contenido va centrado con este ancho
+  /// máximo: 560 en formularios y 720 en pantallas de lectura (la pregunta,
+  /// su corrección y su revisión, y los textos legales). Bajo 600 dp la
+  /// pantalla usa todo el ancho, como siempre.
+  static const double anchoFormulario = 560;
+  static const double anchoLectura = 720;
+
+  /// Desde este ancho (el lado corto de la pantalla) el equipo es una tablet:
+  /// los teléfonos quedan fijos en vertical y la tablet gira libre.
+  static const double anchoTablet = 600;
+
   // Medidas de los componentes.
-  static const double margenPantalla = 24;
+  static const double margenPantalla = espacio24;
   static const double altoBoton = 52;
   static const double altoBotonChico = 40;
   static const double altoCampo = 48;
-  static const double radioBoton = 14;
-  static const double radioBotonChico = 10;
-  static const double radioCampo = 12;
-  static const double radioTarjeta = 16;
+  static const double radioBoton = radioMedio;
+  static const double radioBotonChico = radioChico;
+  static const double radioCampo = radioMedio;
+  static const double radioTarjeta = radioGrande;
   static const double altoChip = 36;
   static const double radioChip = 18;
   static const double altoEtiqueta = 24;
@@ -55,9 +101,10 @@ abstract final class TemaSuperaPaes {
   static const double altoBarra = 8;
 
   /// Opción activa del selector segmentado (la dificultad de A13), dentro de
-  /// un fondo de radio [radioCampo] con relleno 4.
-  static const double radioSegmento = 9;
-  static const double altoSegmento = 36;
+  /// un fondo de radio [radioCampo] con relleno 4: la barra mide 48, la zona
+  /// táctil.
+  static const double radioSegmento = radioCampo - espacio4;
+  static const double altoSegmento = zonaTactil - 2 * espacio4;
 
   /// Botones redondos de la cantidad de A13.
   static const double botonRedondo = 44;
@@ -73,10 +120,10 @@ abstract final class TemaSuperaPaes {
   static const double altoAvance = 6;
 
   /// Esquinas de arriba de las hojas que suben desde abajo (A11 y A18).
-  static const double radioHoja = 24;
+  static const double radioHoja = radioGrande;
 
   /// Recuadros de un dato chico, como el acierto por dificultad de A35.
-  static const double radioDato = 10;
+  static const double radioDato = radioChico;
 
   /// Barras del avance semana a semana de A35: la más alta mide esto.
   static const double altoBarraSemana = 88;
@@ -259,18 +306,17 @@ abstract final class TemaSuperaPaes {
               estados.contains(WidgetState.selected) ? primario : superficie,
         ),
       ),
-      // Barra inferior: sin indicador; la pestaña activa va en azul.
+      // Barra inferior: sin indicador; la pestaña activa va en azul, con su
+      // ícono relleno y su texto en negrita.
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: superficie,
         indicatorColor: Colors.transparent,
         elevation: 0,
         height: 72,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (estados) => mini.copyWith(
-            color: estados.contains(WidgetState.selected)
-                ? primario
-                : textoSecundario,
-          ),
+          (estados) => estados.contains(WidgetState.selected)
+              ? mini.copyWith(color: primario, fontWeight: FontWeight.w800)
+              : mini.copyWith(color: textoSecundario),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
           (estados) => IconThemeData(
@@ -282,6 +328,11 @@ abstract final class TemaSuperaPaes {
         ),
       ),
       dividerTheme: const DividerThemeData(color: borde, space: 1),
+      // Las hojas que suben desde abajo, con el ancho de un formulario en
+      // tablet.
+      bottomSheetTheme: const BottomSheetThemeData(
+        constraints: BoxConstraints(maxWidth: anchoFormulario),
+      ),
     );
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart'
+    show margenLateral;
 import 'package:supera_paes/presentacion/comunes/esqueleto_con_pestanas.dart'
     show EsqueletoConPestanas;
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
@@ -29,7 +32,13 @@ class PantallaBase extends StatelessWidget {
         actions: acciones,
       ),
       body: SafeArea(
-        child: ListView(padding: const EdgeInsets.all(24), children: hijos),
+        child: ListView(
+          padding: EdgeInsets.symmetric(
+            horizontal: margenLateral(context, TemaSuperaPaes.anchoFormulario),
+            vertical: TemaSuperaPaes.margenPantalla,
+          ),
+          children: hijos,
+        ),
       ),
     );
   }

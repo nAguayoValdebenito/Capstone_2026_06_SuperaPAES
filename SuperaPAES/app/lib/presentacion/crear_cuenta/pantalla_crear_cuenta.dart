@@ -325,7 +325,7 @@ class _CasillaAceptacionState extends State<_CasillaAceptacion> {
                 onChanged: onChanged == null
                     ? null
                     : (valor) => onChanged(valor ?? false),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                materialTapTargetSize: MaterialTapTargetSize.padded,
                 visualDensity: VisualDensity.compact,
               ),
             ),

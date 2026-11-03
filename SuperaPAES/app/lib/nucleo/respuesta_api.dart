@@ -9,7 +9,8 @@ Object? leerData(Object? cuerpo, {int? estadoHttp}) {
   if (cuerpo is! Map<String, dynamic> || !cuerpo.containsKey('data')) {
     throw ErrorApi(
       codigo: 'RESPUESTA_INVALIDA',
-      mensaje: 'La API respondió con un formato inesperado.',
+      mensaje:
+          'Recibimos una respuesta que no esperábamos. Inténtalo de nuevo.',
       estadoHttp: estadoHttp,
     );
   }

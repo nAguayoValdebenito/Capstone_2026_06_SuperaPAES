@@ -60,7 +60,7 @@ class _PantallaPasoAreasState extends ConsumerState<PantallaPasoAreas> {
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                tapTargetSize: MaterialTapTargetSize.padded,
               ),
               onPressed: () => _siguiente(omitir: true),
               child: const Text('Omitir'),

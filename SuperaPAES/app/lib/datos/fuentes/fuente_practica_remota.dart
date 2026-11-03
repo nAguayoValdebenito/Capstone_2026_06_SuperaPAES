@@ -12,7 +12,8 @@ class FuentePracticaRemota {
 
   final Dio _dio;
 
-  static const String _sinResumen = 'La API respondió sin el resumen.';
+  static const String _sinResumen =
+      'No recibimos el resumen. Inténtalo de nuevo.';
 
   Future<OpcionesPractica> opciones(String curso) async =>
       PracticaModelo.opciones(
@@ -21,7 +22,7 @@ class FuentePracticaRemota {
           'GET',
           '/temario/opciones-practica',
           consulta: {'curso': curso},
-          sinData: 'La API respondió sin las opciones de práctica.',
+          sinData: 'No recibimos las opciones de práctica. Inténtalo de nuevo.',
         ),
       );
 
@@ -31,7 +32,7 @@ class FuentePracticaRemota {
           _dio,
           '/evaluaciones/practicas',
           PracticaModelo.datos(datos),
-          sinData: 'La API respondió sin la práctica.',
+          sinData: 'No recibimos la práctica. Inténtalo de nuevo.',
         ),
       );
 
@@ -41,7 +42,7 @@ class FuentePracticaRemota {
           _dio,
           '/evaluaciones/practicas/$practicaId/siguiente',
           null,
-          sinData: 'La API respondió sin la pregunta.',
+          sinData: 'No recibimos la pregunta. Inténtalo de nuevo.',
         ),
       );
 
@@ -54,7 +55,7 @@ class FuentePracticaRemota {
       _dio,
       '/evaluaciones/$practicaId/items/$itemId/respuesta',
       {'alternativaId': alternativaId},
-      sinData: 'La API respondió sin la corrección.',
+      sinData: 'No recibimos la corrección. Inténtalo de nuevo.',
     ),
   );
 
@@ -73,7 +74,7 @@ class FuentePracticaRemota {
           _dio,
           'GET',
           '/evaluaciones/abierta',
-          sinData: 'La API respondió sin la evaluación abierta.',
+          sinData: 'No recibimos la evaluación abierta. Inténtalo de nuevo.',
         ),
       );
 }

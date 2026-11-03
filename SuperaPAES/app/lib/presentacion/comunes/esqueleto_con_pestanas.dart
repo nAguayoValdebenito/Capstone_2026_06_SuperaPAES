@@ -3,8 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
 
-/// Barra inferior con las pestañas Inicio, Practicar, Progreso y Planes.
-/// Cada pestaña conserva su propio estado al cambiar entre ellas.
+/// Barra inferior con las pestañas Inicio, Practicar, Evaluaciones, Progreso
+/// y Perfil (DAS 7.4). Cada pestaña conserva su propio estado al cambiar
+/// entre ellas; la activa lleva su ícono relleno y su texto en azul.
 class EsqueletoConPestanas extends StatelessWidget {
   const EsqueletoConPestanas({required this.navegacion, super.key});
 
@@ -25,6 +26,7 @@ class EsqueletoConPestanas extends StatelessWidget {
           for (final pestana in pestanas)
             NavigationDestination(
               icon: Icon(pestana.icono),
+              selectedIcon: Icon(pestana.iconoActivo ?? pestana.icono),
               label: pestana.etiquetaPestana ?? pestana.titulo,
             ),
         ],

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
@@ -24,6 +25,7 @@ class PantallaPregunta extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (ref.watch(practicaProvider).enCurso == null) {
       return PantallaFormulario(
+        anchoMaximo: TemaSuperaPaes.anchoLectura,
         hijos: [
           const SizedBox(height: 32),
           const Encabezado(
@@ -105,6 +107,7 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
   Widget build(BuildContext context) {
     final pregunta = widget.pregunta;
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       separacion: 14,
       hijos: [
         const CabeceraPractica(),
@@ -146,6 +149,7 @@ class _SinPregunta extends ConsumerWidget {
       _ => 'No se pudo cargar la pregunta.',
     };
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       hijos: [
         const SizedBox(height: 32),
         Aviso(tono: TonoAviso.aviso, texto: mensaje),

@@ -81,27 +81,45 @@ Los colores van con `copyWith`, por ejemplo
 
 | Nombre            | Valor | Uso                                            |
 | ----------------- | ----- | ---------------------------------------------- |
-| `margenPantalla`  | 24    | Margen a los lados (ya está en `PantallaFormulario`) |
+| `espacio4` a `espacio32` | 4, 8, 12, 16, 24, 32 | Escala de espacios: márgenes y separaciones salen de aquí |
+| `margenPantalla`  | 24    | Margen a los lados (ya está en `PantallaFormulario`; en tablet crece para centrar) |
 | `altoBoton`       | 52    | `FilledButton`, `OutlinedButton` y `BotonTexto` |
 | `altoBotonChico`  | 40    | `BotonChico`                                    |
 | `altoCampo`       | 48    | Campos de texto                                 |
 | `radioBoton`      | 14    | Botones de 52                                   |
 | `radioBotonChico` | 10    | Botón chico                                     |
-| `radioCampo`      | 12    | Campos, avisos y casillas del código            |
-| `radioTarjeta`    | 16    | Tarjetas                                        |
+| `radioCampo`      | 14    | Campos, avisos y casillas del código            |
+| `radioTarjeta`    | 20    | Tarjetas                                        |
 | `altoChip` / `radioChip` | 36 / 18 | Chips                                   |
 | `altoEtiqueta`    | 24    | Etiquetas (radio de la mitad)                   |
 | `altoBarra`       | 8     | Barra del cupo de A12 (radio de la mitad)       |
-| `altoSegmento` / `radioSegmento` | 36 / 9 | Opción del selector segmentado (A13) |
+| `altoSegmento` / `radioSegmento` | 40 / 10 | Opción del selector segmentado (A13); la barra mide 48 |
 | `botonRedondo`    | 44    | Botones «–» y «+» de la cantidad (A13)          |
 | `circuloLetra`    | 28    | Círculo con la letra de cada alternativa (A17)  |
 | `altoTextoLectura`| 210   | Alto máximo del texto de lectura en la pregunta (A20) |
 | `altoAvance`      | 6     | Barra del avance de la práctica (A17)           |
-| `radioHoja`       | 24    | Esquinas de arriba de las hojas que suben desde abajo (A11 y A18) |
+| `radioHoja`       | 20    | Esquinas de arriba de las hojas que suben desde abajo (A11 y A18) |
 | `radioDato`       | 10    | Recuadros de un dato chico, como el acierto por dificultad (A35) |
 | `altoBarraSemana` / `radioBarraSemana` | 88 / 6 | Barra más alta del avance semana a semana y su radio (A35) |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
+
+Desde el plan de mejora visual (tanda A, 03/11) hay **tres radios**: `radioGrande` 20 (tarjetas y
+hojas), `radioMedio` 14 (botones, campos y avisos) y `radioChico` 10 (botón chico, datos y sellos).
+También:
+
+| Nombre | Valor | Uso |
+| ------ | ----- | --- |
+| `sombraSuave` | sombra de `texto` al 6 % | Lo que se toca (opciones, tarjetas de prueba de A12, `ListaDeFilas`). Lo que solo informa queda plano, con borde |
+| `zonaTactil` | 48 | Zona mínima que responde al toque; usa `ZonaTactil` si lo que se ve es más chico |
+| `movimientoRapido` / `Normal` / `Lento` | 150 / 200 / 400 ms | Duración de las animaciones, siempre con `duracion(context, ...)` |
+| `curvaEntrada` / `curvaSalida` | `easeOutCubic` / `easeInCubic` | Curvas de las animaciones |
+| `anchoFormulario` / `anchoLectura` | 560 / 720 | Ancho máximo del contenido en tablet (formularios y pantallas de lectura) |
+| `anchoTablet` | 600 | Lado corto desde el que el equipo es tablet; bajo eso, la app queda en vertical |
+
+**Movimiento:** solo se animan opacidad, escala y color, nunca el diseño de la página, y toda
+duración pasa por `duracion(context, base)` (`comunes/movimiento.dart`), que da cero si el teléfono
+pide reducir el movimiento.
 
 ## Componentes
 
@@ -125,7 +143,23 @@ Entre los elementos de un formulario van 16 de separación; el diseño de refere
 | `DatoResumen(valor:, texto:)`      | Número grande con su texto debajo, en un tercio de una `Row` («15 correctas» de A21 y A30). |
 | `AlternativaCorregidaVista(...)` y `ExplicacionCorreccion(...)` (en `correccion/partes_correccion.dart`) | Alternativa ya corregida y la tarjeta «Explicación» con «Por qué la B no es correcta» (A19 y A33). |
 | `HojaConfirmacion(titulo:, contenido:, confirmar:, cancelar:)` y `confirmarEnHoja(context, hoja)` (en `hoja_confirmacion.dart`) | Hoja que sube desde abajo con un botón que confirma y otro que vuelve (A18, A41); devuelve `true` si confirma. |
-| `ErrorConReintento(error:, mensaje:, alReintentar:)` (en `error_con_reintento.dart`) | Lo que no se pudo cargar, con «Reintentar» (Progreso, A41). |
+| `ErrorConReintento(error:, mensaje:, alReintentar:)` (en `error_con_reintento.dart`) | Lo que no se pudo cargar, con «Reintentar» (Progreso, A41). Se ve como `EstadoError`. |
+
+Identidad y estados (tanda A del plan de mejora visual, 03/11):
+
+| Componente | Para qué |
+| ---------- | -------- |
+| `SelloPrueba(codigo:)` y `estiloDePrueba(codigo)` (en `sello_prueba.dart`) | Sello de cada prueba: su ícono en su tono sobre su fondo suave (Lectora #0369A1, M1 #1D4ED8, M2 #4338CA, Historia #1E40AF, Ciencias #0E7490). Úsalo junto al nombre de la prueba. |
+| `Trazo(ancho:, color:, avance:)` (en `trazo.dart`) | El trazo que sube del logo, dibujado con código: el símbolo de vacíos, errores y logros. `avance` de 0 a 1 lo dibuja en parte (para animarlo). |
+| `Esqueleto(ancho:, alto:)` y `EsqueletoTarjeta(lineas:)` (en `estados.dart`) | Carga con la forma de lo que viene, en vez de la rueda centrada. |
+| `EstadoVacio(titulo:, texto:, accion:, alTocar:)` (en `estados.dart`) | Lo que se muestra cuando no hay nada todavía, con el trazo y un botón opcional. |
+| `EstadoError(error:, mensaje:, alReintentar:, titulo:)` (en `estados.dart`) | Lo que no se pudo cargar, en tono neutro, con el trazo a medio camino y «Reintentar». En depuración anota la causa de un error que no vino de la API. |
+| `ZonaTactil(onTap:, child:)` (en `componentes_seleccion.dart`) | Lleva la zona de toque a 48 sin cambiar lo que se ve (chips y segmentos). |
+
+Los mensajes de error que ve el estudiante no dicen «API»: «Sin conexión por ahora. Revisa tu internet e
+inténtalo de nuevo.», «Tuvimos un problema. Inténtalo en un rato.» y «No recibimos … Inténtalo de nuevo.».
+En las pruebas, `test/tamanos_test.dart` recorre todas las pantallas en 360 × 640 y 768 × 1024 con la
+letra a 1 y a 2: una pantalla nueva entra sola al recorrido al agregarla a `secciones.dart`.
 
 En `comunes/componentes_seleccion.dart`:
 

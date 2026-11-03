@@ -61,8 +61,11 @@ class TextoConFormulas extends StatelessWidget {
   };
 }
 
-/// Una fórmula en LaTeX. Si no se puede leer, se muestra tal como se
-/// escribió, para no perder la pregunta. El lector de pantalla lee el LaTeX.
+/// Una fórmula en LaTeX, siempre en peso normal aunque vaya en un texto en
+/// negrita (el enunciado usa Texto/Cuerpo fuerte): en STIX, la negrita
+/// engruesa los símbolos y cuesta leerlos. Si no se puede leer, se muestra
+/// tal como se escribió, para no perder la pregunta. El lector de pantalla
+/// lee el LaTeX.
 class Formula extends StatelessWidget {
   const Formula({
     required this.tex,
@@ -77,15 +80,16 @@ class Formula extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final normal = estilo.copyWith(fontWeight: FontWeight.w400);
     return Semantics(
       label: tex,
       excludeSemantics: true,
       child: Math.tex(
         tex,
         mathStyle: enBloque ? MathStyle.display : MathStyle.text,
-        textStyle: estilo.copyWith(fontFamily: TemaSuperaPaes.fuenteFormulas),
+        textStyle: normal.copyWith(fontFamily: TemaSuperaPaes.fuenteFormulas),
         onErrorFallback: (_) =>
-            Text(enBloque ? '\$\$$tex\$\$' : '\$$tex\$', style: estilo),
+            Text(enBloque ? '\$\$$tex\$\$' : '\$$tex\$', style: normal),
       ),
     );
   }

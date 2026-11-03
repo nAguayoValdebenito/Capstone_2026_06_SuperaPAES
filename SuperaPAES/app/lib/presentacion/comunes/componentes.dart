@@ -10,7 +10,8 @@ import 'package:supera_paes/nucleo/tema.dart';
 /// Pantalla de los bocetos de la app: sin barra superior, con el contenido
 /// desplazable y márgenes de 24. Arriba puede ir un [EnlaceVolver]; el [pie]
 /// queda fijo abajo, como el botón «Continuar» de A08. Un error de ese botón
-/// va en el pie, sobre él (ver [PieConError]), para que siempre se vea.
+/// va en el pie, sobre él (ver [PieConError]), para que siempre se vea. En
+/// tablet, el contenido y el pie van centrados con [anchoMaximo].
 class PantallaFormulario extends StatelessWidget {
   const PantallaFormulario({
     required this.hijos,
@@ -18,6 +19,7 @@ class PantallaFormulario extends StatelessWidget {
     this.separacion,
     this.pie,
     this.alActualizar,
+    this.anchoMaximo = TemaSuperaPaes.anchoFormulario,
   });
 
   final List<Widget> hijos;
@@ -30,10 +32,15 @@ class PantallaFormulario extends StatelessWidget {
   /// (Inicio relee el cupo del día).
   final Future<void> Function()? alActualizar;
 
+  /// Ancho máximo del contenido: [TemaSuperaPaes.anchoFormulario] o, en las
+  /// pantallas de lectura, [TemaSuperaPaes.anchoLectura].
+  final double anchoMaximo;
+
   @override
   Widget build(BuildContext context) {
     final espacio = separacion ?? 16;
-    const margen = TemaSuperaPaes.margenPantalla;
+    final margen = margenLateral(context, anchoMaximo);
+    const abajo = TemaSuperaPaes.margenPantalla;
     final lista = ListView(
       // Se puede deslizar para actualizar aunque el contenido quepa entero.
       physics: alActualizar == null
@@ -43,7 +50,7 @@ class PantallaFormulario extends StatelessWidget {
         margen,
         8,
         margen,
-        pie == null ? margen : espacio,
+        pie == null ? abajo : espacio,
       ),
       children: [
         for (final (i, hijo) in hijos.indexed) ...[
@@ -65,16 +72,27 @@ class PantallaFormulario extends StatelessWidget {
                 null => lista,
               },
             ),
-            if (pie case final abajo?)
+            if (pie case final contenido?)
               Padding(
-                padding: const EdgeInsets.fromLTRB(margen, 0, margen, margen),
-                child: abajo,
+                padding: EdgeInsets.fromLTRB(margen, 0, margen, abajo),
+                child: contenido,
               ),
           ],
         ),
       ),
     );
   }
+}
+
+/// Margen de los lados de una pantalla: 24, o más en tablet para que el
+/// contenido no pase de [anchoMaximo] y quede centrado. Se calcula con el
+/// ancho de la pantalla, no con el diseño, así que no reconstruye nada.
+double margenLateral(BuildContext context, double anchoMaximo) {
+  final ancho = MediaQuery.sizeOf(context).width;
+  final sobra = (ancho - anchoMaximo) / 2;
+  return sobra > TemaSuperaPaes.margenPantalla
+      ? sobra
+      : TemaSuperaPaes.margenPantalla;
 }
 
 /// Enlace «‹ Pantalla anterior» de los bocetos. Vuelve atrás si se puede; si
@@ -93,7 +111,7 @@ class EnlaceVolver extends StatelessWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 4),
           minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          tapTargetSize: MaterialTapTargetSize.padded,
         ),
         onPressed: () => context.canPop() ? context.pop() : context.go(destino),
         icon: const Icon(Icons.chevron_left, size: 20),
@@ -611,7 +629,7 @@ class PieConEnlace extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 4),
             minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            tapTargetSize: MaterialTapTargetSize.padded,
           ),
           onPressed: onPressed,
           child: Text(enlace),

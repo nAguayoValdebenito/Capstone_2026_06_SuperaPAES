@@ -11,6 +11,8 @@ import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart'
+    show registrarErrorInesperado;
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
 
@@ -288,6 +290,7 @@ class _NoCargo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    registrarErrorInesperado(error);
     final texto = switch (error) {
       ErrorApi(:final problemas) when problemas.isNotEmpty =>
         problemas.first.mensaje,

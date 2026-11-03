@@ -16,7 +16,8 @@ import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart
 class PantallaIngreso extends ConsumerStatefulWidget {
   const PantallaIngreso({super.key});
 
-  /// Logo oficial (Figura 63 del DAS), empaquetado con la app.
+  /// Logo oficial (Figura 63 del DAS), empaquetado con la app con fondo
+  /// transparente.
   static const String logo = 'assets/imagenes/logo_supera_paes.png';
 
   @override
@@ -91,9 +92,9 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
         Center(
           child: Image.asset(
             PantallaIngreso.logo,
-            // Proporción del logo (991 × 823): reserva su lugar antes de
-            // cargar.
-            width: 144,
+            // Proporción del logo (932 × 764, con fondo transparente desde
+            // el 03/11, sin la caja blanca): reserva su lugar antes de cargar.
+            width: 146,
             height: 120,
             semanticLabel: Textos.nombreApp,
           ),

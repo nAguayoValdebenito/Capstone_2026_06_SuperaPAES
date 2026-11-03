@@ -16,7 +16,7 @@ class FuenteCupoRemota {
       _dio,
       'GET',
       '/cupo-invitaciones/cupo',
-      sinData: 'La API respondió sin el cupo del día.',
+      sinData: 'No recibimos el cupo del día. Inténtalo de nuevo.',
     ),
   );
 
@@ -26,7 +26,7 @@ class FuenteCupoRemota {
           _dio,
           'GET',
           '/cupo-invitaciones/invitaciones',
-          sinData: 'La API respondió sin tus invitaciones.',
+          sinData: 'No recibimos tus invitaciones. Inténtalo de nuevo.',
         ),
       );
 }

@@ -140,8 +140,9 @@ class TarjetaCasilla extends StatelessWidget {
   }
 }
 
-/// Recuadro que se toca: blanco con borde, o azul suave con borde azul si
-/// está seleccionado.
+/// Recuadro que se toca: blanco con la sombra suave de lo que se toca, o
+/// azul suave con borde azul si está seleccionado. Sin [onTap] (ya
+/// corregido) queda plano, con borde.
 class _Seleccionable extends StatelessWidget {
   const _Seleccionable({
     required this.seleccionada,
@@ -166,21 +167,32 @@ class _Seleccionable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final forma = BorderRadius.circular(TemaSuperaPaes.radioBoton);
+    final conSombra = onTap != null && colores == null && !seleccionada;
     final (fondo, borde) =
         colores ??
         (seleccionada
             ? (TemaSuperaPaes.primarioSuave, TemaSuperaPaes.primario)
-            : (TemaSuperaPaes.superficie, TemaSuperaPaes.borde));
-    return Material(
-      color: fondo,
-      shape: RoundedRectangleBorder(
+            : (
+                TemaSuperaPaes.superficie,
+                // El borde transparente mantiene el tamaño al seleccionar.
+                conSombra ? Colors.transparent : TemaSuperaPaes.borde,
+              ));
+    return DecoratedBox(
+      decoration: BoxDecoration(
         borderRadius: forma,
-        side: BorderSide(color: borde, width: bordeAncho),
+        boxShadow: conSombra ? TemaSuperaPaes.sombraSuave : null,
       ),
-      child: InkWell(
-        borderRadius: forma,
-        onTap: onTap,
-        child: Padding(padding: padding, child: child),
+      child: Material(
+        color: fondo,
+        shape: RoundedRectangleBorder(
+          borderRadius: forma,
+          side: BorderSide(color: borde, width: bordeAncho),
+        ),
+        child: InkWell(
+          borderRadius: forma,
+          onTap: onTap,
+          child: Padding(padding: padding, child: child),
+        ),
       ),
     );
   }
@@ -238,33 +250,36 @@ class ChipSeleccion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final forma = BorderRadius.circular(TemaSuperaPaes.radioChip);
-    return Semantics(
-      checked: seleccionado,
-      button: true,
-      child: Material(
-        color: seleccionado
-            ? TemaSuperaPaes.primario
-            : TemaSuperaPaes.superficie,
-        shape: RoundedRectangleBorder(
-          borderRadius: forma,
-          side: seleccionado
-              ? BorderSide.none
-              : const BorderSide(color: TemaSuperaPaes.bordeInput),
-        ),
-        child: InkWell(
-          borderRadius: forma,
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(
-              minHeight: TemaSuperaPaes.altoChip,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            child: Text(
-              texto,
-              style: TemaSuperaPaes.etiqueta.copyWith(
-                color: seleccionado
-                    ? TemaSuperaPaes.superficie
-                    : TemaSuperaPaes.texto,
+    return ZonaTactil(
+      onTap: onTap,
+      child: Semantics(
+        checked: seleccionado,
+        button: true,
+        child: Material(
+          color: seleccionado
+              ? TemaSuperaPaes.primario
+              : TemaSuperaPaes.superficie,
+          shape: RoundedRectangleBorder(
+            borderRadius: forma,
+            side: seleccionado
+                ? BorderSide.none
+                : const BorderSide(color: TemaSuperaPaes.bordeInput),
+          ),
+          child: InkWell(
+            borderRadius: forma,
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: TemaSuperaPaes.altoChip,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              child: Text(
+                texto,
+                style: TemaSuperaPaes.etiqueta.copyWith(
+                  color: seleccionado
+                      ? TemaSuperaPaes.superficie
+                      : TemaSuperaPaes.texto,
+                ),
               ),
             ),
           ),
@@ -282,7 +297,8 @@ class GrupoChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Wrap(spacing: 8, runSpacing: 8, children: chips);
+      // La zona táctil de 48 de cada chip ya deja 12 entre las filas.
+      Wrap(spacing: 8, children: chips);
 }
 
 /// Cómo quedó una alternativa en la corrección (A19 y A19b).
@@ -422,8 +438,10 @@ class SelectorSegmentado<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Cada segmento responde en todo el alto de la barra (48), también en
+    // el relleno de 4 que rodea a la opción activa.
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: TemaSuperaPaes.neutroSuave,
         borderRadius: BorderRadius.circular(TemaSuperaPaes.radioCampo),
@@ -433,10 +451,13 @@ class SelectorSegmentado<T> extends StatelessWidget {
           for (final (i, (valor, texto)) in opciones.indexed) ...[
             if (i > 0) const SizedBox(width: 4),
             Expanded(
-              child: _Segmento(
-                texto: texto,
-                activo: valor == seleccionado,
+              child: ZonaTactil(
                 onTap: () => onChanged(valor),
+                child: _Segmento(
+                  texto: texto,
+                  activo: valor == seleccionado,
+                  onTap: () => onChanged(valor),
+                ),
               ),
             ),
           ],
@@ -487,6 +508,29 @@ class _Segmento extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Agranda la zona que responde al toque hasta [TemaSuperaPaes.zonaTactil]
+/// (48 dp) sin cambiar lo que se ve: el [child] queda centrado y un toque en
+/// el borde que lo rodea hace lo mismo que tocarlo.
+class ZonaTactil extends StatelessWidget {
+  const ZonaTactil({required this.onTap, required this.child, super.key});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      excludeFromSemantics: true,
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: TemaSuperaPaes.zonaTactil),
+        child: Center(widthFactor: 1, child: child),
       ),
     );
   }
@@ -612,8 +656,15 @@ class FilaDato extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Todos los valores terminan en el borde derecho: lo que no usa una
+    // etiqueta corta queda entre ella y el valor (sin esto, el valor se
+    // corría a la izquierda según el largo de su etiqueta). Etiqueta y valor
+    // van en la misma línea base, y las cifras tienen ancho fijo para que
+    // los números de varias filas queden uno bajo el otro.
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
       children: [
         // Flexible: una etiqueta larga («Invitaciones premiadas este mes»)
         // baja de línea en vez de empujar el valor fuera (RNF-12).
@@ -630,7 +681,9 @@ class FilaDato extends StatelessWidget {
           child: Text(
             valor,
             textAlign: TextAlign.end,
-            style: TemaSuperaPaes.pequenoFuerte,
+            style: TemaSuperaPaes.pequenoFuerte.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],
@@ -706,7 +759,8 @@ class FilaNavegacion extends StatelessWidget {
   }
 }
 
-/// Tarjeta con filas separadas por una línea (A37).
+/// Tarjeta con filas que se tocan, separadas por una línea (A37), con la
+/// sombra suave de lo que se toca.
 class ListaDeFilas extends StatelessWidget {
   const ListaDeFilas({required this.filas, super.key});
 
@@ -714,20 +768,24 @@ class ListaDeFilas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: TemaSuperaPaes.superficie,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioTarjeta),
-        side: const BorderSide(color: TemaSuperaPaes.borde),
+    final radio = BorderRadius.circular(TemaSuperaPaes.radioTarjeta);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radio,
+        boxShadow: TemaSuperaPaes.sombraSuave,
       ),
-      child: Column(
-        children: [
-          for (final (i, fila) in filas.indexed) ...[
-            if (i > 0) const Divider(height: 1),
-            fila,
+      child: Material(
+        color: TemaSuperaPaes.superficie,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: radio),
+        child: Column(
+          children: [
+            for (final (i, fila) in filas.indexed) ...[
+              if (i > 0) const Divider(height: 1),
+              fila,
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

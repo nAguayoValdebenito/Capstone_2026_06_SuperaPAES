@@ -230,7 +230,7 @@ class _Casilla extends StatelessWidget {
             child: Checkbox(
               value: marcada,
               onChanged: (valor) => onChanged(valor ?? false),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              materialTapTargetSize: MaterialTapTargetSize.padded,
               visualDensity: VisualDensity.compact,
             ),
           ),

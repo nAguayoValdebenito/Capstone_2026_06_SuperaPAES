@@ -48,7 +48,7 @@ class _TarjetaTextoDeLecturaState extends State<TarjetaTextoDeLectura> {
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  tapTargetSize: MaterialTapTargetSize.padded,
                   textStyle: TemaSuperaPaes.pequenoFuerte,
                 ),
                 onPressed: () => Navigator.of(context).push(
@@ -92,6 +92,7 @@ class PantallaTextoCompleto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       hijos: [
         Align(
           alignment: Alignment.centerLeft,
@@ -99,7 +100,7 @@ class PantallaTextoCompleto extends StatelessWidget {
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 4),
               minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              tapTargetSize: MaterialTapTargetSize.padded,
             ),
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close, size: 20),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
@@ -23,6 +24,7 @@ class PantallaResultado extends ConsumerWidget {
     final resultado = ref.watch(resultadoProvider);
     final datos = resultado.value;
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       separacion: 14,
       hijos: [
         Align(
@@ -31,7 +33,7 @@ class PantallaResultado extends ConsumerWidget {
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 4),
               minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              tapTargetSize: MaterialTapTargetSize.padded,
             ),
             onPressed: () => context.canPop()
                 ? context.pop()

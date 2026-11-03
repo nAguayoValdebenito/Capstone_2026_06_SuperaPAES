@@ -11,9 +11,13 @@ class FuenteVerificacionRemota {
   final Dio _dio;
 
   Future<void> verificarCodigo(String codigo) async {
-    await publicarObjeto(_dio, '/cuentas/verificacion/codigo', {
-      'codigo': codigo,
-    }, sinData: 'La API respondió sin el resultado de la verificación.');
+    await publicarObjeto(
+      _dio,
+      '/cuentas/verificacion/codigo',
+      {'codigo': codigo},
+      sinData:
+          'No recibimos el resultado de la verificación. Inténtalo de nuevo.',
+    );
   }
 
   Future<ResultadoReenvio> reenviar() async {
@@ -21,7 +25,7 @@ class FuenteVerificacionRemota {
       _dio,
       '/cuentas/verificacion/reenviar',
       null,
-      sinData: 'La API respondió sin el resultado del reenvío.',
+      sinData: 'No recibimos el resultado del reenvío. Inténtalo de nuevo.',
     );
     return (
       enviado: data['enviado'] as bool,
@@ -34,7 +38,7 @@ class FuenteVerificacionRemota {
       _dio,
       'GET',
       '/cuentas/yo',
-      sinData: 'La API respondió sin el estado de la cuenta.',
+      sinData: 'No recibimos el estado de la cuenta. Inténtalo de nuevo.',
     );
     return data['correoVerificado'] == true;
   }

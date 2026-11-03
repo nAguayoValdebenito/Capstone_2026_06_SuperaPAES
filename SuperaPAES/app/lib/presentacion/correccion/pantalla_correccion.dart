@@ -24,6 +24,7 @@ class PantallaCorreccion extends ConsumerWidget {
     final ultima = ref.watch(practicaProvider).correccion;
     if (ultima == null) {
       return PantallaFormulario(
+        anchoMaximo: TemaSuperaPaes.anchoLectura,
         hijos: [
           const SizedBox(height: 32),
           const Encabezado(
@@ -41,6 +42,7 @@ class PantallaCorreccion extends ConsumerWidget {
     }
     final (:pregunta, :correccion) = ultima;
     return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
       separacion: 14,
       hijos: [
         const CabeceraPractica(),

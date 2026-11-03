@@ -28,7 +28,7 @@ const Map<String, dynamic> _noAutenticado = {
 
 const _sinConexion = ErrorApi(
   codigo: 'SIN_CONEXION',
-  mensaje: 'No se pudo conectar con la API. Revisa tu conexión.',
+  mensaje: 'Sin conexión por ahora. Revisa tu internet e inténtalo de nuevo.',
 );
 
 const _sesionVencida = ErrorApi(
