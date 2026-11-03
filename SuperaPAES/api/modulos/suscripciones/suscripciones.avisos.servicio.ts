@@ -22,6 +22,7 @@ import type {
   ResultadoAviso,
 } from './suscripciones.avisos.repositorio.js';
 import type { ComprasRepositorio, FilaSuscripcion } from './suscripciones.compras.repositorio.js';
+import { avisarMora, type DependenciasCorreoMora } from './suscripciones.avisos.correo.js';
 import { cuentaEnTienda } from './suscripciones.cuenta-tienda.js';
 import { destinoDe, pasosHacia } from './suscripciones.transiciones.js';
 import type {
@@ -36,6 +37,8 @@ export interface DependenciasAvisos {
   avisos: AvisosRepositorio;
   compras: ComprasRepositorio;
   validacion: ValidacionRepositorio;
+  /** CU-12 4.b: sin estas dependencias (algunas pruebas), no se envía el correo de mora. */
+  correoMora?: DependenciasCorreoMora;
 }
 
 interface Resultado {
@@ -43,6 +46,8 @@ interface Resultado {
   detalle: string | null;
   suscripcionId: string | null;
   pagoId: string | null;
+  /** El estudiante cuya suscripción acaba de entrar en mora con este aviso (CU-12 4.b). */
+  estudianteEnMora?: string;
 }
 
 interface Contexto {
@@ -188,6 +193,18 @@ async function cambioHacia(
   return { cambio, igual };
 }
 
+/** Procesado; si entró en mora con este aviso, lleva al estudiante para el correo (CU-12 4.b). */
+function procesado(s: FilaSuscripcion, final: EstadoSuscripcion, pagoId: string | null): Resultado {
+  const enMora = final === 'en_mora' && s.estado !== 'en_mora';
+  return {
+    resultado: 'procesado',
+    detalle: null,
+    suscripcionId: s.id,
+    pagoId,
+    ...(enMora ? { estudianteEnMora: s.estudianteId } : {}),
+  };
+}
+
 /** Lleva la suscripción a lo que informa la tienda, o explica por qué no. */
 async function aplicar(c: Contexto, s: FilaSuscripcion): Promise<Resultado> {
   const informado = await planInformado(c, s);
@@ -203,7 +220,7 @@ async function aplicar(c: Contexto, s: FilaSuscripcion): Promise<Resultado> {
   await c.d.avisos.aplicar(cambio, c.tx);
   if (pasos.length > 0 || cambio.planId !== s.planId)
     await registrarHistorial(c, s, pasos, cambio.planId);
-  return { resultado: 'procesado', detalle: null, suscripcionId: s.id, pagoId };
+  return procesado(s, final, pagoId);
 }
 
 /** Lo que la tienda informa de la compra, o el motivo para ignorar el aviso. */
@@ -252,7 +269,7 @@ export function crearAvisosServicio(d: DependenciasAvisos): AvisosServicio {
     d.unidadDeTrabajo.enTransaccion(async (tx) => {
       const ahora = d.reloj();
       const registrado = await d.avisos.registrar(aviso, ahora, tx);
-      if (registrado.resultado === 'procesado' || registrado.resultado === 'ignorado') return;
+      if (registrado.resultado === 'procesado' || registrado.resultado === 'ignorado') return null;
       const r = await trabajo({ d, aviso, eventoId: registrado.id, ahora, tx });
       await d.avisos.cerrar(registrado.id, { ...r, ahora }, tx);
       registro.info('Aviso de tienda', {
@@ -260,6 +277,7 @@ export function crearAvisosServicio(d: DependenciasAvisos): AvisosServicio {
         tipo: aviso.tipo,
         resultado: r.resultado,
       });
+      return r;
     });
   return {
     async recibirAviso(tienda, entrante) {
@@ -279,7 +297,9 @@ export function crearAvisosServicio(d: DependenciasAvisos): AvisosServicio {
         );
         throw error;
       }
-      await unaVez(aviso, (c) => procesarEn(c, consulta));
+      const r = await unaVez(aviso, (c) => procesarEn(c, consulta));
+      // Después de confirmar la transacción: el correo nunca anuncia un cambio que no quedó guardado.
+      if (r?.estudianteEnMora && d.correoMora) avisarMora(d.correoMora, r.estudianteEnMora, tienda);
     },
   };
 }

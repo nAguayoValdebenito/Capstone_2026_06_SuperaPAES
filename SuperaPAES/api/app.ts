@@ -141,13 +141,19 @@ function crearSuscripcionesYCupo(
   dependencias: Dependencias,
   administracion: AdministracionServicio,
   /** Cuentas se crea después (usa cupo-invitaciones): solo se pide al llamar. */
-  cuentas: () => Pick<CuentasServicio, 'estadoParaInicio' | 'codigoInvitacion'>,
+  cuentas: () => Pick<CuentasServicio, 'estadoParaInicio' | 'codigoInvitacion' | 'exportarCuenta'>,
 ): Pick<Servicios, 'suscripciones' | 'cupoInvitaciones'> {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const suscripciones = crearSuscripcionesServicio({
     ...base,
     reloj: dependencias.reloj,
     pagos: dependencias.proveedores.pagos,
+    // CU-12 4.b: el correo de mora sale en segundo plano, como los de cuentas.
+    correoMora: {
+      cuentas,
+      correo: dependencias.proveedores.correo,
+      segundoPlano: dependencias.segundoPlano ?? ((tarea) => void tarea()),
+    },
   });
   const cubrePrueba: SuscripcionesServicio['cubrePrueba'] =
     dependencias.cubrePrueba ??

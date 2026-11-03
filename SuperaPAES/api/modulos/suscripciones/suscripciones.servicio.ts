@@ -5,6 +5,7 @@
 import type { PasarelasPorTienda } from '../../adaptadores/fabrica.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
+import type { DependenciasCorreoMora } from './suscripciones.avisos.correo.js';
 import { crearAvisosRepositorio } from './suscripciones.avisos.repositorio.js';
 import { crearAvisosServicio, type AvisosServicio } from './suscripciones.avisos.servicio.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
@@ -38,6 +39,8 @@ export interface DependenciasSuscripcionesServicio {
   repositorio?: SuscripcionesRepositorio;
   /** Solo para pruebas: reemplaza al de la trazabilidad en la consola (HU-56). */
   repositorioTrazabilidad?: TrazabilidadRepositorio;
+  /** CU-12 4.b: el correo de mora (cuentas, proveedor de correo y segundo plano). */
+  correoMora?: DependenciasCorreoMora;
 }
 
 /**
@@ -81,6 +84,7 @@ export function crearSuscripcionesServicio(
     avisos: crearAvisosRepositorio(dependencias.bd),
     compras: comprasRepositorio,
     validacion: validacionRepositorio,
+    ...(dependencias.correoMora && { correoMora: dependencias.correoMora }),
   });
   const trazabilidad = crearTrazabilidadServicio(
     dependencias.repositorioTrazabilidad ?? crearTrazabilidadRepositorio(dependencias.bd),
