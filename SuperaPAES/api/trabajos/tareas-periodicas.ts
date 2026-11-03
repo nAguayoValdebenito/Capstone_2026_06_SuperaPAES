@@ -2,7 +2,9 @@
 // POST /api/v1/tareas/periodicas: la llama cada hora el flujo programado de GitHub Actions
 // (.github/workflows/tareas-periodicas.yml) con `Authorization: Bearer <CLAVE_TAREAS>`, una clave que
 // solo conocen GitHub y el servidor. Cierra y corrige las evaluaciones con el tiempo cumplido y cierra
-// las prácticas sin actividad (app.cerrar_vencidas). Los avisos de renovación (HU-44) se suman aquí.
+// las prácticas sin actividad (app.cerrar_vencidas), y deja canceladas las suscripciones que cancelaron
+// la renovación y terminaron su período si el aviso de la tienda no llegó (HU-45.1). Los avisos de
+// renovación anual (HU-45.3) se suman aquí.
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
 import { ErrorNoAutenticado } from '../comun/errores.js';
@@ -12,10 +14,13 @@ import { responder } from '../comun/respuesta.js';
 export interface TareasPeriodicas {
   /** Cuántas evaluaciones cerró. */
   cerrarVencidas(): Promise<number>;
+  /** Cuántas suscripciones canceladas cerró al terminar su período (HU-45.1). */
+  cerrarCanceladasVencidas(): Promise<number>;
 }
 
 export interface ResultadoTareas {
   evaluacionesCerradas: number;
+  suscripcionesCanceladas: number;
 }
 
 // Se comparan los resúmenes, del mismo largo, en tiempo constante: la respuesta no revela la clave.
@@ -29,8 +34,9 @@ export function crearRutasTareas(clave: string, tareas: TareasPeriodicas): Route
       throw new ErrorNoAutenticado('Clave de tareas inválida.');
     }
     const evaluacionesCerradas = await tareas.cerrarVencidas();
-    registro.info('Tareas periódicas', { evaluacionesCerradas });
-    responder<ResultadoTareas>(res, { evaluacionesCerradas });
+    const suscripcionesCanceladas = await tareas.cerrarCanceladasVencidas();
+    registro.info('Tareas periódicas', { evaluacionesCerradas, suscripcionesCanceladas });
+    responder<ResultadoTareas>(res, { evaluacionesCerradas, suscripcionesCanceladas });
   });
   return router;
 }

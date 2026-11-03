@@ -6,6 +6,10 @@ import type { PasarelasPorTienda } from '../../adaptadores/fabrica.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { DependenciasCorreoMora } from './suscripciones.avisos.correo.js';
+import {
+  crearCierreRepositorio,
+  type CierreRepositorio,
+} from './suscripciones.cierre.repositorio.js';
 import { crearAvisosRepositorio } from './suscripciones.avisos.repositorio.js';
 import { crearAvisosServicio, type AvisosServicio } from './suscripciones.avisos.servicio.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
@@ -62,6 +66,41 @@ export interface SuscripcionesServicio
    * no tiene. La pide privacidad antes de borrar la cuenta (HU-08.2, A42b).
    */
   vigenteDe(estudianteId: string): Promise<SuscripcionVigente | null>;
+  /**
+   * HU-45.1 (CU-12 1.a), tarea horaria: deja cancelada cada activa que canceló la renovación y terminó
+   * su período pagado hace más de un día, por si el aviso de vencimiento de la tienda no llegó. Cada
+   * cierre queda en el historial con origen sistema. Devuelve cuántas cerró.
+   */
+  cerrarCanceladasVencidas(): Promise<number>;
+}
+
+/** HU-45.1: cierra en una transacción las canceladas que terminaron su período (ver la interfaz). */
+function cerrarCanceladas(
+  dependencias: DependenciasSuscripcionesServicio,
+  cierre: CierreRepositorio,
+  compras: ReturnType<typeof crearComprasRepositorio>,
+): Promise<number> {
+  return dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
+    const ahora = dependencias.reloj();
+    const porCerrar = await cierre.porCerrar(ahora, tx);
+    for (const { id, planId } of porCerrar) {
+      await cierre.cancelar(id, tx);
+      await compras.registrarCambio(
+        {
+          suscripcionId: id,
+          estadoAnterior: 'activa',
+          estadoNuevo: 'cancelada',
+          planAnterior: planId,
+          planNuevo: planId,
+          origen: 'sistema',
+          detalle: 'Terminó el período pagado sin renovación',
+          ahora,
+        },
+        tx,
+      );
+    }
+    return porCerrar.length;
+  });
 }
 
 export function crearSuscripcionesServicio(
@@ -101,5 +140,7 @@ export function crearSuscripcionesServicio(
     permiteEnsayoCompleto: (estudianteId, tx) =>
       repositorio.permiteEnsayoCompleto(estudianteId, tx),
     vigenteDe: (estudianteId) => repositorio.vigenteDe(estudianteId),
+    cerrarCanceladasVencidas: () =>
+      cerrarCanceladas(dependencias, crearCierreRepositorio(dependencias.bd), comprasRepositorio),
   };
 }

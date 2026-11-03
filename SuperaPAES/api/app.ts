@@ -320,7 +320,10 @@ export function crearApp(
   if (dependencias.claveTareas) {
     app.use(
       `${PREFIJO_API}/tareas`,
-      crearRutasTareas(dependencias.claveTareas, servicios.evaluaciones),
+      crearRutasTareas(dependencias.claveTareas, {
+        cerrarVencidas: () => servicios.evaluaciones.cerrarVencidas(),
+        cerrarCanceladasVencidas: () => servicios.suscripciones.cerrarCanceladasVencidas(),
+      }),
     );
   }
   app.use(`${PREFIJO_API}/app`, crearRouterApp(servicios, mw));
