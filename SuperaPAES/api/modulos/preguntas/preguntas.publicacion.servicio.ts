@@ -1,5 +1,6 @@
 // Publicar, retirar y volver a borrador una pregunta (HU-24, CU-21, C02, RF-G09, RF-G10, RN-13): solo se
-// publica una pregunta aprobada y con la dificultad que asignaron los docentes; solo se retira una
+// publica una pregunta aprobada y con la dificultad que asignaron los docentes (lo revisa la base, como
+// la explicación de cada alternativa en las de la IA); solo se retira una
 // publicada, que deja de llegar a la app; y una retirada vuelve a borrador para corregirla y enviarla a
 // una nueva revisión. Publicar y retirar quedan en la auditoría con quién lo hizo (HU-24 esc. 3); cada
 // cambio de etapa queda además en el historial de la pregunta.
@@ -78,11 +79,6 @@ async function cambiarEtapa(
     if (!actual) throw new ErrorNoEncontrado('La pregunta no existe.');
     if (actual.estado.codigo !== regla.desde) {
       throw new ErrorConflicto(`La pregunta está «${actual.estado.nombre}»: ${regla.motivo}`);
-    }
-    if (cambio === 'publicar' && !actual.conDificultad) {
-      throw new ErrorConflicto(
-        'Solo se publica una pregunta con la dificultad que asignaron los docentes.',
-      );
     }
     const estado = await traducirErrores(() => repositorio.cambiarEtapa(id, regla.hacia, tx));
     if (regla.accion) {

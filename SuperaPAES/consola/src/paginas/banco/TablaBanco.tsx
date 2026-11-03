@@ -1,9 +1,14 @@
 // Tabla del banco (C02, HU-11 esc. 2): cada pregunta con su prueba, eje y contenido, su estado, su
 // origen y su dificultad, y la marca de posiblemente confusa. Cada fila abre su pregunta en C03 (HU-12.3):
-// «Editar» en borrador u observada (RF-G09) y «Ver» en las demás. Las preguntas en borrador u observadas
-// se envían a revisión desde aquí (HU-21). Publicar llega con su historia.
+// «Editar» en borrador u observada (RF-G09) y «Ver» en las demás, y la acción de su etapa: enviar a
+// revisión (HU-21), publicar, retirar o volver a borrador (HU-24, CU-21).
 import { Link } from 'react-router';
-import type { AccionEnvio } from '../../estado/envio-revision';
+import {
+  type AccionDelBanco,
+  type AccionesDelBanco,
+  accionDe,
+  claveDeAccion,
+} from '../../estado/acciones-banco';
 import type { Opcion, OrigenPregunta, PreguntaDelBanco } from '../../tipos';
 
 const NOMBRE_ORIGEN: Record<OrigenPregunta, string> = {
@@ -27,35 +32,58 @@ function Dificultad({ pregunta }: { pregunta: PreguntaDelBanco }) {
   );
 }
 
-/**
- * «Editar» en una etapa editable (RF-G09; la API dice cuáles) y «Ver» en las demás. Enviar a revisión
- * (HU-21) también solo en una etapa editable, de a una pregunta.
- */
-function textoDelBoton({ enviando, enviadas }: AccionEnvio, id: number): string {
-  if (enviando === id) return 'Enviando…';
-  return enviadas.has(id) ? 'Enviada' : 'Enviar a revisión';
+/** El texto del botón de cada acción: antes, mientras se hace y ya hecha. */
+const TEXTOS: Record<AccionDelBanco, [string, string, string]> = {
+  enviar: ['Enviar a revisión', 'Enviando…', 'Enviada'],
+  publicar: ['Publicar', 'Publicando…', 'Publicada'],
+  retirar: ['Retirar', 'Retirando…', 'Retirada'],
+  borrador: ['Volver a borrador', 'Volviendo…', 'En borrador'],
+};
+
+function textoDelBoton({ enCurso, hechas }: AccionesDelBanco, id: number, accion: AccionDelBanco) {
+  const [antes, durante, despues] = TEXTOS[accion];
+  if (enCurso === id) return durante;
+  return hechas.has(claveDeAccion(id, accion)) ? despues : antes;
 }
 
-function Acciones({ pregunta, envio }: { pregunta: PreguntaDelBanco; envio?: AccionEnvio }) {
-  const { editable } = pregunta;
+/**
+ * «Editar» en una etapa editable (RF-G09; la API dice cuáles) y «Ver» en las demás, y la acción de su
+ * etapa, de a una pregunta.
+ */
+function Acciones({
+  pregunta,
+  acciones,
+}: {
+  pregunta: PreguntaDelBanco;
+  acciones?: AccionesDelBanco;
+}) {
+  const accion = accionDe(pregunta);
   return (
     <div className="tabla__acciones">
-      <Link to={`/banco/${String(pregunta.id)}`}>{editable ? 'Editar' : 'Ver'}</Link>
-      {editable && envio && (
+      <Link to={`/banco/${String(pregunta.id)}`}>{pregunta.editable ? 'Editar' : 'Ver'}</Link>
+      {accion && acciones && (
         <button
           type="button"
           className="boton"
-          disabled={envio.enviando !== null || envio.enviadas.has(pregunta.id)}
-          onClick={() => envio.enviar(pregunta.id)}
+          disabled={
+            acciones.enCurso !== null || acciones.hechas.has(claveDeAccion(pregunta.id, accion))
+          }
+          onClick={() => acciones.ejecutar(pregunta.id, accion)}
         >
-          {textoDelBoton(envio, pregunta.id)}
+          {textoDelBoton(acciones, pregunta.id, accion)}
         </button>
       )}
     </div>
   );
 }
 
-function FilaBanco({ pregunta, envio }: { pregunta: PreguntaDelBanco; envio?: AccionEnvio }) {
+function FilaBanco({
+  pregunta,
+  acciones,
+}: {
+  pregunta: PreguntaDelBanco;
+  acciones?: AccionesDelBanco;
+}) {
   return (
     <tr>
       <td>
@@ -80,7 +108,7 @@ function FilaBanco({ pregunta, envio }: { pregunta: PreguntaDelBanco; envio?: Ac
       </td>
       <td>{fecha.format(new Date(pregunta.actualizadoEn))}</td>
       <td>
-        <Acciones pregunta={pregunta} envio={envio} />
+        <Acciones pregunta={pregunta} acciones={acciones} />
       </td>
     </tr>
   );
@@ -88,10 +116,10 @@ function FilaBanco({ pregunta, envio }: { pregunta: PreguntaDelBanco; envio?: Ac
 
 export function TablaBanco({
   preguntas,
-  envio,
+  acciones,
 }: {
   preguntas: readonly PreguntaDelBanco[];
-  envio?: AccionEnvio;
+  acciones?: AccionesDelBanco;
 }) {
   if (preguntas.length === 0) {
     return <p className="pagina__aviso">No hay preguntas que cumplan el filtro.</p>;
@@ -113,7 +141,7 @@ export function TablaBanco({
         </thead>
         <tbody>
           {preguntas.map((pregunta) => (
-            <FilaBanco key={pregunta.id} pregunta={pregunta} envio={envio} />
+            <FilaBanco key={pregunta.id} pregunta={pregunta} acciones={acciones} />
           ))}
         </tbody>
       </table>

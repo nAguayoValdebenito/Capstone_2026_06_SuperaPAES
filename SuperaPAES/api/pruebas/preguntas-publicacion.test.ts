@@ -17,24 +17,31 @@ const NOMBRES: Record<string, string> = {
   retirada: 'Retirada',
 };
 
-const etapa = (codigo: string, conDificultad = true): EtapaDePregunta => ({
+const etapa = (codigo: string): EtapaDePregunta => ({
   estado: { codigo, nombre: NOMBRES[codigo] ?? codigo },
-  conDificultad,
 });
 
-/** Preguntas 84 aprobada, 85 publicada, 86 retirada, 87 en borrador y 88 aprobada sin dificultad. */
+/** El error del trigger de la base al publicar una pregunta sin dificultad asignada (RN-13). */
+const SIN_DIFICULTAD = 'Solo se publica una pregunta con dificultad asignada por los docentes';
+
+/**
+ * Preguntas 84 aprobada, 85 publicada, 86 retirada, 87 en borrador y 88 aprobada sin dificultad, que la
+ * base no deja publicar.
+ */
 function escenario() {
   const etapas: Record<string, EtapaDePregunta> = {
     '84': etapa('aprobada'),
     '85': etapa('publicada'),
     '86': etapa('retirada'),
-    '87': etapa('borrador', false),
-    '88': etapa('aprobada', false),
+    '87': etapa('borrador'),
+    '88': etapa('aprobada'),
   };
   const publicacion = {
     reservar: vi.fn((id: string) => Promise.resolve(etapas[id] ?? null)),
-    cambiarEtapa: vi.fn((_id: string, hacia: string) =>
-      Promise.resolve({ codigo: hacia, nombre: NOMBRES[hacia] ?? hacia }),
+    cambiarEtapa: vi.fn((id: string, hacia: string) =>
+      id === '88' && hacia === 'publicada'
+        ? Promise.reject(Object.assign(new Error(SIN_DIFICULTAD), { code: 'P0001' }))
+        : Promise.resolve({ codigo: hacia, nombre: NOMBRES[hacia] ?? hacia }),
     ),
   } satisfies PublicacionRepositorio;
   return { ...escenarioEdicion(publicacion), publicacion };
@@ -83,11 +90,9 @@ describe('publicar (HU-24 esc. 1 y 3, RN-13)', () => {
       'La pregunta está «Borrador»: solo se publican preguntas aprobadas.',
     );
     expect(sinDificultad.status).toBe(409);
-    expect(sinDificultad.body.error.mensaje).toBe(
-      'Solo se publica una pregunta con la dificultad que asignaron los docentes.',
-    );
+    expect(sinDificultad.body.error.mensaje).toBe(SIN_DIFICULTAD);
     expect(yaPublicada.status).toBe(409);
-    expect(publicacion.cambiarEtapa).not.toHaveBeenCalled();
+    expect(publicacion.cambiarEtapa).toHaveBeenCalledTimes(1);
     expect(auditoria.registrarAuditoria).not.toHaveBeenCalled();
   });
 });

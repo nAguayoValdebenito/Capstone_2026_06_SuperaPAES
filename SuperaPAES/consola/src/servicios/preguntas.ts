@@ -3,6 +3,7 @@
 import { solicitarAdmin } from '../api/cliente';
 import type {
   ArchivosImportacion,
+  CambioDeEtapa,
   DatosPregunta,
   FiltrosBanco,
   ImportacionHecha,
@@ -11,6 +12,7 @@ import type {
   OpcionesFiltrosBanco,
   PaginaDelBanco,
   Paginacion,
+  PreguntaConEtapa,
   PreguntaDelBanco,
   PreguntaParaEditar,
   TextoDeLectura,
@@ -128,6 +130,14 @@ export async function importarPreguntas(archivos: ArchivosImportacion): Promise<
   const { data } = await solicitarAdmin<ImportacionHecha>(`${PREGUNTAS}/importaciones`, {
     method: 'POST',
     body: JSON.stringify({ ...archivos, declaraOrigen: true }),
+  });
+  return data;
+}
+
+/** HU-24 (CU-21): publica una aprobada, retira una publicada o vuelve a borrador una retirada. */
+export async function cambiarEtapa(id: number, cambio: CambioDeEtapa): Promise<PreguntaConEtapa> {
+  const { data } = await solicitarAdmin<PreguntaConEtapa>(`${PREGUNTAS}/${String(id)}/${cambio}`, {
+    method: 'POST',
   });
   return data;
 }
