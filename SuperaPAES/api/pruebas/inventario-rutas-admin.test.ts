@@ -127,6 +127,8 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
       'GET /revision/mis-revisiones/:id': ['docente'],
       'POST /revision/mis-revisiones/:id': ['docente'],
       'GET /revision/desempates': ['docente'],
+      'GET /revision/desempates/:id': ['docente'],
+      'POST /revision/desempates/:id': ['docente'],
       'GET /revision/seguimiento': ['admin'],
       'POST /revision/preguntas/:id': ['admin'],
       'GET /administracion/usuarios-internos': ['admin'],

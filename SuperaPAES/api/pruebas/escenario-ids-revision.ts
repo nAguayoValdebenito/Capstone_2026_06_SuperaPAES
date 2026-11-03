@@ -1,5 +1,6 @@
-// Datos del escenario de ids para las rutas de revisión (HU-21 y HU-22): un servicio de revisión falso
-// con los ids BIGINT como texto, como los entrega la base, y el cuerpo de la revisión del docente.
+// Datos del escenario de ids para las rutas de revisión (HU-21, HU-22 y HU-23): un servicio de revisión
+// falso con los ids BIGINT como texto, como los entrega la base, y el cuerpo de la revisión o del
+// desempate del docente.
 import { vi } from 'vitest';
 import type { RevisionServicio } from '../modulos/revision/index.js';
 
@@ -60,14 +61,29 @@ export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
         dificultad: 'facil',
       }),
     ),
+    listarDesempates: vi.fn(() => Promise.resolve([pendiente])),
+    obtenerDesempate: vi.fn(() =>
+      Promise.resolve({ ...preguntaARevisar, revisiones: [], posibleAmbigua: false }),
+    ),
+    entregarDesempate: vi.fn(() =>
+      Promise.resolve({
+        asignacionId: '900',
+        preguntaId: '7',
+        decision: 'aprobar',
+        dificultad: 'facil',
+        estado: 'aprobada' as const,
+      }),
+    ),
   };
 }
 
-/** Las rutas del docente revisor se piden con la sesión de un docente. */
-export const esDelDocente = (ruta: string) => ruta.includes('/revision/mis-revisiones');
+/** Las rutas del docente revisor (D01 y D02) se piden con la sesión de un docente. */
+export const esDelDocente = (ruta: string) => /\/revision\/(mis-revisiones|desempates)/.test(ruta);
 
-/** Cuerpo de la revisión que entrega el docente, o undefined si la ruta es otra. */
+/** Cuerpo de la revisión o del desempate que entrega el docente, o undefined si la ruta es otra. */
 export function cuerpoDeRevision(contrato: string): Record<string, unknown> | undefined {
+  if (/^POST .*\/desempates\/:id$/.test(contrato))
+    return { dificultad: 'facil', decision: 'aprobar' };
   if (!/^POST .*\/mis-revisiones\/:id$/.test(contrato)) return undefined;
   return {
     criterios: [{ codigo: 'contenido', cumple: true }],

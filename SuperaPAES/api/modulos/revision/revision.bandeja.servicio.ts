@@ -77,7 +77,8 @@ const problema = (ruta: string, mensaje: string): ProblemaDeCampo => ({
   mensaje,
 });
 
-async function opcionesDeLaPauta(repositorio: BandejaRepositorio) {
+/** La pauta y las listas de dificultad y decisión (también para el desempate, D02). */
+export async function opcionesDeLaPauta(repositorio: BandejaRepositorio) {
   const [pauta, dificultades, decisiones] = await Promise.all([
     repositorio.listarCriterios(),
     repositorio.listarDificultades(),
@@ -86,7 +87,8 @@ async function opcionesDeLaPauta(repositorio: BandejaRepositorio) {
   return { pauta, dificultades, decisiones };
 }
 
-function aPreguntaARevisar(
+/** La pregunta de la asignación, tal como se envió a revisión, con las opciones de la pauta. */
+export function aPreguntaARevisar(
   { copia, correctaId, ...fila }: FilaRevisionAbierta,
   opciones: Pick<PreguntaARevisar, 'pauta' | 'dificultades' | 'decisiones'>,
 ): PreguntaARevisar {
@@ -127,9 +129,12 @@ function problemasDeLaPauta(datos: DatosRevision, pauta: readonly Criterio[]): P
   });
 }
 
-/** CU-19 pasos 4 y 5: la dificultad y la decisión existen, y el motivo cuando la decisión lo pide (5.a). */
-function problemasDeLaDecision(
-  datos: DatosRevision,
+/**
+ * CU-19 pasos 4 y 5 (y CU-20): la dificultad y la decisión existen, y el motivo cuando la decisión lo
+ * pide (5.a).
+ */
+export function problemasDeLaDecision(
+  datos: Pick<DatosRevision, 'dificultad' | 'decision' | 'comentario'>,
   { dificultades, decisiones }: Pick<PreguntaARevisar, 'dificultades' | 'decisiones'>,
 ): ProblemaDeCampo[] {
   const problemas: ProblemaDeCampo[] = [];

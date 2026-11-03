@@ -1,7 +1,7 @@
 // Controlador del módulo revision: traduce HTTP a llamadas del servicio y responde con responder().
 // Sin SQL ni adaptadores. Los parámetros ya vienen validados por validar().
 import type { Request, RequestHandler } from 'express';
-import type { DatosRevision } from './revision.validadores.js';
+import type { DatosDesempate, DatosRevision } from './revision.validadores.js';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { RevisionServicio } from './revision.servicio.js';
@@ -14,13 +14,15 @@ export interface RevisionControlador {
   listarMisRevisiones: Validado;
   obtenerMiRevision: Validado;
   entregarRevision: Validado<DatosRevision>;
-  listarDesempates: RequestHandler;
+  listarDesempates: Validado;
+  obtenerDesempate: Validado;
+  entregarDesempate: Validado<DatosDesempate>;
   listarSeguimiento: RequestHandler;
 }
 
 /**
  * Cuenta interna de la sesión: el administrador que envía la pregunta (queda en el historial y en la
- * auditoría) o el docente de la bandeja. Lo deja autenticarAdmin.
+ * auditoría) o el docente de la bandeja o del desempate. Lo deja autenticarAdmin.
  */
 function usuarioDe(req: Request<Record<string, string>, unknown, unknown>): string {
   if (!req.usuarioInterno) throw new ErrorNoAutenticado();
@@ -47,8 +49,19 @@ export function crearRevisionControlador(servicio: RevisionServicio): RevisionCo
       );
       responder(res, entregada, { estado: 201 });
     },
-    listarDesempates: async (_req, res) => {
-      responder(res, await servicio.listarDesempates());
+    listarDesempates: async (req, res) => {
+      responder(res, await servicio.listarDesempates(usuarioDe(req)));
+    },
+    obtenerDesempate: async (req, res) => {
+      responder(res, await servicio.obtenerDesempate(usuarioDe(req), String(req.params.id)));
+    },
+    entregarDesempate: async (req, res) => {
+      const entregado = await servicio.entregarDesempate(
+        usuarioDe(req),
+        String(req.params.id),
+        req.body,
+      );
+      responder(res, entregado, { estado: 201 });
     },
     listarSeguimiento: async (_req, res) => {
       responder(res, await servicio.listarSeguimiento());
