@@ -7,12 +7,11 @@
 // revisión.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Servicios } from '../app.js';
-import { esquemaPregunta } from '../modulos/preguntas/preguntas.validadores.js';
 import { esquemaRevision } from '../modulos/revision/revision.validadores.js';
 import { type BaseTemporal, exigirBaseEnCi, MINUTO, urlBase } from './base-temporal.js';
-import { alternativas } from './edicion-de-prueba.js';
 import {
   crearCuenta,
+  crearPreguntaDeHistoria,
   pautaActiva,
   prepararBaseDeRevision,
   temarioDeHistoria,
@@ -44,21 +43,9 @@ describe.skipIf(!urlBase)('resolver la ronda con PostgreSQL (HU-23, CP-16)', () 
 
   /** Crea una pregunta de Historia a nombre de `autor` y la envía a revisión. */
   async function enRevision(autor: string, enunciado: string): Promise<string> {
-    const creada = await servicios.preguntas.crearPregunta(
-      id(autor),
-      esquemaPregunta.parse({
-        pruebaId: temario.prueba,
-        contenidoId: temario.contenido,
-        habilidadId: temario.habilidad,
-        tipoPregunta: 'seleccion_multiple',
-        dificultadSugerida: 'media',
-        enunciado,
-        explicacion: 'Explicación.',
-        alternativas: alternativas(4, ['B']),
-      }),
-    );
-    await servicios.revision.enviarARevision(id('admin@ronda.cl'), creada.id);
-    return creada.id;
+    const preguntaId = await crearPreguntaDeHistoria(servicios, temario, [id(autor), enunciado]);
+    await servicios.revision.enviarARevision(id('admin@ronda.cl'), preguntaId);
+    return preguntaId;
   }
 
   /** Las asignaciones de la pregunta por docente, con su papel y estado. */

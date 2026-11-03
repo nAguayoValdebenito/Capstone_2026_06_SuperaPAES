@@ -98,5 +98,11 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
     validar({ parametros: esquemaIdPregunta, cuerpo: esquemaPregunta }),
     controlador.editarPregunta,
   );
+  // Publicar, retirar y volver a borrador (C02, HU-24, CU-21, RF-G09, RF-G10): solo una aprobada con
+  // dificultad se publica, solo una publicada se retira y solo una retirada vuelve a borrador.
+  const etapa = validar({ parametros: esquemaIdPregunta });
+  router.post('/:id/publicar', exigirRol('admin'), etapa, controlador.publicarPregunta);
+  router.post('/:id/retirar', exigirRol('admin'), etapa, controlador.retirarPregunta);
+  router.post('/:id/borrador', exigirRol('admin'), etapa, controlador.volverABorrador);
   return router;
 }

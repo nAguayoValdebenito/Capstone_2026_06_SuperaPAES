@@ -13,6 +13,14 @@ import {
 } from './preguntas.edicion.repositorio.js';
 import { crearEdicionPreguntas, type EdicionPreguntas } from './preguntas.edicion.servicio.js';
 import {
+  crearPublicacionRepositorio,
+  type PublicacionRepositorio,
+} from './preguntas.publicacion.repositorio.js';
+import {
+  crearPublicacionPreguntas,
+  type PublicacionPreguntas,
+} from './preguntas.publicacion.servicio.js';
+import {
   crearPreguntasGeneracionRepositorio,
   type EjemploDePregunta,
   type PropuestaDeIa,
@@ -53,6 +61,8 @@ export interface DependenciasPreguntasServicio {
   repositorioTextos?: PreguntasTextosRepositorio;
   /** Solo para pruebas: reemplaza al de crearPreguntasImportacionRepositorio(). */
   repositorioImportacion?: PreguntasImportacionRepositorio;
+  /** Solo para pruebas: reemplaza al de crearPublicacionRepositorio(). */
+  repositorioPublicacion?: PublicacionRepositorio;
 }
 
 /** Lo que la consola hace con los textos de lectura (HU-12.2); lo demás es para crear preguntas. */
@@ -104,7 +114,12 @@ export interface LecturasParaGenerar {
 }
 
 export interface PreguntasServicio
-  extends EdicionPreguntas, TextosDeLaConsola, ImportacionPreguntas, LecturasParaGenerar {
+  extends
+    EdicionPreguntas,
+    TextosDeLaConsola,
+    ImportacionPreguntas,
+    LecturasParaGenerar,
+    PublicacionPreguntas {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.
@@ -271,7 +286,7 @@ async function listarBanco(
   };
 }
 
-/** Las partes del módulo que escriben: textos de lectura, edición e importación de preguntas. */
+/** Las partes del módulo que escriben: textos de lectura, edición, importación y publicación. */
 function crearPartes(
   dependencias: DependenciasPreguntasServicio,
   repositorio: PreguntasRepositorio,
@@ -302,7 +317,13 @@ function crearPartes(
     listas: repositorio,
     textos,
   });
-  return { textos, edicion, importacion };
+  const publicacion = crearPublicacionPreguntas({
+    unidadDeTrabajo,
+    auditoria,
+    autor: repositorioEdicion,
+    repositorio: dependencias.repositorioPublicacion ?? crearPublicacionRepositorio(),
+  });
+  return { textos, edicion, importacion, publicacion };
 }
 
 export function crearPreguntasServicio(
@@ -310,11 +331,12 @@ export function crearPreguntasServicio(
 ): PreguntasServicio {
   const repositorio = dependencias.repositorio ?? crearPreguntasRepositorio(dependencias.bd);
   const { temario } = dependencias;
-  const { textos, edicion, importacion } = crearPartes(dependencias, repositorio);
+  const { textos, edicion, importacion, publicacion } = crearPartes(dependencias, repositorio);
   const generacion = crearPreguntasGeneracionRepositorio(dependencias.bd);
   return {
     ...edicion,
     ...importacion,
+    ...publicacion,
     enunciadosDelContenido: (contenidoId, tx) => generacion.enunciadosDelContenido(contenidoId, tx),
     ejemplosAprobados: (contenidoId, limite) => generacion.ejemplosAprobados(contenidoId, limite),
     guardarPropuestaDeIa: (propuesta, tx) => generacion.guardarPropuesta(propuesta, tx),
