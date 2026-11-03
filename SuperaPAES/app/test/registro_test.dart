@@ -430,7 +430,8 @@ void main() {
     testWidgets('sin conexión muestra el error general', (tester) async {
       repositorio.errorAlRegistrar = const ErrorApi(
         codigo: 'SIN_CONEXION',
-        mensaje: 'No se pudo conectar con la API. Revisa tu conexión.',
+        mensaje:
+            'Sin conexión por ahora. Revisa tu internet e inténtalo de nuevo.',
       );
       await abrir(tester);
       await llenar(tester);
@@ -438,7 +439,9 @@ void main() {
       await crearCuenta(tester);
 
       expect(
-        find.text('No se pudo conectar con la API. Revisa tu conexión.'),
+        find.text(
+          'Sin conexión por ahora. Revisa tu internet e inténtalo de nuevo.',
+        ),
         findsOne,
       );
     });

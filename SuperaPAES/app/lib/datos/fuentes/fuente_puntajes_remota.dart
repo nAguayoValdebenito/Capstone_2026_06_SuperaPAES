@@ -11,7 +11,7 @@ class FuentePuntajesRemota {
   final Dio _dio;
 
   static const _ruta = '/cuentas/puntajes';
-  static const _sinPuntajes = 'La API respondió sin los puntajes.';
+  static const _sinPuntajes = 'No recibimos los puntajes. Inténtalo de nuevo.';
 
   Future<PuntajesPaes> _pedir(
     String metodo,

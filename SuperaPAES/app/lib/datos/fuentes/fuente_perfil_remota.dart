@@ -11,14 +11,15 @@ class FuentePerfilRemota {
 
   final Dio _dio;
 
-  static const String _sinPerfil = 'La API respondió sin el perfil.';
+  static const String _sinPerfil =
+      'No recibimos el perfil. Inténtalo de nuevo.';
 
   Future<OpcionesPerfil> opciones() async => PerfilModelo.opciones(
     await pedirObjeto(
       _dio,
       'GET',
       '/temario/opciones-perfil',
-      sinData: 'La API respondió sin las opciones del perfil.',
+      sinData: 'No recibimos las opciones del perfil. Inténtalo de nuevo.',
     ),
   );
 

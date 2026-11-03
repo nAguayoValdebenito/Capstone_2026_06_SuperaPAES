@@ -17,7 +17,7 @@ class FuenteResultadosRemota {
           _dio,
           'GET',
           '/evaluaciones/$id/resultado',
-          sinData: 'La API respondió sin el resultado.',
+          sinData: 'No recibimos el resultado. Inténtalo de nuevo.',
         ),
       );
 
@@ -27,7 +27,7 @@ class FuenteResultadosRemota {
           _dio,
           'GET',
           '/evaluaciones/$id/revision',
-          sinData: 'La API respondió sin la revisión.',
+          sinData: 'No recibimos la revisión. Inténtalo de nuevo.',
         ),
       );
 }

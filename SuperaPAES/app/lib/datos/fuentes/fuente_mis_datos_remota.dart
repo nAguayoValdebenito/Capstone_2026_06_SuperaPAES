@@ -16,7 +16,7 @@ class FuenteMisDatosRemota {
       _dio,
       'GET',
       '/privacidad/mis-datos',
-      sinData: 'La API respondió sin tus datos.',
+      sinData: 'No recibimos tus datos. Inténtalo de nuevo.',
     ),
   );
 
@@ -26,7 +26,7 @@ class FuenteMisDatosRemota {
           _dio,
           'GET',
           '/privacidad/cuenta',
-          sinData: 'La API respondió sin el estado de tu cuenta.',
+          sinData: 'No recibimos el estado de tu cuenta. Inténtalo de nuevo.',
         ),
       );
 
@@ -34,6 +34,6 @@ class FuenteMisDatosRemota {
     _dio,
     'DELETE',
     '/privacidad/cuenta',
-    sinData: 'La API respondió sin confirmar el borrado.',
+    sinData: 'No pudimos confirmar el borrado. Inténtalo de nuevo.',
   );
 }

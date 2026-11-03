@@ -15,7 +15,7 @@ class FuenteProgresoRemota {
       _dio,
       'GET',
       '/evaluaciones/progreso',
-      sinData: 'La API respondió sin el progreso.',
+      sinData: 'No recibimos el progreso. Inténtalo de nuevo.',
     ),
   );
 }

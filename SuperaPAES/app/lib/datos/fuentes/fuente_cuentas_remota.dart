@@ -21,7 +21,7 @@ class FuenteCuentasRemota {
       if (data is! List<dynamic>) {
         throw const ErrorApi(
           codigo: 'RESPUESTA_INVALIDA',
-          mensaje: 'La API respondió sin los documentos legales.',
+          mensaje: 'No recibimos los documentos legales. Inténtalo de nuevo.',
         );
       }
       return [
@@ -42,7 +42,7 @@ class FuenteCuentasRemota {
       'declaraTenerCatorceAnios': true,
       'documentosAceptados': datos.documentosAceptados,
       'codigoInvitacion': ?datos.codigoInvitacion,
-    }, sinData: 'La API respondió sin la cuenta creada.');
+    }, sinData: 'No recibimos la cuenta creada. Inténtalo de nuevo.');
     return SesionEstudianteModelo.fromJson(data);
   }
 
@@ -55,14 +55,14 @@ class FuenteCuentasRemota {
       'correo': correo,
       'contrasena': contrasena,
       'dispositivo': ?dispositivo,
-    }, sinData: 'La API respondió sin la sesión.');
+    }, sinData: 'No recibimos la sesión. Inténtalo de nuevo.');
     return SesionEstudianteModelo.fromJson(data);
   }
 
   Future<TokensSesion> renovar(String tokenRenovacion) async {
     final data = await _publicar('/cuentas/renovar', {
       'tokenRenovacion': tokenRenovacion,
-    }, sinData: 'La API respondió sin la sesión renovada.');
+    }, sinData: 'No recibimos la sesión renovada. Inténtalo de nuevo.');
     return (
       tokenAcceso: data['tokenAcceso'] as String,
       tokenRenovacion: data['tokenRenovacion'] as String,
@@ -72,13 +72,13 @@ class FuenteCuentasRemota {
   Future<void> cerrar(String tokenRenovacion) async {
     await _publicar('/cuentas/cerrar', {
       'tokenRenovacion': tokenRenovacion,
-    }, sinData: 'La API respondió sin confirmar el cierre.');
+    }, sinData: 'No pudimos confirmar el cierre. Inténtalo de nuevo.');
   }
 
   Future<void> solicitarRecuperacion(String correo) async {
     await _publicar('/cuentas/recuperacion/solicitar', {
       'correo': correo,
-    }, sinData: 'La API respondió sin confirmar la solicitud.');
+    }, sinData: 'No pudimos confirmar la solicitud. Inténtalo de nuevo.');
   }
 
   Future<Map<String, dynamic>> _publicar(

@@ -19,7 +19,8 @@ class FuenteEvaluacionesRemota {
       'GET',
       '/evaluaciones/mini-ensayos/disponibilidad',
       consulta: {'pruebaId': pruebaId},
-      sinData: 'La API respondió sin la disponibilidad del mini-ensayo.',
+      sinData:
+          'No recibimos la disponibilidad del mini-ensayo. Inténtalo de nuevo.',
     ),
   );
 
@@ -31,7 +32,8 @@ class FuenteEvaluacionesRemota {
       'GET',
       '/evaluaciones/diagnosticos/disponibilidad',
       consulta: {'pruebaId': pruebaId},
-      sinData: 'La API respondió sin la disponibilidad del diagnóstico.',
+      sinData:
+          'No recibimos la disponibilidad del diagnóstico. Inténtalo de nuevo.',
     ),
   );
 
@@ -39,7 +41,7 @@ class FuenteEvaluacionesRemota {
       EvaluacionConTiempoModelo.iniciada(
         await publicarObjeto(_dio, '/evaluaciones/mini-ensayos', {
           'pruebaId': pruebaId,
-        }, sinData: 'La API respondió sin el mini-ensayo.'),
+        }, sinData: 'No recibimos el mini-ensayo. Inténtalo de nuevo.'),
         tipoNombre: 'Mini-ensayo',
       );
 
@@ -47,7 +49,7 @@ class FuenteEvaluacionesRemota {
       EvaluacionConTiempoModelo.iniciada(
         await publicarObjeto(_dio, '/evaluaciones/diagnosticos', {
           'pruebaId': pruebaId,
-        }, sinData: 'La API respondió sin el diagnóstico.'),
+        }, sinData: 'No recibimos el diagnóstico. Inténtalo de nuevo.'),
         tipoNombre: 'Diagnóstico',
       );
 
@@ -58,7 +60,8 @@ class FuenteEvaluacionesRemota {
           'GET',
           '/evaluaciones/ensayos/disponibilidad',
           consulta: {'pruebaId': pruebaId},
-          sinData: 'La API respondió sin la disponibilidad del ensayo.',
+          sinData:
+              'No recibimos la disponibilidad del ensayo. Inténtalo de nuevo.',
         ),
       );
 
@@ -66,7 +69,7 @@ class FuenteEvaluacionesRemota {
       EvaluacionConTiempoModelo.iniciada(
         await publicarObjeto(_dio, '/evaluaciones/ensayos', {
           'pruebaId': pruebaId,
-        }, sinData: 'La API respondió sin el ensayo.'),
+        }, sinData: 'No recibimos el ensayo. Inténtalo de nuevo.'),
         tipoNombre: 'Ensayo completo',
       );
 
@@ -78,7 +81,7 @@ class FuenteEvaluacionesRemota {
     _dio,
     '/evaluaciones/$evaluacionId/items/$itemId/respuesta',
     {'alternativaId': alternativaId},
-    sinData: 'La API respondió sin guardar la respuesta.',
+    sinData: 'No pudimos guardar la respuesta. Inténtalo de nuevo.',
   );
 
   Future<EntregaEvaluacion> entregar(int evaluacionId) async =>
@@ -87,7 +90,7 @@ class FuenteEvaluacionesRemota {
           _dio,
           '/evaluaciones/$evaluacionId/entregar',
           null,
-          sinData: 'La API respondió sin la entrega.',
+          sinData: 'No recibimos la entrega. Inténtalo de nuevo.',
         ),
       );
 }
