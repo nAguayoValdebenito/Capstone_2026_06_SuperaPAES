@@ -2,7 +2,10 @@
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
 import type {
+  DatosDesempate,
   DatosRevision,
+  DesempateAbierto,
+  DesempateEntregado,
   EnvioARevision,
   PreguntaARevisar,
   RevisionEntregada,
@@ -10,6 +13,7 @@ import type {
 } from '../tipos';
 
 const MIS_REVISIONES = '/revision/mis-revisiones';
+const DESEMPATES = '/revision/desempates';
 
 const opciones = (senal?: AbortSignal) => (senal ? { signal: senal } : {});
 
@@ -46,6 +50,33 @@ export async function entregarRevision(
   datos: DatosRevision,
 ): Promise<RevisionEntregada> {
   const { data } = await solicitarAdmin<RevisionEntregada>(`${MIS_REVISIONES}/${String(id)}`, {
+    method: 'POST',
+    body: JSON.stringify(datos),
+  });
+  return data;
+}
+
+/** HU-23 (D02): los desempates del docente, la fecha límite más próxima primero. */
+export async function listarDesempates(senal?: AbortSignal): Promise<RevisionPendiente[]> {
+  const { data } = await solicitarAdmin<RevisionPendiente[]>(DESEMPATES, opciones(senal));
+  return data;
+}
+
+/** HU-23 (D02): la pregunta en desempate con las dos revisiones de la ronda. */
+export async function obtenerDesempate(id: number, senal?: AbortSignal): Promise<DesempateAbierto> {
+  const { data } = await solicitarAdmin<DesempateAbierto>(
+    `${DESEMPATES}/${String(id)}`,
+    opciones(senal),
+  );
+  return data;
+}
+
+/** CU-20: entrega la dificultad final, la decisión y el motivo del tercer docente. */
+export async function entregarDesempate(
+  id: number,
+  datos: DatosDesempate,
+): Promise<DesempateEntregado> {
+  const { data } = await solicitarAdmin<DesempateEntregado>(`${DESEMPATES}/${String(id)}`, {
     method: 'POST',
     body: JSON.stringify(datos),
   });

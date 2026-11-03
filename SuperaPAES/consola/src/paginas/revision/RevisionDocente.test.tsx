@@ -5,14 +5,17 @@ import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { camposVacios } from '../../estado/formulario-revision';
 import type { RevisionDocente } from '../../estado/revision-docente';
+import {
+  formularioSinAcciones,
+  OPCIONES_DE_DECISION,
+  primeraLlamada,
+} from '../../pruebas/bandeja-docente';
 import { responderUnaVez } from '../../pruebas/sesion';
 import { entregarRevision, listarMisRevisiones, obtenerMiRevision } from '../../servicios/revision';
 import type { PreguntaARevisar, RevisionPendiente } from '../../tipos';
 import { ContenidoRevisionDocente } from './RevisionDocente';
 
 afterEach(() => vi.unstubAllGlobals());
-
-const sinAccion = () => undefined;
 
 const pendiente = (id: number, preguntaId: number, venceEn: string): RevisionPendiente => ({
   id,
@@ -40,16 +43,7 @@ const PREGUNTA: PreguntaARevisar = {
     { codigo: 'contenido', descripcion: 'La pregunta evalúa el contenido del temario.' },
     { codigo: 'habilidad', descripcion: 'La pregunta evalúa la habilidad indicada.' },
   ],
-  dificultades: [
-    { codigo: 'facil', nombre: 'Fácil' },
-    { codigo: 'media', nombre: 'Media' },
-    { codigo: 'dificil', nombre: 'Difícil' },
-  ],
-  decisiones: [
-    { codigo: 'aprobar', nombre: 'Aprobar', requiereComentario: false },
-    { codigo: 'observar', nombre: 'Observar', requiereComentario: true },
-    { codigo: 'rechazar', nombre: 'Rechazar', requiereComentario: true },
-  ],
+  ...OPCIONES_DE_DECISION,
 };
 
 const BANDEJA = [
@@ -62,17 +56,7 @@ function dibujar(cambios: Partial<RevisionDocente> = {}) {
     bandeja: { tipo: 'lista', revisiones: BANDEJA },
     abierta: 900,
     revision: { tipo: 'lista', pregunta: PREGUNTA },
-    campos: camposVacios(),
-    errores: {},
-    enviando: false,
-    aviso: null,
-    elegir: sinAccion,
-    entregar: sinAccion,
-    responder: sinAccion,
-    observar: sinAccion,
-    elegirDificultad: sinAccion,
-    elegirDecision: sinAccion,
-    escribirMotivo: sinAccion,
+    ...formularioSinAcciones(),
     ...cambios,
   };
   // Sin los separadores que React pone entre textos, para comparar el texto como se lee.
@@ -180,28 +164,22 @@ describe('D01 · la pregunta y la pauta (HU-22 esc. 2 y 3, CP-16 paso 3)', () =>
 });
 
 describe('servicios de la bandeja (HU-22)', () => {
-  const llamada = () => {
-    const [url, init] = vi.mocked(fetch).mock.calls[0] ?? [];
-    return {
-      url: (url as string).replace(/^.*\/api\/v1/, ''),
-      metodo: init?.method ?? 'GET',
-      cuerpo: init?.body,
-    };
-  };
-
   it('pide la bandeja y la pregunta, y entrega la revisión', async () => {
     responderUnaVez({ data: BANDEJA, error: null, meta: null });
     expect(await listarMisRevisiones()).toEqual(BANDEJA);
-    expect(llamada()).toMatchObject({ url: '/admin/revision/mis-revisiones', metodo: 'GET' });
+    expect(primeraLlamada()).toMatchObject({
+      url: '/admin/revision/mis-revisiones',
+      metodo: 'GET',
+    });
 
     responderUnaVez({ data: PREGUNTA, error: null, meta: null });
     expect(await obtenerMiRevision(900)).toEqual(PREGUNTA);
-    expect(llamada()).toMatchObject({ url: '/admin/revision/mis-revisiones/900' });
+    expect(primeraLlamada()).toMatchObject({ url: '/admin/revision/mis-revisiones/900' });
 
     const datos = { criterios: [], dificultad: 'media', decision: 'aprobar', comentario: null };
     responderUnaVez({ data: { asignacionId: 900 }, error: null, meta: null }, 201);
     await entregarRevision(900, datos);
-    expect(llamada()).toEqual({
+    expect(primeraLlamada()).toEqual({
       url: '/admin/revision/mis-revisiones/900',
       metodo: 'POST',
       cuerpo: JSON.stringify(datos),

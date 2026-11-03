@@ -291,6 +291,28 @@ export interface RevisionEntregada {
   dificultad: string;
 }
 
+/** Lo que entregó un revisor de la ronda, sin decir quién (D02, HU-23). */
+export interface RevisionDelRevisor {
+  decision: Opcion;
+  dificultad: Opcion;
+  comentario: string | null;
+  criterios: (CriterioPauta & { cumple: boolean; observacion: string | null })[];
+}
+
+/** La pregunta en desempate con las revisiones de la ronda y si es posiblemente confusa (CU-20). */
+export interface DesempateAbierto extends PreguntaARevisar {
+  revisiones: RevisionDelRevisor[];
+  posibleAmbigua: boolean;
+}
+
+/** La decisión del tercer docente: la dificultad final, la decisión y el motivo (CU-20). */
+export type DatosDesempate = Omit<DatosRevision, 'criterios'>;
+
+/** El desempate entregado y la etapa en que queda la pregunta. */
+export interface DesempateEntregado extends RevisionEntregada {
+  estado: 'aprobada' | 'rechazada' | 'observada';
+}
+
 /** Paginación de un listado de la API (`meta`). */
 export interface Paginacion {
   pagina: number;

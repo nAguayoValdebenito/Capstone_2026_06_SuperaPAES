@@ -1,7 +1,8 @@
 // Formulario de la revisión docente (D01, HU-22.3, CU-19 pasos 3 a 5): cada punto de la pauta con «sí» o
 // «no» (y la observación cuando no se cumple), la dificultad, la decisión y el motivo al observar o
-// rechazar. Las mismas reglas que revisa la API, para avisar antes de enviar; la API decide igual.
-import type { CriterioPauta, DatosRevision, PreguntaARevisar } from '../tipos';
+// rechazar. Las mismas reglas que revisa la API, para avisar antes de enviar; la API decide igual. El
+// desempate (D02, HU-23, CU-20) usa solo la dificultad, la decisión y el motivo.
+import type { CriterioPauta, DatosDesempate, DatosRevision, PreguntaARevisar } from '../tipos';
 import { erroresPorCampo } from './detalles-de-api';
 
 export interface RespuestaCriterio {
@@ -47,12 +48,12 @@ function erroresDeLaPauta(
   return errores;
 }
 
-/** Lo que falta para entregar la revisión; vacío si está completa. */
-export function validarRevision(
+/** La dificultad, la decisión y el motivo cuando la decisión lo pide (CU-19 5.a y CU-20). */
+export function validarDecision(
   campos: CamposRevision,
-  pregunta: Pick<PreguntaARevisar, 'pauta' | 'decisiones'>,
+  pregunta: Pick<PreguntaARevisar, 'decisiones'>,
 ): ErroresRevision {
-  const errores = erroresDeLaPauta(campos, pregunta.pauta);
+  const errores: ErroresRevision = {};
   if (!campos.dificultad) errores.dificultad = 'Elige la dificultad que asignas.';
   const decision = pregunta.decisiones.find((d) => d.codigo === campos.decision);
   if (!decision) errores.decision = 'Elige si apruebas, observas o rechazas la pregunta.';
@@ -61,6 +62,22 @@ export function validarRevision(
   }
   return errores;
 }
+
+/** Lo que falta para entregar la revisión; vacío si está completa. */
+export const validarRevision = (
+  campos: CamposRevision,
+  pregunta: Pick<PreguntaARevisar, 'pauta' | 'decisiones'>,
+): ErroresRevision => ({
+  ...erroresDeLaPauta(campos, pregunta.pauta),
+  ...validarDecision(campos, pregunta),
+});
+
+/** La decisión para la API (también la del desempate, D02). Supone que validarDecision pasó. */
+export const armarDecision = (campos: CamposRevision): DatosDesempate => ({
+  dificultad: campos.dificultad ?? '',
+  decision: campos.decision ?? '',
+  comentario: campos.comentario.trim() || null,
+});
 
 /** La revisión para la API, con los puntos en el orden de la pauta. Supone que validarRevision pasó. */
 export function armarRevision(
@@ -73,9 +90,7 @@ export function armarRevision(
       const cumple = respuesta?.cumple === true;
       return { codigo, cumple, observacion: cumple ? null : respuesta?.observacion.trim() || null };
     }),
-    dificultad: campos.dificultad ?? '',
-    decision: campos.decision ?? '',
-    comentario: campos.comentario.trim() || null,
+    ...armarDecision(campos),
   };
 }
 
