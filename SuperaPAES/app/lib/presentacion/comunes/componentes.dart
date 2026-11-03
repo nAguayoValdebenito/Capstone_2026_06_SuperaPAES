@@ -111,7 +111,7 @@ class EnlaceVolver extends StatelessWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 4),
           minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          tapTargetSize: MaterialTapTargetSize.padded,
         ),
         onPressed: () => context.canPop() ? context.pop() : context.go(destino),
         icon: const Icon(Icons.chevron_left, size: 20),
@@ -629,7 +629,7 @@ class PieConEnlace extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 4),
             minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            tapTargetSize: MaterialTapTargetSize.padded,
           ),
           onPressed: onPressed,
           child: Text(enlace),

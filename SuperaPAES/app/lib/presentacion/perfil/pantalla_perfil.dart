@@ -141,7 +141,7 @@ class _PerfilDeEstudio extends ConsumerWidget {
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    tapTargetSize: MaterialTapTargetSize.padded,
                   ),
                   onPressed: () async {
                     ref

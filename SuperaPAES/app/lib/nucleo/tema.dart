@@ -101,9 +101,10 @@ abstract final class TemaSuperaPaes {
   static const double altoBarra = 8;
 
   /// Opción activa del selector segmentado (la dificultad de A13), dentro de
-  /// un fondo de radio [radioCampo] con relleno 4.
+  /// un fondo de radio [radioCampo] con relleno 4: la barra mide 48, la zona
+  /// táctil.
   static const double radioSegmento = radioCampo - espacio4;
-  static const double altoSegmento = 36;
+  static const double altoSegmento = zonaTactil - 2 * espacio4;
 
   /// Botones redondos de la cantidad de A13.
   static const double botonRedondo = 44;

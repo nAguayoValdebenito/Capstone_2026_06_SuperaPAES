@@ -33,7 +33,7 @@ class PantallaResultado extends ConsumerWidget {
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 4),
               minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              tapTargetSize: MaterialTapTargetSize.padded,
             ),
             onPressed: () => context.canPop()
                 ? context.pop()

@@ -28,7 +28,7 @@ class CabeceraPractica extends ConsumerWidget {
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 4),
             minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            tapTargetSize: MaterialTapTargetSize.padded,
           ),
           onPressed: () => terminarPractica(context, ref),
           icon: const Icon(Icons.close, size: 20),

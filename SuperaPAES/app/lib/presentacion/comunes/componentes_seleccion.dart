@@ -250,33 +250,36 @@ class ChipSeleccion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final forma = BorderRadius.circular(TemaSuperaPaes.radioChip);
-    return Semantics(
-      checked: seleccionado,
-      button: true,
-      child: Material(
-        color: seleccionado
-            ? TemaSuperaPaes.primario
-            : TemaSuperaPaes.superficie,
-        shape: RoundedRectangleBorder(
-          borderRadius: forma,
-          side: seleccionado
-              ? BorderSide.none
-              : const BorderSide(color: TemaSuperaPaes.bordeInput),
-        ),
-        child: InkWell(
-          borderRadius: forma,
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(
-              minHeight: TemaSuperaPaes.altoChip,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            child: Text(
-              texto,
-              style: TemaSuperaPaes.etiqueta.copyWith(
-                color: seleccionado
-                    ? TemaSuperaPaes.superficie
-                    : TemaSuperaPaes.texto,
+    return ZonaTactil(
+      onTap: onTap,
+      child: Semantics(
+        checked: seleccionado,
+        button: true,
+        child: Material(
+          color: seleccionado
+              ? TemaSuperaPaes.primario
+              : TemaSuperaPaes.superficie,
+          shape: RoundedRectangleBorder(
+            borderRadius: forma,
+            side: seleccionado
+                ? BorderSide.none
+                : const BorderSide(color: TemaSuperaPaes.bordeInput),
+          ),
+          child: InkWell(
+            borderRadius: forma,
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: TemaSuperaPaes.altoChip,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              child: Text(
+                texto,
+                style: TemaSuperaPaes.etiqueta.copyWith(
+                  color: seleccionado
+                      ? TemaSuperaPaes.superficie
+                      : TemaSuperaPaes.texto,
+                ),
               ),
             ),
           ),
@@ -294,7 +297,8 @@ class GrupoChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Wrap(spacing: 8, runSpacing: 8, children: chips);
+      // La zona táctil de 48 de cada chip ya deja 12 entre las filas.
+      Wrap(spacing: 8, children: chips);
 }
 
 /// Cómo quedó una alternativa en la corrección (A19 y A19b).
@@ -434,8 +438,10 @@ class SelectorSegmentado<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Cada segmento responde en todo el alto de la barra (48), también en
+    // el relleno de 4 que rodea a la opción activa.
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: TemaSuperaPaes.neutroSuave,
         borderRadius: BorderRadius.circular(TemaSuperaPaes.radioCampo),
@@ -445,10 +451,13 @@ class SelectorSegmentado<T> extends StatelessWidget {
           for (final (i, (valor, texto)) in opciones.indexed) ...[
             if (i > 0) const SizedBox(width: 4),
             Expanded(
-              child: _Segmento(
-                texto: texto,
-                activo: valor == seleccionado,
+              child: ZonaTactil(
                 onTap: () => onChanged(valor),
+                child: _Segmento(
+                  texto: texto,
+                  activo: valor == seleccionado,
+                  onTap: () => onChanged(valor),
+                ),
               ),
             ),
           ],
@@ -499,6 +508,29 @@ class _Segmento extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Agranda la zona que responde al toque hasta [TemaSuperaPaes.zonaTactil]
+/// (48 dp) sin cambiar lo que se ve: el [child] queda centrado y un toque en
+/// el borde que lo rodea hace lo mismo que tocarlo.
+class ZonaTactil extends StatelessWidget {
+  const ZonaTactil({required this.onTap, required this.child, super.key});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      excludeFromSemantics: true,
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: TemaSuperaPaes.zonaTactil),
+        child: Center(widthFactor: 1, child: child),
       ),
     );
   }
