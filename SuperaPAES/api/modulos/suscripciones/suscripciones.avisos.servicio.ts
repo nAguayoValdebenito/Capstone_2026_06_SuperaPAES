@@ -206,22 +206,31 @@ async function aplicar(c: Contexto, s: FilaSuscripcion): Promise<Resultado> {
   return { resultado: 'procesado', detalle: null, suscripcionId: s.id, pagoId };
 }
 
-async function procesarEn(c: Omit<Contexto, 'enTienda'>, enTienda: SuscripcionEnTienda | null) {
-  if (!enTienda)
-    return ignorado(c.aviso.idCompraTienda ? 'Compra desconocida' : 'Aviso sin compra');
-  const contexto = { ...c, enTienda };
+/** Lo que la tienda informa de la compra, o el motivo para ignorar el aviso. */
+type Consulta = SuscripcionEnTienda | { ignorar: string };
+
+async function procesarEn(c: Omit<Contexto, 'enTienda'>, consulta: Consulta) {
+  if ('ignorar' in consulta) return ignorado(consulta.ignorar);
+  const contexto = { ...c, enTienda: consulta };
   const suscripcion = await suscripcionDe(contexto);
   return suscripcion ? aplicar(contexto, suscripcion) : ignorado('Compra desconocida');
 }
 
-/** Lo que la tienda informa hoy de la compra del aviso; null si no tiene compra o no la conoce. */
-async function consultar(d: DependenciasAvisos, aviso: AvisoVerificado) {
-  if (aviso.idCompraTienda === null) return null;
+/**
+ * Lo que la tienda informa hoy de la compra del aviso. Un reembolso o una revocación la terminan
+ * aunque la tienda todavía la muestre vigente (decisión del 03/11/2026: queda cancelada).
+ */
+async function consultar(d: DependenciasAvisos, aviso: AvisoVerificado): Promise<Consulta> {
+  if (aviso.idCompraTienda === null) return { ignorar: 'Aviso sin compra' };
   try {
-    return await d.pagos[aviso.tienda].consultarSuscripcion(aviso.idCompraTienda);
+    const enTienda = await d.pagos[aviso.tienda].consultarSuscripcion(aviso.idCompraTienda);
+    return aviso.reembolso === true
+      ? { ...enTienda, estado: 'terminada', fin: 'reembolso', idPagoPasarela: null }
+      : enTienda;
   } catch (error) {
-    if (error instanceof ErrorCompraNoValida) return null;
-    throw error;
+    if (!(error instanceof ErrorCompraNoValida)) throw error;
+    const motivo = error.motivo === 'no_encontrada' ? 'Compra desconocida' : 'Estado no atendido';
+    return { ignorar: `${motivo} en la tienda (${error.motivo})` };
   }
 }
 
@@ -255,9 +264,9 @@ export function crearAvisosServicio(d: DependenciasAvisos): AvisosServicio {
   return {
     async recibirAviso(tienda, entrante) {
       const aviso = await d.pagos[tienda].verificarAviso(entrante);
-      let enTienda: SuscripcionEnTienda | null;
+      let consulta: Consulta;
       try {
-        enTienda = await consultar(d, aviso);
+        consulta = await consultar(d, aviso);
       } catch (error) {
         if (!(error instanceof ErrorTiendaNoDisponible)) throw error;
         await unaVez(aviso, () =>
@@ -270,7 +279,7 @@ export function crearAvisosServicio(d: DependenciasAvisos): AvisosServicio {
         );
         throw error;
       }
-      await unaVez(aviso, (c) => procesarEn(c, enTienda));
+      await unaVez(aviso, (c) => procesarEn(c, consulta));
     },
   };
 }
