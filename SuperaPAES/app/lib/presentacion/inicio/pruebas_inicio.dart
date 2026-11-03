@@ -11,6 +11,7 @@ import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
@@ -82,6 +83,7 @@ class PruebasInicio extends ConsumerWidget {
           )) ...[
             _TarjetaPrueba(
               prueba: prueba,
+              codigo: opciones.requireValue.prueba(prueba.id)?.codigo ?? '',
               diagnostico: switch (ref
                   .watch(disponibilidadDiagnosticoProvider(prueba.id))
                   .value) {
@@ -104,18 +106,23 @@ class PruebasInicio extends ConsumerWidget {
   }
 }
 
-/// Tarjeta de una prueba (relleno 16 × 14, radio 14). La prueba a reforzar
+/// Tarjeta de una prueba (relleno 16 × 14, radio 14) con el sello de la
+/// prueba y la sombra suave de lo que se toca. La prueba a reforzar
 /// lleva su etiqueta y el botón «Reforzar»; con el diagnóstico pendiente,
 /// «Diagnóstico pendiente este año» y el botón «Diagnóstico»; las demás se
 /// tocan enteras.
 class _TarjetaPrueba extends ConsumerWidget {
   const _TarjetaPrueba({
     required this.prueba,
+    required this.codigo,
     required this.onTap,
     this.diagnostico,
   });
 
   final PruebaDeInicio prueba;
+
+  /// Código de la prueba (`CL`, `M1`...), para su sello.
+  final String codigo;
   final VoidCallback onTap;
 
   /// El diagnóstico pendiente de la prueba; `null` si ya lo rindió.
@@ -135,59 +142,66 @@ class _TarjetaPrueba extends ConsumerWidget {
     final diagnostico = this.diagnostico;
     final forma = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(TemaSuperaPaes.radioBoton),
-      side: const BorderSide(color: TemaSuperaPaes.borde),
     );
-    return Material(
-      color: TemaSuperaPaes.superficie,
-      shape: forma,
-      child: InkWell(
-        customBorder: forma,
-        // Con un botón, el botón es la única acción.
-        onTap: prueba.reforzar || diagnostico != null ? null : onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(prueba.titulo, style: TemaSuperaPaes.cuerpoFuerte),
-                    if (prueba.reforzar) ...[
-                      const SizedBox(height: 4),
-                      const Etiqueta(
-                        texto: 'Tu prueba a reforzar',
-                        tono: TonoEtiqueta.aviso,
-                      ),
-                    ],
-                    if (diagnostico != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Diagnóstico pendiente este año',
-                        style: TemaSuperaPaes.pequeno.copyWith(
-                          color: TemaSuperaPaes.textoSecundario,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioBoton),
+        boxShadow: TemaSuperaPaes.sombraSuave,
+      ),
+      child: Material(
+        color: TemaSuperaPaes.superficie,
+        shape: forma,
+        child: InkWell(
+          customBorder: forma,
+          // Con un botón, el botón es la única acción.
+          onTap: prueba.reforzar || diagnostico != null ? null : onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                SelloPrueba(codigo: codigo),
+                const SizedBox(width: TemaSuperaPaes.espacio12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(prueba.titulo, style: TemaSuperaPaes.cuerpoFuerte),
+                      if (prueba.reforzar) ...[
+                        const SizedBox(height: 4),
+                        const Etiqueta(
+                          texto: 'Tu prueba a reforzar',
+                          tono: TonoEtiqueta.aviso,
                         ),
-                      ),
+                      ],
+                      if (diagnostico != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Diagnóstico pendiente este año',
+                          style: TemaSuperaPaes.pequeno.copyWith(
+                            color: TemaSuperaPaes.textoSecundario,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              if (prueba.reforzar)
-                BotonChico(texto: 'Reforzar', onPressed: onTap)
-              else if (diagnostico != null)
-                BotonChico(
-                  texto: 'Diagnóstico',
-                  onPressed: () =>
-                      _ofrecerDiagnostico(context, ref, diagnostico),
-                )
-              else
-                const Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: TemaSuperaPaes.textoSecundario,
-                ),
-            ],
+                const SizedBox(width: 12),
+                if (prueba.reforzar)
+                  BotonChico(texto: 'Reforzar', onPressed: onTap)
+                else if (diagnostico != null)
+                  BotonChico(
+                    texto: 'Diagnóstico',
+                    onPressed: () =>
+                        _ofrecerDiagnostico(context, ref, diagnostico),
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: TemaSuperaPaes.textoSecundario,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
