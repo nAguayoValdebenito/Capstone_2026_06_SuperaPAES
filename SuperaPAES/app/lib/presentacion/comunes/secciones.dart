@@ -46,6 +46,7 @@ class Seccion {
     this.pantalla, {
     this.esPestana = false,
     this.etiquetaPestana,
+    this.iconoActivo,
   });
 
   final String titulo;
@@ -59,6 +60,10 @@ class Seccion {
 
   /// Texto de la pestaña cuando es distinto del título de la pantalla.
   final String? etiquetaPestana;
+
+  /// Ícono relleno de la pestaña activa, para no distinguirla solo por el
+  /// color (WCAG 1.4.1).
+  final IconData? iconoActivo;
 }
 
 const List<Seccion> secciones = [
@@ -101,6 +106,7 @@ const List<Seccion> secciones = [
     Icons.home_outlined,
     PantallaInicio.new,
     esPestana: true,
+    iconoActivo: Icons.home_rounded,
   ),
   Seccion(
     'Personaliza tu práctica',
@@ -109,6 +115,7 @@ const List<Seccion> secciones = [
     PantallaPersonalizarPractica.new,
     esPestana: true,
     etiquetaPestana: 'Practicar',
+    iconoActivo: Icons.edit,
   ),
   Seccion(
     'Evaluaciones',
@@ -116,6 +123,7 @@ const List<Seccion> secciones = [
     Icons.timer_outlined,
     PantallaEvaluaciones.new,
     esPestana: true,
+    iconoActivo: Icons.timer,
   ),
   Seccion(
     'Progreso',
@@ -123,6 +131,7 @@ const List<Seccion> secciones = [
     Icons.bar_chart_outlined,
     PantallaProgreso.new,
     esPestana: true,
+    iconoActivo: Icons.bar_chart,
   ),
   Seccion(
     'Perfil',
@@ -130,6 +139,7 @@ const List<Seccion> secciones = [
     Icons.person_outline,
     PantallaPerfil.new,
     esPestana: true,
+    iconoActivo: Icons.person,
   ),
   // Práctica (HU-30): elegir qué practicar, sin preguntas suficientes y
   // resumen

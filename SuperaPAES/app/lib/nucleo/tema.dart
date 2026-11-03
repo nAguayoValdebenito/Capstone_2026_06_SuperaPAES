@@ -306,18 +306,17 @@ abstract final class TemaSuperaPaes {
               estados.contains(WidgetState.selected) ? primario : superficie,
         ),
       ),
-      // Barra inferior: sin indicador; la pestaña activa va en azul.
+      // Barra inferior: sin indicador; la pestaña activa va en azul, con su
+      // ícono relleno y su texto en negrita.
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: superficie,
         indicatorColor: Colors.transparent,
         elevation: 0,
         height: 72,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (estados) => mini.copyWith(
-            color: estados.contains(WidgetState.selected)
-                ? primario
-                : textoSecundario,
-          ),
+          (estados) => estados.contains(WidgetState.selected)
+              ? mini.copyWith(color: primario, fontWeight: FontWeight.w800)
+              : mini.copyWith(color: textoSecundario),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
           (estados) => IconThemeData(

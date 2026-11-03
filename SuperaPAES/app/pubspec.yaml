@@ -38,6 +38,8 @@ flutter:
           weight: 600
         - asset: assets/fuentes/figtree-700.ttf
           weight: 700
+        - asset: assets/fuentes/figtree-800.ttf
+          weight: 800
     - family: STIX Two Text
       fonts:
         - asset: assets/fuentes/stix-two-text-400.ttf
