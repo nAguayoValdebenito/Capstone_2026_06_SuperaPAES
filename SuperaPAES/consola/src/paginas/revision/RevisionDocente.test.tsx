@@ -1,16 +1,12 @@
 // D01 · Mis revisiones (HU-22.2 y HU-22.3, CU-19, CP-16 paso 3): la bandeja con la fecha límite, la
 // pregunta a ciegas con la correcta y la explicación, la pauta con Sí/No y su observación, la dificultad,
 // la decisión y el motivo; y las llamadas a la API de la bandeja.
-import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { camposVacios } from '../../estado/formulario-revision';
 import type { RevisionDocente } from '../../estado/revision-docente';
-import {
-  formularioSinAcciones,
-  OPCIONES_DE_DECISION,
-  primeraLlamada,
-} from '../../pruebas/bandeja-docente';
-import { responderUnaVez } from '../../pruebas/sesion';
+import { formularioSinAcciones, OPCIONES_DE_DECISION } from '../../pruebas/bandeja-docente';
+import { textoDibujado } from '../../pruebas/dibujo';
+import { primeraLlamada, responderUnaVez } from '../../pruebas/sesion';
 import { entregarRevision, listarMisRevisiones, obtenerMiRevision } from '../../servicios/revision';
 import type { PreguntaARevisar, RevisionPendiente } from '../../tipos';
 import { ContenidoRevisionDocente } from './RevisionDocente';
@@ -59,11 +55,7 @@ function dibujar(cambios: Partial<RevisionDocente> = {}) {
     ...formularioSinAcciones(),
     ...cambios,
   };
-  // Sin los separadores que React pone entre textos, para comparar el texto como se lee.
-  return renderToString(<ContenidoRevisionDocente revision={revision} />).replaceAll(
-    '<!-- -->',
-    '',
-  );
+  return textoDibujado(<ContenidoRevisionDocente revision={revision} />);
 }
 
 describe('D01 · bandeja (HU-22 esc. 1)', () => {

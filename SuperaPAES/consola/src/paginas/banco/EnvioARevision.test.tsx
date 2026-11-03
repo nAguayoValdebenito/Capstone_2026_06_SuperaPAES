@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { avisoDeEnvio } from '../../estado/envio-revision';
 import { preguntaDelBanco } from '../../pruebas/banco';
-import { responderUnaVez } from '../../pruebas/sesion';
+import { primeraLlamada, responderUnaVez } from '../../pruebas/sesion';
 import { enviarARevision } from '../../servicios/revision';
 import { TablaBanco } from './TablaBanco';
 
@@ -93,8 +93,6 @@ describe('enviar a revisión desde el banco (HU-21)', () => {
     responderUnaVez({ data: envio, error: null, meta: null }, 201);
 
     expect(await enviarARevision(84)).toEqual(envio);
-    const [url, init] = vi.mocked(fetch).mock.calls[0] ?? [];
-    expect(url).toMatch(/\/api\/v1\/admin\/revision\/preguntas\/84$/);
-    expect(init?.method).toBe('POST');
+    expect(primeraLlamada()).toMatchObject({ url: '/admin/revision/preguntas/84', metodo: 'POST' });
   });
 });

@@ -45,3 +45,13 @@ export function responderUnaVez(cuerpo: unknown, estado = 200) {
   vi.stubGlobal('fetch', fetchFalso);
   return fetchFalso;
 }
+
+/** La primera llamada a fetch: la ruta bajo /api/v1, el método y el cuerpo. */
+export function primeraLlamada() {
+  const [url, init] = vi.mocked(fetch).mock.calls[0] ?? [];
+  return {
+    url: (url as string).replace(/^.*\/api\/v1/, ''),
+    metodo: init?.method ?? 'GET',
+    cuerpo: init?.body,
+  };
+}

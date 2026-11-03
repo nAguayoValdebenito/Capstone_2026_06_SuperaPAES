@@ -171,10 +171,7 @@ function listas(
 }
 
 /** La bandeja de las asignaciones con un papel: las de revisor (D01) o las de desempate (D02). */
-export function crearBandejaRepositorio(
-  bd: Ejecutor,
-  rol: RolAsignacion = 'revisor',
-): BandejaRepositorio {
+export function crearBandejaRepositorio(bd: Ejecutor, rol: RolAsignacion): BandejaRepositorio {
   return {
     async listarPendientes(docenteId, tx = bd) {
       const { rows } = await tx.query<FilaBandeja>(LISTAR_PENDIENTES, [docenteId, rol]);

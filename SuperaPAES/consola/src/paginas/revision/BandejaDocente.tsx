@@ -2,25 +2,17 @@
 // sus asignaciones con la fecha límite (la más próxima primero); a la derecha la que abrió, que dibuja
 // cada sección. Arriba, el aviso al entregar. La lógica está en src/estado/bandeja-docente.ts.
 import type { ReactNode } from 'react';
-import type { CargaAsignacion, CargaBandeja } from '../../estado/bandeja-docente';
+import { Alerta } from '../../componentes/Alerta';
+import type { CargaAsignacion, EstadoBandejaDocente } from '../../estado/bandeja-docente';
 import type { RevisionPendiente } from '../../tipos';
 import { codigoDePregunta, fechaLimite } from '../../utilidades/revision';
 
-/** Lo que usa la bandeja del estado de cada sección. */
-interface EstadoDeBandeja<P> {
-  bandeja: CargaBandeja;
-  abierta: number | null;
-  revision: CargaAsignacion<P>;
-  aviso: string | null;
-  elegir: (id: number) => void;
-}
-
-function Alerta({ texto }: { texto: string }) {
-  return (
-    <p className="aviso aviso--error" role="alert">
-      {texto}
-    </p>
-  );
+/** La bandeja con el estado de la sección, sus textos y cómo dibujar la asignación abierta. */
+interface PropsBandeja<P extends RevisionPendiente> {
+  estado: Pick<EstadoBandejaDocente<P>, 'bandeja' | 'abierta' | 'revision' | 'aviso' | 'elegir'>;
+  /** El nombre de la bandeja y el aviso cuando está vacía. */
+  textos: { bandeja: string; vacia: string };
+  children: (pregunta: P) => ReactNode;
 }
 
 function Bandeja({
@@ -74,15 +66,7 @@ function Detalle<P>({
   return <div className="revision-detalle">{children(carga.pregunta)}</div>;
 }
 
-function Contenido<P>({
-  estado,
-  textos,
-  children,
-}: {
-  estado: EstadoDeBandeja<P>;
-  textos: { bandeja: string; vacia: string };
-  children: (pregunta: P) => ReactNode;
-}) {
+function Contenido<P extends RevisionPendiente>({ estado, textos, children }: PropsBandeja<P>) {
   const { bandeja } = estado;
   if (bandeja.tipo === 'cargando') return <p aria-live="polite">Cargando tu bandeja…</p>;
   if (bandeja.tipo === 'fallida') return <Alerta texto={bandeja.mensaje} />;
@@ -100,19 +84,12 @@ function Contenido<P>({
   );
 }
 
-/**
- * La bandeja con la asignación abierta, bajo el encabezado de la sección. `children` dibuja la
- * pregunta abierta; `textos` da el nombre de la bandeja y el aviso cuando está vacía.
- */
-export function BandejaDocente<P>({
+/** La bandeja con la asignación abierta y el aviso al entregar, bajo el encabezado de la sección. */
+export function BandejaDocente<P extends RevisionPendiente>({
   estado,
   textos,
   children,
-}: {
-  estado: EstadoDeBandeja<P>;
-  textos: { bandeja: string; vacia: string };
-  children: (pregunta: P) => ReactNode;
-}) {
+}: PropsBandeja<P>) {
   return (
     <>
       {estado.aviso && (

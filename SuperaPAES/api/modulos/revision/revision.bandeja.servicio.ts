@@ -13,6 +13,7 @@ import type {
   Decision,
   FilaRevisionAbierta,
   OpcionRevision,
+  RevisionNueva,
 } from './revision.bandeja.repositorio.js';
 import type { DatosRevision } from './revision.validadores.js';
 
@@ -77,21 +78,29 @@ const problema = (ruta: string, mensaje: string): ProblemaDeCampo => ({
   mensaje,
 });
 
-/** La pauta y las listas de dificultad y decisión (también para el desempate, D02). */
-export async function opcionesDeLaPauta(repositorio: BandejaRepositorio) {
-  const [pauta, dificultades, decisiones] = await Promise.all([
-    repositorio.listarCriterios(),
+/** Las listas de dificultad y decisión (también para el desempate, D02). */
+export async function opcionesDeLaDecision(repositorio: BandejaRepositorio) {
+  const [dificultades, decisiones] = await Promise.all([
     repositorio.listarDificultades(),
     repositorio.listarDecisiones(),
   ]);
-  return { pauta, dificultades, decisiones };
+  return { dificultades, decisiones };
 }
 
-/** La pregunta de la asignación, tal como se envió a revisión, con las opciones de la pauta. */
-export function aPreguntaARevisar(
-  { copia, correctaId, ...fila }: FilaRevisionAbierta,
-  opciones: Pick<PreguntaARevisar, 'pauta' | 'dificultades' | 'decisiones'>,
-): PreguntaARevisar {
+async function opcionesDeLaPauta(repositorio: BandejaRepositorio) {
+  const [pauta, opciones] = await Promise.all([
+    repositorio.listarCriterios(),
+    opcionesDeLaDecision(repositorio),
+  ]);
+  return { pauta, ...opciones };
+}
+
+/** La pregunta de la asignación tal como se envió a revisión, sin las opciones del formulario. */
+export function aPreguntaAbierta({
+  copia,
+  correctaId,
+  ...fila
+}: FilaRevisionAbierta): Omit<PreguntaARevisar, 'pauta' | 'dificultades' | 'decisiones'> {
   return {
     ...fila,
     venceEn: fila.venceEn.toISOString(),
@@ -102,8 +111,42 @@ export function aPreguntaARevisar(
       id: String(alternativa.id),
       esCorrecta: String(alternativa.id) === correctaId,
     })),
-    ...opciones,
   };
+}
+
+/** Las asignaciones pendientes del docente en la bandeja, la fecha límite más próxima primero. */
+export async function listarPendientes(
+  repositorio: BandejaRepositorio,
+  docenteId: string,
+): Promise<RevisionPendiente[]> {
+  const filas = await repositorio.listarPendientes(docenteId);
+  return filas.map((fila) => ({ ...fila, venceEn: fila.venceEn.toISOString() }));
+}
+
+/** La revisión que entrega el docente, los mensajes de 404 y 409, y lo que sigue al guardarla. */
+export interface Entrega {
+  docenteId: string;
+  revision: RevisionNueva;
+  mensajes: { noExiste: string; yaEntregada: string };
+  alGuardar: (preguntaId: string, tx: Ejecutor) => Promise<void>;
+}
+
+/**
+ * CU-19 paso 6 y CU-20: reserva la asignación pendiente del docente, guarda su revisión y, en la misma
+ * transacción, sigue con `alGuardar`. Devuelve la pregunta; 404 si no es suya y 409 si ya la entregó.
+ */
+export function guardarEntrega(
+  { unidadDeTrabajo, repositorio }: Pick<DependenciasBandeja, 'unidadDeTrabajo' | 'repositorio'>,
+  { docenteId, revision, mensajes, alGuardar }: Entrega,
+): Promise<string> {
+  return unidadDeTrabajo.enTransaccion(async (tx) => {
+    const asignacion = await repositorio.reservarAsignacion(revision.asignacionId, docenteId, tx);
+    if (asignacion === null) throw new ErrorNoEncontrado(mensajes.noExiste);
+    if (asignacion.estado !== 'pendiente') throw new ErrorConflicto(mensajes.yaEntregada);
+    await repositorio.guardarRevision(revision, tx);
+    await alGuardar(asignacion.preguntaId, tx);
+    return asignacion.preguntaId;
+  });
 }
 
 /** Los puntos de la pauta: todos, una vez cada uno, con la observación de cada «no» (CU-19 paso 3). */
@@ -153,52 +196,41 @@ export function problemasDeLaDecision(
 }
 
 async function entregarRevision(
-  { unidadDeTrabajo, reloj, repositorio, alEntregar }: DependenciasBandeja,
+  dependencias: DependenciasBandeja,
   [docenteId, id]: [string, string],
   datos: DatosRevision,
 ): Promise<RevisionEntregada> {
-  const opciones = await opcionesDeLaPauta(repositorio);
+  const opciones = await opcionesDeLaPauta(dependencias.repositorio);
   const problemas = [
     ...problemasDeLaPauta(datos, opciones.pauta),
     ...problemasDeLaDecision(datos, opciones),
   ];
   if (problemas.length > 0) throw new ErrorValidacion(problemas, problemas[0]?.mensaje);
-  return unidadDeTrabajo.enTransaccion(async (tx) => {
-    const asignacion = await repositorio.reservarAsignacion(id, docenteId, tx);
-    if (asignacion === null) throw new ErrorNoEncontrado(NO_EXISTE);
-    if (asignacion.estado !== 'pendiente') throw new ErrorConflicto('Esta revisión ya se entregó.');
-    await repositorio.guardarRevision(
-      {
-        asignacionId: id,
-        decision: datos.decision,
-        dificultad: datos.dificultad,
-        comentario: datos.comentario,
-        criterios: datos.criterios,
-        entregadaEn: reloj(),
-      },
-      tx,
-    );
-    await alEntregar(docenteId, asignacion.preguntaId, tx);
-    return {
+  const { decision, dificultad, comentario, criterios } = datos;
+  const preguntaId = await guardarEntrega(dependencias, {
+    docenteId,
+    revision: {
       asignacionId: id,
-      preguntaId: asignacion.preguntaId,
-      decision: datos.decision,
-      dificultad: datos.dificultad,
-    };
+      decision,
+      dificultad,
+      comentario,
+      criterios,
+      entregadaEn: dependencias.reloj(),
+    },
+    mensajes: { noExiste: NO_EXISTE, yaEntregada: 'Esta revisión ya se entregó.' },
+    alGuardar: (pregunta, tx) => dependencias.alEntregar(docenteId, pregunta, tx),
   });
+  return { asignacionId: id, preguntaId, decision, dificultad };
 }
 
 export function crearBandejaDocente(dependencias: DependenciasBandeja): BandejaDocente {
   const { repositorio } = dependencias;
   return {
-    async listarMisRevisiones(docenteId) {
-      const filas = await repositorio.listarPendientes(docenteId);
-      return filas.map((fila) => ({ ...fila, venceEn: fila.venceEn.toISOString() }));
-    },
+    listarMisRevisiones: (docenteId) => listarPendientes(repositorio, docenteId),
     async obtenerMiRevision(docenteId, id) {
       const fila = await repositorio.obtenerPendiente(id, docenteId);
       if (!fila) throw new ErrorNoEncontrado(NO_EXISTE);
-      return aPreguntaARevisar(fila, await opcionesDeLaPauta(repositorio));
+      return { ...aPreguntaAbierta(fila), ...(await opcionesDeLaPauta(repositorio)) };
     },
     entregarRevision: (docenteId, id, datos) =>
       entregarRevision(dependencias, [docenteId, id], datos),

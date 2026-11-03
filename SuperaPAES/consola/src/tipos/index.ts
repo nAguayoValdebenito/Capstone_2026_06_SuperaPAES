@@ -300,7 +300,7 @@ export interface RevisionDelRevisor {
 }
 
 /** La pregunta en desempate con las revisiones de la ronda y si es posiblemente confusa (CU-20). */
-export interface DesempateAbierto extends PreguntaARevisar {
+export interface DesempateAbierto extends Omit<PreguntaARevisar, 'pauta'> {
   revisiones: RevisionDelRevisor[];
   posibleAmbigua: boolean;
 }

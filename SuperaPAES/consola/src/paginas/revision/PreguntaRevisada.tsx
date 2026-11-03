@@ -6,7 +6,10 @@ import type { PreguntaARevisar } from '../../tipos';
 import { codigoDePregunta, fechaLimite } from '../../utilidades/revision';
 import { Imagen, TextoConFormulas } from '../pregunta/TextoConFormulas';
 
-export function PreguntaRevisada({ pregunta }: { pregunta: PreguntaARevisar }) {
+/** Lo que se muestra de la pregunta: sin la pauta ni las opciones del formulario. */
+type PreguntaMostrada = Omit<PreguntaARevisar, 'pauta' | 'dificultades' | 'decisiones'>;
+
+export function PreguntaRevisada({ pregunta }: { pregunta: PreguntaMostrada }) {
   const ubicacion = [pregunta.prueba.nombre, pregunta.eje, pregunta.contenido, pregunta.habilidad];
   return (
     <article className="panel panel--ancho revision-pregunta">

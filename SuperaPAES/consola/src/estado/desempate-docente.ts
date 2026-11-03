@@ -3,7 +3,7 @@
 // motivo al observar o rechazar.
 import { entregarDesempate, listarDesempates, obtenerDesempate } from '../servicios/revision';
 import type { DesempateAbierto } from '../tipos';
-import { type ApiDeBandeja, useBandejaDocente } from './bandeja-docente';
+import { type ApiDeBandeja, type EstadoBandejaDocente, useBandejaDocente } from './bandeja-docente';
 import { armarDecision, validarDecision } from './formulario-revision';
 
 const DESEMPATES: ApiDeBandeja<DesempateAbierto> = {
@@ -16,4 +16,4 @@ const DESEMPATES: ApiDeBandeja<DesempateAbierto> = {
 
 export const useDesempateDocente = () => useBandejaDocente(DESEMPATES);
 
-export type DesempateDocente = ReturnType<typeof useDesempateDocente>;
+export type DesempateDocente = EstadoBandejaDocente<DesempateAbierto>;

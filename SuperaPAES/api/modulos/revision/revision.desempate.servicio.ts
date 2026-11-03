@@ -2,35 +2,38 @@
 // la pregunta como se envió a revisión con las dos revisiones de la ronda (sin decir quién las escribió) y
 // su decisión, que deja la pregunta aprobada con la dificultad final, rechazada u observada. La marca de
 // posiblemente confusa (fácil contra difícil) se avisa y se mantiene.
-import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
+import { ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { PreguntasServicio } from '../preguntas/index.js';
 import type { BandejaRepositorio } from './revision.bandeja.repositorio.js';
 import {
-  aPreguntaARevisar,
-  opcionesDeLaPauta,
+  aPreguntaAbierta,
+  guardarEntrega,
+  listarPendientes,
+  opcionesDeLaDecision,
   type PreguntaARevisar,
   problemasDeLaDecision,
+  type RevisionEntregada,
   type RevisionPendiente,
 } from './revision.bandeja.servicio.js';
 import type { DesempateRepositorio, RevisionDelRevisor } from './revision.desempate.repositorio.js';
-import { combinarRevisiones } from './revision.reglas.js';
+import {
+  combinarRevisiones,
+  type EtapaDelDesempate,
+  etapaDelDesempate,
+} from './revision.reglas.js';
 import type { DatosDesempate } from './revision.validadores.js';
 
-/** La pregunta en desempate con las revisiones de la ronda y si es posiblemente confusa. */
-export interface DesempateAbierto extends PreguntaARevisar {
+/** La pregunta en desempate con las revisiones de la ronda y si es posiblemente confusa (sin pauta). */
+export interface DesempateAbierto extends Omit<PreguntaARevisar, 'pauta'> {
   revisiones: RevisionDelRevisor[];
   posibleAmbigua: boolean;
 }
 
 /** El desempate entregado y la etapa en que queda la pregunta. */
-export interface DesempateEntregado {
-  asignacionId: string;
-  preguntaId: string;
-  decision: string;
-  dificultad: string;
-  estado: 'aprobada' | 'rechazada' | 'observada';
+export interface DesempateEntregado extends RevisionEntregada {
+  estado: EtapaDelDesempate;
 }
 
 export interface DesempatesDocente {
@@ -55,23 +58,22 @@ export interface DependenciasDesempate {
   preguntas: Pick<PreguntasServicio, 'resolverRevision'>;
 }
 
-const NO_EXISTE = 'El desempate no existe o ya lo entregaste.';
+const DECISION_SIN_ETAPA = 'Elige si apruebas, observas o rechazas la pregunta.';
 
-/** La etapa en que deja la pregunta cada decisión del tercer docente. */
-const ETAPA: Record<string, DesempateEntregado['estado'] | undefined> = {
-  aprobar: 'aprobada',
-  rechazar: 'rechazada',
-  observar: 'observada',
+const MENSAJES = {
+  noExiste: 'El desempate no existe o ya lo entregaste.',
+  yaEntregada: 'Este desempate ya se entregó.',
 };
 
 async function obtenerDesempate(
   { repositorio, revisiones }: DependenciasDesempate,
   [docenteId, id]: [string, string],
 ): Promise<DesempateAbierto> {
+  // Primero, que el desempate sea suyo y esté pendiente: solo entonces se leen las revisiones.
   const fila = await repositorio.obtenerPendiente(id, docenteId);
-  if (!fila) throw new ErrorNoEncontrado(NO_EXISTE);
+  if (!fila) throw new ErrorNoEncontrado(MENSAJES.noExiste);
   const [opciones, deLaRonda] = await Promise.all([
-    opcionesDeLaPauta(repositorio),
+    opcionesDeLaDecision(repositorio),
     revisiones.revisionesDeLaRonda(id),
   ]);
   const { posibleAmbigua } = combinarRevisiones(
@@ -80,52 +82,52 @@ async function obtenerDesempate(
       dificultad: revision.dificultad.codigo,
     })),
   );
-  return { ...aPreguntaARevisar(fila, opciones), revisiones: deLaRonda, posibleAmbigua };
+  return { ...aPreguntaAbierta(fila), ...opciones, revisiones: deLaRonda, posibleAmbigua };
+}
+
+/** La decisión es de la lista y deja la pregunta en una etapa; si no, 400. */
+async function validarDesempate(repositorio: BandejaRepositorio, datos: DatosDesempate) {
+  const problemas = problemasDeLaDecision(datos, await opcionesDeLaDecision(repositorio));
+  const estado = etapaDelDesempate(datos.decision);
+  if (!estado && problemas.length === 0) {
+    problemas.push({ lugar: 'cuerpo', ruta: 'decision', mensaje: DECISION_SIN_ETAPA });
+  }
+  if (problemas.length > 0 || !estado) throw new ErrorValidacion(problemas, problemas[0]?.mensaje);
+  return estado;
 }
 
 async function entregarDesempate(
-  { unidadDeTrabajo, reloj, repositorio, preguntas }: DependenciasDesempate,
+  dependencias: DependenciasDesempate,
   [docenteId, id]: [string, string],
   datos: DatosDesempate,
 ): Promise<DesempateEntregado> {
-  const problemas = problemasDeLaDecision(datos, await opcionesDeLaPauta(repositorio));
-  if (problemas.length > 0) throw new ErrorValidacion(problemas, problemas[0]?.mensaje);
-  const estado = ETAPA[datos.decision];
-  if (!estado) throw new Error(`La decisión ${datos.decision} no tiene etapa.`);
-  return unidadDeTrabajo.enTransaccion(async (tx) => {
-    const asignacion = await repositorio.reservarAsignacion(id, docenteId, tx);
-    if (asignacion === null) throw new ErrorNoEncontrado(NO_EXISTE);
-    if (asignacion.estado !== 'pendiente')
-      throw new ErrorConflicto('Este desempate ya se entregó.');
-    await repositorio.guardarRevision(
-      { asignacionId: id, ...datos, criterios: [], entregadaEn: reloj() },
-      tx,
-    );
-    const dificultad = estado === 'aprobada' ? datos.dificultad : null;
-    await preguntas.resolverRevision(
-      docenteId,
-      asignacion.preguntaId,
-      { estado, dificultad, posibleAmbigua: null },
-      tx,
-    );
-    const { decision } = datos;
-    return {
+  const estado = await validarDesempate(dependencias.repositorio, datos);
+  const { decision, dificultad, comentario } = datos;
+  const preguntaId = await guardarEntrega(dependencias, {
+    docenteId,
+    revision: {
       asignacionId: id,
-      preguntaId: asignacion.preguntaId,
       decision,
-      dificultad: datos.dificultad,
-      estado,
-    };
+      dificultad,
+      comentario,
+      criterios: [],
+      entregadaEn: dependencias.reloj(),
+    },
+    mensajes: MENSAJES,
+    alGuardar: (pregunta, tx) =>
+      dependencias.preguntas.resolverRevision(
+        docenteId,
+        pregunta,
+        { estado, dificultad: estado === 'aprobada' ? dificultad : null, posibleAmbigua: null },
+        tx,
+      ),
   });
+  return { asignacionId: id, preguntaId, decision, dificultad, estado };
 }
 
 export function crearDesempatesDocente(dependencias: DependenciasDesempate): DesempatesDocente {
-  const { repositorio } = dependencias;
   return {
-    async listarDesempates(docenteId) {
-      const filas = await repositorio.listarPendientes(docenteId);
-      return filas.map((fila) => ({ ...fila, venceEn: fila.venceEn.toISOString() }));
-    },
+    listarDesempates: (docenteId) => listarPendientes(dependencias.repositorio, docenteId),
     obtenerDesempate: (docenteId, id) => obtenerDesempate(dependencias, [docenteId, id]),
     entregarDesempate: (docenteId, id, datos) =>
       entregarDesempate(dependencias, [docenteId, id], datos),

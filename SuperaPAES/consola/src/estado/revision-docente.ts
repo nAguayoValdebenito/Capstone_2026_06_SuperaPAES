@@ -2,7 +2,7 @@
 // con la pregunta a ciegas y la revisión con la pauta, la dificultad, la decisión y el motivo.
 import { entregarRevision, listarMisRevisiones, obtenerMiRevision } from '../servicios/revision';
 import type { PreguntaARevisar } from '../tipos';
-import { type ApiDeBandeja, useBandejaDocente } from './bandeja-docente';
+import { type ApiDeBandeja, type EstadoBandejaDocente, useBandejaDocente } from './bandeja-docente';
 import { armarRevision, validarRevision } from './formulario-revision';
 
 const MIS_REVISIONES: ApiDeBandeja<PreguntaARevisar> = {
@@ -16,4 +16,4 @@ const MIS_REVISIONES: ApiDeBandeja<PreguntaARevisar> = {
 
 export const useRevisionDocente = () => useBandejaDocente(MIS_REVISIONES);
 
-export type RevisionDocente = ReturnType<typeof useRevisionDocente>;
+export type RevisionDocente = EstadoBandejaDocente<PreguntaARevisar>;

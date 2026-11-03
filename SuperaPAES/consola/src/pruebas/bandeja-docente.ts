@@ -1,6 +1,5 @@
 // Datos de prueba de las bandejas del docente (D01, HU-22; D02, HU-23): las listas de dificultad y
-// decisión, el estado de la bandeja sin acciones y la primera llamada que se hizo a la API.
-import { vi } from 'vitest';
+// decisión y el estado de la bandeja sin acciones.
 import { camposVacios } from '../estado/formulario-revision';
 
 const sinAccion = () => undefined;
@@ -33,13 +32,3 @@ export const formularioSinAcciones = () => ({
   elegirDecision: sinAccion,
   escribirMotivo: sinAccion,
 });
-
-/** La primera llamada a fetch: la ruta bajo /api/v1, el método y el cuerpo. */
-export function primeraLlamada() {
-  const [url, init] = vi.mocked(fetch).mock.calls[0] ?? [];
-  return {
-    url: (url as string).replace(/^.*\/api\/v1/, ''),
-    metodo: init?.method ?? 'GET',
-    cuerpo: init?.body,
-  };
-}

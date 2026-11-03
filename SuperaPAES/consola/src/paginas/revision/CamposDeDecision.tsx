@@ -1,14 +1,15 @@
 // La decisión del docente, común a Mis revisiones (D01, CU-19 pasos 4 y 5) y Desempates (D02, CU-20):
 // la dificultad y la decisión como botones segmentados, el motivo (obligatorio al observar o rechazar),
 // el error general y el botón de guardar. La lógica está en src/estado/bandeja-docente.ts.
+import { Alerta } from '../../componentes/Alerta';
 import { MensajeError } from '../../componentes/MensajeError';
-import type { RevisionDocente } from '../../estado/revision-docente';
-import type { PreguntaARevisar } from '../../tipos';
+import type { EstadoBandejaDocente } from '../../estado/bandeja-docente';
+import type { PreguntaARevisar, RevisionPendiente } from '../../tipos';
 import { deLista, type OpcionSelector } from '../../utilidades/opciones';
 
 /** Lo que usa la decisión del estado de la bandeja (igual en D01 y D02). */
 export type FormularioDocente = Pick<
-  RevisionDocente,
+  EstadoBandejaDocente<RevisionPendiente>,
   'campos' | 'errores' | 'enviando' | 'elegirDificultad' | 'elegirDecision' | 'escribirMotivo'
 >;
 
@@ -80,11 +81,7 @@ function Motivo({
         />
         <MensajeError id="error-comentario" texto={errores.comentario} />
       </label>
-      {errores.general && (
-        <p className="aviso aviso--error" role="alert">
-          {errores.general}
-        </p>
-      )}
+      {errores.general && <Alerta texto={errores.general} />}
       <div className="decision__pie">
         <p className="campo__ayuda">{ayuda}</p>
         <button type="submit" className="boton boton--primario" disabled={revision.enviando}>
