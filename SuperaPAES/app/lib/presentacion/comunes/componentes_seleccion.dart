@@ -656,8 +656,15 @@ class FilaDato extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Todos los valores terminan en el borde derecho: lo que no usa una
+    // etiqueta corta queda entre ella y el valor (sin esto, el valor se
+    // corría a la izquierda según el largo de su etiqueta). Etiqueta y valor
+    // van en la misma línea base, y las cifras tienen ancho fijo para que
+    // los números de varias filas queden uno bajo el otro.
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
       children: [
         // Flexible: una etiqueta larga («Invitaciones premiadas este mes»)
         // baja de línea en vez de empujar el valor fuera (RNF-12).
@@ -674,7 +681,9 @@ class FilaDato extends StatelessWidget {
           child: Text(
             valor,
             textAlign: TextAlign.end,
-            style: TemaSuperaPaes.pequenoFuerte,
+            style: TemaSuperaPaes.pequenoFuerte.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],
