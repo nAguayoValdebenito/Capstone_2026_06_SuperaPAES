@@ -76,6 +76,18 @@ salen con el nombre visible «Supera PAES» (se explica en la sección 3).
 | Correo                   |                                                                                                                  `PROVEEDOR_CORREO`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CLAVE`, `CORREO_REMITENTE` (7) | Configuración de Brevo descrita en la sección 3.                                                                                                                  |
 | Tiendas                  | `PROVEEDOR_PAGOS`, `GOOGLE_PLAY_PAQUETE`, `GOOGLE_PLAY_CUENTA_SERVICIO`, `GOOGLE_PLAY_PUBSUB_AUDIENCIA`, `APP_STORE_BUNDLE_ID`, `APP_STORE_ID_EMISOR`, `APP_STORE_ID_CLAVE`, `APP_STORE_CLAVE_PRIVADA`, `APP_STORE_ENTORNO` (9) | `PROVEEDOR_PAGOS=tiendas`; texto de relleno claramente marcado en las siete variables de texto; `APP_STORE_ENTORNO=sandbox`.                                      |
 
+**Avisos de las tiendas (HU-44).** No llevan variables nuevas, pero cada tienda debe saber a dónde enviarlos:
+
+- Google Play: en la suscripción push de Cloud Pub/Sub del tema de las notificaciones en tiempo real, el
+  extremo `https://<api>.onrender.com/api/v1/webhooks/google-play`, con autenticación activada y la audiencia
+  igual a `GOOGLE_PLAY_PUBSUB_AUDIENCIA`. Sin el token de Google, la API responde 401 y no registra el aviso.
+- App Store: en App Store Connect, la URL de App Store Server Notifications versión 2 (sandbox)
+  `https://<api>.onrender.com/api/v1/webhooks/app-store`. Fuera de sandbox la API responde 503 y Apple
+  reintenta.
+
+Mientras no haya cuentas de las tiendas (el equipo no las paga), esto queda sin configurar y los avisos se
+prueban con respuestas simuladas.
+
 `leerConfiguracion()` de `main` permite omitir `CLAVE_TAREAS` incluso en producción, pero el flujo
 horario la necesita. Si falta o está vacía, `POST /api/v1/tareas/periodicas` no se monta y responde
 404 `NO_ENCONTRADO` («La ruta solicitada no existe.»). Si se carga, exige al menos 32 caracteres y
