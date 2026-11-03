@@ -3,6 +3,7 @@
 import type { Request, RequestHandler } from 'express';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
+import type { CambioDeEtapa } from './preguntas.publicacion.servicio.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
 import type {
   ArchivosImportacion,
@@ -29,16 +30,32 @@ export interface PreguntasControlador {
   tiposDeTexto: RequestHandler;
   revisarImportacion: Validado<ArchivosImportacion>;
   importarPreguntas: Validado<DatosImportacion>;
+  publicarPregunta: Validado;
+  retirarPregunta: Validado;
+  volverABorrador: Validado;
 }
 
-/** Administrador que crea o edita: autor de la pregunta y de la auditoría. Lo deja autenticarAdmin. */
+/**
+ * Administrador que crea, edita, publica o retira: autor de la pregunta, del historial y de la
+ * auditoría. Lo deja autenticarAdmin.
+ */
 function autorDe(req: Request<Record<string, string>, unknown, unknown>): string {
   if (!req.usuarioInterno) throw new ErrorNoAutenticado();
   return req.usuarioInterno.id;
 }
 
+/** HU-24 (CU-21): publica, retira o vuelve a borrador la pregunta a nombre del administrador. */
+const cambiarEtapa =
+  (servicio: PreguntasServicio, cambio: CambioDeEtapa): Validado =>
+  async (req, res) => {
+    responder(res, await servicio.cambiarEtapa(autorDe(req), String(req.params.id), cambio));
+  };
+
 export function crearPreguntasControlador(servicio: PreguntasServicio): PreguntasControlador {
   return {
+    publicarPregunta: cambiarEtapa(servicio, 'publicar'),
+    retirarPregunta: cambiarEtapa(servicio, 'retirar'),
+    volverABorrador: cambiarEtapa(servicio, 'borrador'),
     listarBanco: async (_req, res) => {
       // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
       const filtros = res.locals.consulta as FiltrosBanco;

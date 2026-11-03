@@ -122,6 +122,9 @@ export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
     crearPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
     obtenerPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
     editarPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
+    cambiarEtapa: vi.fn(() =>
+      Promise.resolve({ id: '84', estado: { codigo: 'publicada', nombre: 'Publicada' } }),
+    ),
     listarTextos: vi.fn(() =>
       Promise.resolve({
         textos: [

@@ -9,6 +9,7 @@ import type {
 } from '../modulos/preguntas/preguntas.edicion.repositorio.js';
 import { crearPreguntasServicio } from '../modulos/preguntas/index.js';
 import type { PreguntasImportacionRepositorio } from '../modulos/preguntas/preguntas.importacion.repositorio.js';
+import type { PublicacionRepositorio } from '../modulos/preguntas/preguntas.publicacion.repositorio.js';
 import type { PreguntasRepositorio } from '../modulos/preguntas/preguntas.repositorio.js';
 import type { DatosPregunta } from '../modulos/preguntas/preguntas.validadores.js';
 import type { PruebaTemario } from '../modulos/temario/index.js';
@@ -193,8 +194,11 @@ function importacionesEnMemoria() {
   } satisfies PreguntasImportacionRepositorio;
 }
 
-/** App con el servicio de preguntas real sobre el temario y los repositorios en memoria. */
-export function escenarioEdicion() {
+/**
+ * App con el servicio de preguntas real sobre el temario y los repositorios en memoria; `publicacion`
+ * reemplaza al repositorio de publicar y retirar (HU-24).
+ */
+export function escenarioEdicion(publicacion?: PublicacionRepositorio) {
   const { repositorio, ponerEtapa } = repositorioEnMemoria();
   const importaciones = importacionesEnMemoria();
   const textos = textosEnMemoria();
@@ -211,6 +215,7 @@ export function escenarioEdicion() {
     repositorioEdicion: repositorio,
     repositorioTextos: textos.repositorio,
     repositorioImportacion: importaciones,
+    ...(publicacion && { repositorioPublicacion: publicacion }),
   });
   const app = crearAppDePrueba({}, { preguntas, temario });
   return { app, repositorio, auditoria, ponerEtapa, textos, importaciones };
