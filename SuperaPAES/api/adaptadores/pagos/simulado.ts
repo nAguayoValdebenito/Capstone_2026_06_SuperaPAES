@@ -2,7 +2,9 @@
 // desarrollo y las pruebas automáticas. Una compra simulada es «<producto>:<cuentaTienda>», con
 // «:pendiente» (pago en espera), «:rechazada» (primer pago fallido) o «:vencida» (no vigente) al final
 // si se quiere otro resultado; sin producto y cuenta, la tienda no la encuentra. Al consultar una
-// suscripción, el dato de prueba decide: "rechazada" falla, "mora" queda en mora y lo demás se aprueba.
+// suscripción (HU-44), el dato de prueba decide: "rechazada" falla, "mora" queda en mora, "cancelada"
+// sigue activa sin renovar, "vencida" terminó por cobro, "terminada" porque no renovó, "reembolso"
+// porque la tienda la devolvió, y lo demás está activa.
 // Un producto o compra que contiene "anual" dura 12 meses; el resto, 1 mes.
 // Los avisos no llevan firma: nunca se usa con PROVEEDOR_PAGOS=tiendas.
 import { z } from 'zod';
@@ -12,7 +14,8 @@ import type {
   AvisoEntrante,
   AvisoVerificado,
   CompraVerificada,
-  EstadoSuscripcion,
+  EstadoEnTienda,
+  FinEnTienda,
   PasarelaPago,
   SuscripcionEnTienda,
   Tienda,
@@ -24,10 +27,21 @@ const esquemaAviso = z.object({
   idCompraTienda: z.string().min(1).nullable().default(null),
 });
 
-function estadoSimulado(idCompraTienda: string): EstadoSuscripcion {
-  if (idCompraTienda.includes('rechazada')) return 'fallida';
-  if (idCompraTienda.includes('mora')) return 'en_mora';
-  return 'activa';
+const TERMINADAS: [string, FinEnTienda][] = [
+  ['reembolso', 'reembolso'],
+  ['vencida', 'cobro'],
+  ['terminada', 'no_renovo'],
+];
+
+function estadoSimulado(idCompraTienda: string): {
+  estado: EstadoEnTienda;
+  fin: FinEnTienda | null;
+} {
+  const terminada = TERMINADAS.find(([marca]) => idCompraTienda.includes(marca));
+  if (terminada) return { estado: 'terminada', fin: terminada[1] };
+  if (idCompraTienda.includes('rechazada')) return { estado: 'fallida', fin: null };
+  if (idCompraTienda.includes('mora')) return { estado: 'en_mora', fin: null };
+  return { estado: 'activa', fin: null };
 }
 
 export class PasarelaPagoSimulada implements PasarelaPago {
@@ -66,12 +80,19 @@ export class PasarelaPagoSimulada implements PasarelaPago {
   }
 
   consultarSuscripcion(idCompraTienda: string): Promise<SuscripcionEnTienda> {
-    const estado = estadoSimulado(idCompraTienda);
+    const { estado, fin } = estadoSimulado(idCompraTienda);
+    const [idProducto, cuentaTienda] = idCompraTienda.split(':');
+    const cobrada = estado === 'activa';
     return Promise.resolve({
       idCompraTienda,
       estado,
-      periodoFin: estado === 'activa' ? this.finDePeriodo(idCompraTienda) : null,
-      renovacionAutomatica: estado === 'activa',
+      fin,
+      idProducto: cuentaTienda === undefined ? null : (idProducto ?? null),
+      cuentaTienda: cuentaTienda ?? null,
+      periodoInicio: cobrada ? this.reloj() : null,
+      periodoFin: cobrada ? this.finDePeriodo(idCompraTienda) : null,
+      idPagoPasarela: cobrada ? `sim-${idCompraTienda}` : null,
+      renovacionAutomatica: cobrada && !idCompraTienda.includes('cancelada'),
     });
   }
 

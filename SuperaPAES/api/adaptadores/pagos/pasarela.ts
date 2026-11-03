@@ -36,10 +36,34 @@ export interface CompraVerificada {
   productoRenovacion: string | null;
 }
 
+/**
+ * Estado de una suscripción según la tienda (HU-44), antes de aplicarlo a RN-26: la tienda no sabe si
+ * una terminada queda cancelada o vencida, porque eso depende del estado que tenía aquí.
+ * - en_mora: un cobro de renovación falló y la tienda sigue intentando (período de gracia, retención de
+ *   cuenta de Google o reintento de cobro de Apple).
+ * - terminada: ya no da acceso; `fin` dice por qué.
+ */
+export type EstadoEnTienda = 'pendiente' | 'fallida' | 'activa' | 'en_mora' | 'terminada';
+
+/** Por qué terminó: el estudiante no renovó, no se pudo cobrar, o la tienda la reembolsó o revocó. */
+export type FinEnTienda = 'no_renovo' | 'cobro' | 'reembolso';
+
+/** Lo que la tienda informa hoy de una compra de suscripción, al consultarla tras un aviso (HU-44). */
 export interface SuscripcionEnTienda {
   idCompraTienda: string;
-  estado: EstadoSuscripcion;
+  estado: EstadoEnTienda;
+  /** Solo en una terminada. */
+  fin: FinEnTienda | null;
+  /** Producto que da acceso ahora (en un cambio de plan, el nuevo). */
+  idProducto: string | null;
+  /** Cuenta que la app pasó al comprar (obfuscatedAccountId o appAccountToken); null si no vino. */
+  cuentaTienda: string | null;
+  /** Período pagado en curso, si hay cobro. */
+  periodoInicio: Date | null;
   periodoFin: Date | null;
+  /** Último cobro (app.pago.id_pago_pasarela), si lo hubo. */
+  idPagoPasarela: string | null;
+  /** false si el estudiante canceló la renovación (HU-45.1): sigue activa hasta periodoFin. */
   renovacionAutomatica: boolean;
 }
 
