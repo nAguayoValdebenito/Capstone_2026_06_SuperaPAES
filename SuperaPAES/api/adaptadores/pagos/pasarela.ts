@@ -81,6 +81,8 @@ export interface AvisoVerificado {
   /** Tipo original, por ejemplo SUBSCRIPTION_RENEWED o DID_RENEW. */
   tipo: string;
   idCompraTienda: string | null;
+  /** El aviso informa un reembolso o una revocación: la suscripción termina ahora (HU-44). */
+  reembolso?: boolean;
 }
 
 export interface PasarelaPago {

@@ -3,13 +3,13 @@
 // la cuenta de servicio GOOGLE_PLAY_CUENTA_SERVICIO: el JWT se firma con jose (RS256) y se cambia por
 // un token de acceso (OAuth 2.0), que se reutiliza hasta un minuto antes de vencer. El cliente HTTP y
 // el reloj se inyectan. Nada de la compra, la llave ni el token llega a los registros.
-// - verificarAviso y consultarSuscripcion: avisos RTDN por Cloud Pub/Sub con la audiencia
-//   GOOGLE_PLAY_PUBSUB_AUDIENCIA (HU-44).
+// - verificarAviso y consultarSuscripcion (HU-44.1): avisos RTDN por Cloud Pub/Sub con la audiencia
+//   GOOGLE_PLAY_PUBSUB_AUDIENCIA, verificados y traducidos en google-play-avisos.ts.
 import { readFile } from 'node:fs/promises';
-import { importPKCS8, SignJWT } from 'jose';
+import { importPKCS8, SignJWT, type JWTVerifyGetKey } from 'jose';
 import { z } from 'zod';
 import type { ConfiguracionGooglePlay } from '../../comun/configuracion.js';
-import { ErrorCompraNoValida, ErrorNoImplementado } from '../../comun/errores.js';
+import { ErrorCompraNoValida } from '../../comun/errores.js';
 import { relojDelSistema, type Reloj } from '../../comun/reloj.js';
 import {
   clienteHttpFetch,
@@ -17,7 +17,15 @@ import {
   type PeticionHttp,
   type RespuestaHttp,
 } from './http.js';
+import {
+  esquemaCompra,
+  llavesDeGoogle,
+  suscripcionEnTiendaDe,
+  verificarAvisoGoogle,
+  type CompraDeGoogle,
+} from './google-play-avisos.js';
 import type {
+  AvisoEntrante,
   AvisoVerificado,
   CompraVerificada,
   PasarelaPago,
@@ -41,27 +49,6 @@ const esquemaToken = z.object({
   expires_in: z.number().positive(),
 });
 
-/** SubscriptionPurchaseV2: solo los campos que se usan. */
-const esquemaCompra = z.object({
-  subscriptionState: z.string().default('SUBSCRIPTION_STATE_UNSPECIFIED'),
-  latestOrderId: z.string().optional(),
-  acknowledgementState: z.string().optional(),
-  externalAccountIdentifiers: z
-    .object({ obfuscatedExternalAccountId: z.string().optional() })
-    .optional(),
-  lineItems: z
-    .array(
-      z.object({
-        productId: z.string().min(1),
-        expiryTime: z.string().optional(),
-        latestSuccessfulOrderId: z.string().optional(),
-      }),
-    )
-    .default([]),
-});
-
-type CompraDeGoogle = z.infer<typeof esquemaCompra>;
-
 interface CuentaServicio {
   correo: string;
   urlToken: string;
@@ -71,6 +58,8 @@ interface CuentaServicio {
 export interface DependenciasGooglePlay {
   http?: ClienteHttp;
   reloj?: Reloj;
+  /** Llaves públicas de Google para el token de Pub/Sub; por defecto, las publicadas por Google. */
+  llavesPubSub?: JWTVerifyGetKey;
 }
 
 /**
@@ -125,6 +114,7 @@ export class PasarelaGooglePlay implements PasarelaPago {
   readonly nombre = 'google-play';
   private readonly http: ClienteHttp;
   private readonly reloj: Reloj;
+  private readonly llavesPubSub: JWTVerifyGetKey;
   private cuenta: CuentaServicio | null = null;
   private token: { valor: string; venceEn: number } | null = null;
 
@@ -134,19 +124,11 @@ export class PasarelaGooglePlay implements PasarelaPago {
   ) {
     this.http = dependencias.http ?? clienteHttpFetch;
     this.reloj = dependencias.reloj ?? relojDelSistema;
+    this.llavesPubSub = dependencias.llavesPubSub ?? llavesDeGoogle();
   }
 
   async verificarCompra(idCompraTienda: string): Promise<CompraVerificada> {
-    const respuesta = await this.pedirConToken({
-      metodo: 'GET',
-      url: `${this.urlCompras()}/subscriptionsv2/tokens/${encodeURIComponent(idCompraTienda)}`,
-    });
-    if ([400, 404, 410].includes(respuesta.estado)) throw new ErrorCompraNoValida('no_encontrada');
-    if (respuesta.estado !== 200)
-      throw noDisponible('google_play', 'la consulta de la compra falló', {
-        estadoHttp: respuesta.estado,
-      });
-    const compra = leerJson('google_play', respuesta, esquemaCompra, 'la compra');
+    const compra = await this.compraEnGoogle(idCompraTienda);
     return aCompraVerificada(idCompraTienda, compra, this.reloj());
   }
 
@@ -167,12 +149,34 @@ export class PasarelaGooglePlay implements PasarelaPago {
       });
   }
 
-  consultarSuscripcion(): Promise<SuscripcionEnTienda> {
-    return Promise.reject(new ErrorNoImplementado('La consulta de suscripciones en Google Play'));
+  /** HU-44.1: el estado de hoy de la compra, tras un aviso (purchases.subscriptionsv2.get). */
+  async consultarSuscripcion(idCompraTienda: string): Promise<SuscripcionEnTienda> {
+    const compra = await this.compraEnGoogle(idCompraTienda);
+    return suscripcionEnTiendaDe(idCompraTienda, compra, this.reloj());
   }
 
-  verificarAviso(): Promise<AvisoVerificado> {
-    return Promise.reject(new ErrorNoImplementado('Los avisos de Google Play'));
+  /** HU-44.1: verifica el token del envío de Pub/Sub y traduce la notificación. */
+  verificarAviso(aviso: AvisoEntrante): Promise<AvisoVerificado> {
+    return verificarAvisoGoogle(aviso, {
+      audiencia: this.opciones.audienciaPubSub,
+      paquete: this.opciones.paquete,
+      llaves: this.llavesPubSub,
+      ahora: this.reloj(),
+    });
+  }
+
+  /** purchases.subscriptionsv2.get: una compra que Google no encuentra no es válida. */
+  private async compraEnGoogle(idCompraTienda: string): Promise<CompraDeGoogle> {
+    const respuesta = await this.pedirConToken({
+      metodo: 'GET',
+      url: `${this.urlCompras()}/subscriptionsv2/tokens/${encodeURIComponent(idCompraTienda)}`,
+    });
+    if ([400, 404, 410].includes(respuesta.estado)) throw new ErrorCompraNoValida('no_encontrada');
+    if (respuesta.estado !== 200)
+      throw noDisponible('google_play', 'la consulta de la compra falló', {
+        estadoHttp: respuesta.estado,
+      });
+    return leerJson('google_play', respuesta, esquemaCompra, 'la compra');
   }
 
   private urlCompras(): string {

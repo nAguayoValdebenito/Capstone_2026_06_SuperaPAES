@@ -25,6 +25,7 @@ const esquemaAviso = z.object({
   idEvento: z.string().min(1),
   tipo: z.string().min(1),
   idCompraTienda: z.string().min(1).nullable().default(null),
+  reembolso: z.boolean().default(false),
 });
 
 const TERMINADAS: [string, FinEnTienda][] = [

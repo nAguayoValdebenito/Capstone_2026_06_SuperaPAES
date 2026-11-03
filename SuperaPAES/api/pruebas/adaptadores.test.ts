@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FabricaProveedores } from '../adaptadores/fabrica.js';
 import { PasarelaPagoSimulada } from '../adaptadores/pagos/simulado.js';
-import { ErrorNoImplementado, ErrorSolicitudInvalida } from '../comun/errores.js';
+import {
+  ErrorNoAutenticado,
+  ErrorNoImplementado,
+  ErrorSolicitudInvalida,
+} from '../comun/errores.js';
 import { relojDelSistema } from '../comun/reloj.js';
 import { sobreDeepSeek, sobreGemini } from './ia-fixtures.js';
 
@@ -117,12 +121,17 @@ describe('FabricaProveedores: pagos', () => {
     expect(pagos.app_store.nombre).toBe('app-store');
   });
 
-  it('los avisos y la consulta de las tiendas aún no están implementados (HU-44)', async () => {
+  it('Google Play exige el token de Pub/Sub; la App Store todavía no atiende avisos (HU-44)', async () => {
     const aviso = { cuerpoCrudo: Buffer.from('{}'), encabezados: {} };
-    for (const pasarela of Object.values(FabricaProveedores.pagos(tiendas, relojDelSistema))) {
-      await expect(pasarela.consultarSuscripcion('c')).rejects.toBeInstanceOf(ErrorNoImplementado);
-      await expect(pasarela.verificarAviso(aviso)).rejects.toBeInstanceOf(ErrorNoImplementado);
-    }
+    const pagos = FabricaProveedores.pagos(tiendas, relojDelSistema);
+
+    await expect(pagos.google_play.verificarAviso(aviso)).rejects.toBeInstanceOf(
+      ErrorNoAutenticado,
+    );
+    await expect(pagos.app_store.consultarSuscripcion('c')).rejects.toBeInstanceOf(
+      ErrorNoImplementado,
+    );
+    await expect(pagos.app_store.verificarAviso(aviso)).rejects.toBeInstanceOf(ErrorNoImplementado);
   });
 
   it('crea todos los proveedores a partir de la configuración', () => {
@@ -224,6 +233,7 @@ describe('PasarelaPagoSimulada', () => {
       idEvento: 'e1',
       tipo: 'RENOVADA',
       idCompraTienda: null,
+      reembolso: false,
     });
     await expect(
       pasarela.verificarAviso({ cuerpoCrudo: Buffer.from('no es json'), encabezados: {} }),
