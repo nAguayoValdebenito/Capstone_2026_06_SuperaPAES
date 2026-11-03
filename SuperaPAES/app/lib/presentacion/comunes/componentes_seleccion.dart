@@ -140,8 +140,9 @@ class TarjetaCasilla extends StatelessWidget {
   }
 }
 
-/// Recuadro que se toca: blanco con borde, o azul suave con borde azul si
-/// está seleccionado.
+/// Recuadro que se toca: blanco con la sombra suave de lo que se toca, o
+/// azul suave con borde azul si está seleccionado. Sin [onTap] (ya
+/// corregido) queda plano, con borde.
 class _Seleccionable extends StatelessWidget {
   const _Seleccionable({
     required this.seleccionada,
@@ -166,21 +167,32 @@ class _Seleccionable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final forma = BorderRadius.circular(TemaSuperaPaes.radioBoton);
+    final conSombra = onTap != null && colores == null && !seleccionada;
     final (fondo, borde) =
         colores ??
         (seleccionada
             ? (TemaSuperaPaes.primarioSuave, TemaSuperaPaes.primario)
-            : (TemaSuperaPaes.superficie, TemaSuperaPaes.borde));
-    return Material(
-      color: fondo,
-      shape: RoundedRectangleBorder(
+            : (
+                TemaSuperaPaes.superficie,
+                // El borde transparente mantiene el tamaño al seleccionar.
+                conSombra ? Colors.transparent : TemaSuperaPaes.borde,
+              ));
+    return DecoratedBox(
+      decoration: BoxDecoration(
         borderRadius: forma,
-        side: BorderSide(color: borde, width: bordeAncho),
+        boxShadow: conSombra ? TemaSuperaPaes.sombraSuave : null,
       ),
-      child: InkWell(
-        borderRadius: forma,
-        onTap: onTap,
-        child: Padding(padding: padding, child: child),
+      child: Material(
+        color: fondo,
+        shape: RoundedRectangleBorder(
+          borderRadius: forma,
+          side: BorderSide(color: borde, width: bordeAncho),
+        ),
+        child: InkWell(
+          borderRadius: forma,
+          onTap: onTap,
+          child: Padding(padding: padding, child: child),
+        ),
       ),
     );
   }
@@ -706,7 +718,8 @@ class FilaNavegacion extends StatelessWidget {
   }
 }
 
-/// Tarjeta con filas separadas por una línea (A37).
+/// Tarjeta con filas que se tocan, separadas por una línea (A37), con la
+/// sombra suave de lo que se toca.
 class ListaDeFilas extends StatelessWidget {
   const ListaDeFilas({required this.filas, super.key});
 
@@ -714,20 +727,24 @@ class ListaDeFilas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: TemaSuperaPaes.superficie,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioTarjeta),
-        side: const BorderSide(color: TemaSuperaPaes.borde),
+    final radio = BorderRadius.circular(TemaSuperaPaes.radioTarjeta);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radio,
+        boxShadow: TemaSuperaPaes.sombraSuave,
       ),
-      child: Column(
-        children: [
-          for (final (i, fila) in filas.indexed) ...[
-            if (i > 0) const Divider(height: 1),
-            fila,
+      child: Material(
+        color: TemaSuperaPaes.superficie,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: radio),
+        child: Column(
+          children: [
+            for (final (i, fila) in filas.indexed) ...[
+              if (i > 0) const Divider(height: 1),
+              fila,
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
