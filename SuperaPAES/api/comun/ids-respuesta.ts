@@ -194,6 +194,14 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.pruebaId',
     'data.cambioEnRenovacion.planId',
   ],
+  'GET /api/v1/admin/suscripciones/': ['data[].id'],
+  'GET /api/v1/admin/suscripciones/avisos-error': ['data[].id', 'data[].suscripcionId'],
+  'GET /api/v1/admin/suscripciones/:id': [
+    'data.id',
+    'data.historial[].id',
+    'data.pagos[].id',
+    'data.avisos[].id',
+  ],
 };
 
 const MAXIMO_ID = BigInt(Number.MAX_SAFE_INTEGER);

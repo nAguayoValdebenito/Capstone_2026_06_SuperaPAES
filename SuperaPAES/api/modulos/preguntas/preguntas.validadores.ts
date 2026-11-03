@@ -1,5 +1,6 @@
 // Esquemas zod de entrada del módulo preguntas. Se usan con validar() en las rutas.
 import { z } from 'zod';
+import { codigoConsulta, idConsulta, numeroDePagina } from '../../comun/consultas.js';
 import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 
 /** Preguntas por página del banco: 20 por defecto (docs/convenciones.md), hasta 100. */
@@ -12,25 +13,6 @@ export const MAXIMO_POR_PAGINA_BANCO = 100;
  */
 export const ORIGENES_PREGUNTA = ['manual', 'importacion', 'ia'] as const;
 export type OrigenPregunta = (typeof ORIGENES_PREGUNTA)[number];
-
-/** Id de la consulta (?prueba=3): un entero positivo escrito como texto. */
-const idConsulta = (maximo: number) =>
-  z
-    .string()
-    .regex(/^[1-9]\d{0,9}$/, 'El identificador no es válido.')
-    .transform(Number)
-    .pipe(z.number().max(maximo, 'El identificador no es válido.'));
-
-/** Código de una lista de opciones (estado_pregunta, dificultad); el servicio comprueba que exista. */
-const codigoConsulta = z.string().regex(/^[a-z_]{1,15}$/, 'El código no es válido.');
-
-const numeroDePagina = (porDefecto: number, maximo: number) =>
-  z
-    .string()
-    .regex(/^[1-9]\d{0,5}$/, 'Debe ser un número entero positivo.')
-    .transform(Number)
-    .pipe(z.number().max(maximo, `Puede ser hasta ${String(maximo)}.`))
-    .default(porDefecto);
 
 /**
  * HU-11 y RF-G01: filtros del banco. Todos son opcionales y se combinan. prueba (SMALLINT), eje

@@ -5,6 +5,7 @@ import { expect, vi } from 'vitest';
 import { crearApp, crearServicios } from '../app.js';
 import { cuerpoDePreguntas, preguntasDePrueba } from './escenario-ids-preguntas.js';
 import { cuerpoDeRevision, esDelDocente, revisionDePrueba } from './escenario-ids-revision.js';
+import { trazabilidadDePrueba } from './escenario-ids-suscripciones.js';
 import {
   cuerpoPuntajes,
   generadorDePrueba,
@@ -173,7 +174,11 @@ export function escenario() {
     preguntas,
     evaluaciones,
     privacidad: privacidadDePrueba,
-    suscripciones: { ...servicios.suscripciones, ...suscripcionesDePrueba },
+    suscripciones: {
+      ...servicios.suscripciones,
+      ...suscripcionesDePrueba,
+      ...trazabilidadDePrueba,
+    },
     generador: { ...servicios.generador, ...generadorDePrueba },
     revision: revisionDePrueba(servicios.revision),
   });
