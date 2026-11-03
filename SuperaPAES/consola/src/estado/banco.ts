@@ -11,9 +11,9 @@ import type {
   OpcionesFiltrosBanco,
   OrigenPregunta,
   PaginaDelBanco,
-  Paginacion,
   PruebaTemario,
 } from '../tipos';
+import { entero } from '../utilidades/busqueda';
 import { mensajeDeError } from './usuarios-internos';
 
 export type CargaBanco =
@@ -48,9 +48,6 @@ export function conFiltro<C extends keyof FiltrosBanco>(
 const IDS = ['prueba', 'eje', 'contenido', 'habilidad'] as const;
 const CODIGOS = ['estado', 'dificultad'] as const;
 const ORIGENES: readonly string[] = ['manual', 'importacion', 'ia'] satisfies OrigenPregunta[];
-
-const entero = (texto: string | null) =>
-  texto !== null && /^[1-9]\d{0,9}$/.test(texto) ? Number(texto) : undefined;
 
 /** Filtros y página guardados en la URL. Lo que no se entiende se ignora: la API valida el resto. */
 export function leerBusqueda(busqueda: URLSearchParams): { filtros: FiltrosBanco; pagina: number } {
@@ -88,9 +85,7 @@ export function habilidadesDisponibles(pruebas: readonly PruebaTemario[], filtro
   return pruebas.find((p) => p.id === filtros.prueba)?.habilidades ?? [];
 }
 
-export function totalDePaginas({ total, porPagina }: Paginacion): number {
-  return porPagina > 0 ? Math.max(1, Math.ceil(total / porPagina)) : 1;
-}
+export { totalDePaginas } from '../servicios/paginacion';
 
 function useOpciones(): CargaOpciones {
   const [carga, setCarga] = useState<CargaOpciones>({ tipo: 'cargando' });

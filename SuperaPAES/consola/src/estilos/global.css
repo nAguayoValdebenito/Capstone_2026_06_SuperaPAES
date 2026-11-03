@@ -420,17 +420,23 @@ a {
   color: var(--primario);
 }
 
-.etiqueta--observada {
+/* Con los mismos colores: los estados de la suscripción (RN-26) y el modo de prueba (C16). */
+.etiqueta--observada,
+.etiqueta--en_mora,
+.etiqueta--prueba {
   color: var(--aviso);
 }
 
 .etiqueta--aprobada,
-.etiqueta--publicada {
+.etiqueta--publicada,
+.etiqueta--activa {
   color: var(--exito);
 }
 
 .etiqueta--rechazada,
-.etiqueta--retirada {
+.etiqueta--retirada,
+.etiqueta--fallida,
+.etiqueta--cancelada {
   color: var(--error);
 }
 
@@ -1148,8 +1154,116 @@ a.boton {
   color: var(--error);
 }
 
+/* Suscripciones (C16): tarjetas del mes, lista con la línea de tiempo al lado y el resumen al pie. */
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+}
+
+.tarjeta {
+  padding: 1rem 1.25rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.tarjeta dt {
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.tarjeta dd {
+  margin: 0.25rem 0 0;
+  font-size: var(--texto-lg);
+  font-weight: 700;
+}
+
+.filtros__busqueda {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.suscripciones {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.suscripciones__resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1.5rem;
+}
+
+.suscripciones__vacio {
+  margin-top: 1.5rem;
+}
+
+/* Un botón que se lee como texto de la tabla (el correo que abre la línea de tiempo). */
+.boton-texto {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primario);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.fila--elegida td {
+  background: var(--fondo);
+}
+
+/* La línea de tiempo es un .panel: aquí solo lo que cambia. */
+.linea-tiempo {
+  gap: 0.5rem;
+}
+
+.linea-tiempo h2 {
+  font-size: var(--texto-md);
+  overflow-wrap: anywhere;
+}
+
+.linea-tiempo h3 {
+  margin: 0.75rem 0 0;
+  font-size: var(--texto-base);
+}
+
+.linea-tiempo__cambios {
+  margin: 1rem 0 0;
+  padding: 0 0 0 1.25rem;
+  border-left: 2px solid var(--borde);
+  list-style: none;
+}
+
+.linea-tiempo__cambios li,
+.linea-tiempo__lista li {
+  margin-bottom: 0.75rem;
+}
+
+.linea-tiempo__lista {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linea-tiempo__nota {
+  margin: 0.5rem 0 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
 @media (max-width: 72rem) {
   .editor-pregunta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .suscripciones {
     grid-template-columns: minmax(0, 1fr);
   }
 

@@ -8,6 +8,14 @@ import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
 import { crearComprasServicio, type ComprasServicio } from './suscripciones.compras.servicio.js';
+import {
+  crearTrazabilidadRepositorio,
+  type TrazabilidadRepositorio,
+} from './suscripciones.trazabilidad.repositorio.js';
+import {
+  crearTrazabilidadServicio,
+  type TrazabilidadServicio,
+} from './suscripciones.trazabilidad.servicio.js';
 import { crearValidacionRepositorio } from './suscripciones.validacion.repositorio.js';
 import {
   crearValidacionServicio,
@@ -27,6 +35,8 @@ export interface DependenciasSuscripcionesServicio {
   pagos: PasarelasPorTienda;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearSuscripcionesRepositorio(bd). */
   repositorio?: SuscripcionesRepositorio;
+  /** Solo para pruebas: reemplaza al de la trazabilidad en la consola (HU-56). */
+  repositorioTrazabilidad?: TrazabilidadRepositorio;
 }
 
 const NOMBRE_TIENDA: Record<Tienda, string> = {
@@ -34,7 +44,8 @@ const NOMBRE_TIENDA: Record<Tienda, string> = {
   app_store: 'la App Store',
 };
 
-export interface SuscripcionesServicio extends ComprasServicio, ValidacionServicio {
+export interface SuscripcionesServicio
+  extends ComprasServicio, ValidacionServicio, TrazabilidadServicio {
   /**
    * Verifica y procesa un aviso de una tienda (RN-17): se registra una sola vez en
    * app.evento_pasarela y cada cambio de estado o de plan queda en app.suscripcion_evento, con el
@@ -69,9 +80,13 @@ export function crearSuscripcionesServicio(
     compras: comprasRepositorio,
     validacion: crearValidacionRepositorio(dependencias.bd),
   });
+  const trazabilidad = crearTrazabilidadServicio(
+    dependencias.repositorioTrazabilidad ?? crearTrazabilidadRepositorio(dependencias.bd),
+  );
   return {
     ...compras,
     ...validacion,
+    ...trazabilidad,
     recibirAviso: (tienda) =>
       Promise.reject(
         new ErrorNoImplementado(`El procesamiento de avisos de ${NOMBRE_TIENDA[tienda]}`),
