@@ -496,6 +496,11 @@ a.boton {
   color: var(--primario);
 }
 
+.aviso--advertencia {
+  border-color: var(--aviso);
+  color: var(--aviso);
+}
+
 /* Crear o editar pregunta (C03): formulario a la izquierda y vista previa (390 px) a la derecha. */
 .editor-pregunta {
   display: grid;
@@ -1078,6 +1083,71 @@ a.boton {
   margin: 0;
 }
 
+/* Desempates (D02): las dos revisiones de la ronda, lado a lado, con su pauta. */
+.revisiones-ronda {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.revision-ronda {
+  padding: 1rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.revision-ronda h3 {
+  margin: 0 0 0.75rem;
+  font-size: var(--texto-base);
+}
+
+.revision-ronda__resumen {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.revision-ronda__resumen dt {
+  color: var(--texto-secundario);
+}
+
+.revision-ronda__resumen dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.revision-ronda__pauta {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--texto-sm);
+}
+
+.revision-ronda__punto {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.revision-ronda__punto .tabla__secundario {
+  display: block;
+}
+
+.revision-ronda__marca {
+  flex: none;
+  min-width: 1.75rem;
+  color: var(--exito);
+  font-weight: 600;
+}
+
+.revision-ronda__punto--no .revision-ronda__marca {
+  color: var(--error);
+}
+
 @media (max-width: 72rem) {
   .editor-pregunta {
     grid-template-columns: minmax(0, 1fr);
@@ -1113,7 +1183,8 @@ a.boton {
   }
 
   .revision-docente,
-  .revision-alternativas {
+  .revision-alternativas,
+  .revisiones-ronda {
     grid-template-columns: minmax(0, 1fr);
   }
 

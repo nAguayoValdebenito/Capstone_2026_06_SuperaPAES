@@ -3,10 +3,12 @@
 import { describe, expect, it } from 'vitest';
 import { ErrorApi } from '../api/cliente';
 import {
+  armarDecision,
   armarRevision,
   type CamposRevision,
   camposVacios,
   erroresDeApi,
+  validarDecision,
   validarRevision,
 } from './formulario-revision';
 
@@ -93,6 +95,30 @@ describe('armar la revisión para la API', () => {
 
   it('sin motivo envía null', () => {
     expect(armarRevision(completa(), PREGUNTA.pauta).comentario).toBeNull();
+  });
+});
+
+describe('la decisión del desempate (D02, CU-20)', () => {
+  it('pide la dificultad final y la decisión, sin la pauta', () => {
+    expect(validarDecision(camposVacios(), PREGUNTA)).toEqual({
+      dificultad: 'Elige la dificultad que asignas.',
+      decision: 'Elige si apruebas, observas o rechazas la pregunta.',
+    });
+    expect(validarDecision(completa({ criterios: {} }), PREGUNTA)).toEqual({});
+  });
+
+  it('rechazar exige el motivo', () => {
+    expect(validarDecision(completa({ decision: 'rechazar' }), PREGUNTA)).toEqual({
+      comentario: 'Escribe el motivo para rechazar la pregunta.',
+    });
+  });
+
+  it('se arma sin la pauta y con el motivo limpio', () => {
+    expect(armarDecision(completa({ decision: 'observar', comentario: '  Aclarar.  ' }))).toEqual({
+      dificultad: 'media',
+      decision: 'observar',
+      comentario: 'Aclarar.',
+    });
   });
 });
 
