@@ -5,7 +5,13 @@
 import type { Express } from 'express';
 import request from 'supertest';
 import { beforeAll, beforeEach, expect, vi } from 'vitest';
-import type { CompraVerificada, PasarelaPago } from '../adaptadores/fabrica.js';
+import type {
+  AvisoEntrante,
+  AvisoVerificado,
+  CompraVerificada,
+  PasarelaPago,
+  SuscripcionEnTienda,
+} from '../adaptadores/fabrica.js';
 import type { Dependencias } from '../app.js';
 import { crearDependenciasDePrueba } from './ayudantes.js';
 import { prepararPracticas } from './base-practicas.js';
@@ -32,27 +38,35 @@ export function compraActiva(cambios: Partial<CompraVerificada> = {}): CompraVer
   };
 }
 
-/** Pasarela falsa para las dos tiendas: `verificar` y `confirmar` se ajustan en cada prueba. */
+/**
+ * Pasarela falsa para las dos tiendas: `verificar`, `confirmar`, `consultar` (el estado de la compra
+ * tras un aviso, HU-44) y `avisar` (el aviso ya verificado) se ajustan en cada prueba.
+ */
 function tiendaFalsa() {
   const verificar = vi.fn<(id: string) => Promise<CompraVerificada>>();
   const confirmar =
     vi.fn<(compra: Pick<CompraVerificada, 'idProducto' | 'idCompraTienda'>) => Promise<void>>();
-  const noSeUsa = () => Promise.reject(new Error('HU-44'));
+  const consultar = vi.fn<(id: string) => Promise<SuscripcionEnTienda>>();
+  const avisar = vi.fn<(aviso: AvisoEntrante) => Promise<AvisoVerificado>>();
   const pasarela: PasarelaPago = {
     nombre: 'simulado',
     verificarCompra: (id) => verificar(id),
     confirmarCompra: (compra) => confirmar(compra),
-    consultarSuscripcion: noSeUsa,
-    verificarAviso: noSeUsa,
+    consultarSuscripcion: (id) => consultar(id),
+    verificarAviso: (aviso) => avisar(aviso),
   };
   return {
     verificar,
     confirmar,
+    consultar,
+    avisar,
     pagos: { google_play: pasarela, app_store: pasarela },
     reiniciar() {
       verificar.mockReset();
       confirmar.mockReset();
       confirmar.mockResolvedValue(undefined);
+      consultar.mockReset();
+      avisar.mockReset();
     },
   };
 }
