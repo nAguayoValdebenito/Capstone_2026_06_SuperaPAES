@@ -1,0 +1,61 @@
+/* /terminos y /privacidad: páginas públicas para leer en el teléfono o en el computador, con el logo
+   y un ancho de lectura cómodo. */
+
+.legal {
+  display: grid;
+  gap: 1.5rem;
+  justify-items: center;
+  min-height: 100vh;
+  padding: 2rem 1.5rem;
+}
+
+.legal__logo {
+  width: 9rem;
+  height: auto;
+}
+
+.legal__texto {
+  width: min(44rem, 100%);
+  padding: 2rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.75rem;
+  line-height: 1.6;
+}
+
+.legal__texto h1 {
+  margin: 0 0 0.5rem;
+  font-size: var(--texto-lg);
+  line-height: 1.2;
+}
+
+.legal__texto h2 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: var(--texto-md);
+}
+
+.legal__texto p,
+.legal__texto ul {
+  margin: 0 0 0.75rem;
+}
+
+.legal__texto li + li {
+  margin-top: 0.25rem;
+}
+
+.legal__pie {
+  width: min(44rem, 100%);
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+@media (max-width: 30rem) {
+  .legal {
+    padding: 1.5rem 1rem;
+  }
+
+  .legal__texto {
+    padding: 1.25rem;
+  }
+}

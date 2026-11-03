@@ -1,5 +1,6 @@
 // Cliente HTTP de la consola sobre fetch: URL base, token de sesión y formato { data, error, meta }.
-// La consola habla con /api/v1/admin (solicitarAdmin); /api/v1/salud es la única ruta fuera de admin.
+// La consola habla con /api/v1/admin (solicitarAdmin); las rutas públicas fuera de admin, con solicitar(),
+// y cada servicio dice cuál usa.
 import type { CuerpoRespuesta } from '../tipos';
 
 // La API local solo se usa por defecto en desarrollo. En producción VITE_API_URL es obligatoria.
@@ -75,17 +76,17 @@ function esCuerpoRespuesta(valor: unknown): valor is CuerpoRespuesta<unknown> {
   return typeof valor === 'object' && valor !== null && 'data' in valor && 'error' in valor;
 }
 
-function armarEncabezados(opciones: RequestInit): Headers {
+function armarEncabezados(opciones: RequestInit, conSesion: boolean): Headers {
   const encabezados = new Headers(opciones.headers);
   encabezados.set('Accept', 'application/json');
   if (opciones.body !== undefined) encabezados.set('Content-Type', 'application/json');
-  const token = obtenerToken();
+  const token = conSesion ? obtenerToken() : null;
   if (token) encabezados.set('Authorization', `Bearer ${token}`);
   return encabezados;
 }
 
-async function enviar(ruta: string, opciones: RequestInit): Promise<Response> {
-  const encabezados = armarEncabezados(opciones);
+async function enviar(ruta: string, opciones: RequestInit, conSesion = true): Promise<Response> {
+  const encabezados = armarEncabezados(opciones, conSesion);
   if (!URL_BASE) {
     throw new ErrorApi(
       0,
@@ -126,9 +127,24 @@ async function leerCuerpo(respuesta: Response): Promise<CuerpoRespuesta<unknown>
   return cuerpo;
 }
 
-async function pedir<T>(ruta: string, opciones: RequestInit): Promise<Respuesta<T>> {
-  const cuerpo = await leerCuerpo(await enviar(ruta, opciones));
+async function pedir<T>(
+  ruta: string,
+  opciones: RequestInit,
+  conSesion = true,
+): Promise<Respuesta<T>> {
+  const cuerpo = await leerCuerpo(await enviar(ruta, opciones, conSesion));
   return { data: cuerpo.data as T, meta: cuerpo.meta };
+}
+
+/**
+ * Llama a una ruta pública de /api/v1 sin el token de la consola, aunque haya sesión: el token de la
+ * consola no viaja a las rutas de la app (por ejemplo, los textos legales de /terminos y /privacidad).
+ */
+export function solicitarPublica<T>(
+  ruta: string,
+  opciones: RequestInit = {},
+): Promise<Respuesta<T>> {
+  return pedir<T>(ruta, opciones, false);
 }
 
 /** Después de renovar, repite la petición una sola vez; si se rechaza de nuevo, la sesión terminó. */
