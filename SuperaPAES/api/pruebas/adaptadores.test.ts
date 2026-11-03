@@ -3,8 +3,8 @@ import { FabricaProveedores } from '../adaptadores/fabrica.js';
 import { PasarelaPagoSimulada } from '../adaptadores/pagos/simulado.js';
 import {
   ErrorNoAutenticado,
-  ErrorNoImplementado,
   ErrorSolicitudInvalida,
+  ErrorTiendaNoDisponible,
 } from '../comun/errores.js';
 import { relojDelSistema } from '../comun/reloj.js';
 import { sobreDeepSeek, sobreGemini } from './ia-fixtures.js';
@@ -121,17 +121,17 @@ describe('FabricaProveedores: pagos', () => {
     expect(pagos.app_store.nombre).toBe('app-store');
   });
 
-  it('Google Play exige el token de Pub/Sub; la App Store todavía no atiende avisos (HU-44)', async () => {
+  it('los avisos exigen el origen de cada tienda (HU-44): token de Pub/Sub y configuración de Apple', async () => {
     const aviso = { cuerpoCrudo: Buffer.from('{}'), encabezados: {} };
     const pagos = FabricaProveedores.pagos(tiendas, relojDelSistema);
 
     await expect(pagos.google_play.verificarAviso(aviso)).rejects.toBeInstanceOf(
       ErrorNoAutenticado,
     );
-    await expect(pagos.app_store.consultarSuscripcion('c')).rejects.toBeInstanceOf(
-      ErrorNoImplementado,
+    // La clave de la API de esta configuración no es válida: la App Store no está disponible.
+    await expect(pagos.app_store.verificarAviso(aviso)).rejects.toBeInstanceOf(
+      ErrorTiendaNoDisponible,
     );
-    await expect(pagos.app_store.verificarAviso(aviso)).rejects.toBeInstanceOf(ErrorNoImplementado);
   });
 
   it('crea todos los proveedores a partir de la configuración', () => {

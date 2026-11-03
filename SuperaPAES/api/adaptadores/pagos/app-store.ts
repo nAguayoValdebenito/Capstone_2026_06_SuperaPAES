@@ -5,7 +5,8 @@
 // cadena de certificados hasta la raíz de Apple (certificados-apple.ts) y el bundle. Solo el entorno de
 // prueba (sandbox): producción queda fuera de HU-43.1. El cliente HTTP y el reloj se inyectan; la
 // consulta OCSP de la biblioteca, no.
-// - verificarAviso y consultarSuscripcion: App Store Server Notifications V2 (HU-44).
+// - verificarAviso y consultarSuscripcion (HU-44.1): App Store Server Notifications V2, verificadas con el
+//   mismo SignedDataVerifier y traducidas en app-store-avisos.ts.
 import {
   Environment,
   SignedDataVerifier,
@@ -17,11 +18,18 @@ import {
 import { importPKCS8, SignJWT } from 'jose';
 import { z } from 'zod';
 import type { ConfiguracionAppStore } from '../../comun/configuracion.js';
-import { ErrorCompraNoValida, ErrorNoImplementado } from '../../comun/errores.js';
+import { ErrorCompraNoValida } from '../../comun/errores.js';
+import {
+  avisoDeApple,
+  signedPayloadDe,
+  suscripcionEnTiendaDeApple,
+  verificadoPorApple,
+} from './app-store-avisos.js';
 import { relojDelSistema, type Reloj } from '../../comun/reloj.js';
 import { certificadosRaizApple } from './certificados-apple.js';
 import { clienteHttpFetch, type ClienteHttp } from './http.js';
 import type {
+  AvisoEntrante,
   AvisoVerificado,
   CompraVerificada,
   PasarelaPago,
@@ -130,6 +138,41 @@ export class PasarelaAppStore implements PasarelaPago {
   }
 
   async verificarCompra(idTransaccion: string): Promise<CompraVerificada> {
+    const { estado, transaccion, renovacion } = await this.estadoEnApple(idTransaccion);
+    comprobarEstado(estado, transaccion);
+    return aCompraVerificada(transaccion, renovacion);
+  }
+
+  /** La App Store no pide confirmar las compras desde el servidor. */
+  confirmarCompra(_compra: Pick<CompraVerificada, 'idProducto' | 'idCompraTienda'>): Promise<void> {
+    return Promise.resolve();
+  }
+
+  /** HU-44.1: el estado de hoy de la suscripción de esa transacción original, tras un aviso. */
+  async consultarSuscripcion(idCompraTienda: string): Promise<SuscripcionEnTienda> {
+    const { estado, transaccion, renovacion } = await this.estadoEnApple(idCompraTienda);
+    return suscripcionEnTiendaDeApple(idCompraTienda, estado, transaccion, renovacion);
+  }
+
+  /**
+   * HU-44.1: verifica la notificación firmada (y la transacción que trae) con la cadena de Apple, el
+   * bundle y el entorno. Fuera de sandbox la tienda no está disponible (503) y Apple reintenta.
+   */
+  async verificarAviso(aviso: AvisoEntrante): Promise<AvisoVerificado> {
+    const { verificador } = await this.preparar();
+    const firmado = signedPayloadDe(aviso);
+    const notificacion = await verificadoPorApple(() =>
+      verificador.verifyAndDecodeNotification(firmado),
+    );
+    const transaccionFirmada = notificacion.data?.signedTransactionInfo;
+    const transaccion = transaccionFirmada
+      ? await verificadoPorApple(() => verificador.verifyAndDecodeTransaction(transaccionFirmada))
+      : null;
+    return avisoDeApple(notificacion, transaccion);
+  }
+
+  /** Get All Subscription Statuses: la última transacción de esa compra, verificada, y su estado. */
+  private async estadoEnApple(idTransaccion: string) {
     const { llave, verificador } = await this.preparar();
     const respuesta = await pedirATienda('app_store', this.http, {
       metodo: 'GET',
@@ -152,21 +195,7 @@ export class PasarelaAppStore implements PasarelaPago {
     const renovacion = firmada
       ? await decodificar(() => verificador.verifyAndDecodeRenewalInfo(firmada))
       : null;
-    comprobarEstado(ultima.status, transaccion);
-    return aCompraVerificada(transaccion, renovacion);
-  }
-
-  /** La App Store no pide confirmar las compras desde el servidor. */
-  confirmarCompra(_compra: Pick<CompraVerificada, 'idProducto' | 'idCompraTienda'>): Promise<void> {
-    return Promise.resolve();
-  }
-
-  consultarSuscripcion(): Promise<SuscripcionEnTienda> {
-    return Promise.reject(new ErrorNoImplementado('La consulta de suscripciones en la App Store'));
-  }
-
-  verificarAviso(): Promise<AvisoVerificado> {
-    return Promise.reject(new ErrorNoImplementado('Los avisos de la App Store'));
+    return { estado: ultima.status, transaccion, renovacion };
   }
 
   /** JWT de la App Store Server API: 5 minutos, con el bundle de la app. */
