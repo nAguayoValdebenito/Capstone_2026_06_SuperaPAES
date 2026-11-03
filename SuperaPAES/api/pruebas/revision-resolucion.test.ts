@@ -3,7 +3,7 @@
 // dificultad, y la resolución con repositorios falsos (cuándo se resuelve y la asignación del tercer
 // docente). Contra la base: revision-resolucion-bd.test.ts.
 import { describe, expect, it, vi } from 'vitest';
-import { combinarRevisiones } from '../modulos/revision/revision.reglas.js';
+import { combinarRevisiones, etapaDelDesempate } from '../modulos/revision/revision.reglas.js';
 import type { AsignacionDeLaRonda } from '../modulos/revision/revision.resolucion.repositorio.js';
 import { resolverRonda } from '../modulos/revision/revision.resolucion.servicio.js';
 
@@ -62,6 +62,20 @@ describe('CP-16 paso 2: combinar las dificultades (RN-11 y RN-12)', () => {
         expect(resolucion.posibleAmbigua).toBe(true);
       }
     }
+  });
+});
+
+describe('CU-20: la decisión del tercer docente es la final', () => {
+  it.each([
+    ['aprobar', 'aprobada'],
+    ['rechazar', 'rechazada'],
+    ['observar', 'observada'],
+  ])('%s deja la pregunta %s', (decision, etapa) => {
+    expect(etapaDelDesempate(decision)).toBe(etapa);
+  });
+
+  it('una decisión que no deja la pregunta en una etapa no tiene etapa', () => {
+    expect(etapaDelDesempate('dudar')).toBeUndefined();
   });
 });
 

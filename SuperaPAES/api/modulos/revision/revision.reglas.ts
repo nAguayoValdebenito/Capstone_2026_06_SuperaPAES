@@ -1,6 +1,7 @@
 // Reglas que combinan las revisiones de una ronda (HU-23.1, CU-19 paso 7, RN-11 y RN-12, CP-16 pasos 1
-// y 2). Usan los códigos de contenido.decision_revision (aprobar, observar, rechazar) y de
-// contenido.dificultad (facil, media, dificil).
+// y 2) y la etapa en que deja la pregunta el tercer docente (CU-20). Usan los códigos de
+// contenido.decision_revision (aprobar, observar, rechazar) y de contenido.dificultad (facil, media,
+// dificil).
 
 /** Lo que entregó cada revisor de la ronda. */
 export interface RevisionDeLaRonda {
@@ -32,3 +33,19 @@ export function combinarRevisiones(revisiones: readonly RevisionDeLaRonda[]): Re
   }
   return { estado: 'desempate', posibleAmbigua };
 }
+
+/** La etapa en que queda la pregunta después del desempate. */
+export type EtapaDelDesempate = 'aprobada' | 'rechazada' | 'observada';
+
+const ETAPA_DEL_DESEMPATE: Record<string, EtapaDelDesempate | undefined> = {
+  aprobar: 'aprobada',
+  rechazar: 'rechazada',
+  observar: 'observada',
+};
+
+/**
+ * CU-20: la decisión del tercer docente es la final (aprobar, rechazar u observar); undefined si la
+ * decisión no deja la pregunta en una etapa.
+ */
+export const etapaDelDesempate = (decision: string): EtapaDelDesempate | undefined =>
+  ETAPA_DEL_DESEMPATE[decision];

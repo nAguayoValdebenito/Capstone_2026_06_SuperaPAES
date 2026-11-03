@@ -4,12 +4,10 @@
 // código las listas rol_revision, decision_revision, dificultad y criterio_pauta. Consultas siempre
 // parametrizadas.
 import type { Ejecutor } from '../../db/transaccion.js';
-import type { OpcionRevision } from './revision.bandeja.repositorio.js';
+import type { Criterio, OpcionRevision } from './revision.bandeja.repositorio.js';
 
 /** Un punto de la pauta como lo respondió el revisor. */
-export interface CriterioRespondido {
-  codigo: string;
-  descripcion: string;
+export interface CriterioRespondido extends Criterio {
   cumple: boolean;
   observacion: string | null;
 }

@@ -174,3 +174,8 @@ export function useBandejaDocente<P extends RevisionPendiente>(api: ApiDeBandeja
     ...formulario.acciones,
   };
 }
+
+/** El estado de la bandeja de un docente (D01 o D02), con la asignación abierta de tipo P. */
+export type EstadoBandejaDocente<P extends RevisionPendiente> = ReturnType<
+  typeof useBandejaDocente<P>
+>;

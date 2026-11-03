@@ -1,16 +1,12 @@
 // D02 · Desempates (HU-23, CU-20, RN-11 y RN-12): la bandeja del tercer docente, la pregunta con las dos
 // revisiones de la ronda (sin quién las escribió), el aviso de posiblemente confusa y su decisión con la
 // dificultad final; y las llamadas a la API de los desempates.
-import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DesempateDocente } from '../../estado/desempate-docente';
 import { camposVacios } from '../../estado/formulario-revision';
-import {
-  formularioSinAcciones,
-  OPCIONES_DE_DECISION,
-  primeraLlamada,
-} from '../../pruebas/bandeja-docente';
-import { responderUnaVez } from '../../pruebas/sesion';
+import { formularioSinAcciones, OPCIONES_DE_DECISION } from '../../pruebas/bandeja-docente';
+import { textoDibujado } from '../../pruebas/dibujo';
+import { primeraLlamada, responderUnaVez } from '../../pruebas/sesion';
 import { entregarDesempate, listarDesempates, obtenerDesempate } from '../../servicios/revision';
 import type { DesempateAbierto, RevisionDelRevisor } from '../../tipos';
 import { ContenidoDesempateDocente } from './DesempateDocente';
@@ -58,7 +54,6 @@ const DESEMPATE: DesempateAbierto = {
     { id: 2, letra: 'B', texto: '24 cm', explicacion: null, esCorrecta: true },
   ],
   texto: null,
-  pauta: PAUTA,
   ...OPCIONES_DE_DECISION,
   revisiones: [
     revisionDe('Aprobar', 'Fácil', null, null),
@@ -75,11 +70,7 @@ function dibujar(cambios: Partial<DesempateDocente> = {}) {
     ...formularioSinAcciones(),
     ...cambios,
   };
-  // Sin los separadores que React pone entre textos, para comparar el texto como se lee.
-  return renderToString(<ContenidoDesempateDocente desempate={desempate} />).replaceAll(
-    '<!-- -->',
-    '',
-  );
+  return textoDibujado(<ContenidoDesempateDocente desempate={desempate} />);
 }
 
 describe('D02 · bandeja de desempates (HU-23 esc. 3)', () => {

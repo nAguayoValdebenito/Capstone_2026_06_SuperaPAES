@@ -43,7 +43,7 @@ export interface DependenciasRevisionServicio {
   preguntas: Pick<PreguntasServicio, 'pasarARevision' | 'resolverRevision'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearRevisionRepositorio(bd). */
   repositorio?: RevisionRepositorio;
-  /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd). */
+  /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd, 'revisor'). */
   repositorioBandeja?: BandejaRepositorio;
   /** Solo para pruebas: reemplaza al de crearResolucionRepositorio(). */
   repositorioResolucion?: ResolucionRepositorio;
@@ -184,7 +184,8 @@ export function crearRevisionServicio(
   const bandeja = crearBandejaDocente({
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
     reloj: dependencias.reloj,
-    repositorio: dependencias.repositorioBandeja ?? crearBandejaRepositorio(dependencias.bd),
+    repositorio:
+      dependencias.repositorioBandeja ?? crearBandejaRepositorio(dependencias.bd, 'revisor'),
     alEntregar: (docenteId, preguntaId, tx) =>
       resolverRonda(resolucion, [docenteId, preguntaId], tx),
   });
