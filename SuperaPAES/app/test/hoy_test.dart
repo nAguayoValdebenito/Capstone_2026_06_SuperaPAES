@@ -1,8 +1,10 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 import 'apoyo/app_de_prueba.dart';
@@ -23,8 +25,49 @@ final PerfilEstudiante _sinReforzar = PerfilEstudiante(
   debeConfirmarCurso: false,
 );
 
+/// Baja hasta «Tus pruebas» en Inicio.
+Future<void> _verPruebas(WidgetTester tester) => tester.scrollUntilVisible(
+  find.text('Competencia Lectora'),
+  200,
+  scrollable: find.byType(Scrollable).first,
+);
+
 /// Qué hacer hoy en Inicio (A12, plan de mejora visual del 02/11, tanda C).
 void main() {
+  group('Tus pruebas en grilla', () {
+    testWidgets('van de dos en dos, con su sello', (tester) async {
+      await iniciarApp(
+        tester,
+        crearContenedor(sesion: sesionDeEjemplo),
+        ruta: Rutas.inicio,
+      );
+      await _verPruebas(tester);
+
+      expect(find.byType(SelloPrueba), findsWidgets);
+      final m1 = tester.getTopLeft(find.text('Matemática M1'));
+      final lectora = tester.getTopLeft(find.text('Competencia Lectora'));
+      expect(lectora.dy, m1.dy);
+      expect(lectora.dx, greaterThan(m1.dx));
+    });
+
+    testWidgets('con la letra grande van en una columna', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await iniciarApp(
+        tester,
+        crearContenedor(sesion: sesionDeEjemplo),
+        ruta: Rutas.inicio,
+      );
+      await _verPruebas(tester);
+
+      expect(
+        tester.getTopLeft(find.text('Competencia Lectora')).dy,
+        greaterThan(tester.getTopLeft(find.text('Matemática M1')).dy),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('Tarjeta «Hoy»', () {
     testWidgets('con diagnósticos pendientes parte por la prueba a reforzar, '
         'con sus preguntas, y lleva a A16', (tester) async {

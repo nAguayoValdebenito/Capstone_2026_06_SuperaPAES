@@ -77,28 +77,30 @@ class PruebasInicio extends ConsumerWidget {
                 : 'No se pudieron cargar tus pruebas.',
           )
         else if (perfil.value case final guardado? when opciones.hasValue)
-          for (final prueba in pruebasDeInicio(
-            guardado,
-            opciones.requireValue,
-          )) ...[
-            _TarjetaPrueba(
-              prueba: prueba,
-              codigo: opciones.requireValue.prueba(prueba.id)?.codigo ?? '',
-              diagnostico: switch (ref
-                  .watch(disponibilidadDiagnosticoProvider(prueba.id))
-                  .value) {
-                final DisponibilidadDiagnostico d when d.disponible => d,
-                _ => null,
-              },
-              onTap: () {
-                ref
-                    .read(borradorPracticaProvider.notifier)
-                    .elegirPrueba(prueba.id);
-                context.go(Rutas.practicar);
-              },
-            ),
-            const SizedBox(height: 14),
-          ]
+          _GrillaPruebas(
+            tarjetas: [
+              for (final prueba in pruebasDeInicio(
+                guardado,
+                opciones.requireValue,
+              ))
+                _TarjetaPrueba(
+                  prueba: prueba,
+                  codigo: opciones.requireValue.prueba(prueba.id)?.codigo ?? '',
+                  diagnostico: switch (ref
+                      .watch(disponibilidadDiagnosticoProvider(prueba.id))
+                      .value) {
+                    final DisponibilidadDiagnostico d when d.disponible => d,
+                    _ => null,
+                  },
+                  onTap: () {
+                    ref
+                        .read(borradorPracticaProvider.notifier)
+                        .elegirPrueba(prueba.id);
+                    context.go(Rutas.practicar);
+                  },
+                ),
+            ],
+          )
         else
           const Center(child: CircularProgressIndicator()),
       ],
@@ -106,11 +108,56 @@ class PruebasInicio extends ConsumerWidget {
   }
 }
 
-/// Tarjeta de una prueba (relleno 16 × 14, radio 14) con el sello de la
-/// prueba y la sombra suave de lo que se toca. La prueba a reforzar
-/// lleva su etiqueta y el botón «Reforzar»; con el diagnóstico pendiente,
-/// «Diagnóstico pendiente este año» y el botón «Diagnóstico»; las demás se
-/// tocan enteras.
+/// Las tarjetas de dos en dos, con el mismo alto por fila. Con la letra
+/// grande van en una columna, para que nada se corte (RNF-12).
+class _GrillaPruebas extends StatelessWidget {
+  const _GrillaPruebas({required this.tarjetas});
+
+  final List<Widget> tarjetas;
+
+  /// Desde esta escala de letra, una tarjeta por fila.
+  static const double _escalaUnaColumna = 1.3;
+
+  @override
+  Widget build(BuildContext context) {
+    const separacion = SizedBox.square(dimension: TemaSuperaPaes.espacio12);
+    final unaColumna =
+        MediaQuery.textScalerOf(context).scale(1) >= _escalaUnaColumna;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (unaColumna)
+          for (final (i, tarjeta) in tarjetas.indexed) ...[
+            if (i > 0) separacion,
+            tarjeta,
+          ]
+        else
+          for (var i = 0; i < tarjetas.length; i += 2) ...[
+            if (i > 0) separacion,
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: tarjetas[i]),
+                  separacion,
+                  Expanded(
+                    child: i + 1 < tarjetas.length
+                        ? tarjetas[i + 1]
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+      ],
+    );
+  }
+}
+
+/// Tarjeta de una prueba, con su sello y la sombra suave de lo que se toca.
+/// La prueba a reforzar lleva su etiqueta y el botón «Reforzar»; con el
+/// diagnóstico pendiente, «Diagnóstico pendiente este año» y el botón
+/// «Diagnóstico»; las demás se tocan enteras.
 class _TarjetaPrueba extends ConsumerWidget {
   const _TarjetaPrueba({
     required this.prueba,
@@ -156,55 +203,85 @@ class _TarjetaPrueba extends ConsumerWidget {
           // Con un botón, el botón es la única acción.
           onTap: prueba.reforzar || diagnostico != null ? null : onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
+            padding: const EdgeInsets.all(TemaSuperaPaes.espacio12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SelloPrueba(codigo: codigo),
-                const SizedBox(width: TemaSuperaPaes.espacio12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(prueba.titulo, style: TemaSuperaPaes.cuerpoFuerte),
-                      if (prueba.reforzar) ...[
-                        const SizedBox(height: 4),
-                        const Etiqueta(
-                          texto: 'Tu prueba a reforzar',
-                          tono: TonoEtiqueta.aviso,
-                        ),
-                      ],
-                      if (diagnostico != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Diagnóstico pendiente este año',
-                          style: TemaSuperaPaes.pequeno.copyWith(
-                            color: TemaSuperaPaes.textoSecundario,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                _DatosPrueba(
+                  prueba: prueba,
+                  codigo: codigo,
+                  pendiente: diagnostico != null,
                 ),
-                const SizedBox(width: 12),
-                if (prueba.reforzar)
-                  BotonChico(texto: 'Reforzar', onPressed: onTap)
-                else if (diagnostico != null)
+                if (prueba.reforzar) ...[
+                  const SizedBox(height: TemaSuperaPaes.espacio8),
+                  BotonChico(texto: 'Reforzar', onPressed: onTap),
+                ] else if (diagnostico != null) ...[
+                  const SizedBox(height: TemaSuperaPaes.espacio8),
                   BotonChico(
                     texto: 'Diagnóstico',
                     onPressed: () =>
                         _ofrecerDiagnostico(context, ref, diagnostico),
-                  )
-                else
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: TemaSuperaPaes.textoSecundario,
                   ),
+                ],
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// El sello, el nombre y lo que falta de la prueba. Si la tarjeta entera lleva
+/// a practicar, el «›» lo indica.
+class _DatosPrueba extends StatelessWidget {
+  const _DatosPrueba({
+    required this.prueba,
+    required this.codigo,
+    required this.pendiente,
+  });
+
+  final PruebaDeInicio prueba;
+  final String codigo;
+  final bool pendiente;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SelloPrueba(codigo: codigo),
+            if (!prueba.reforzar && !pendiente)
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: TemaSuperaPaes.textoSecundario,
+              ),
+          ],
+        ),
+        const SizedBox(height: TemaSuperaPaes.espacio8),
+        Text(prueba.titulo, style: TemaSuperaPaes.cuerpoFuerte),
+        if (prueba.reforzar) ...[
+          const SizedBox(height: TemaSuperaPaes.espacio4),
+          const Etiqueta(
+            texto: 'Tu prueba a reforzar',
+            tono: TonoEtiqueta.aviso,
+          ),
+        ],
+        if (pendiente) ...[
+          const SizedBox(height: TemaSuperaPaes.espacio4),
+          Text(
+            'Diagnóstico pendiente este año',
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
