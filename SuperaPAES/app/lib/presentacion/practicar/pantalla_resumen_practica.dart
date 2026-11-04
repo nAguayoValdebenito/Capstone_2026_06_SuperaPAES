@@ -103,7 +103,7 @@ class PantallaResumenPractica extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '${resumen.correctas}/${resumen.cantidad}',
+              marcadorDe(resumen),
               style: TemaSuperaPaes.display,
               textAlign: TextAlign.center,
             ),
@@ -162,6 +162,14 @@ class PantallaResumenPractica extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// «7/10»: sobre las que cuentan en el resultado, igual que el porcentaje. Si
+/// terminó antes, las que no alcanzó a responder no cuentan (RN-22). Sin
+/// ninguna respondida, sobre las de la práctica.
+String marcadorDe(ResumenPractica resumen) {
+  final contadas = resumen.correctas + resumen.incorrectas + resumen.omitidas;
+  return '${resumen.correctas}/${contadas > 0 ? contadas : resumen.cantidad}';
 }
 
 /// «12 min», o los segundos si fue menos de un minuto.

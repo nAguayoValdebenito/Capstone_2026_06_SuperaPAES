@@ -8,6 +8,7 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/practicar/pantalla_resumen_practica.dart';
 
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
@@ -213,6 +214,17 @@ void main() {
       expect(find.textContaining('Mezcla'), findsNothing);
     });
 
+    testWidgets('al confirmar habla del repaso, no de la práctica', (
+      tester,
+    ) async {
+      await enRepaso(tester);
+
+      await tocar(tester, find.text('32'));
+      await tocar(tester, find.text('Responder'));
+
+      expect(find.textContaining('En el repaso la corrección'), findsOne);
+    });
+
     testWidgets('terminar pregunta por el repaso', (tester) async {
       await enRepaso(tester);
 
@@ -305,6 +317,37 @@ void main() {
       expect(find.textContaining('Hoy te quedan'), findsNothing);
       expect(find.textContaining('Repaso'), findsOne);
     });
+  });
+
+  test('el marcador coincide con el porcentaje si terminó antes (RN-22)', () {
+    const terminoAntes = ResumenPractica(
+      id: 1,
+      prueba: 'Matemática M1',
+      alcance: Alcance.todaLaPrueba,
+      dificultad: 'Mezcla',
+      cantidad: 4,
+      correctas: 1,
+      incorrectas: 0,
+      omitidas: 0,
+      porcentaje: 100,
+      tiempoUsadoSeg: 39,
+    );
+    const sinResponder = ResumenPractica(
+      id: 2,
+      prueba: 'Matemática M1',
+      alcance: Alcance.todaLaPrueba,
+      dificultad: 'Mezcla',
+      cantidad: 4,
+      correctas: 0,
+      incorrectas: 0,
+      omitidas: 0,
+      porcentaje: 0,
+      tiempoUsadoSeg: 3,
+    );
+
+    expect(marcadorDe(terminoAntes), '1/1');
+    expect(marcadorDe(sinResponder), '0/4');
+    expect(marcadorDe(resumenDeEjemplo), '7/10');
   });
 
   test('una práctica nueva deja de ser repaso', () async {

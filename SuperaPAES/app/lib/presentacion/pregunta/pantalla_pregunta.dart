@@ -81,7 +81,11 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
       for (final a in widget.pregunta.alternativas)
         if (a.id == elegida) a.letra,
     ].first;
-    if (!await confirmarRespuesta(context, letra) || !mounted) return;
+    final esRepaso = ref.read(practicaProvider).esRepaso;
+    if (!await confirmarRespuesta(context, letra, esRepaso: esRepaso) ||
+        !mounted) {
+      return;
+    }
     setState(() {
       _enviando = true;
       _error = null;
