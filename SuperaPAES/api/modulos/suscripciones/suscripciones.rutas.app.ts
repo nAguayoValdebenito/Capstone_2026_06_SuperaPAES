@@ -16,6 +16,8 @@ import {
 export function crearRutasAppSuscripciones(servicio: SuscripcionesServicio): Router {
   const router = Router();
   const controlador = crearSuscripcionesControlador(servicio);
+  // CU-12 paso 1, A43: los planes con su precio y su producto en cada tienda.
+  router.get('/planes', controlador.planes);
   // HU-45.2, A44: la suscripción activa o en mora, con la dirección para gestionarla en la tienda.
   router.get('/actual', controlador.suscripcionActual);
   // HU-43.1, CU-12 paso 3: la suscripción pendiente que la app compra en la tienda (A43).

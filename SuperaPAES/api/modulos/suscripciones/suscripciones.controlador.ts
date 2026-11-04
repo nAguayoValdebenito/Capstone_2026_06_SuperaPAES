@@ -8,6 +8,7 @@ import type { SuscripcionesServicio } from './suscripciones.servicio.js';
 import type { DatosCompra, DatosNuevaSuscripcion } from './suscripciones.validadores.js';
 
 export interface SuscripcionesControlador {
+  planes: RequestHandler;
   suscripcionActual: RequestHandler;
   crearSuscripcion: RequestHandler<Record<string, string>, unknown, DatosNuevaSuscripcion>;
   validarCompra: RequestHandler<Record<string, string>, unknown, DatosCompra>;
@@ -35,6 +36,9 @@ export function crearSuscripcionesControlador(
       responder(res, { recibido: true });
     };
   return {
+    planes: async (_req, res) => {
+      responder(res, await servicio.planesOfrecidos());
+    },
     suscripcionActual: async (req, res) => {
       responder(res, await servicio.vigenteDe(estudianteDe(req)));
     },
