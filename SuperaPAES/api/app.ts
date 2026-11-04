@@ -148,6 +148,7 @@ function crearSuscripcionesYCupo(
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const suscripciones = crearSuscripcionesServicio({
     ...base,
+    administracion,
     reloj: dependencias.reloj,
     pagos: dependencias.proveedores.pagos,
     // CU-12 4.b: el correo de mora sale en segundo plano, como los de cuentas.

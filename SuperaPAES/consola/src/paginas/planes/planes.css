@@ -1,0 +1,76 @@
+.planes__tabla {
+  min-width: 65rem;
+}
+.planes__tabla th[scope='row'] {
+  background: transparent;
+}
+.planes__tabla td {
+  overflow-wrap: anywhere;
+}
+.planes__seleccionado {
+  background: #e8edff;
+}
+.planes__estado {
+  display: inline-block;
+  border-radius: 2rem;
+  padding: 0.25rem 0.65rem;
+  background: var(--fondo);
+}
+.planes__estado--activo {
+  background: #e6f6ed;
+  color: #14532d;
+}
+.planes__detalle {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+.planes__formulario {
+  margin: 0;
+}
+.planes__campos {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-width: 0;
+}
+.planes__campos input,
+.planes__campos select {
+  min-width: 0;
+  width: 100%;
+}
+.planes__acciones {
+  grid-column: 1 / -1;
+  justify-content: end;
+  flex-wrap: wrap;
+}
+.planes__notas {
+  background: #e8edff;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  color: var(--primario-oscuro);
+}
+.planes__notas p:first-child {
+  margin-top: 0;
+}
+.planes__notas p:last-child {
+  margin-bottom: 0;
+}
+.planes__notas:only-child {
+  grid-column: 1 / -1;
+}
+@media (max-width: 75rem) {
+  .planes__detalle {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 40rem) {
+  .planes__campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
