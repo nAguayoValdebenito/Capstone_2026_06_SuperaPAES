@@ -17,7 +17,9 @@ class CabeceraPractica extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cupo = ref.watch(cupoDeHoyProvider).value;
+    // El repaso no usa cupo (RN-04): no se muestra lo que queda hoy.
+    final esRepaso = ref.watch(practicaProvider).esRepaso;
+    final cupo = esRepaso ? null : ref.watch(cupoDeHoyProvider).value;
     // Wrap: con letra grande, las preguntas que quedan bajan a otra línea.
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
@@ -75,7 +77,8 @@ class AvancePractica extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final datos = ref.watch(practicaProvider).datos;
+    final practica = ref.watch(practicaProvider);
+    final datos = practica.datos;
     final nombres = ref.watch(opcionesPerfilProvider).value;
     final dificultades =
         ref.watch(opcionesPracticaProvider).value?.dificultades ?? const [];
@@ -87,11 +90,14 @@ class AvancePractica extends ConsumerWidget {
         : [
             ?nombres?.prueba(datos.pruebaId)?.nombreCorto,
             ?datos.alcance.nombre,
-            [
-                  for (final d in dificultades)
-                    if (d.id == datos.dificultadId) d.nombre,
-                ].firstOrNull ??
-                'Mezcla',
+            if (practica.esRepaso)
+              'Repaso'
+            else
+              [
+                    for (final d in dificultades)
+                      if (d.id == datos.dificultadId) d.nombre,
+                  ].firstOrNull ??
+                  'Mezcla',
           ].join(' · ');
     final hechas = (pregunta.orden - (respondida ? 0 : 1)) / pregunta.total;
     return Column(
@@ -143,11 +149,14 @@ Future<void> terminarPractica(
   WidgetRef ref, {
   bool preguntar = true,
 }) async {
+  final esRepaso = ref.read(practicaProvider).esRepaso;
   if (preguntar) {
     final terminar = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
-        title: const Text('¿Terminar la práctica?'),
+        title: Text(
+          esRepaso ? '¿Terminar el repaso?' : '¿Terminar la práctica?',
+        ),
         content: const Text(
           'Las preguntas que no respondiste quedan sin responder en tu '
           'resumen.',
@@ -155,7 +164,7 @@ Future<void> terminarPractica(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(contexto).pop(false),
-            child: const Text('Seguir practicando'),
+            child: Text(esRepaso ? 'Seguir repasando' : 'Seguir practicando'),
           ),
           TextButton(
             onPressed: () => Navigator.of(contexto).pop(true),

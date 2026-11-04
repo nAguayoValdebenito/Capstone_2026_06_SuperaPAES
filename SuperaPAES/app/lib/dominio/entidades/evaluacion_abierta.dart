@@ -48,6 +48,9 @@ class EvaluacionAbierta {
   bool get conTiempo => segundosRestantes != null;
   bool get esPractica => tipo == 'practica';
 
+  /// El repaso se sigue igual que la práctica, en A17 (HU-39).
+  bool get esRepaso => tipo == 'repaso';
+
   /// Para seguir la práctica en A17, con su encabezado.
   PracticaIniciada get practica =>
       PracticaIniciada(id: id, pruebaId: pruebaId, cantidad: cantidad);

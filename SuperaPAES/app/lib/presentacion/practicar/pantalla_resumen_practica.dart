@@ -11,13 +11,16 @@ import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 /// Resumen de la práctica (A21; HU-30 esc. 5, CU-06 paso 7): aciertos,
 /// incorrectas y tiempo; las incorrectas pasan al repaso y la práctica queda
-/// en el historial. «Ver la revisión» abre A33 (HU-61).
+/// en el historial. «Ver la revisión» abre A33 (HU-61). El repaso termina aquí
+/// también, con sus textos (HU-39).
 class PantallaResumenPractica extends ConsumerWidget {
   const PantallaResumenPractica({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resumen = ref.watch(practicaProvider).resumen;
+    final practica = ref.watch(practicaProvider);
+    final resumen = practica.resumen;
+    final esRepaso = practica.esRepaso;
     return PantallaFormulario(
       hijos: [
         const SizedBox(height: 32),
@@ -28,7 +31,7 @@ class PantallaResumenPractica extends ConsumerWidget {
             centrado: true,
           )
         else
-          ..._resumen(resumen),
+          ..._resumen(resumen, esRepaso: esRepaso),
       ],
       pie: Column(
         mainAxisSize: MainAxisSize.min,
@@ -42,8 +45,9 @@ class PantallaResumenPractica extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
           FilledButton(
-            onPressed: () => context.go(Rutas.practicar),
-            child: const Text('Practicar de nuevo'),
+            onPressed: () =>
+                context.go(esRepaso ? Rutas.repaso : Rutas.practicar),
+            child: Text(esRepaso ? 'Seguir repasando' : 'Practicar de nuevo'),
           ),
           const SizedBox(height: 8),
           BotonTexto(
@@ -55,7 +59,10 @@ class PantallaResumenPractica extends ConsumerWidget {
     );
   }
 
-  static List<Widget> _resumen(ResumenPractica resumen) {
+  static List<Widget> _resumen(
+    ResumenPractica resumen, {
+    required bool esRepaso,
+  }) {
     final alcance = resumen.alcance.tipo == TipoAlcance.prueba
         ? resumen.prueba
         : '${resumen.prueba} · ${resumen.alcance.nombre}';
@@ -70,8 +77,8 @@ class PantallaResumenPractica extends ConsumerWidget {
         children: [
           Semantics(
             header: true,
-            child: const Text(
-              'Práctica terminada',
+            child: Text(
+              esRepaso ? 'Repaso terminado' : 'Práctica terminada',
               style: TemaSuperaPaes.h1,
               textAlign: TextAlign.center,
             ),
@@ -83,7 +90,9 @@ class PantallaResumenPractica extends ConsumerWidget {
             textAlign: TextAlign.center,
           ),
           Text(
-            '$dificultad · ${resumen.cantidad} preguntas',
+            esRepaso
+                ? '${resumen.cantidad} preguntas'
+                : '$dificultad · ${resumen.cantidad} preguntas',
             style: secundario,
             textAlign: TextAlign.center,
           ),
@@ -120,7 +129,15 @@ class PantallaResumenPractica extends ConsumerWidget {
           ],
         ),
       ),
-      Aviso(tono: TonoAviso.info, textoRico: _aviso(resumen)),
+      if (esRepaso)
+        const Aviso(
+          tono: TonoAviso.info,
+          texto:
+              'Las que acertaste salieron de tu lista. El repaso quedó en tu '
+              'historial.',
+        )
+      else
+        Aviso(tono: TonoAviso.info, textoRico: _aviso(resumen)),
     ];
   }
 

@@ -165,9 +165,11 @@ class _SinPregunta extends ConsumerWidget {
           ),
         FilledButton(
           onPressed: () => terminarPractica(context, ref, preguntar: false),
-          child: Text(
-            codigo == 'PRACTICA_COMPLETA' ? 'Ver resumen' : 'Terminar práctica',
-          ),
+          child: Text(switch (codigo) {
+            'PRACTICA_COMPLETA' => 'Ver resumen',
+            _ when ref.watch(practicaProvider).esRepaso => 'Terminar repaso',
+            _ => 'Terminar práctica',
+          }),
         ),
       ],
     );
