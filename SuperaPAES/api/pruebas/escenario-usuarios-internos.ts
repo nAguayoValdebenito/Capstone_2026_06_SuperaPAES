@@ -65,6 +65,7 @@ export function crearRepositorioFalso() {
     leerParametro: () => Promise.resolve(undefined),
     documentosLegalesVigentes: () => Promise.resolve([]),
     permisoPuntajesVigente: () => Promise.resolve(null),
+    existeAuditoria: () => Promise.resolve(false),
     registrarAuditoria: (entrada) => {
       auditoria.push(entrada);
       return Promise.resolve();

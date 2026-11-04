@@ -10,6 +10,7 @@ import {
   type AdministracionRepositorio,
   crearAdministracionRepositorio,
   type DocumentoLegalVigente,
+  type ConsultaAuditoria,
   type EntradaAuditoria,
   type UsuarioInterno,
 } from './administracion.repositorio.js';
@@ -65,9 +66,12 @@ export interface AdministracionServicio {
   cuentaInternaVigente(id: string, rol: RolCuentaInterna): Promise<boolean>;
   /**
    * Registra una acción de la consola en contenido.auditoria (RNF-08), dentro de la transacción del
-   * módulo que hace el cambio. Nunca recibe contraseñas, hashes ni códigos.
+   * módulo que hace el cambio, o un aviso del sistema, sin usuario (HU-45.3). Nunca recibe contraseñas,
+   * hashes ni códigos.
    */
   registrarAuditoria(entrada: EntradaAuditoria, tx: Ejecutor): Promise<void>;
+  /** ¿Ya está registrada esa acción? El aviso de renovación lo pregunta para no repetirse (HU-45.3). */
+  existeAuditoria(consulta: ConsultaAuditoria, tx?: Ejecutor): Promise<boolean>;
   /**
    * Parámetro de negocio entero de contenido.configuracion (por ejemplo cupo_verificado). Falla si la
    * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto. Dentro de
@@ -313,6 +317,7 @@ export function crearAdministracionServicio(
       cambiarEstado(contexto, autorId, id, activo),
     cuentaInternaVigente: (id, rol) => cuentaVigente(contexto, id, rol),
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
+    existeAuditoria: (consulta, tx) => contexto.repositorio.existeAuditoria(consulta, tx),
     documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),
     permisoPuntajesVigente: (ahora) => contexto.repositorio.permisoPuntajesVigente(ahora),
     obtenerParametroTexto: async (clave, tx) => {

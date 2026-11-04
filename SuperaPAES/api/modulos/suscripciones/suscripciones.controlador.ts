@@ -8,6 +8,7 @@ import type { SuscripcionesServicio } from './suscripciones.servicio.js';
 import type { DatosCompra, DatosNuevaSuscripcion } from './suscripciones.validadores.js';
 
 export interface SuscripcionesControlador {
+  suscripcionActual: RequestHandler;
   crearSuscripcion: RequestHandler<Record<string, string>, unknown, DatosNuevaSuscripcion>;
   validarCompra: RequestHandler<Record<string, string>, unknown, DatosCompra>;
   avisoGooglePlay: RequestHandler;
@@ -34,6 +35,9 @@ export function crearSuscripcionesControlador(
       responder(res, { recibido: true });
     };
   return {
+    suscripcionActual: async (req, res) => {
+      responder(res, await servicio.vigenteDe(estudianteDe(req)));
+    },
     crearSuscripcion: async (req, res) => {
       const { suscripcion, creada } = await servicio.crearPendiente(estudianteDe(req), req.body);
       responder(res, suscripcion, { estado: creada ? 201 : 200 });

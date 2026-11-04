@@ -16,6 +16,8 @@ import {
 export function crearRutasAppSuscripciones(servicio: SuscripcionesServicio): Router {
   const router = Router();
   const controlador = crearSuscripcionesControlador(servicio);
+  // HU-45.2, A44: la suscripción activa o en mora, con la dirección para gestionarla en la tienda.
+  router.get('/actual', controlador.suscripcionActual);
   // HU-43.1, CU-12 paso 3: la suscripción pendiente que la app compra en la tienda (A43).
   router.post('/', validar({ cuerpo: esquemaNuevaSuscripcion }), controlador.crearSuscripcion);
   // HU-43.1, CU-12 paso 5 y 1.b: la API valida la compra con la tienda antes de activar o cambiar el plan.

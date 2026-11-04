@@ -15,7 +15,10 @@ export interface DependenciasCorreoMora {
   segundoPlano: (tarea: () => Promise<void>) => void;
 }
 
-const TIENDA: Record<Tienda, string> = { google_play: 'Google Play', app_store: 'la App Store' };
+export const TIENDA: Record<Tienda, string> = {
+  google_play: 'Google Play',
+  app_store: 'la App Store',
+};
 
 /** Texto del correo, breve y sin datos de la compra. El remitente lo pone el proveedor de correo. */
 export function mensajeDeMora(nombre: string, para: string, tienda: Tienda): MensajeCorreo {

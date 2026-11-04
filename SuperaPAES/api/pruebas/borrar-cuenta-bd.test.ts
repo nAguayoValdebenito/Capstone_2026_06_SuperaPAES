@@ -160,12 +160,18 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
       plan: 'Todas las pruebas',
       periodicidad: 'mensual',
       tienda: 'google_play',
+      periodoFin: null,
+      renuevaAutomaticamente: true,
+      gestionUrl: 'https://play.google.com/store/account/subscriptions',
     });
     expect((await estadoDeLaCuenta(beto.token)).body.data.suscripcionVigente).toEqual({
       estado: 'en_mora',
       plan: 'Una prueba',
       periodicidad: 'anual',
       tienda: 'app_store',
+      periodoFin: null,
+      renuevaAutomaticamente: true,
+      gestionUrl: 'https://apps.apple.com/account/subscriptions',
     });
 
     expect((await borrar(ana.token)).status).toBe(200);

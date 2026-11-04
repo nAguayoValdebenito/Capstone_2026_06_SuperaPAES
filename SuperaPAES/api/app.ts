@@ -99,6 +99,8 @@ export interface Dependencias {
   verificacionCorreo: ConfiguracionVerificacionCorreo;
   corsOrigenes: string[];
   registrarPeticiones: boolean;
+  /** Paquete de la app en Google Play, para abrir su gestión de suscripciones (HU-45.2). */
+  paqueteGooglePlay?: string;
   /** Clave de la ruta de tareas periódicas (DAS 4.3.3); sin ella, la ruta no se monta. */
   claveTareas?: string;
   limiteIntentos?: OpcionesLimiteIntentos;
@@ -153,6 +155,14 @@ function crearSuscripcionesYCupo(
       cuentas,
       correo: dependencias.proveedores.correo,
       segundoPlano: dependencias.segundoPlano ?? ((tarea) => void tarea()),
+    },
+    ...(dependencias.paqueteGooglePlay && { paqueteGooglePlay: dependencias.paqueteGooglePlay }),
+    // HU-45.3: el aviso de renovación anual, que la tarea horaria envía.
+    avisoRenovacion: {
+      administracion,
+      cuentas,
+      correo: dependencias.proveedores.correo,
+      candados: dependencias.candados,
     },
   });
   const cubrePrueba: SuscripcionesServicio['cubrePrueba'] =
@@ -323,6 +333,7 @@ export function crearApp(
       crearRutasTareas(dependencias.claveTareas, {
         cerrarVencidas: () => servicios.evaluaciones.cerrarVencidas(),
         cerrarCanceladasVencidas: () => servicios.suscripciones.cerrarCanceladasVencidas(),
+        avisarRenovaciones: () => servicios.suscripciones.avisarRenovaciones(),
       }),
     );
   }

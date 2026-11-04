@@ -11,6 +11,12 @@ import {
   type CierreRepositorio,
 } from './suscripciones.cierre.repositorio.js';
 import { crearAvisosRepositorio } from './suscripciones.avisos.repositorio.js';
+import { gestionEnTienda } from './suscripciones.gestion-tienda.js';
+import {
+  crearAvisoRenovacion,
+  type DependenciasAvisoRenovacion,
+  type ResultadoRenovacion,
+} from './suscripciones.renovacion.servicio.js';
 import { crearAvisosServicio, type AvisosServicio } from './suscripciones.avisos.servicio.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
 import { crearComprasServicio, type ComprasServicio } from './suscripciones.compras.servicio.js';
@@ -29,6 +35,7 @@ import {
 } from './suscripciones.validacion.servicio.js';
 import {
   crearSuscripcionesRepositorio,
+  type FilaVigente,
   type SuscripcionesRepositorio,
   type SuscripcionVigente,
 } from './suscripciones.repositorio.js';
@@ -45,6 +52,10 @@ export interface DependenciasSuscripcionesServicio {
   repositorioTrazabilidad?: TrazabilidadRepositorio;
   /** CU-12 4.b: el correo de mora (cuentas, proveedor de correo y segundo plano). */
   correoMora?: DependenciasCorreoMora;
+  /** HU-45.2: paquete de la app en Google Play; sin él se abre la lista de suscripciones. */
+  paqueteGooglePlay?: string;
+  /** HU-45.3: el aviso de renovación anual (auditoría, cuentas, correo y candados). */
+  avisoRenovacion?: DependenciasAvisoRenovacion;
 }
 
 /**
@@ -64,7 +75,8 @@ export interface SuscripcionesServicio
   permiteEnsayoCompleto(estudianteId: string, tx: Ejecutor): Promise<boolean>;
   /**
    * RN-34: la suscripción activa o en mora del estudiante, que la tienda sigue cobrando; `null` si
-   * no tiene. La pide privacidad antes de borrar la cuenta (HU-08.2, A42b).
+   * no tiene. La pide privacidad antes de borrar la cuenta (HU-08.2, A42b) y la muestra Mi suscripción
+   * (A44), con la dirección para gestionarla en la tienda (HU-45.2).
    */
   vigenteDe(estudianteId: string): Promise<SuscripcionVigente | null>;
   /**
@@ -73,6 +85,11 @@ export interface SuscripcionesServicio
    * cierre queda en el historial con origen sistema. Devuelve cuántas cerró.
    */
   cerrarCanceladasVencidas(): Promise<number>;
+  /**
+   * HU-45.3 (CU-12 4.c), tarea horaria: avisa por correo cada renovación anual de los próximos 7 días
+   * que todavía no tiene aviso y lo registra en la auditoría. El que falla se reintenta la hora siguiente.
+   */
+  avisarRenovaciones(): Promise<ResultadoRenovacion>;
 }
 
 /** HU-45.1: cierra en una transacción las canceladas que terminaron su período (ver la interfaz). */
@@ -102,6 +119,13 @@ function cerrarCanceladas(
     }
     return porCerrar.length;
   });
+}
+
+/** La vigente con la dirección de su tienda, sin el producto (HU-45.2). */
+function conGestion(fila: FilaVigente | null, paquete?: string): SuscripcionVigente | null {
+  if (!fila) return null;
+  const { idProducto, ...vigente } = fila;
+  return { ...vigente, gestionUrl: gestionEnTienda(fila.tienda, idProducto, paquete) };
 }
 
 export function crearSuscripcionesServicio(
@@ -138,8 +162,10 @@ export function crearSuscripcionesServicio(
       repositorio.cubrePrueba(estudianteId, pruebaId, dependencias.reloj(), tx),
     permiteEnsayoCompleto: (estudianteId, tx) =>
       repositorio.permiteEnsayoCompleto(estudianteId, dependencias.reloj(), tx),
-    vigenteDe: (estudianteId) => repositorio.vigenteDe(estudianteId),
+    vigenteDe: async (estudianteId) =>
+      conGestion(await repositorio.vigenteDe(estudianteId), dependencias.paqueteGooglePlay),
     cerrarCanceladasVencidas: () =>
       cerrarCanceladas(dependencias, crearCierreRepositorio(dependencias.bd), comprasRepositorio),
+    avisarRenovaciones: crearAvisoRenovacion(dependencias),
   };
 }
