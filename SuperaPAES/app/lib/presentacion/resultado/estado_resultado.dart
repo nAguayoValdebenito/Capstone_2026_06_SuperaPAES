@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/datos/fuentes/fuente_resultados_remota.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_resultados_api.dart';
+import 'package:supera_paes/dominio/entidades/historial.dart';
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_resultados.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
@@ -42,6 +43,49 @@ final revisionProvider = FutureProvider<List<PreguntaRevisada>?>((ref) async {
   if (id == null) return null;
   return await ref.watch(repositorioResultadosProvider).obtenerRevision(id);
 });
+
+/// Filtros y página del historial (A34). Cambiar un filtro vuelve a la
+/// primera página; al cambiar de estudiante, vuelven a empezar.
+class EstadoFiltrosHistorial extends Notifier<FiltrosHistorial> {
+  @override
+  FiltrosHistorial build() {
+    ref.watch(sesionProvider.select((sesion) => sesion.value?.estudiante.id));
+    return const FiltrosHistorial();
+  }
+
+  void elegirPrueba(int? id) =>
+      state = FiltrosHistorial(pruebaId: id, tipo: state.tipo);
+
+  void elegirTipo(String? tipo) =>
+      state = FiltrosHistorial(pruebaId: state.pruebaId, tipo: tipo);
+
+  void irAPagina(int pagina) => state = FiltrosHistorial(
+    pruebaId: state.pruebaId,
+    tipo: state.tipo,
+    pagina: pagina,
+  );
+
+  void limpiar() => state = const FiltrosHistorial();
+}
+
+final filtrosHistorialProvider =
+    NotifierProvider<EstadoFiltrosHistorial, FiltrosHistorial>(
+      EstadoFiltrosHistorial.new,
+    );
+
+/// La página pedida del historial; `null` sin sesión. Se suelta al salir de la
+/// pantalla, así que al volver se lee de nuevo y trae lo último que se cerró.
+final FutureProvider<PaginaHistorial?> historialProvider =
+    FutureProvider.autoDispose<PaginaHistorial?>((ref) async {
+      final estudianteId = ref.watch(
+        sesionProvider.select((sesion) => sesion.value?.estudiante.id),
+      );
+      if (estudianteId == null) return null;
+      final filtros = ref.watch(filtrosHistorialProvider);
+      return await ref
+          .watch(repositorioResultadosProvider)
+          .obtenerHistorial(filtros);
+    });
 
 /// Abre el resultado de la evaluación (A30, A32): desde la entrega (HU-40) y
 /// el historial (HU-62).

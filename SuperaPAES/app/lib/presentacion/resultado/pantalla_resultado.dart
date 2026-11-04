@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +17,7 @@ import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
 /// completo y A32b sin tabla de conversión; HU-61 esc. 1, RF-A23, RN-22 y
 /// RN-23): correctas, incorrectas y omitidas, porcentaje o puntaje estimado,
 /// tiempo usado y resultado por eje y por habilidad. En el diagnóstico, lo
-/// que se reforzará y «Practicar». «Ir al historial» llega con HU-62.
+/// que se reforzará y «Practicar». «Ir al historial» abre A34 (HU-62).
 class PantallaResultado extends ConsumerWidget {
   const PantallaResultado({super.key});
 
@@ -78,13 +80,34 @@ class PantallaResultado extends ConsumerWidget {
               onPressed: () => abrirRevision(context, ref, datos.id),
               child: const Text('Revisar pregunta por pregunta'),
             ),
+            const _IrAlHistorial(),
           ],
         ),
-        _ => FilledButton(
-          onPressed: () => abrirRevision(context, ref, datos.id),
-          child: const Text('Revisar pregunta por pregunta'),
+        _ => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: () => abrirRevision(context, ref, datos.id),
+              child: const Text('Revisar pregunta por pregunta'),
+            ),
+            const SizedBox(height: 4),
+            const _IrAlHistorial(),
+          ],
         ),
       },
+    );
+  }
+}
+
+class _IrAlHistorial extends StatelessWidget {
+  const _IrAlHistorial();
+
+  @override
+  Widget build(BuildContext context) {
+    return BotonTexto(
+      onPressed: () => unawaited(context.push(Rutas.historial)),
+      child: const Text('Ir al historial'),
     );
   }
 }

@@ -182,11 +182,10 @@ void main() {
     testWidgets('con letra grande cabe en un teléfono chico', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = 2;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      tester.view.physicalSize = const Size(360, 640);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-
       await _abrir(tester);
+
+      tester.view.physicalSize = const Size(360, 640);
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
     });

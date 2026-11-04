@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:supera_paes/datos/modelos/historial_modelo.dart';
 import 'package:supera_paes/datos/modelos/resultado_modelo.dart';
+import 'package:supera_paes/dominio/entidades/historial.dart';
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
 
@@ -20,6 +22,20 @@ class FuenteResultadosRemota {
           sinData: 'No recibimos el resultado. Inténtalo de nuevo.',
         ),
       );
+
+  Future<PaginaHistorial> historial(FiltrosHistorial filtros) async {
+    final (:filas, :meta) = await pedirPagina(
+      _dio,
+      '/evaluaciones/historial',
+      consulta: {
+        'pruebaId': ?filtros.pruebaId,
+        'tipo': ?filtros.tipo,
+        'pagina': filtros.pagina,
+      },
+      sinData: 'No recibimos tu historial. Inténtalo de nuevo.',
+    );
+    return HistorialModelo.pagina(filas, meta);
+  }
 
   Future<List<PreguntaRevisada>> revision(int id) async =>
       ResultadoModelo.revision(

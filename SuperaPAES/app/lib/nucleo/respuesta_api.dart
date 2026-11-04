@@ -19,6 +19,27 @@ Object? leerData(Object? cuerpo, {int? estadoHttp}) {
   return cuerpo['data'];
 }
 
+/// GET a `ruta` de un listado: la lista de `data` y la paginación de `meta`.
+/// `sinData` es el mensaje si la respuesta no trae las dos.
+Future<({List<Object?> filas, Map<String, dynamic> meta})> pedirPagina(
+  Dio dio,
+  String ruta, {
+  required String sinData,
+  Map<String, Object?>? consulta,
+}) async {
+  try {
+    final respuesta = await dio.get<Object?>(ruta, queryParameters: consulta);
+    final filas = leerData(respuesta.data, estadoHttp: respuesta.statusCode);
+    final meta = (respuesta.data! as Map<String, dynamic>)['meta'];
+    if (filas is! List<Object?> || meta is! Map<String, dynamic>) {
+      throw ErrorApi(codigo: 'RESPUESTA_INVALIDA', mensaje: sinData);
+    }
+    return (filas: filas, meta: meta);
+  } on DioException catch (excepcion) {
+    throw ErrorApi.desdeDio(excepcion);
+  }
+}
+
 /// POST a `ruta` cuya respuesta trae un objeto en `data`. Los errores de red
 /// y de la API llegan como [ErrorApi]; `sinData` es el mensaje si `data` no
 /// es un objeto.

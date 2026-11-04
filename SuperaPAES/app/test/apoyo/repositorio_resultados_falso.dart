@@ -1,3 +1,4 @@
+import 'package:supera_paes/dominio/entidades/historial.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_resultados.dart';
@@ -86,6 +87,63 @@ final List<PreguntaRevisada> revisionDePrueba = [
   _pregunta(3, ResultadoPregunta.omitida),
 ];
 
+/// Las evaluaciones del boceto A34.
+final PaginaHistorial historialDeEjemplo = PaginaHistorial(
+  evaluaciones: [
+    EvaluacionDelHistorial(
+      id: 41,
+      tipoNombre: 'Mini-ensayo',
+      prueba: 'Matemática M1',
+      cerradaEn: DateTime(2026, 10, 20),
+      cantidad: 22,
+      correctas: 15,
+      porcentaje: 68,
+    ),
+    EvaluacionDelHistorial(
+      id: 42,
+      tipoNombre: 'Práctica',
+      prueba: 'Matemática M2',
+      alcance: 'Logaritmos',
+      cerradaEn: DateTime(2026, 10, 19),
+      cantidad: 10,
+      correctas: 7,
+      porcentaje: 70,
+    ),
+    EvaluacionDelHistorial(
+      id: 43,
+      tipoNombre: 'Práctica',
+      prueba: 'Competencia Lectora',
+      alcance: 'Interpretar',
+      cerradaEn: DateTime(2026, 10, 17),
+      cantidad: 5,
+      correctas: 4,
+      porcentaje: 80,
+      abandonada: true,
+    ),
+    EvaluacionDelHistorial(
+      id: 44,
+      tipoNombre: 'Diagnóstico',
+      prueba: 'Matemática M1',
+      cerradaEn: DateTime(2026, 4, 14),
+      cantidad: 20,
+      correctas: 13,
+      porcentaje: 65,
+      recalculada: true,
+    ),
+  ],
+  pagina: 1,
+  porPagina: 20,
+  total: 4,
+);
+
+/// La primera de tres páginas.
+final PaginaHistorial historialConPaginas = PaginaHistorial(
+  evaluaciones: historialDeEjemplo.evaluaciones,
+  pagina: 1,
+  porPagina: 20,
+  total: 45,
+);
+
 /// Resultados sin red. Guarda qué evaluaciones se pidieron; con [error], toda
 /// consulta falla.
 class RepositorioResultadosFalso implements RepositorioResultados {
@@ -96,11 +154,28 @@ class RepositorioResultadosFalso implements RepositorioResultados {
   final List<int> resultadosPedidos = [];
   final List<int> revisionesPedidas = [];
 
+  /// Lo que responde GET /evaluaciones/historial; sin nada por defecto.
+  PaginaHistorial paginaHistorial = const PaginaHistorial(
+    evaluaciones: [],
+    pagina: 1,
+    porPagina: 20,
+    total: 0,
+  );
+  ErrorApi? errorHistorial;
+  final List<FiltrosHistorial> consultas = [];
+
   @override
   Future<ResultadoEvaluacion> obtenerResultado(int evaluacionId) async {
     resultadosPedidos.add(evaluacionId);
     if (error case final fallo?) throw fallo;
     return resultado;
+  }
+
+  @override
+  Future<PaginaHistorial> obtenerHistorial(FiltrosHistorial filtros) async {
+    consultas.add(filtros);
+    if (errorHistorial case final fallo?) throw fallo;
+    return paginaHistorial;
   }
 
   @override

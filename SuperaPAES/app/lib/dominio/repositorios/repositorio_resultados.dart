@@ -1,3 +1,4 @@
+import 'package:supera_paes/dominio/entidades/historial.dart';
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 
 /// Contrato del resultado y la revisión de una evaluación cerrada del
@@ -9,4 +10,7 @@ abstract interface class RepositorioResultados {
   /// Las preguntas en su orden. En la práctica y el repaso, solo las
   /// respondidas (RN-22).
   Future<List<PreguntaRevisada>> obtenerRevision(int evaluacionId);
+
+  /// Las evaluaciones cerradas, por páginas y con filtros (HU-62, A34).
+  Future<PaginaHistorial> obtenerHistorial(FiltrosHistorial filtros);
 }

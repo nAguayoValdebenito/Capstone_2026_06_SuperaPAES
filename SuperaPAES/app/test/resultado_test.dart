@@ -124,6 +124,10 @@ void main() {
         repositorio: RepositorioResultadosFalso(resultado: sinTabla),
       );
 
+      // Alta: el aviso va al final y el pie suma «Ir al historial».
+      tester.view.physicalSize = const Size(800, 2400);
+      await tester.pumpAndSettle();
+
       expect(find.text('Ensayo completo · Tiempo agotado'), findsOne);
       expect(find.text('75 %'), findsOne);
       expect(find.text('Puntaje estimado'), findsNothing);

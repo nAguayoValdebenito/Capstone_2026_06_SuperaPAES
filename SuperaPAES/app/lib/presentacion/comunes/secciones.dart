@@ -30,6 +30,7 @@ import 'package:supera_paes/presentacion/progreso/pantalla_progreso.dart';
 import 'package:supera_paes/presentacion/puntajes/pantalla_puntajes.dart';
 import 'package:supera_paes/presentacion/recuperar_contrasena/pantalla_recuperar_contrasena.dart';
 import 'package:supera_paes/presentacion/repaso/pantalla_repaso.dart';
+import 'package:supera_paes/presentacion/resultado/pantalla_historial.dart';
 import 'package:supera_paes/presentacion/resultado/pantalla_resultado.dart';
 import 'package:supera_paes/presentacion/resultado/pantalla_revision.dart';
 import 'package:supera_paes/presentacion/terminos/pantalla_terminos.dart';
@@ -213,6 +214,7 @@ const List<Seccion> secciones = [
     PantallaVerTodas.new,
   ),
   // Resultado y revisión de una evaluación (HU-61)
+  Seccion('Historial', Rutas.historial, Icons.history, PantallaHistorial.new),
   Seccion(
     'Resultado',
     Rutas.resultado,
