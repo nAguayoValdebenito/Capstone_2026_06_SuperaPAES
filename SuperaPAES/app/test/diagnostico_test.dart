@@ -264,7 +264,12 @@ void main() {
     await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
 
     await tester.scrollUntilVisible(
-      find.text('Diagnóstico').first,
+      find.text('Reforzar'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Diagnóstico pendiente este año').first,
       200,
       scrollable: find.byType(Scrollable).first,
     );

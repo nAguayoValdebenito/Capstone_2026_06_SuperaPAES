@@ -48,6 +48,14 @@ class SaludoInicio extends ConsumerWidget {
   }
 }
 
+/// La racha en palabras amables: sin días, invita a empezarla (plan de mejora
+/// visual del 02/11).
+String textoDeRacha(int dias) => switch (dias) {
+  0 => 'Empieza tu racha hoy',
+  1 => '1 día seguido',
+  _ => '$dias días seguidos',
+};
+
 class _Racha extends StatelessWidget {
   const _Racha({required this.dias});
 
@@ -74,7 +82,7 @@ class _Racha extends StatelessWidget {
           // desbordarse.
           Flexible(
             child: Text(
-              'Racha: $dias ${dias == 1 ? 'día' : 'días'}',
+              textoDeRacha(dias),
               style: TemaSuperaPaes.pequenoFuerte.copyWith(
                 color: TemaSuperaPaes.avisoTexto,
               ),
@@ -87,7 +95,8 @@ class _Racha extends StatelessWidget {
 }
 
 /// «Tus preguntas de hoy» (A12; HU-35 esc. 1, RN-01, RN-02): las disponibles,
-/// las usadas con su barra, el reinicio y las preguntas extra.
+/// las usadas con su barra, el reinicio y las preguntas extra. Es compacta:
+/// lo primero en Inicio es qué hacer hoy, no el número del cupo.
 class TarjetaCupo extends ConsumerWidget {
   const TarjetaCupo({super.key});
 
@@ -104,7 +113,7 @@ class TarjetaCupo extends ConsumerWidget {
               color: TemaSuperaPaes.textoSecundario,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: TemaSuperaPaes.espacio4),
           switch (cupo) {
             AsyncData(value: final CupoDeHoy datos) => _DatosCupo(cupo: datos),
             AsyncError(:final error) => _ErrorCupo(error: error),
@@ -137,10 +146,10 @@ class _DatosCupo extends StatelessWidget {
           spacing: 8,
           crossAxisAlignment: WrapCrossAlignment.end,
           children: [
-            Text('${cupo.restantes}', style: TemaSuperaPaes.display),
+            Text('${cupo.restantes}', style: TemaSuperaPaes.numero),
             Padding(
-              // Alinea la bajada con la base del número, como en el boceto.
-              padding: const EdgeInsets.only(bottom: 6),
+              // Alinea la bajada con la base del número.
+              padding: const EdgeInsets.only(bottom: 3),
               child: Text(
                 'disponibles · ${cupo.usadas} de ${cupo.maximo} usadas',
                 style: secundario,
@@ -148,10 +157,10 @@ class _DatosCupo extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: TemaSuperaPaes.espacio8),
         // Las usadas ya se leen en el texto de arriba.
         ExcludeSemantics(child: _Barra(usado: usado.clamp(0, 1))),
-        const SizedBox(height: 10),
+        const SizedBox(height: TemaSuperaPaes.espacio8),
         Wrap(
           spacing: 8,
           runSpacing: 6,

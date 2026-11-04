@@ -10,6 +10,13 @@ import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
+/// Si hay algo que mostrar en [EvaluacionSinTerminar].
+bool haySinTerminar(ConsultaEvaluacionAbierta? consulta) {
+  final abierta = consulta?.abierta;
+  return consulta?.cerrada != null ||
+      (abierta != null && (abierta.esPractica || abierta.conTiempo));
+}
+
 /// Lo que quedó sin terminar, en Inicio (A12; HU-60, CU-28): «Práctica sin
 /// terminar» con «Seguir», la evaluación con tiempo con «Continuar» (A29) o,
 /// si el servidor la cerró al consultarla, el aviso con su resultado. El
@@ -25,7 +32,7 @@ class EvaluacionSinTerminar extends ConsumerWidget {
       return _Cerrada(cerrada: cerrada);
     }
     final abierta = consulta?.abierta;
-    if (abierta == null || !(abierta.esPractica || abierta.conTiempo)) {
+    if (abierta == null || !haySinTerminar(consulta)) {
       return const SizedBox.shrink();
     }
     return _Tarjeta(

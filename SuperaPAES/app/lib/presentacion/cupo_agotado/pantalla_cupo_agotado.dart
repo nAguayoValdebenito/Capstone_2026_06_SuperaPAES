@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,11 +10,13 @@ import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 
 /// Cupo agotado (A22; HU-33 esc. 1 y 2, HU-47 esc. 3, CU-07a, CU-07b, RF-A09,
-/// RN-01, RN-04): se abre cuando la práctica recibe `CUPO_AGOTADO`. Explica
-/// cuándo se reinicia el cupo, cómo seguir hoy (verificar el correo si falta,
-/// invitar o suscribirse) y lo que no usa cupo: el repaso y el mini-ensayo.
+/// RN-01, RN-04): se abre cuando la práctica recibe `CUPO_AGOTADO`. Cuenta el
+/// tiempo que falta para el reinicio del cupo y muestra cómo seguir hoy
+/// (verificar el correo si falta, invitar o suscribirse) y lo que no usa cupo:
+/// el repaso y el mini-ensayo.
 class PantallaCupoAgotado extends ConsumerWidget {
   const PantallaCupoAgotado({super.key});
 
@@ -22,10 +27,7 @@ class PantallaCupoAgotado extends ConsumerWidget {
     return PantallaFormulario(
       hijos: [
         const EnlaceVolver(texto: 'Inicio', destino: Rutas.inicio),
-        const Encabezado(
-          titulo: 'Usaste tus preguntas de hoy',
-          bajada: 'Se reinician a las 00:00 (hora de Chile). Para seguir hoy:',
-        ),
+        const _EncabezadoCupo(),
         ListaDeFilas(
           filas: [
             if (sinVerificar)
@@ -72,6 +74,60 @@ class PantallaCupoAgotado extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Cuánto falta para [reiniciaEn], la hora que entrega la API: «Vuelve en
+/// 6 h 12 min». Redondea hacia arriba, para no decir nunca «0 min». Sin esa
+/// hora (el cupo no cargó), dice la hora fija del reinicio (RN-02).
+String textoDeRegreso(DateTime? reiniciaEn, DateTime ahora) {
+  const sigue = 'o sigue ahora con lo que no usa cupo.';
+  if (reiniciaEn == null) return 'Vuelve a las 00:00 (hora de Chile), $sigue';
+  final falta = reiniciaEn.difference(ahora);
+  if (falta <= Duration.zero) {
+    return 'Tu cupo ya se reinició. Vuelve a Inicio para seguir practicando.';
+  }
+  final minutos = (falta.inSeconds + 59) ~/ 60;
+  final tiempo = [
+    if (minutos >= 60) '${minutos ~/ 60} h',
+    if (minutos % 60 > 0) '${minutos % 60} min',
+  ].join(' ');
+  return 'Vuelve en $tiempo, $sigue';
+}
+
+/// Título y cuenta regresiva, que se actualiza sola mientras está abierta.
+class _EncabezadoCupo extends ConsumerStatefulWidget {
+  const _EncabezadoCupo();
+
+  @override
+  ConsumerState<_EncabezadoCupo> createState() => _EncabezadoCupoState();
+}
+
+class _EncabezadoCupoState extends ConsumerState<_EncabezadoCupo> {
+  late final Timer _reloj;
+
+  @override
+  void initState() {
+    super.initState();
+    _reloj = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => setState(() {}),
+    );
+  }
+
+  @override
+  void dispose() {
+    _reloj.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reiniciaEn = ref.watch(cupoDeHoyProvider).value?.reiniciaEn;
+    return Encabezado(
+      titulo: 'Por hoy completaste tu cupo',
+      bajada: textoDeRegreso(reiniciaEn, clock.now()),
     );
   }
 }

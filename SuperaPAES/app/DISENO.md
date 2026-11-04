@@ -229,7 +229,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A09b     | Paso 2, tope de tres áreas               | `32:1028` | `perfil_estudio/pantalla_paso_areas.dart` |
 | A10      | Perfil, paso 3: tus pruebas              | `33:643`  | `perfil_estudio/pantalla_paso_pruebas.dart` |
 | A11      | Confirmar el curso en marzo              | `33:730`  | `perfil_estudio/hoja_confirmar_curso.dart` |
-| A12      | Inicio                                   | `33:794`  | `inicio/` (con «Práctica sin terminar» en `evaluacion_sin_terminar.dart`, con «Seguir» como `BotonChico`; sin «Repasar errores» ni diagnóstico, que llegan con HU-39 y HU-36) |
+| A12      | Inicio                                   | `33:794`  | `inicio/`. **Cambia respecto del boceto por la tanda C del plan de mejora visual:** arriba, la tarjeta «Hoy» (`tarjeta_hoy.dart`), con lo que quedó sin terminar, el diagnóstico pendiente, la prueba a reforzar o la práctica libre; cupo compacto; racha amable; pruebas en grilla de dos columnas con su sello (una columna con letra desde 1,3). Sin «Repasar errores», que llega con HU-39 |
 | A13      | Personalizar la práctica                 | `33:883`  | `practicar/pantalla_personalizar_practica.dart` |
 | A14      | Elegir eje, contenido o habilidad        | `33:983`  | `practicar/pantalla_elegir_alcance.dart` |
 | A15      | Sin preguntas suficientes                | `33:1059` | `practicar/pantalla_sin_preguntas.dart` |
@@ -239,7 +239,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A19      | Corrección con explicación               | `33:1243` | `correccion/pantalla_correccion.dart` |
 | A19b     | Corrección de una respuesta incorrecta   | `33:1299` | `correccion/pantalla_correccion.dart` |
 | A20      | Pregunta de Competencia Lectora          | `33:1355` | `pregunta/texto_de_lectura.dart` |
-| A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43) |
+| A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43). Con los textos aprobados en el plan de mejora visual y una cuenta regresiva hasta el reinicio, con la hora que entrega la API |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
 | A25      | Evaluaciones                             | por anotar | `evaluaciones/pantalla_evaluaciones.dart` y `tarjetas_evaluaciones.dart` |
 | A26      | Antes de empezar                         | por anotar | `evaluaciones/pantalla_antes_de_empezar.dart`; la del ensayo completo, sin boceto propio, en `pantalla_antes_del_ensayo.dart` (las condiciones comunes en `condiciones_evaluacion.dart`) |
