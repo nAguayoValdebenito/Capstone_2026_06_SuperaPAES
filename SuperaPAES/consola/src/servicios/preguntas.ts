@@ -4,6 +4,7 @@ import { solicitarAdmin } from '../api/cliente';
 import { consultaDeListado, paginacionDe } from './paginacion';
 import type {
   ArchivosImportacion,
+  ArchivoCsv,
   CambioDeEtapa,
   DatosPregunta,
   FiltrosBanco,
@@ -19,6 +20,16 @@ import type {
 } from '../tipos';
 
 const PREGUNTAS = '/preguntas';
+
+/** CU-16 paso 1: plantillas del mismo formato que lee el servidor. */
+export async function obtenerPlantillasImportacion(): Promise<
+  Record<'preguntas' | 'textos', ArchivoCsv>
+> {
+  const { data } = await solicitarAdmin<Record<'preguntas' | 'textos', ArchivoCsv>>(
+    `${PREGUNTAS}/importaciones/plantillas`,
+  );
+  return data;
+}
 
 const opciones = (senal?: AbortSignal) => (senal ? { signal: senal } : {});
 

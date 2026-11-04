@@ -28,6 +28,7 @@ export interface PreguntasControlador {
   crearTexto: Validado<DatosTexto>;
   editarTexto: Validado<DatosTexto>;
   tiposDeTexto: RequestHandler;
+  plantillasImportacion: RequestHandler;
   revisarImportacion: Validado<ArchivosImportacion>;
   importarPreguntas: Validado<DatosImportacion>;
   publicarPregunta: Validado;
@@ -51,8 +52,29 @@ const cambiarEtapa =
     responder(res, await servicio.cambiarEtapa(autorDe(req), String(req.params.id), cambio));
   };
 
+/** CU-16: descargar, revisar y confirmar la importación desde C04. */
+function controladorImportacion(
+  servicio: PreguntasServicio,
+): Pick<
+  PreguntasControlador,
+  'plantillasImportacion' | 'revisarImportacion' | 'importarPreguntas'
+> {
+  return {
+    plantillasImportacion: (_req, res) => {
+      responder(res, servicio.obtenerPlantillasImportacion());
+    },
+    revisarImportacion: async (req, res) => {
+      responder(res, await servicio.revisarImportacion(req.body));
+    },
+    importarPreguntas: async (req, res) => {
+      responder(res, await servicio.importarPreguntas(autorDe(req), req.body), { estado: 201 });
+    },
+  };
+}
+
 export function crearPreguntasControlador(servicio: PreguntasServicio): PreguntasControlador {
   return {
+    ...controladorImportacion(servicio),
     publicarPregunta: cambiarEtapa(servicio, 'publicar'),
     retirarPregunta: cambiarEtapa(servicio, 'retirar'),
     volverABorrador: cambiarEtapa(servicio, 'borrador'),
@@ -91,12 +113,6 @@ export function crearPreguntasControlador(servicio: PreguntasServicio): Pregunta
     },
     tiposDeTexto: async (_req, res) => {
       responder(res, await servicio.tiposDeTexto());
-    },
-    revisarImportacion: async (req, res) => {
-      responder(res, await servicio.revisarImportacion(req.body));
-    },
-    importarPreguntas: async (req, res) => {
-      responder(res, await servicio.importarPreguntas(autorDe(req), req.body), { estado: 201 });
     },
   };
 }

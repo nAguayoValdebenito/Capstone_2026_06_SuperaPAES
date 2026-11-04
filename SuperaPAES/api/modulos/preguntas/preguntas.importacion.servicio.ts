@@ -19,7 +19,12 @@ import {
 import { leerPregunta, type PreguntaDelArchivo } from './preguntas.importacion.filas.js';
 import { leerTextos } from './preguntas.importacion.textos.js';
 import type { PreguntasImportacionRepositorio } from './preguntas.importacion.repositorio.js';
-import { COLUMNAS_PREGUNTAS, COLUMNAS_TEXTOS, leerArchivo } from './preguntas.plantilla.js';
+import {
+  COLUMNAS_PREGUNTAS,
+  COLUMNAS_TEXTOS,
+  leerArchivo,
+  obtenerPlantillasImportacion,
+} from './preguntas.plantilla.js';
 import type { PreguntasRepositorio } from './preguntas.repositorio.js';
 import type { TextosDeLectura } from './preguntas.textos.servicio.js';
 import type { ArchivosImportacion, DatosImportacion, DatosTexto } from './preguntas.validadores.js';
@@ -41,6 +46,8 @@ export interface ImportacionHecha extends InformeImportacion {
 }
 
 export interface ImportacionPreguntas {
+  /** CU-16 paso 1: plantillas CSV vacías, sin cargar material de terceros (RN-29). */
+  obtenerPlantillasImportacion(): ReturnType<typeof obtenerPlantillasImportacion>;
   /** CU-16 pasos 3 a 5: el informe, sin guardar nada. */
   revisarImportacion(archivos: ArchivosImportacion): Promise<InformeImportacion>;
   /** CU-16 pasos 6 y 7: crea las preguntas válidas. Sin ninguna válida, 400. */
@@ -228,6 +235,7 @@ export function crearImportacionPreguntas(
   dependencias: DependenciasImportacion,
 ): ImportacionPreguntas {
   return {
+    obtenerPlantillasImportacion,
     revisarImportacion: async (archivos) => (await revisar(dependencias, archivos)).informe,
     importarPreguntas: (autorId, datos) => importar(dependencias, autorId, datos),
   };

@@ -116,6 +116,7 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
       'POST /preguntas/textos': ['admin'],
       'PUT /preguntas/textos/:id': ['admin'],
       'POST /preguntas/importaciones/revision': ['admin'],
+      'GET /preguntas/importaciones/plantillas': ['admin'],
       'POST /preguntas/importaciones': ['admin'],
       'POST /preguntas/': ['admin'],
       'GET /preguntas/:id': ['admin'],

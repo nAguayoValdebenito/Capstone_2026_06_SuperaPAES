@@ -32,6 +32,19 @@ export const COLUMNAS_PREGUNTAS = [
 /** Un texto de lectura por fila, con el código que usan sus preguntas. */
 export const COLUMNAS_TEXTOS = ['codigo', 'tipo_texto', 'titulo', 'contenido'] as const;
 
+/** HU-13.3: las descargas usan exactamente las columnas que valida el importador. */
+export function obtenerPlantillasImportacion() {
+  const archivo = (nombre: string, columnas: readonly string[]): ArchivoCsv => ({
+    nombre,
+    // BOM para Excel, separador habitual en español y fin de línea de Windows.
+    contenido: `\uFEFF${columnas.join(';')}\r\n`,
+  });
+  return {
+    preguntas: archivo('plantilla_preguntas.csv', COLUMNAS_PREGUNTAS),
+    textos: archivo('plantilla_textos.csv', COLUMNAS_TEXTOS),
+  };
+}
+
 export type ColumnaPregunta = (typeof COLUMNAS_PREGUNTAS)[number];
 export type ColumnaTexto = (typeof COLUMNAS_TEXTOS)[number];
 
