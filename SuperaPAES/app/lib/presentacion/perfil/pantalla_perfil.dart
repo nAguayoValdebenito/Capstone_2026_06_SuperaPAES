@@ -31,7 +31,7 @@ class PantallaPerfil extends ConsumerWidget {
           filas: [
             FilaNavegacion(
               texto: 'Mi suscripción',
-              onTap: () => context.push(Rutas.planes),
+              onTap: () => context.push(Rutas.miSuscripcion),
             ),
             FilaNavegacion(
               texto: 'Invitar y ganar preguntas',

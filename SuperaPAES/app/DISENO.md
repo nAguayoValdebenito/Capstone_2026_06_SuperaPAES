@@ -243,6 +243,8 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A22      | Cupo agotado                             | `34:975`  | `cupo_agotado/pantalla_cupo_agotado.dart` («Suscríbete» sin precio hasta HU-43). Con los textos aprobados en el plan de mejora visual y una cuenta regresiva hasta el reinicio, con la hora que entrega la API |
 | A21      | Resumen de la práctica                   | `33:1403` | `practicar/pantalla_resumen_practica.dart` (sin «Ver la revisión», que llega con HU-61) |
 | A24      | Repasar errores                          | `34:1123` | `repaso/pantalla_repaso.dart`. Sin el filtro «Todas» del boceto: cada repaso es de una prueba. La tarjeta de Inicio, `TarjetaRepaso` en `inicio/evaluacion_sin_terminar.dart`; las preguntas, las de la práctica |
+| A43      | Planes                                   | `36:1705` | `planes/pantalla_planes.dart`. Elegir un plan avisa el modo de prueba: no hay compra |
+| A44      | Mi suscripción                           | `36:1799` | `planes/pantalla_mi_suscripcion.dart`, con A46 (en mora) en la misma pantalla |
 | A34      | Historial                                | `35:1443` | `resultado/pantalla_historial.dart`, con filtros, marcas y páginas; se abre desde Progreso y desde el resultado |
 | A25      | Evaluaciones                             | por anotar | `evaluaciones/pantalla_evaluaciones.dart` y `tarjetas_evaluaciones.dart` |
 | A26      | Antes de empezar                         | por anotar | `evaluaciones/pantalla_antes_de_empezar.dart`; la del ensayo completo, sin boceto propio, en `pantalla_antes_del_ensayo.dart` (las condiciones comunes en `condiciones_evaluacion.dart`) |

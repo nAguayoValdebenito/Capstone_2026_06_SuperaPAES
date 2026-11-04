@@ -19,6 +19,17 @@ Object? leerData(Object? cuerpo, {int? estadoHttp}) {
   return cuerpo['data'];
 }
 
+/// GET a `ruta` que entrega lo que venga en `data`: una lista, un objeto o
+/// `null`. Quien llama revisa la forma.
+Future<Object?> pedirDato(Dio dio, String ruta) async {
+  try {
+    final respuesta = await dio.get<Object?>(ruta);
+    return leerData(respuesta.data, estadoHttp: respuesta.statusCode);
+  } on DioException catch (excepcion) {
+    throw ErrorApi.desdeDio(excepcion);
+  }
+}
+
 /// GET a `ruta` de un listado: la lista de `data` y la paginación de `meta`.
 /// `sinData` es el mensaje si la respuesta no trae las dos.
 Future<({List<Object?> filas, Map<String, dynamic> meta})> pedirPagina(

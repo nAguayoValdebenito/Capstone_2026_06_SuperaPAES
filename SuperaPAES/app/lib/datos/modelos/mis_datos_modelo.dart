@@ -57,7 +57,12 @@ abstract final class MisDatosModelo {
   /// `data.suscripcionVigente` de GET /privacidad/cuenta; `null` sin una.
   static SuscripcionVigente? suscripcion(Map<String, dynamic> json) {
     final datos = json['suscripcionVigente'] as Map<String, dynamic>?;
-    if (datos == null) return null;
+    return datos == null ? null : suscripcionDesde(datos);
+  }
+
+  /// Una suscripción vigente: la misma en /privacidad/cuenta y en
+  /// GET /suscripciones/actual.
+  static SuscripcionVigente suscripcionDesde(Map<String, dynamic> datos) {
     return SuscripcionVigente(
       enMora: datos['estado'] == 'en_mora',
       plan: datos['plan'] as String,
@@ -70,6 +75,12 @@ abstract final class MisDatosModelo {
           mensaje: 'Recibimos una tienda que no conocemos. Inténtalo de nuevo.',
         ),
       },
+      periodoFin: switch (datos['periodoFin']) {
+        final String fecha => DateTime.tryParse(fecha)?.toLocal(),
+        _ => null,
+      },
+      renuevaAutomaticamente: datos['renuevaAutomaticamente'] as bool? ?? true,
+      gestionUrl: datos['gestionUrl'] as String?,
     );
   }
 }

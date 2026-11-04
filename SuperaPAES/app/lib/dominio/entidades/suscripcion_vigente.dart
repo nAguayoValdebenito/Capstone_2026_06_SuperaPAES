@@ -19,6 +19,9 @@ class SuscripcionVigente {
     required this.plan,
     required this.periodicidad,
     required this.tienda,
+    this.periodoFin,
+    this.renuevaAutomaticamente = true,
+    this.gestionUrl,
   });
 
   /// `false` si está activa.
@@ -30,6 +33,15 @@ class SuscripcionVigente {
   /// `mensual` o `anual`.
   final String periodicidad;
   final Tienda tienda;
+
+  /// Fin del período pagado: la próxima renovación, o el término si canceló.
+  final DateTime? periodoFin;
+
+  /// `false` si canceló en la tienda: el plan sigue hasta [periodoFin].
+  final bool renuevaAutomaticamente;
+
+  /// Dónde se gestiona en la tienda (HU-45.2); sin ella, la lista general.
+  final String? gestionUrl;
 }
 
 /// La versión vigente que el estudiante aceptó de los términos o de la
