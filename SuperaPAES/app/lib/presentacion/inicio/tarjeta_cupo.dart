@@ -48,6 +48,14 @@ class SaludoInicio extends ConsumerWidget {
   }
 }
 
+/// La racha en palabras amables: sin días, invita a empezarla (plan de mejora
+/// visual del 02/11).
+String textoDeRacha(int dias) => switch (dias) {
+  0 => 'Empieza tu racha hoy',
+  1 => '1 día seguido',
+  _ => '$dias días seguidos',
+};
+
 class _Racha extends StatelessWidget {
   const _Racha({required this.dias});
 
@@ -74,7 +82,7 @@ class _Racha extends StatelessWidget {
           // desbordarse.
           Flexible(
             child: Text(
-              'Racha: $dias ${dias == 1 ? 'día' : 'días'}',
+              textoDeRacha(dias),
               style: TemaSuperaPaes.pequenoFuerte.copyWith(
                 color: TemaSuperaPaes.avisoTexto,
               ),

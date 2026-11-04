@@ -54,7 +54,16 @@ void main() {
 
       expect(find.text('Hola,'), findsOne);
       expect(find.text('Camila'), findsOne);
-      expect(find.text('Racha: 5 días'), findsOne);
+      expect(find.text('5 días seguidos'), findsOne);
+    });
+
+    testWidgets('sin racha invita a empezarla', (tester) async {
+      await _abrirInicio(
+        tester,
+        cupo: RepositorioCupoFalso(cupo: _cupo(racha: 0)),
+      );
+
+      expect(find.text('Empieza tu racha hoy'), findsOne);
     });
 
     testWidgets('una racha de un día va en singular', (tester) async {
@@ -63,7 +72,7 @@ void main() {
         cupo: RepositorioCupoFalso(cupo: _cupo(racha: 1)),
       );
 
-      expect(find.text('Racha: 1 día'), findsOne);
+      expect(find.text('1 día seguido'), findsOne);
     });
 
     testWidgets('muestra las disponibles, las usadas, el reinicio y las '
@@ -102,7 +111,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('disponibles · 7 de 10 usadas'), findsOne);
-      expect(find.text('Racha: 5 días'), findsOne);
+      expect(find.text('5 días seguidos'), findsOne);
     });
 
     testWidgets('con el correo sin verificar invita a verificarlo; '
@@ -200,7 +209,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(
-      tester.getTopLeft(find.text('Racha: 5 días')).dy,
+      tester.getTopLeft(find.text('5 días seguidos')).dy,
       greaterThan(tester.getBottomLeft(find.text('Hola,')).dy),
     );
     await tester.scrollUntilVisible(
