@@ -1,7 +1,9 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/cupo_agotado/pantalla_cupo_agotado.dart';
 
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
@@ -20,17 +22,80 @@ final _verificada = SesionEstudiante(
 );
 
 void main() {
+  group('Tiempo para volver (A22)', () {
+    final ahora = DateTime.utc(2026, 11, 3, 20, 48);
+    String regreso(Duration falta) => textoDeRegreso(ahora.add(falta), ahora);
+
+    test('dice las horas y los minutos que faltan', () {
+      expect(
+        regreso(const Duration(hours: 6, minutes: 12)),
+        'Vuelve en 6 h 12 min, o sigue ahora con lo que no usa cupo.',
+      );
+      expect(regreso(const Duration(hours: 2)), startsWith('Vuelve en 2 h,'));
+      expect(
+        regreso(const Duration(minutes: 5)),
+        startsWith('Vuelve en 5 min,'),
+      );
+    });
+
+    test('redondea hacia arriba: nunca dice 0 min', () {
+      expect(
+        regreso(const Duration(seconds: 20)),
+        startsWith('Vuelve en 1 min,'),
+      );
+      expect(
+        regreso(const Duration(minutes: 59, seconds: 30)),
+        startsWith('Vuelve en 1 h,'),
+      );
+    });
+
+    test('sin la hora de la API, dice la hora fija del reinicio', () {
+      expect(
+        textoDeRegreso(null, ahora),
+        'Vuelve a las 00:00 (hora de Chile), o sigue ahora con lo que no usa '
+        'cupo.',
+      );
+    });
+
+    test('si ya pasó el reinicio, lo dice', () {
+      expect(
+        regreso(const Duration(seconds: -1)),
+        'Tu cupo ya se reinició. Vuelve a Inicio para seguir practicando.',
+      );
+    });
+  });
+
   group('Cupo agotado (A22)', () {
+    testWidgets('cuenta el tiempo con la hora de la API y se actualiza sola', (
+      tester,
+    ) async {
+      var ahora = DateTime.utc(2026, 10, 28, 20, 48);
+      await withClock(Clock(() => ahora), () async {
+        await iniciarApp(
+          tester,
+          crearContenedor(sesion: sesionDeEjemplo),
+          ruta: Rutas.cupoAgotado,
+        );
+        expect(
+          find.text(
+            'Vuelve en 6 h 12 min, o sigue ahora con lo que no usa cupo.',
+          ),
+          findsOne,
+        );
+
+        ahora = ahora.add(const Duration(minutes: 2));
+        await tester.pump(const Duration(seconds: 30));
+
+        expect(find.textContaining('Vuelve en 6 h 10 min'), findsOne);
+      });
+    });
+
     testWidgets('explica cuándo se reinicia y cómo seguir hoy, con verificar '
         'el correo si falta (esc. 2)', (tester) async {
       final contenedor = crearContenedor(sesion: sesionDeEjemplo);
       await iniciarApp(tester, contenedor, ruta: Rutas.cupoAgotado);
 
-      expect(find.text('Usaste tus preguntas de hoy'), findsOne);
-      expect(
-        find.text('Se reinician a las 00:00 (hora de Chile). Para seguir hoy:'),
-        findsOne,
-      );
+      expect(find.text('Por hoy completaste tu cupo'), findsOne);
       for (final opcion in [
         'Verifica tu correo',
         'Invita a alguien',
@@ -106,7 +171,7 @@ void main() {
       await tocar(tester, find.text('Empezar práctica'));
 
       expect(rutaActual(contenedor), Rutas.cupoAgotado);
-      expect(find.text('Usaste tus preguntas de hoy'), findsOne);
+      expect(find.text('Por hoy completaste tu cupo'), findsOne);
     });
   });
 }
