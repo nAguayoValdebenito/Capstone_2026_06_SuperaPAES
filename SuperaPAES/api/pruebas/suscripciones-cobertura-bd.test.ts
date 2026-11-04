@@ -23,6 +23,7 @@ describe.skipIf(!urlBase)('cobertura de las suscripciones con PostgreSQL (RN-04)
 
   beforeAll(async () => {
     servicio = crearSuscripcionesServicio({
+      administracion: entorno.crearServiciosCon({}).administracion,
       bd: entorno.bd,
       unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(entorno.bd) },
       reloj: relojDelSistema,

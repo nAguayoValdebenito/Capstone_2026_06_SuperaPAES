@@ -26,6 +26,7 @@ describe.skipIf(!urlBase)('recorrido de una suscripción con avisos (HU-44.2)', 
   let m1: number;
   beforeAll(async () => {
     servicio = crearSuscripcionesServicio({
+      administracion: entorno.crearServiciosCon({}).administracion,
       bd: entorno.bd,
       unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(entorno.bd) },
       reloj: () => AHORA,
@@ -169,6 +170,7 @@ describe.skipIf(!urlBase)('recorrido de una suscripción con avisos (HU-44.2)', 
       await aviso('google_play', compra, { renovacionAutomatica: false });
       const cerrar = (fecha: Date) =>
         crearSuscripcionesServicio({
+          administracion: entorno.crearServiciosCon({}).administracion,
           bd: entorno.bd,
           unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(entorno.bd) },
           reloj: () => fecha,
@@ -188,6 +190,7 @@ describe.skipIf(!urlBase)('recorrido de una suscripción con avisos (HU-44.2)', 
       const { id } = await activaEn('google_play', 'renueva-sola@ejemplo.cl');
 
       const cerradas = await crearSuscripcionesServicio({
+        administracion: entorno.crearServiciosCon({}).administracion,
         bd: entorno.bd,
         unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(entorno.bd) },
         reloj: () => new Date(FIN_MENSUAL.getTime() + 10 * 86_400_000),

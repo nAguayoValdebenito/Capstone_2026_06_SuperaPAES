@@ -27,6 +27,7 @@ describe.skipIf(!urlBase)('fin del período pagado con PostgreSQL (A-03)', () =>
   beforeAll(async () => {
     const reloj = () => AHORA;
     servicio = crearSuscripcionesServicio({
+      administracion: entorno.crearServiciosCon({}).administracion,
       bd: entorno.bd,
       unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(entorno.bd) },
       reloj,

@@ -5,6 +5,11 @@
 import type { PasarelasPorTienda } from '../../adaptadores/fabrica.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
+import {
+  crearPlanesServicio,
+  type DependenciasPlanes,
+  type PlanesServicio,
+} from './suscripciones.planes.servicio.js';
 import type { DependenciasCorreoMora } from './suscripciones.avisos.correo.js';
 import {
   crearCierreRepositorio,
@@ -42,6 +47,7 @@ import {
 } from './suscripciones.repositorio.js';
 
 export interface DependenciasSuscripcionesServicio {
+  administracion: DependenciasPlanes['administracion'];
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
   /** Hora actual, para las reglas que dependen del tiempo. */
@@ -65,7 +71,12 @@ export interface DependenciasSuscripcionesServicio {
  * anterior y el nuevo, partiendo del último registro.
  */
 export interface SuscripcionesServicio
-  extends ComprasServicio, ValidacionServicio, TrazabilidadServicio, AvisosServicio {
+  extends
+    ComprasServicio,
+    ValidacionServicio,
+    TrazabilidadServicio,
+    AvisosServicio,
+    PlanesServicio {
   /**
    * RN-04: ¿una suscripción activa o en mora cubre la prueba? Si la cubre, responder no descuenta
    * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta). Una activa cubre
@@ -157,6 +168,7 @@ export function crearSuscripcionesServicio(
     dependencias.repositorioTrazabilidad ?? crearTrazabilidadRepositorio(dependencias.bd),
   );
   return {
+    ...crearPlanesServicio(dependencias),
     ...compras,
     ...validacion,
     ...trazabilidad,

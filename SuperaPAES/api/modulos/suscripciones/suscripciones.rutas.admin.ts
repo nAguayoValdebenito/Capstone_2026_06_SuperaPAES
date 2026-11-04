@@ -7,6 +7,8 @@
 import { Router } from 'express';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
+import { crearPlanesControlador } from './suscripciones.planes.controlador.js';
+import { esquemaEditarPlan, esquemaIdPlan } from './suscripciones.planes.validadores.js';
 import { crearTrazabilidadControlador } from './suscripciones.trazabilidad.controlador.js';
 import {
   esquemaConsultaAvisos,
@@ -17,6 +19,14 @@ import { esquemaIdSuscripcion } from './suscripciones.validadores.js';
 
 export function crearRutasAdminSuscripciones(servicio: SuscripcionesServicio): Router {
   const router = Router();
+  const planes = crearPlanesControlador(servicio);
+  router.get('/planes', exigirRol('admin'), planes.listar);
+  router.put(
+    '/planes/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdPlan, cuerpo: esquemaEditarPlan }),
+    planes.editar,
+  );
   // Trazabilidad (C16, HU-56). /resumen y /avisos-error van antes de /:id.
   const trazabilidad = crearTrazabilidadControlador(servicio);
   router.get('/resumen', exigirRol('admin'), trazabilidad.resumen);

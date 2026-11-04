@@ -134,6 +134,8 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
       'POST /revision/desempates/:id': ['docente'],
       'GET /revision/seguimiento': ['admin'],
       'POST /revision/preguntas/:id': ['admin'],
+      'GET /suscripciones/planes': ['admin'],
+      'PUT /suscripciones/planes/:id': ['admin'],
       'GET /suscripciones/resumen': ['admin'],
       'GET /suscripciones/avisos-error': ['admin'],
       'GET /suscripciones/': ['admin'],
