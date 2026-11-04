@@ -174,6 +174,9 @@ todavía no permite ejecutar.
 
 ## 7. Android: firma de publicación
 
+> La versión de publicación solo se conecta por `https`. Para mostrar la app con la API local por `http`, se usa
+> `flutter run`, que compila en modo de depuración.
+
 Google Play rechaza un paquete firmado con la clave de depuración. La clave de publicación y su archivo
 `key.properties` **nunca se suben al repositorio**: `app/android/.gitignore` ya los excluye. Sin
 `key.properties`, la compilación de publicación sigue funcionando, pero firma con la clave de depuración.
@@ -202,3 +205,17 @@ Google Play rechaza un paquete firmado con la clave de depuración. La clave de 
 
 4. Guardar la clave y su contraseña fuera del repositorio y fuera del computador, en un lugar seguro. Sin ellas no se
    puede publicar una actualización con la misma firma.
+
+## 8. iOS: compilar sin Mac
+
+La compilación corre en un Mac de GitHub Actions, sin firmar, porque el equipo no paga Apple Developer. No llega a TestFlight ni a la
+App Store: sirve para instalar la app en un iPhone propio.
+
+1. En GitHub, abrir **Actions**, elegir **Compilar iOS** y tocar **Run workflow**. La dirección de la API debe usar `https`, porque iOS
+   no permite `http`. Si se deja vacía, usa el secreto `API_URL`.
+2. Al terminar, descargar el artefacto `supera-paes-ios-sin-firmar` y descomprimirlo. Dura 7 días en GitHub.
+3. Instalarlo con una herramienta como [Sideloadly](https://sideloadly.io/), conectando el iPhone por cable y usando un Apple ID. Conviene
+   uno secundario, no el principal.
+4. En el iPhone, abrir **Ajustes > General > VPN y gestión de dispositivos** y confiar en ese Apple ID.
+
+La firma con un Apple ID gratis dura 7 días: después hay que instalarla de nuevo.

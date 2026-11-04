@@ -1,0 +1,65 @@
+name: Compilar iOS
+
+# Compila la app para iPhone en un Mac de GitHub, sin firmar (paso 65): el equipo no paga Apple Developer ni tiene Mac.
+# Entrega un .ipa que dura 7 días. Para instalarlo en un iPhone hay que firmarlo con un Apple ID gratis, como explica
+# operaciones/despliegue.md, sección 8. Se ejecuta a mano desde Actions, y sola en los PR que tocan esta compilación.
+# Necesita una API con https: iOS no permite http. Usa la dirección que se indique o el secreto API_URL.
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "Dirección de la API, con https (vacío: el secreto API_URL)"
+        required: false
+        type: string
+  pull_request:
+    paths:
+      - ".github/workflows/compilar-ios.yml"
+      - "SuperaPAES/app/ios/**"
+      - "SuperaPAES/app/pubspec.yaml"
+      - "SuperaPAES/app/pubspec.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compilar-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: Compilar sin firmar
+    runs-on: macos-15
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: SuperaPAES/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Compilar
+        env:
+          # Por variable, y no dentro del comando: lo escrito en el formulario no se ejecuta.
+          API_URL_ELEGIDA: ${{ inputs.api_url }}
+          API_URL_SECRETO: ${{ secrets.API_URL }}
+        run: |
+          API_URL="${API_URL_ELEGIDA:-$API_URL_SECRETO}"
+          if [ -z "$API_URL" ]; then
+            echo "::notice::Sin API_URL: compila, pero la app no conectará. Sirve solo para revisar la compilación."
+            API_URL="https://api.invalid"
+          fi
+          flutter build ios --release --no-codesign --dart-define=API_URL="$API_URL"
+      - name: Empaquetar el .ipa
+        run: |
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry supera-paes-sin-firmar.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: supera-paes-ios-sin-firmar
+          path: SuperaPAES/app/supera-paes-sin-firmar.ipa
+          if-no-files-found: error
+          retention-days: 7
