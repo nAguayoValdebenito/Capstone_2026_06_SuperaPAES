@@ -48,6 +48,7 @@ export const INVENTARIO_IDS = [
   'POST /api/v1/admin/revision/mis-revisiones/:id → data.asignacionId, data.preguntaId',
   'POST /api/v1/admin/revision/preguntas/:id → data.preguntaId, data.revisores[].asignacionId, data.revisores[].docente.id',
   'POST /api/v1/app/evaluaciones/practicas → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.dificultadId',
+  'GET /api/v1/app/evaluaciones/historial → data[].id, data[].prueba.id, data[].alcance.id, data[].dificultad.id',
   'POST /api/v1/app/evaluaciones/repasos → data.id, data.pruebaId, data.ejeId',
   'POST /api/v1/app/evaluaciones/practicas/:id/siguiente → data.id, data.alternativas[].id',
   'POST /api/v1/app/evaluaciones/practicas/:id/cerrar → data.id, data.prueba.id, data.alcance.id, data.dificultad.id, data.ejes[].id, data.habilidades[].id',

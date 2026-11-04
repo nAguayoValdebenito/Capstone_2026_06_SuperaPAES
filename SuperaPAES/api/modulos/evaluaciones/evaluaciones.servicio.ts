@@ -23,6 +23,11 @@ import {
   crearPracticasServicio,
   type PracticasServicio,
 } from './evaluaciones.practicas.servicio.js';
+import { crearHistorialRepositorio } from './evaluaciones.historial.repositorio.js';
+import {
+  crearHistorialServicio,
+  type HistorialServicio,
+} from './evaluaciones.historial.servicio.js';
 import { crearRepasoRepositorio } from './evaluaciones.repaso.repositorio.js';
 import {
   crearEleccionFallada,
@@ -79,6 +84,7 @@ export type EvaluacionesServicio = MiniServicio &
   RespuestasServicio &
   ResumenServicio &
   ResultadoServicio &
+  HistorialServicio &
   ProgresoServicio &
   ExportacionEvaluaciones &
   AbiertaServicio;
@@ -172,6 +178,7 @@ function crearServicioSinReintento(
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
       progreso,
     }),
+    ...crearHistorialServicio(crearHistorialRepositorio(dependencias.bd)),
     ...crearExportacionEvaluaciones(dependencias.bd),
     ...progreso,
     ...crearAbiertaServicio({

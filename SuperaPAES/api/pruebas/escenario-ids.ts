@@ -5,7 +5,7 @@ import { expect, vi } from 'vitest';
 import { crearApp, crearServicios } from '../app.js';
 import { cuerpoDePreguntas, preguntasDePrueba } from './escenario-ids-preguntas.js';
 import { cuerpoDeRevision, esDelDocente, revisionDePrueba } from './escenario-ids-revision.js';
-import { trazabilidadDePrueba } from './escenario-ids-suscripciones.js';
+import { filaHistorial, trazabilidadDePrueba } from './escenario-ids-suscripciones.js';
 import {
   cuerpoPuntajes,
   generadorDePrueba,
@@ -122,6 +122,12 @@ export function escenario() {
   };
   const evaluaciones = {
     ...servicios.evaluaciones,
+    listarHistorial: vi.fn(() =>
+      Promise.resolve({
+        evaluaciones: [filaHistorial],
+        paginacion: { pagina: 1, porPagina: 20, total: 1 },
+      }),
+    ),
     iniciarRepaso: vi.fn(() =>
       Promise.resolve({ id: '41', pruebaId: 2, ejeId: 3, cantidad: 5, entregadas: 0 }),
     ),

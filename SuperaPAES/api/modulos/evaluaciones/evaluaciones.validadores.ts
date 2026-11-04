@@ -1,5 +1,6 @@
 // Esquemas zod de entrada del módulo evaluaciones. Se usan con validar() en las rutas.
 import { z } from 'zod';
+import { codigoConsulta, idConsulta, numeroDePagina } from '../../comun/consultas.js';
 import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 
 const identificador = z.number().int().positive().max(32767);
@@ -38,6 +39,14 @@ export const esquemaInicioRepaso = z.strictObject({
   ejeId: identificador.optional(),
 });
 
+/** HU-62.1: los filtros del historial (CU-30 paso 3): prueba y tipo, opcionales, por páginas. */
+export const esquemaHistorial = z.strictObject({
+  pruebaId: idConsulta(32_767).optional(),
+  tipo: codigoConsulta.optional(),
+  pagina: numeroDePagina(1, 100_000),
+  porPagina: numeroDePagina(20, 50),
+});
+
 export const esquemaIdPractica = z.object({ id: idDeRuta });
 /** GET /evaluaciones/{id}/resultado y /revision (HU-61.1), de cualquier tipo de evaluación. */
 export const esquemaIdEvaluacion = z.object({ id: idDeRuta });
@@ -48,4 +57,5 @@ export const esquemaIdsItem = z.object({ id: idDeRuta, item: idDeRuta });
 export const esquemaRespuesta = z.object({ alternativaId: idDeCuerpo });
 export type DatosInicioPractica = z.infer<typeof esquemaInicioPractica>;
 export type DatosInicioRepaso = z.infer<typeof esquemaInicioRepaso>;
+export type DatosHistorial = z.infer<typeof esquemaHistorial>;
 export type DatosRespuestaPregunta = z.infer<typeof esquemaRespuesta>;

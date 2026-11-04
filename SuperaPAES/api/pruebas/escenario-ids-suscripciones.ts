@@ -22,6 +22,22 @@ const aviso = {
 };
 const paginacion = { pagina: 1, porPagina: 20, total: 1 };
 
+/** Una fila del historial del estudiante (HU-62.1) con su id BIGINT como texto. */
+export const filaHistorial = {
+  id: '41',
+  tipo: opcion('practica'),
+  prueba: { id: 2, codigo: 'M1', nombre: 'M1' },
+  estado: opcion('entregada'),
+  alcance: { tipo: 'prueba' as const, id: 2, nombre: 'M1' },
+  dificultad: { id: null, codigo: 'mezcla', nombre: 'Mezcla' },
+  cerradaEn: fecha,
+  cantidad: 5,
+  correctas: 3,
+  porcentaje: 60,
+  puntaje: null,
+  recalculadoEn: null,
+};
+
 export const trazabilidadDePrueba = {
   listarSuscripciones: vi.fn(() => Promise.resolve({ suscripciones: [fila], paginacion })),
   detalleSuscripcion: vi.fn(() =>
