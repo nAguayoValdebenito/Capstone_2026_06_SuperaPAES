@@ -2,17 +2,24 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supera_paes/nucleo/configuracion.dart';
+import 'package:supera_paes/nucleo/espera_servidor.dart';
 
-/// Cliente HTTP único de la app, apuntando a /api/v1/app de la API.
+/// Cliente HTTP único de la app, apuntando a /api/v1/app de la API. Los tiempos
+/// dan margen a Render gratuito, que tarda cerca de un minuto en despertar
+/// (DAS 2.5); mientras tanto la app lo avisa (A-10).
 final clienteHttpProvider = Provider<Dio>((ref) {
-  final dio = Dio(
-    BaseOptions(
-      baseUrl: '${Configuracion.apiUrl}/api/v1/app',
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: const {'Accept': 'application/json'},
-    ),
-  );
+  final dio =
+      Dio(
+          BaseOptions(
+            baseUrl: '${Configuracion.apiUrl}/api/v1/app',
+            connectTimeout: const Duration(seconds: 15),
+            receiveTimeout: const Duration(seconds: 75),
+            headers: const {'Accept': 'application/json'},
+          ),
+        )
+        ..interceptors.add(
+          InterceptorEspera(ref.read(esperaServidorProvider.notifier)),
+        );
   ref.onDispose(dio.close);
   return dio;
 });

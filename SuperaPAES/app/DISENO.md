@@ -154,6 +154,7 @@ Identidad y estados (tanda A del plan de mejora visual, 03/11):
 | `Esqueleto(ancho:, alto:)` y `EsqueletoTarjeta(lineas:)` (en `estados.dart`) | Carga con la forma de lo que viene, en vez de la rueda centrada. |
 | `EstadoVacio(titulo:, texto:, accion:, alTocar:)` (en `estados.dart`) | Lo que se muestra cuando no hay nada todavía, con el trazo y un botón opcional. |
 | `EstadoError(error:, mensaje:, alReintentar:, titulo:)` (en `estados.dart`) | Lo que no se pudo cargar, en tono neutro, con el trazo a medio camino y «Reintentar». En depuración anota la causa de un error que no vino de la API. |
+| `AvisoServidor(child:)` | Sobre todas las pantallas, en la raíz de la app: si una respuesta tarda más de 5 s, avisa que el servidor está despertando (Render gratuito). Flota arriba, no mueve la pantalla y deja pasar los toques. No se usa a mano |
 | `ZonaTactil(onTap:, child:)` (en `componentes_seleccion.dart`) | Lleva la zona de toque a 48 sin cambiar lo que se ve (chips y segmentos). |
 
 Los mensajes de error que ve el estudiante no dicen «API»: «Sin conexión por ahora. Revisa tu internet e
