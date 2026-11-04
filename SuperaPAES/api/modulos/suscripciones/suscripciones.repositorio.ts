@@ -32,6 +32,39 @@ export interface SuscripcionVigente {
 /** La vigente como sale de la base: la dirección de la tienda se arma con su producto. */
 export type FilaVigente = Omit<SuscripcionVigente, 'gestionUrl'> & { idProducto: string | null };
 
+interface Opcion {
+  codigo: string;
+  nombre: string;
+}
+
+/** Un plan que se ofrece (A43): su precio y su producto en cada tienda (CU-12 paso 1). */
+export interface PlanOfrecido {
+  id: number;
+  nombre: string;
+  alcance: Opcion;
+  periodicidad: Opcion & { meses: number };
+  precioClp: number;
+  /** Pruebas que cubre; `null` en Todas las pruebas. */
+  pruebasCubiertas: number | null;
+  /** Producto de cada tienda, por código de tienda. */
+  productos: Record<string, string>;
+}
+
+// Primero Una prueba y luego Todas las pruebas, y en cada uno el mensual antes que el anual.
+const PLANES = `
+  SELECT pl.id, pl.nombre, pl.precio_clp AS "precioClp", a.pruebas_cubiertas AS "pruebasCubiertas",
+         jsonb_build_object('codigo', a.codigo, 'nombre', a.nombre) AS alcance,
+         jsonb_build_object('codigo', p.codigo, 'nombre', p.nombre, 'meses', p.meses) AS periodicidad,
+         COALESCE((SELECT jsonb_object_agg(c.codigo, pt.id_producto)
+                     FROM contenido.plan_producto_tienda pt
+                     JOIN contenido.canal_venta c ON c.id = pt.canal_venta_id
+                    WHERE pt.plan_id = pl.id), '{}'::jsonb) AS productos
+    FROM contenido.plan pl
+    JOIN contenido.alcance_plan a ON a.id = pl.alcance_plan_id
+    JOIN contenido.periodicidad p ON p.id = pl.periodicidad_id
+   WHERE pl.activo
+   ORDER BY a.id, p.meses`;
+
 // Solo activa o en mora: una pendiente todavía no se cobra (RN-34). El índice ux_suscripcion_vigente
 // deja una sola vigente por estudiante. No mira el fin del período: dice si la tienda puede seguir
 // cobrando, aunque el aviso que cerraría la suscripción no haya llegado.
@@ -74,6 +107,11 @@ const CUBRE_PRUEBA = `
 
 export function crearSuscripcionesRepositorio(bd: Ejecutor) {
   return {
+    async planesOfrecidos(): Promise<PlanOfrecido[]> {
+      const { rows } = await bd.query<PlanOfrecido>(PLANES);
+      return rows;
+    },
+
     async vigenteDe(estudianteId: string, tx: Ejecutor = bd): Promise<FilaVigente | null> {
       const { rows } = await tx.query<FilaVigente>(VIGENTE, [estudianteId]);
       return rows[0] ?? null;

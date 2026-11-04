@@ -92,7 +92,7 @@ const CONSULTA_RESUMEN = `SELECT e.id::text AS id,
  JOIN contenido.prueba p ON p.id=e.prueba_id
  JOIN app.resultado_evaluacion r ON r.evaluacion_id=e.id
  ${JOINS_ALCANCE}
- WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo='practica'`;
+ WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo IN ('practica', 'repaso')`;
 
 const consultasResumen = {
   async bloquearPractica(
@@ -103,7 +103,8 @@ const consultasResumen = {
     const { rows } = await tx.query<PracticaParaCierre>(
       `SELECT e.cerrada_en AS "cerradaEn" FROM app.evaluacion e
        JOIN contenido.tipo_evaluacion t ON t.id=e.tipo_evaluacion_id
-       WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo='practica' FOR UPDATE OF e`,
+       WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo IN ('practica', 'repaso')
+       FOR UPDATE OF e`,
       [id, estudianteId],
     );
     return rows[0] ?? null;

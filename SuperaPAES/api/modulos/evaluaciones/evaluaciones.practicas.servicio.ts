@@ -13,11 +13,11 @@ import {
   validacion,
 } from './evaluaciones.errores.js';
 import type { TemarioServicio } from '../temario/index.js';
+import { elegirNueva, type DependenciasEleccion } from './evaluaciones.practicas.eleccion.js';
 import type {
   ContextoInicio,
   EvaluacionAbierta,
   EstructuraPractica,
-  PracticaGuardada,
   PracticasRepositorio,
 } from './evaluaciones.practicas.repositorio.js';
 import type { SeleccionPractica } from './evaluaciones.seleccion.servicio.js';
@@ -32,6 +32,7 @@ export interface DependenciasPracticas {
   cupo: Pick<CupoInvitacionesServicio, 'exigirCupoDisponible'>;
   reloj: Reloj;
   seleccion: SeleccionPractica;
+  elegirFallada: DependenciasEleccion['elegirFallada'];
 }
 
 function filtrosDe({
@@ -55,15 +56,6 @@ function filtrosDe({
     iniciadaEn: contexto.iniciadaEn,
     nivelEscolarId: contexto.nivelEscolarId,
     entregadas: [],
-  };
-}
-
-function alcanceDe(practica: PracticaGuardada): Partial<FiltrosSeleccion> {
-  return {
-    ...(practica.ejeId !== null && { ejeId: practica.ejeId }),
-    ...(practica.contenidoId !== null && { contenidoId: practica.contenidoId }),
-    ...(practica.habilidadId !== null && { habilidadId: practica.habilidadId }),
-    ...(practica.dificultad !== null && { dificultad: practica.dificultad }),
   };
 }
 
@@ -236,7 +228,7 @@ async function iniciar(
 }
 
 async function siguiente(dependencias: DependenciasPracticas, estudianteId: string, id: string) {
-  const { repositorio, unidadDeTrabajo, seleccion } = dependencias;
+  const { repositorio, unidadDeTrabajo } = dependencias;
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     const practica = await repositorio.leerPractica(id, estudianteId, tx);
     if (!practica) throw evaluacionNoEncontrada();
@@ -253,22 +245,7 @@ async function siguiente(dependencias: DependenciasPracticas, estudianteId: stri
       });
     if (entregas.length >= practica.cantidad) throw practicaCompleta();
     if (practica.consumeCupo) await exigirCupo(dependencias, estudianteId, practica.pruebaId, tx);
-    const filtros: FiltrosSeleccion = {
-      estudianteId,
-      pruebaId: practica.pruebaId,
-      ...alcanceDe(practica),
-      nivelEscolarId: practica.nivelEscolarId,
-      iniciadaEn: practica.iniciadaEn,
-      entregadas: entregas.map(({ preguntaId, version }) => ({ preguntaId, version })),
-    };
-    const pregunta = await seleccion.elegirSiguiente(
-      { ...filtros, cantidad: practica.cantidad },
-      tx,
-    );
-    if (!pregunta) {
-      const disponibles = await seleccion.contarDisponibles(filtros, tx);
-      throw sinPreguntas(disponibles, practica.cantidad - entregas.length, []);
-    }
+    const pregunta = await elegirNueva(dependencias, { estudianteId, practica, entregas }, tx);
     const itemId = await repositorio.insertarEntrega(practica, pregunta, entregas.length + 1, tx);
     return mostrarItem({ repositorio, itemId, estudianteId, total: practica.cantidad, tx });
   });

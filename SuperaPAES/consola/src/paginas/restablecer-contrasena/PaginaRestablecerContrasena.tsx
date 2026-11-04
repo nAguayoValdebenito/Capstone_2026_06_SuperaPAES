@@ -172,8 +172,11 @@ export function FormularioRestablecer({
   );
 }
 
-/** Resultado en lugar del formulario: listo, enlace incompleto o enlace que ya no sirve. */
-function Aviso({
+/**
+ * Resultado en lugar del formulario: listo, enlace incompleto o enlace que ya no sirve. También lo usa
+ * Verificar correo (HU-05.4), la otra página que abre un enlace del correo.
+ */
+export function Aviso({
   titulo,
   texto,
   tono,

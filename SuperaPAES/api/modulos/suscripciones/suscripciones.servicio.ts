@@ -36,6 +36,7 @@ import {
 import {
   crearSuscripcionesRepositorio,
   type FilaVigente,
+  type PlanOfrecido,
   type SuscripcionesRepositorio,
   type SuscripcionVigente,
 } from './suscripciones.repositorio.js';
@@ -71,6 +72,8 @@ export interface SuscripcionesServicio
    * hasta un día después del fin de su período, por si el aviso de la tienda no llega (A-03).
    */
   cubrePrueba(estudianteId: string, pruebaId: number, tx: Ejecutor): Promise<boolean>;
+  /** CU-12 paso 1 (A43): los planes activos, con su precio y su producto en cada tienda. */
+  planesOfrecidos(): Promise<PlanOfrecido[]>;
   /** HU-42: el ensayo oficial exige alcance Todas las pruebas. */
   permiteEnsayoCompleto(estudianteId: string, tx: Ejecutor): Promise<boolean>;
   /**
@@ -158,6 +161,7 @@ export function crearSuscripcionesServicio(
     ...validacion,
     ...trazabilidad,
     ...avisos,
+    planesOfrecidos: () => repositorio.planesOfrecidos(),
     cubrePrueba: (estudianteId, pruebaId, tx) =>
       repositorio.cubrePrueba(estudianteId, pruebaId, dependencias.reloj(), tx),
     permiteEnsayoCompleto: (estudianteId, tx) =>

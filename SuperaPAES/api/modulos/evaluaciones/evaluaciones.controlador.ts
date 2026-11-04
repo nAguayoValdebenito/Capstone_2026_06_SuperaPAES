@@ -4,7 +4,12 @@ import type { Request, RequestHandler } from 'express';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
-import type { DatosInicioPractica, DatosRespuestaPregunta } from './evaluaciones.validadores.js';
+import type {
+  DatosHistorial,
+  DatosInicioPractica,
+  DatosInicioRepaso,
+  DatosRespuestaPregunta,
+} from './evaluaciones.validadores.js';
 
 export interface EvaluacionesControlador {
   iniciarMiniEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
@@ -14,6 +19,9 @@ export interface EvaluacionesControlador {
   iniciarEnsayo: RequestHandler<Record<string, string>, unknown, { pruebaId: number }>;
   disponibilidadEnsayo: RequestHandler;
   iniciarPractica: RequestHandler<Record<string, string>, unknown, DatosInicioPractica>;
+  historial: RequestHandler;
+  porRepasar: RequestHandler;
+  iniciarRepaso: RequestHandler<Record<string, string>, unknown, DatosInicioRepaso>;
   siguientePregunta: RequestHandler;
   cerrarPractica: RequestHandler;
   resumenPractica: RequestHandler;
@@ -84,6 +92,29 @@ function controladoresEnsayo(servicio: EvaluacionesServicio) {
   return { disponibilidadEnsayo, iniciarEnsayo };
 }
 
+/** HU-39.1 y HU-62.1: el repaso de errores y el historial. */
+function repasoEHistorial(
+  servicio: EvaluacionesServicio,
+): Pick<EvaluacionesControlador, 'historial' | 'porRepasar' | 'iniciarRepaso'> {
+  return {
+    historial: async (req, res) => {
+      // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
+      const filtros = res.locals.consulta as DatosHistorial;
+      const { evaluaciones, paginacion } = await servicio.listarHistorial({
+        ...filtros,
+        estudianteId: estudianteDe(req),
+      });
+      responder(res, evaluaciones, { meta: paginacion });
+    },
+    porRepasar: async (req, res) => {
+      responder(res, await servicio.porRepasar(estudianteDe(req)));
+    },
+    iniciarRepaso: async (req, res) => {
+      responder(res, await servicio.iniciarRepaso(estudianteDe(req), req.body), { estado: 201 });
+    },
+  };
+}
+
 export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
@@ -97,6 +128,7 @@ export function crearEvaluacionesControlador(
     iniciarPractica: async (req, res) => {
       responder(res, await servicio.iniciarPractica(estudianteDe(req), req.body), { estado: 201 });
     },
+    ...repasoEHistorial(servicio),
     siguientePregunta: async (req, res) => {
       responder(res, await servicio.siguientePregunta(estudianteDe(req), String(req.params.id)));
     },

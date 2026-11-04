@@ -17,7 +17,9 @@ import {
   esquemaIdsItem,
   esquemaInicioPractica,
   esquemaRespuesta,
+  esquemaHistorial,
   esquemaInicioMini,
+  esquemaInicioRepaso,
   esquemaDisponibilidad,
 } from './evaluaciones.validadores.js';
 
@@ -65,6 +67,11 @@ export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Route
     validar({ cuerpo: esquemaInicioPractica }),
     controlador.iniciarPractica,
   );
+  // HU-62.1 (A34): las evaluaciones cerradas, por páginas y con filtros.
+  router.get('/historial', validar({ consulta: esquemaHistorial }), controlador.historial);
+  // HU-39.1 (A24): las preguntas por repasar y el repaso, que sigue con las rutas de la práctica.
+  router.get('/repaso', controlador.porRepasar);
+  router.post('/repasos', validar({ cuerpo: esquemaInicioRepaso }), controlador.iniciarRepaso);
   router.post(
     '/practicas/:id/siguiente',
     validar({ parametros: esquemaIdPractica }),

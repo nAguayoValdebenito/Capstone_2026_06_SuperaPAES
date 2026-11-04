@@ -9,6 +9,7 @@ import { PaginaInvitar } from '../paginas/invitar/PaginaInvitar';
 import { PaginaDocumentoLegal } from '../paginas/legales/PaginaDocumentoLegal';
 import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada';
 import { PaginaRestablecerContrasena } from '../paginas/restablecer-contrasena/PaginaRestablecerContrasena';
+import { PaginaVerificarCorreo } from '../paginas/verificar-correo/PaginaVerificarCorreo';
 import { RutaProtegida } from './RutaProtegida';
 import { INICIO_POR_ROL, SECCIONES } from './secciones';
 
@@ -44,6 +45,8 @@ export function RutasConsola() {
       <Route path="/ingreso" element={<PaginaIngreso />} />
       {/* Pública: la abre el estudiante con el enlace del correo de recuperación (A05, HU-06). */}
       <Route path="/restablecer-contrasena" element={<PaginaRestablecerContrasena />} />
+      {/* Pública: la abre el estudiante con el enlace del correo de verificación (HU-05.4, CU-02). */}
+      <Route path="/verificar-correo" element={<PaginaVerificarCorreo />} />
       {/* Pública: la abre el link de invitación que comparte el estudiante (W01 y W02, HU-46). */}
       <Route path="/invitar/:codigo" element={<PaginaInvitar />} />
       {/* Públicas: los textos legales vigentes, cuya dirección piden las tiendas (HU-34.4). Sin key:
