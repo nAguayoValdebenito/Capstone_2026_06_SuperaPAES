@@ -3,8 +3,8 @@
 // (.github/workflows/tareas-periodicas.yml) con `Authorization: Bearer <CLAVE_TAREAS>`, una clave que
 // solo conocen GitHub y el servidor. Cierra y corrige las evaluaciones con el tiempo cumplido y cierra
 // las prácticas sin actividad (app.cerrar_vencidas), y deja canceladas las suscripciones que cancelaron
-// la renovación y terminaron su período si el aviso de la tienda no llegó (HU-45.1). Los avisos de
-// renovación anual (HU-45.3) se suman aquí.
+// la renovación y terminaron su período si el aviso de la tienda no llegó (HU-45.1). También envía el aviso
+// por correo de las renovaciones anuales de los próximos 7 días (HU-45.3).
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
 import { ErrorNoAutenticado } from '../comun/errores.js';
@@ -16,11 +16,15 @@ export interface TareasPeriodicas {
   cerrarVencidas(): Promise<number>;
   /** Cuántas suscripciones canceladas cerró al terminar su período (HU-45.1). */
   cerrarCanceladasVencidas(): Promise<number>;
+  /** Cuántos avisos de renovación anual salieron y cuántos se reintentan en la hora siguiente (HU-45.3). */
+  avisarRenovaciones(): Promise<{ enviados: number; fallidos: number }>;
 }
 
 export interface ResultadoTareas {
   evaluacionesCerradas: number;
   suscripcionesCanceladas: number;
+  avisosRenovacion: number;
+  avisosRenovacionFallidos: number;
 }
 
 // Se comparan los resúmenes, del mismo largo, en tiempo constante: la respuesta no revela la clave.
@@ -35,8 +39,15 @@ export function crearRutasTareas(clave: string, tareas: TareasPeriodicas): Route
     }
     const evaluacionesCerradas = await tareas.cerrarVencidas();
     const suscripcionesCanceladas = await tareas.cerrarCanceladasVencidas();
-    registro.info('Tareas periódicas', { evaluacionesCerradas, suscripcionesCanceladas });
-    responder<ResultadoTareas>(res, { evaluacionesCerradas, suscripcionesCanceladas });
+    const avisos = await tareas.avisarRenovaciones();
+    const resultado: ResultadoTareas = {
+      evaluacionesCerradas,
+      suscripcionesCanceladas,
+      avisosRenovacion: avisos.enviados,
+      avisosRenovacionFallidos: avisos.fallidos,
+    };
+    registro.info('Tareas periódicas', { ...resultado });
+    responder<ResultadoTareas>(res, resultado);
   });
   return router;
 }

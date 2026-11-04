@@ -12,6 +12,11 @@ import {
 } from './suscripciones.cierre.repositorio.js';
 import { crearAvisosRepositorio } from './suscripciones.avisos.repositorio.js';
 import { gestionEnTienda } from './suscripciones.gestion-tienda.js';
+import {
+  crearAvisoRenovacion,
+  type DependenciasAvisoRenovacion,
+  type ResultadoRenovacion,
+} from './suscripciones.renovacion.servicio.js';
 import { crearAvisosServicio, type AvisosServicio } from './suscripciones.avisos.servicio.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
 import { crearComprasServicio, type ComprasServicio } from './suscripciones.compras.servicio.js';
@@ -49,6 +54,8 @@ export interface DependenciasSuscripcionesServicio {
   correoMora?: DependenciasCorreoMora;
   /** HU-45.2: paquete de la app en Google Play; sin él se abre la lista de suscripciones. */
   paqueteGooglePlay?: string;
+  /** HU-45.3: el aviso de renovación anual (auditoría, cuentas, correo y candados). */
+  avisoRenovacion?: DependenciasAvisoRenovacion;
 }
 
 /**
@@ -78,6 +85,11 @@ export interface SuscripcionesServicio
    * cierre queda en el historial con origen sistema. Devuelve cuántas cerró.
    */
   cerrarCanceladasVencidas(): Promise<number>;
+  /**
+   * HU-45.3 (CU-12 4.c), tarea horaria: avisa por correo cada renovación anual de los próximos 7 días
+   * que todavía no tiene aviso y lo registra en la auditoría. El que falla se reintenta la hora siguiente.
+   */
+  avisarRenovaciones(): Promise<ResultadoRenovacion>;
 }
 
 /** HU-45.1: cierra en una transacción las canceladas que terminaron su período (ver la interfaz). */
@@ -154,5 +166,6 @@ export function crearSuscripcionesServicio(
       conGestion(await repositorio.vigenteDe(estudianteId), dependencias.paqueteGooglePlay),
     cerrarCanceladasVencidas: () =>
       cerrarCanceladas(dependencias, crearCierreRepositorio(dependencias.bd), comprasRepositorio),
+    avisarRenovaciones: crearAvisoRenovacion(dependencias),
   };
 }

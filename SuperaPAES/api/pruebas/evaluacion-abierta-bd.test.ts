@@ -182,12 +182,19 @@ describe.skipIf(!urlBase)('evaluación abierta y tareas periódicas con PostgreS
     const respuesta = await tarea(`Bearer ${CLAVE_TAREAS}`);
 
     expect(respuesta.status).toBe(200);
-    expect(respuesta.body.data).toEqual({ evaluacionesCerradas: 2, suscripcionesCanceladas: 0 });
+    expect(respuesta.body.data).toEqual({
+      evaluacionesCerradas: 2,
+      suscripcionesCanceladas: 0,
+      avisosRenovacion: 0,
+      avisosRenovacionFallidos: 0,
+    });
     expect(await estadoDe(practica.practicaId)).toBe('abandonada');
     expect(await estadoDe(ensayo)).toBe('tiempo_agotado');
     expect((await tarea(`Bearer ${CLAVE_TAREAS}`)).body.data).toEqual({
       evaluacionesCerradas: 0,
       suscripcionesCanceladas: 0,
+      avisosRenovacion: 0,
+      avisosRenovacionFallidos: 0,
     });
   });
 });

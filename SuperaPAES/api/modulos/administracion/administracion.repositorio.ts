@@ -38,7 +38,8 @@ export interface CambiosUsuarioInterno {
 }
 
 export interface EntradaAuditoria {
-  usuarioId: string;
+  /** `null` si la acción la hizo el sistema en una tarea periódica (HU-45.3). */
+  usuarioId: string | null;
   /** Código de contenido.accion_auditoria, por ejemplo crear_usuario. */
   accion: string;
   entidad: string;
@@ -46,6 +47,11 @@ export interface EntradaAuditoria {
   antes: Record<string, unknown> | null;
   despues: Record<string, unknown> | null;
 }
+
+/** Una acción ya registrada: `despues` debe estar contenido en el de la fila. */
+export type ConsultaAuditoria = Pick<EntradaAuditoria, 'accion' | 'entidad' | 'entidadId'> & {
+  despues: Record<string, unknown>;
+};
 
 /** Versión vigente de un documento legal obligatorio (términos o privacidad, RN-30). */
 export interface DocumentoLegalVigente {
@@ -78,6 +84,7 @@ export interface AdministracionRepositorio {
   cambiarActivoUsuarioInterno(id: string, activo: boolean, tx?: Ejecutor): Promise<void>;
   reemplazarEspecialidades(id: string, areas: readonly number[], tx?: Ejecutor): Promise<void>;
   registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
+  existeAuditoria(consulta: ConsultaAuditoria, tx?: Ejecutor): Promise<boolean>;
   /** De cada tipo obligatorio, la versión con mayor vigente_desde que ya empezó a la hora `ahora`. */
   documentosLegalesVigentes(ahora: Date, tx?: Ejecutor): Promise<DocumentoLegalVigente[]>;
   /** La versión vigente del permiso de puntajes, que es opcional (RN-16); null si no hay. */
@@ -126,6 +133,14 @@ const INSERTAR_AUDITORIA = `
   INSERT INTO contenido.auditoria (usuario_id, accion_auditoria_id, entidad, entidad_id, antes,
                                    despues, creado_en)
   VALUES ($1, (SELECT id FROM contenido.accion_auditoria WHERE codigo = $2), $3, $4, $5, $6, now())`;
+
+const EXISTE_AUDITORIA = `
+  SELECT EXISTS (
+    SELECT 1
+      FROM contenido.auditoria a
+      JOIN contenido.accion_auditoria x ON x.id = a.accion_auditoria_id
+     WHERE a.entidad = $1 AND a.entidad_id = $2 AND x.codigo = $3 AND a.despues @> $4::jsonb
+  ) AS existe`;
 
 const ROL_Y_ESTADO = `
   SELECT r.codigo AS rol, u.activo
@@ -201,9 +216,10 @@ const ADMINISTRADORES_ACTIVOS = `
    ORDER BY u.id
      FOR UPDATE OF u`;
 
-type CambiosYAuditoria = Omit<AdministracionRepositorio, keyof ConsultasUsuarios>;
+type Auditoria = Pick<AdministracionRepositorio, 'registrarAuditoria' | 'existeAuditoria'>;
+type Cambios = Omit<AdministracionRepositorio, keyof ConsultasUsuarios | keyof Auditoria>;
 
-function cambiosYAuditoria(bd: Ejecutor): CambiosYAuditoria {
+function cambios(bd: Ejecutor): Cambios {
   return {
     async actualizarUsuarioInterno(id, { nombre, rol, hashContrasena }, tx = bd) {
       await tx.query(ACTUALIZAR_USUARIO_INTERNO, [id, nombre, rol, hashContrasena]);
@@ -250,14 +266,28 @@ function cambiosYAuditoria(bd: Ejecutor): CambiosYAuditoria {
       );
       return rows[0]?.valor;
     },
+  };
+}
 
+function auditoria(bd: Ejecutor): Auditoria {
+  return {
     async registrarAuditoria(entrada, tx = bd) {
       const { usuarioId, accion, entidad, entidadId, antes, despues } = entrada;
       await tx.query(INSERTAR_AUDITORIA, [usuarioId, accion, entidad, entidadId, antes, despues]);
+    },
+
+    async existeAuditoria({ accion, entidad, entidadId, despues }, tx = bd) {
+      const { rows } = await tx.query<{ existe: boolean }>(EXISTE_AUDITORIA, [
+        entidad,
+        entidadId,
+        accion,
+        despues,
+      ]);
+      return rows[0]?.existe ?? false;
     },
   };
 }
 
 export function crearAdministracionRepositorio(bd: Ejecutor): AdministracionRepositorio {
-  return { ...consultasUsuarios(bd), ...cambiosYAuditoria(bd) };
+  return { ...consultasUsuarios(bd), ...cambios(bd), ...auditoria(bd) };
 }

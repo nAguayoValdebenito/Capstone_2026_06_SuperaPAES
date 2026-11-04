@@ -157,6 +157,13 @@ function crearSuscripcionesYCupo(
       segundoPlano: dependencias.segundoPlano ?? ((tarea) => void tarea()),
     },
     ...(dependencias.paqueteGooglePlay && { paqueteGooglePlay: dependencias.paqueteGooglePlay }),
+    // HU-45.3: el aviso de renovación anual, que la tarea horaria envía.
+    avisoRenovacion: {
+      administracion,
+      cuentas,
+      correo: dependencias.proveedores.correo,
+      candados: dependencias.candados,
+    },
   });
   const cubrePrueba: SuscripcionesServicio['cubrePrueba'] =
     dependencias.cubrePrueba ??
@@ -326,6 +333,7 @@ export function crearApp(
       crearRutasTareas(dependencias.claveTareas, {
         cerrarVencidas: () => servicios.evaluaciones.cerrarVencidas(),
         cerrarCanceladasVencidas: () => servicios.suscripciones.cerrarCanceladasVencidas(),
+        avisarRenovaciones: () => servicios.suscripciones.avisarRenovaciones(),
       }),
     );
   }
