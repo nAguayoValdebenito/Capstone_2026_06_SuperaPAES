@@ -32,6 +32,12 @@ export const esquemaInicioPractica = z
     }
   });
 
+/** HU-39.1: el repaso de una prueba o de uno de sus ejes. La cantidad la definen las falladas. */
+export const esquemaInicioRepaso = z.strictObject({
+  pruebaId: identificador,
+  ejeId: identificador.optional(),
+});
+
 export const esquemaIdPractica = z.object({ id: idDeRuta });
 /** GET /evaluaciones/{id}/resultado y /revision (HU-61.1), de cualquier tipo de evaluación. */
 export const esquemaIdEvaluacion = z.object({ id: idDeRuta });
@@ -41,4 +47,5 @@ export const esquemaIdsItem = z.object({ id: idDeRuta, item: idDeRuta });
 // La corrección la hace el servidor (RN-06).
 export const esquemaRespuesta = z.object({ alternativaId: idDeCuerpo });
 export type DatosInicioPractica = z.infer<typeof esquemaInicioPractica>;
+export type DatosInicioRepaso = z.infer<typeof esquemaInicioRepaso>;
 export type DatosRespuestaPregunta = z.infer<typeof esquemaRespuesta>;

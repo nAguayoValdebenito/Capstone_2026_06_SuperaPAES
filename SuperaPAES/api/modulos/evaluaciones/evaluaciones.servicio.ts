@@ -23,6 +23,13 @@ import {
   crearPracticasServicio,
   type PracticasServicio,
 } from './evaluaciones.practicas.servicio.js';
+import { crearRepasoRepositorio } from './evaluaciones.repaso.repositorio.js';
+import {
+  crearEleccionFallada,
+  crearRepasoServicio,
+  type DependenciasRepaso,
+  type RepasoServicio,
+} from './evaluaciones.repaso.servicio.js';
 import { crearRespuestasRepositorio } from './evaluaciones.respuestas.repositorio.js';
 import {
   crearRespuestasServicio,
@@ -68,6 +75,7 @@ export type EvaluacionesServicio = MiniServicio &
   EntregaServicio &
   SeleccionPractica &
   PracticasServicio &
+  RepasoServicio &
   RespuestasServicio &
   ResumenServicio &
   ResultadoServicio &
@@ -101,6 +109,35 @@ function crearProgreso(dependencias: DependenciasEvaluacionesServicio) {
   });
 }
 
+/** HU-39.1: el repaso y la elección de sus preguntas, que usa la entrega de la práctica. */
+function dependenciasRepaso(dependencias: DependenciasEvaluacionesServicio): DependenciasRepaso {
+  return {
+    repositorio: crearRepasoRepositorio(),
+    practicas: crearPracticasRepositorio(),
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    cuentas: dependencias.cuentas,
+    administracion: dependencias.administracion,
+    suscripciones: dependencias.suscripciones,
+  };
+}
+
+function crearPracticas(
+  dependencias: DependenciasEvaluacionesServicio,
+  seleccion: SeleccionPractica,
+  repaso: DependenciasRepaso,
+) {
+  return crearPracticasServicio({
+    repositorio: crearPracticasRepositorio(),
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    cuentas: dependencias.cuentas,
+    temario: dependencias.temario,
+    cupo: dependencias.cupoInvitaciones,
+    reloj: dependencias.reloj,
+    seleccion,
+    elegirFallada: crearEleccionFallada(repaso),
+  });
+}
+
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
 ): EvaluacionesServicio {
@@ -111,20 +148,14 @@ function crearServicioSinReintento(
     azar: dependencias.azar ?? Math.random,
   });
   const progreso = crearProgreso(dependencias);
+  const repaso = dependenciasRepaso(dependencias);
   return {
     ...seleccion,
     ...crearMini(dependencias),
     ...crearEnsayo(dependencias),
     ...crearEntregaServicio(dependencias.unidadDeTrabajo, dependencias.cuentas),
-    ...crearPracticasServicio({
-      repositorio: crearPracticasRepositorio(),
-      unidadDeTrabajo: dependencias.unidadDeTrabajo,
-      cuentas: dependencias.cuentas,
-      temario: dependencias.temario,
-      cupo: dependencias.cupoInvitaciones,
-      reloj: dependencias.reloj,
-      seleccion,
-    }),
+    ...crearPracticas(dependencias, seleccion, repaso),
+    ...crearRepasoServicio(repaso),
     ...crearRespuestasServicio({
       repositorio: crearRespuestasRepositorio(),
       unidadDeTrabajo: dependencias.unidadDeTrabajo,
@@ -161,5 +192,7 @@ export function crearEvaluacionesServicio(
     // anterior: se repite la transacción completa (ver evaluaciones.reintento-inicio.ts).
     iniciarPractica: (estudianteId, datos) =>
       conReintentoDeInicio(() => servicio.iniciarPractica(estudianteId, datos)),
+    iniciarRepaso: (estudianteId, datos) =>
+      conReintentoDeInicio(() => servicio.iniciarRepaso(estudianteId, datos)),
   };
 }

@@ -30,6 +30,8 @@ export interface PracticaGuardada {
   iniciadaEn: Date;
   cerradaEn: Date | null;
   consumeCupo: boolean;
+  /** HU-39.1: el repaso usa estas mismas rutas y entrega preguntas falladas. */
+  esRepaso: boolean;
 }
 export interface EntregaGuardada extends PreguntaSeleccionada {
   id: string;
@@ -137,10 +139,12 @@ const consultasPracticas = {
           e.contenido_id AS "contenidoId", e.habilidad_id AS "habilidadId",
           e.dificultad_id AS "dificultadId", d.codigo AS dificultad,
           e.cantidad_preguntas AS cantidad, e.nivel_escolar_id AS "nivelEscolarId",
-          e.iniciada_en AS "iniciadaEn", e.cerrada_en AS "cerradaEn", t.consume_cupo AS "consumeCupo"
+          e.iniciada_en AS "iniciadaEn", e.cerrada_en AS "cerradaEn",
+          t.consume_cupo AS "consumeCupo", t.codigo = 'repaso' AS "esRepaso"
          FROM app.evaluacion e JOIN contenido.tipo_evaluacion t ON t.id=e.tipo_evaluacion_id
          LEFT JOIN contenido.dificultad d ON d.id=e.dificultad_id
-         WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo='practica' FOR UPDATE OF e`,
+         WHERE e.id=$1 AND e.estudiante_id=$2 AND t.codigo IN ('practica', 'repaso')
+         FOR UPDATE OF e`,
       [id, estudianteId],
     );
     return rows[0] ?? null;

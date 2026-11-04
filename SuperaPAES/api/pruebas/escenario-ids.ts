@@ -122,6 +122,9 @@ export function escenario() {
   };
   const evaluaciones = {
     ...servicios.evaluaciones,
+    iniciarRepaso: vi.fn(() =>
+      Promise.resolve({ id: '41', pruebaId: 2, ejeId: 3, cantidad: 5, entregadas: 0 }),
+    ),
     iniciarPractica: vi.fn(() =>
       Promise.resolve({
         id: '41',
@@ -228,6 +231,7 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
     };
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
+  if (ruta.endsWith('/repasos')) return { pruebaId: 2 };
   if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };
   return cuerpoDeOtrosModulos(ruta);
 }

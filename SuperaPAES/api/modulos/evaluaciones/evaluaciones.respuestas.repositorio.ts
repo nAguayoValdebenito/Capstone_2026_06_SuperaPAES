@@ -52,7 +52,7 @@ const consultasRespuestas = {
          FROM app.evaluacion e
          JOIN app.evaluacion_item i ON i.evaluacion_id = e.id
          JOIN contenido.tipo_evaluacion t ON t.id = e.tipo_evaluacion_id
-        WHERE e.id = $1 AND i.id = $2 AND e.estudiante_id = $3 AND (t.codigo = 'practica' OR t.con_tiempo)
+        WHERE e.id = $1 AND i.id = $2 AND e.estudiante_id = $3 AND (t.codigo IN ('practica', 'repaso') OR t.con_tiempo)
         FOR UPDATE OF e, i`,
       [evaluacionId, itemId, estudianteId],
     );

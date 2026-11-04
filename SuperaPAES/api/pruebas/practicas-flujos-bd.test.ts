@@ -48,9 +48,9 @@ describe.skipIf(!urlBase)('continuidad y textos de prácticas con PostgreSQL', (
       [repasoId],
     );
     expect(historial[0]?.estado).toBe('abandonada');
-    const noEsPractica = await siguiente(token, repasoId);
-    expect(noEsPractica.status).toBe(404);
-    expect(noEsPractica.body.error.codigo).toBe('EVALUACION_NO_ENCONTRADA');
+    const abandonado = await siguiente(token, repasoId);
+    expect(abandonado.status).toBe(409);
+    expect(abandonado.body.error.codigo).toBe('EVALUACION_CERRADA');
   });
 
   it('RN-19: dos inicios concurrentes dejan una sola evaluación abierta', async () => {
