@@ -1,7 +1,16 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Firma de publicación (A-09): sale de android/key.properties, que nunca se versiona, igual que la
+// clave. El manual de despliegue explica cómo crearlas.
+val archivoFirma = rootProject.file("key.properties")
+val firma = Properties().apply {
+    if (archivoFirma.exists()) archivoFirma.inputStream().use { load(it) }
 }
 
 android {
@@ -27,11 +36,24 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (archivoFirma.exists()) {
+            create("publicacion") {
+                storeFile = rootProject.file(firma.getProperty("storeFile"))
+                storePassword = firma.getProperty("storePassword")
+                keyAlias = firma.getProperty("keyAlias")
+                keyPassword = firma.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Por ahora firma con las claves de depuración para que `flutter run --release` funcione.
-            // La firma de publicación (keystore) se define al publicar y nunca se versiona.
-            signingConfig = signingConfigs.getByName("debug")
+            // Sin key.properties firma con la clave de depuración, para que `flutter run --release`
+            // funcione en cualquier computador. Google Play rechaza esa firma.
+            signingConfig = signingConfigs.getByName(
+                if (archivoFirma.exists()) "publicacion" else "debug",
+            )
         }
     }
 }
