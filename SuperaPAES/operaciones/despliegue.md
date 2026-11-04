@@ -171,3 +171,34 @@ esa ejecución no cuenta como prueba satisfactoria.
 Si una comprobación revela una falla de la versión publicada, abrir un incidente y seguir
 [`operaciones/contingencia.md`](contingencia.md). No marcar como verificado un paso que el código
 todavía no permite ejecutar.
+
+## 7. Android: firma de publicación
+
+Google Play rechaza un paquete firmado con la clave de depuración. La clave de publicación y su archivo
+`key.properties` **nunca se suben al repositorio**: `app/android/.gitignore` ya los excluye. Sin
+`key.properties`, la compilación de publicación sigue funcionando, pero firma con la clave de depuración.
+
+1. Crear la clave una sola vez, desde `app/android/`. `keytool` viene con Android Studio y pide una contraseña:
+
+   ```powershell
+   & "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v `
+     -keystore supera-paes.jks -keyalg RSA -keysize 2048 -validity 10000 -alias supera-paes
+   ```
+
+2. Crear `app/android/key.properties`. `storeFile` es relativo a `app/android/`:
+
+   ```properties
+   storeFile=supera-paes.jks
+   storePassword=<contraseña>
+   keyAlias=supera-paes
+   keyPassword=<contraseña>
+   ```
+
+3. Compilar el paquete desde `app/`, con la URL pública de la API:
+
+   ```powershell
+   flutter build appbundle --release --dart-define=API_URL=https://<api>
+   ```
+
+4. Guardar la clave y su contraseña fuera del repositorio y fuera del computador, en un lugar seguro. Sin ellas no se
+   puede publicar una actualización con la misma firma.

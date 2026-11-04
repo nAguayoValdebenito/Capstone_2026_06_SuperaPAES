@@ -14,6 +14,7 @@ import 'package:supera_paes/dominio/repositorios/repositorio_cuentas.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_verificacion.dart';
 import 'package:supera_paes/nucleo/cliente_http.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/espera_servidor.dart';
 import 'package:supera_paes/nucleo/interceptor_sesion.dart';
 
 /// Las rutas de cuentas que usa la app son públicas: van con el cliente sin
@@ -128,13 +129,14 @@ final sesionProvider = AsyncNotifierProvider<EstadoSesion, SesionEstudiante?>(
 final clienteHttpConSesionProvider = Provider<Dio>((ref) {
   final base = ref.watch(clienteHttpProvider);
   final dio = Dio(base.options)
-    ..interceptors.add(
+    ..interceptors.addAll([
+      InterceptorEspera(ref.read(esperaServidorProvider.notifier)),
       InterceptorSesion(
         tokenAcceso: () => ref.read(sesionProvider).value?.tokenAcceso,
         renovar: () => ref.read(sesionProvider.notifier).renovar(),
         reintentar: base.fetch,
       ),
-    );
+    ]);
   ref.onDispose(dio.close);
   return dio;
 });
