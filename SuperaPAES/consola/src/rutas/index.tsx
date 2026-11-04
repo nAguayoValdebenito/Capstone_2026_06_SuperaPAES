@@ -9,6 +9,7 @@ import { PaginaInvitar } from '../paginas/invitar/PaginaInvitar';
 import { PaginaDocumentoLegal } from '../paginas/legales/PaginaDocumentoLegal';
 import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada';
 import { PaginaRestablecerContrasena } from '../paginas/restablecer-contrasena/PaginaRestablecerContrasena';
+import { PaginaVerificarCorreo } from '../paginas/verificar-correo/PaginaVerificarCorreo';
 import { RutaProtegida } from './RutaProtegida';
 import { INICIO_POR_ROL, SECCIONES } from './secciones';
 
@@ -42,6 +43,8 @@ export function RutasConsola() {
   return (
     <Routes>
       <Route path="/ingreso" element={<PaginaIngreso />} />
+      {/* Pública: confirma el enlace del correo del estudiante y lo invita a volver a la app. */}
+      <Route path="/verificar-correo" element={<PaginaVerificarCorreo />} />
       {/* Pública: la abre el estudiante con el enlace del correo de recuperación (A05, HU-06). */}
       <Route path="/restablecer-contrasena" element={<PaginaRestablecerContrasena />} />
       {/* Pública: la abre el link de invitación que comparte el estudiante (W01 y W02, HU-46). */}

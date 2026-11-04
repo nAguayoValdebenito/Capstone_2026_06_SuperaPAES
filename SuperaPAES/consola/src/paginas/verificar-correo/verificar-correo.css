@@ -1,0 +1,72 @@
+/* Página del correo: identidad y mensajes de A06, adaptados al navegador (RN-32). */
+.verificar {
+  width: min(32rem, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.verificar__marca {
+  margin: 0 0 2rem;
+  color: var(--primario);
+  font-size: var(--texto-md);
+  font-weight: 800;
+}
+
+.verificar__resultado {
+  display: grid;
+  gap: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.verificar__resultado h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.verificar__resultado p {
+  margin: 0;
+  color: var(--texto-secundario);
+}
+
+.verificar__icono {
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.verificar__icono--exito {
+  color: var(--exito);
+  background: #e7f6ec;
+}
+
+.verificar__icono--error {
+  color: var(--error);
+  background: #fdecec;
+}
+
+.verificar__ayuda {
+  padding: 1rem;
+  background: #e8eefd;
+  border-radius: 1rem;
+}
+
+.verificar__boton {
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 0.875rem;
+  color: white;
+  background: var(--primario);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.verificar__boton:hover {
+  background: var(--primario-oscuro);
+}
