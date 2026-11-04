@@ -91,6 +91,13 @@ final abrirEnlaceProvider = Provider<AbrirEnlace>(
       (enlace) => launchUrl(enlace, mode: LaunchMode.externalApplication),
 );
 
+/// La dirección que entrega la API (HU-45.2) o, sin ella, la de la tienda.
+Uri enlaceDeGestion(SuscripcionVigente suscripcion) =>
+    switch (suscripcion.gestionUrl) {
+      final direccion? => Uri.parse(direccion),
+      null => gestionDeSuscripciones(suscripcion.tienda),
+    };
+
 /// La gestión de suscripciones de cada tienda, donde se cancela (RN-34).
 Uri gestionDeSuscripciones(Tienda tienda) => Uri.parse(switch (tienda) {
   Tienda.googlePlay => 'https://play.google.com/store/account/subscriptions',

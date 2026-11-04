@@ -11,6 +11,7 @@ import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/invitaciones/estado_invitaciones.dart';
 import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/planes/estado_planes.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/progreso/estado_progreso.dart';
 import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
@@ -25,6 +26,7 @@ import 'repositorio_practica_falso.dart';
 import 'repositorio_progreso_falso.dart';
 import 'repositorio_puntajes_falso.dart';
 import 'repositorio_resultados_falso.dart';
+import 'repositorio_suscripciones_falso.dart';
 
 /// Contenedor de la app sin red ni almacén del teléfono. Con `sesion`, la
 /// app arranca con esa sesión guardada.
@@ -40,6 +42,7 @@ ProviderContainer crearContenedor({
   RepositorioMisDatosFalso? misDatos,
   RepositorioResultadosFalso? resultados,
   RepositorioEvaluacionesFalso? evaluaciones,
+  RepositorioSuscripcionesFalso? suscripciones,
   CompartirArchivo? compartir,
   AbrirEnlace? abrirEnlace,
   CompartirTexto? compartirTexto,
@@ -68,6 +71,10 @@ ProviderContainer crearContenedor({
       // Sin `evaluaciones`, el mini-ensayo de M1 del boceto A25.
       repositorioEvaluacionesProvider.overrideWithValue(
         evaluaciones ?? RepositorioEvaluacionesFalso(),
+      ),
+      // Sin `suscripciones`, los planes de RN-05 y el plan Gratis.
+      repositorioSuscripcionesProvider.overrideWithValue(
+        suscripciones ?? RepositorioSuscripcionesFalso(),
       ),
       repositorioMisDatosProvider.overrideWithValue(
         misDatos ?? RepositorioMisDatosFalso(),

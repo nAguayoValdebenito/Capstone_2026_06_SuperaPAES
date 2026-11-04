@@ -12,9 +12,9 @@ import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
-  test('las 34 pantallas de la app están declaradas una sola vez', () {
-    expect(secciones, hasLength(34));
-    expect(secciones.map((s) => s.ruta).toSet(), hasLength(34));
+  test('las 35 pantallas de la app están declaradas una sola vez', () {
+    expect(secciones, hasLength(35));
+    expect(secciones.map((s) => s.ruta).toSet(), hasLength(35));
     // Barra inferior del DAS 7.4: Planes pasa a Perfil.
     expect(pestanas.map((s) => s.etiquetaPestana ?? s.titulo), [
       'Inicio',
@@ -75,7 +75,7 @@ void main() {
     );
   });
 
-  testWidgets('desde Perfil se abre Mi suscripción (Planes) y se vuelve '
+  testWidgets('desde Perfil se abre Mi suscripción y se vuelve '
       'atrás', (tester) async {
     final contenedor = crearContenedor(sesion: sesionDeEjemplo);
     await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
@@ -85,11 +85,10 @@ void main() {
     expect(rutaActual(contenedor), Rutas.perfil);
 
     await tocar(tester, find.text('Mi suscripción'));
-    expect(find.widgetWithText(AppBar, 'Planes'), findsOneWidget);
+    expect(find.text('Estás en el plan Gratis'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
 
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
+    await tocar(tester, find.text('Volver'));
     expect(rutaActual(contenedor), Rutas.perfil);
   });
 

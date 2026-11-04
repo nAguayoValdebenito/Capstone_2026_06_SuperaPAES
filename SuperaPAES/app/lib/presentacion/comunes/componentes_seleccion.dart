@@ -538,7 +538,9 @@ class ZonaTactil extends StatelessWidget {
 
 /// Tonos de [Etiqueta]: primario («Sugerida»), aviso («Sin verificar»),
 /// éxito («Correcta») y error («Tu respuesta» incorrecta).
-enum TonoEtiqueta { primario, aviso, exito, error }
+/// [exito] y [error] son blancos, para ir sobre la tarjeta de color de la
+/// corrección; sobre una tarjeta blanca va [exitoSuave].
+enum TonoEtiqueta { primario, aviso, exito, exitoSuave, error }
 
 /// Etiqueta (Texto/Pequeño fuerte sobre fondo suave, radio 12).
 class Etiqueta extends StatelessWidget {
@@ -564,6 +566,10 @@ class Etiqueta extends StatelessWidget {
       ),
       TonoEtiqueta.exito => (
         TemaSuperaPaes.superficie,
+        TemaSuperaPaes.exitoTexto,
+      ),
+      TonoEtiqueta.exitoSuave => (
+        TemaSuperaPaes.exitoSuave,
         TemaSuperaPaes.exitoTexto,
       ),
       TonoEtiqueta.error => (
