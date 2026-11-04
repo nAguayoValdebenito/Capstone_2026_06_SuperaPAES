@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supera_paes/datos/fuentes/fuente_practica_remota.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_practica_api.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
+import 'package:supera_paes/dominio/entidades/por_repasar.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_practica.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -31,6 +32,17 @@ final evaluacionAbiertaProvider = FutureProvider<ConsultaEvaluacionAbierta?>((
   );
   if (estudianteId == null) return null;
   return await ref.watch(repositorioPracticaProvider).evaluacionAbierta();
+});
+
+/// Lo que el estudiante puede repasar (A24 e Inicio); `null` sin sesión. Se
+/// vuelve a leer al empezar un repaso, al responder y al cerrar: cada
+/// respuesta puede agregar o sacar una pregunta de la lista.
+final porRepasarProvider = FutureProvider<PorRepasar?>((ref) async {
+  final estudianteId = ref.watch(
+    sesionProvider.select((sesion) => sesion.value?.estudiante.id),
+  );
+  if (estudianteId == null) return null;
+  return await ref.watch(repositorioPracticaProvider).porRepasar();
 });
 
 /// Dificultades y lo que se puede practicar de cada prueba, con los
@@ -138,6 +150,7 @@ class Practica {
     this.correccion,
     this.sinPreguntas,
     this.resumen,
+    this.esRepaso = false,
   });
 
   final PracticaIniciada? enCurso;
@@ -150,6 +163,10 @@ class Practica {
   final ({PreguntaDePractica pregunta, Correccion correccion})? correccion;
   final SinPreguntas? sinPreguntas;
   final ResumenPractica? resumen;
+
+  /// Es un repaso de errores (HU-39): usa las pantallas de la práctica, pero
+  /// no el cupo, y el resumen es otro.
+  final bool esRepaso;
 }
 
 /// La pregunta pendiente de la práctica en curso (A17 y A20); `null` sin
@@ -204,6 +221,29 @@ class EstadoPractica extends Notifier<Practica> {
     }
   }
 
+  /// Inicia el repaso de la prueba o de uno de sus ejes (HU-39). Los errores
+  /// llegan al llamador como `ErrorApi`.
+  Future<void> iniciarRepaso(
+    PruebaPorRepasar prueba, {
+    EjePorRepasar? eje,
+  }) async {
+    final repaso = await _repositorio.iniciarRepaso(prueba.id, ejeId: eje?.id);
+    state = Practica(
+      esRepaso: true,
+      enCurso: repaso,
+      datos: DatosPractica(
+        pruebaId: prueba.id,
+        alcance: eje == null
+            ? Alcance.todaLaPrueba
+            : Alcance(TipoAlcance.eje, id: eje.id, nombre: eje.nombre),
+        dificultadId: null,
+        cantidad: repaso.cantidad,
+      ),
+    );
+    // El repaso nuevo cerró lo que estaba abierto (RN-19).
+    ref.invalidate(evaluacionAbiertaProvider);
+  }
+
   /// Responde la pregunta y guarda su corrección; el cupo de hoy se vuelve a
   /// leer porque la respuesta lo descontó (RN-01).
   Future<void> responder(PreguntaDePractica pregunta, int alternativaId) async {
@@ -218,20 +258,26 @@ class EstadoPractica extends Notifier<Practica> {
       enCurso: enCurso,
       datos: state.datos,
       correccion: (pregunta: pregunta, correccion: correccion),
+      esRepaso: state.esRepaso,
     );
     // La respuesta descontó cupo (RN-01), ya cuenta en el progreso y suma
     // una respondida en «Práctica sin terminar».
     ref
       ..invalidate(cupoDeHoyProvider)
       ..invalidate(progresoProvider)
-      ..invalidate(evaluacionAbiertaProvider);
+      ..invalidate(evaluacionAbiertaProvider)
+      ..invalidate(porRepasarProvider);
   }
 
   /// Deja atrás la corrección para pasar a la siguiente pregunta. Quien llama
   /// invalida [preguntaActualProvider]: depende de este estado, así que no
   /// se puede invalidar desde aquí.
   void seguir() {
-    state = Practica(enCurso: state.enCurso, datos: state.datos);
+    state = Practica(
+      enCurso: state.enCurso,
+      datos: state.datos,
+      esRepaso: state.esRepaso,
+    );
   }
 
   /// Cierra la práctica en curso y deja su resumen (HU-30 esc. 5). El cupo
@@ -239,18 +285,26 @@ class EstadoPractica extends Notifier<Practica> {
   Future<void> cerrar() async {
     final id = state.enCurso?.id;
     if (id == null) return;
-    state = Practica(resumen: await _repositorio.cerrar(id));
+    state = Practica(
+      resumen: await _repositorio.cerrar(id),
+      esRepaso: state.esRepaso,
+    );
     ref
       ..invalidate(cupoDeHoyProvider)
       ..invalidate(progresoProvider)
-      ..invalidate(evaluacionAbiertaProvider);
+      ..invalidate(evaluacionAbiertaProvider)
+      ..invalidate(porRepasarProvider);
   }
 
   /// Sigue la práctica sin terminar donde quedó (HU-60, CU-28): A17 pide la
   /// pregunta pendiente, que el servidor entrega igual mientras no se
   /// responda.
   void retomar(EvaluacionAbierta abierta) {
-    state = Practica(enCurso: abierta.practica, datos: abierta.datos);
+    state = Practica(
+      enCurso: abierta.practica,
+      datos: abierta.datos,
+      esRepaso: abierta.esRepaso,
+    );
   }
 
   static const String codigoSinPreguntas = 'SIN_PREGUNTAS_SUFICIENTES';

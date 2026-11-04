@@ -1,4 +1,5 @@
 import 'package:supera_paes/datos/fuentes/fuente_resultados_remota.dart';
+import 'package:supera_paes/dominio/entidades/historial.dart';
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_resultados.dart';
 
@@ -15,4 +16,8 @@ class RepositorioResultadosApi implements RepositorioResultados {
   @override
   Future<List<PreguntaRevisada>> obtenerRevision(int evaluacionId) =>
       _fuente.revision(evaluacionId);
+
+  @override
+  Future<PaginaHistorial> obtenerHistorial(FiltrosHistorial filtros) =>
+      _fuente.historial(filtros);
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,9 +59,21 @@ class _PantallaProgresoState extends ConsumerState<PantallaProgreso> {
       separacion: 14,
       alActualizar: _actualizar,
       hijos: [
-        Semantics(
-          header: true,
-          child: const Text('Progreso', style: TemaSuperaPaes.h1),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          children: [
+            Semantics(
+              header: true,
+              child: const Text('Progreso', style: TemaSuperaPaes.h1),
+            ),
+            TextButton.icon(
+              onPressed: () => unawaited(context.push(Rutas.historial)),
+              icon: const Icon(Icons.history, size: 20),
+              label: const Text('Historial'),
+            ),
+          ],
         ),
         if (pruebas.length > 1)
           GrupoChips(

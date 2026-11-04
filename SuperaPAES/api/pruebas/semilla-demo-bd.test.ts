@@ -1,12 +1,17 @@
-// TEC-07: la semilla de preguntas de ejemplo (npm run semilla-demo -w api) es solo de desarrollo. Carga una
-// pregunta publicada por cada prueba, claramente marcada como ejemplo, sin material del DEMRE (RN-29), pasando
+// TEC-07: la semilla de preguntas de ejemplo (npm run semilla-demo -w api) es solo de desarrollo. Carga
+// preguntas publicadas de cada prueba, claramente marcadas como ejemplo, sin material del DEMRE (RN-29), pasando
 // por las reglas y los triggers de la base. Es idempotente, se niega con NODE_ENV=production y ningún
 // script de Docker ni de despliegue la ejecuta.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ejecutarSemillas } from '../db/semillas.js';
-import { ErrorSemillaDemo, MARCA_EJEMPLO, sembrarPreguntasDeEjemplo } from '../db/semilla-demo.js';
+import {
+  ErrorSemillaDemo,
+  MARCA_EJEMPLO,
+  PREGUNTAS_DE_EJEMPLO,
+  sembrarPreguntasDeEjemplo,
+} from '../db/semilla-demo.js';
 import {
   type BaseTemporal,
   crearBaseTemporal,
@@ -17,6 +22,50 @@ import {
 
 const RAIZ = path.join(import.meta.dirname, '../..');
 const PRUEBAS = ['CL', 'M1', 'M2', 'HCS', 'CIE'];
+
+/** Cuántas preguntas de ejemplo hay por cada valor que entrega `clave`. */
+function contar(clave: (pregunta: (typeof PREGUNTAS_DE_EJEMPLO)[number]) => string | undefined) {
+  const cuentas = new Map<string, number>();
+  for (const pregunta of PREGUNTAS_DE_EJEMPLO) {
+    const valor = clave(pregunta);
+    if (valor !== undefined) cuentas.set(valor, (cuentas.get(valor) ?? 0) + 1);
+  }
+  return cuentas;
+}
+
+describe('preguntas de ejemplo: alcanzan para mostrar la app', () => {
+  it('cada prueba tiene al menos 12, para una práctica de 10 con la mezcla', () => {
+    const porPrueba = contar(({ prueba }) => prueba);
+    for (const prueba of PRUEBAS) expect(porPrueba.get(prueba), prueba).toBeGreaterThanOrEqual(12);
+  });
+
+  it('M1 y M2 alcanzan para el diagnóstico y el mini-ensayo: 8 por eje', () => {
+    const porEje = contar(({ prueba, eje }) => (eje ? `${prueba} ${eje}` : undefined));
+    for (const prueba of ['M1', 'M2']) {
+      const ejes = [...porEje].filter(([nombre]) => nombre.startsWith(prueba));
+      expect(ejes).toHaveLength(4);
+      for (const [eje, cantidad] of ejes) expect(cantidad, eje).toBe(8);
+    }
+  });
+
+  it('Lectora alcanza para el diagnóstico: 5 por habilidad', () => {
+    const porHabilidad = contar(({ prueba, habilidad }) =>
+      prueba === 'CL' ? habilidad : undefined,
+    );
+    expect(Object.fromEntries(porHabilidad)).toEqual({ Localizar: 5, Interpretar: 5, Evaluar: 5 });
+  });
+
+  it('todas están marcadas, sin enunciados repetidos y con 4 alternativas distintas', () => {
+    const enunciados = PREGUNTAS_DE_EJEMPLO.map(
+      ({ prueba, enunciado }) => `${prueba} ${enunciado}`,
+    );
+    expect(new Set(enunciados).size).toBe(enunciados.length);
+    for (const { enunciado, alternativas } of PREGUNTAS_DE_EJEMPLO) {
+      expect(enunciado.startsWith(MARCA_EJEMPLO), enunciado).toBe(true);
+      expect(new Set(alternativas.map((a) => a.texto)).size, enunciado).toBe(4);
+    }
+  });
+});
 
 describe('semilla de ejemplo: solo desarrollo', () => {
   it('se niega con NODE_ENV=production sin tocar la base', async () => {
@@ -84,7 +133,7 @@ describe.skipIf(!urlBase)('semilla de ejemplo con PostgreSQL', () => {
   );
 
   it(
-    'publica una pregunta de ejemplo por prueba, con las reglas de la base activas',
+    'publica las preguntas de ejemplo, con las reglas de la base activas',
     async () => {
       const resultado = await sembrarPreguntasDeEjemplo(base.bd, 'development');
       expect(resultado.creadas.sort()).toEqual([...PRUEBAS].sort());
@@ -112,7 +161,9 @@ describe.skipIf(!urlBase)('semilla de ejemplo con PostgreSQL', () => {
         ORDER BY pr.codigo`,
       );
 
-      expect(rows.map((f) => f.prueba).sort()).toEqual([...PRUEBAS].sort());
+      expect(rows).toHaveLength(PREGUNTAS_DE_EJEMPLO.length);
+      expect(resultado.preguntasNuevas).toBe(PREGUNTAS_DE_EJEMPLO.length);
+      expect([...new Set(rows.map((f) => f.prueba))].sort()).toEqual([...PRUEBAS].sort());
       for (const fila of rows) {
         expect(fila.estado, fila.prueba).toBe('publicada');
         expect(fila.dificultad, fila.prueba).not.toBeNull();
@@ -121,19 +172,32 @@ describe.skipIf(!urlBase)('semilla de ejemplo con PostgreSQL', () => {
         // [EJEMPLO] aparece visible al principio del enunciado.
         expect(fila.enunciado.startsWith(MARCA_EJEMPLO), fila.prueba).toBe(true);
       }
-      // Competencia Lectora va ligada a su texto, también marcado como ejemplo.
-      const lectora = rows.find((f) => f.prueba === 'CL');
-      expect(lectora?.texto).toContain(MARCA_EJEMPLO);
-      expect(rows.filter((f) => f.texto !== null)).toHaveLength(1);
+      // Competencia Lectora va ligada a su texto, también marcado como ejemplo; las demás, no.
+      for (const fila of rows.filter((f) => f.prueba === 'CL')) {
+        expect(fila.texto).toContain(MARCA_EJEMPLO);
+      }
+      expect(rows.filter((f) => f.prueba !== 'CL' && f.texto !== null)).toEqual([]);
     },
     MINUTO,
   );
+
+  it('la respuesta correcta no está siempre en la misma letra', async () => {
+    const { rows } = await base.bd.query<{ letra: string; n: number }>(
+      `SELECT letra, count(*)::int AS n FROM contenido.alternativa
+        WHERE es_correcta GROUP BY letra ORDER BY letra`,
+    );
+
+    expect(rows.map((f) => f.letra)).toEqual(['A', 'B', 'C', 'D']);
+    for (const { letra, n } of rows) {
+      expect(n, letra).toBeGreaterThanOrEqual(PREGUNTAS_DE_EJEMPLO.length / 8);
+    }
+  });
 
   it('las preguntas quedan disponibles para practicar (v_preguntas_publicadas)', async () => {
     const { rows } = await base.bd.query<{ n: number }>(
       'SELECT count(*)::int AS n FROM contenido.v_preguntas_publicadas',
     );
-    expect(rows[0]?.n).toBe(PRUEBAS.length);
+    expect(rows[0]?.n).toBe(PREGUNTAS_DE_EJEMPLO.length);
   });
 
   it(
@@ -150,7 +214,11 @@ describe.skipIf(!urlBase)('semilla de ejemplo con PostgreSQL', () => {
               (SELECT count(*)::int FROM contenido.texto_estimulo) AS textos,
               (SELECT count(*)::int FROM contenido.alternativa) AS alternativas`,
       );
-      expect(rows[0]).toEqual({ preguntas: 5, textos: 1, alternativas: 20 });
+      expect(rows[0]).toEqual({
+        preguntas: PREGUNTAS_DE_EJEMPLO.length,
+        textos: 4,
+        alternativas: PREGUNTAS_DE_EJEMPLO.length * 4,
+      });
     },
     MINUTO,
   );

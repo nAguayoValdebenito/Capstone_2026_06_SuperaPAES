@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
+import 'package:supera_paes/dominio/entidades/por_repasar.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -51,6 +52,30 @@ mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
               : error.problemas.first.mensaje,
         );
       }
+    } finally {
+      if (mounted) setState(() => empezando = false);
+    }
+  }
+
+  /// Empieza el repaso de la prueba o del eje (A24) y va a la pregunta. No
+  /// usa cupo; con una evaluación con tiempo abierta, ofrece retomarla (A29).
+  Future<void> empezarRepaso(
+    PruebaPorRepasar prueba, {
+    EjePorRepasar? eje,
+  }) async {
+    setState(() {
+      empezando = true;
+      errorEmpezar = null;
+    });
+    try {
+      await ref.read(practicaProvider.notifier).iniciarRepaso(prueba, eje: eje);
+      if (mounted) context.go(Rutas.pregunta);
+    } on ErrorApi catch (error) {
+      if (!mounted) return;
+      if (error.codigo == codigoConTiempoAbierta && await _ofrecerRetomar()) {
+        return;
+      }
+      if (mounted) setState(() => errorEmpezar = error.mensaje);
     } finally {
       if (mounted) setState(() => empezando = false);
     }

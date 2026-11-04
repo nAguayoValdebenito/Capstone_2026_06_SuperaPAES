@@ -1,4 +1,5 @@
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
+import 'package:supera_paes/dominio/entidades/por_repasar.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_practica.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -75,6 +76,34 @@ const ResumenPractica resumenDeEjemplo = ResumenPractica(
   tiempoUsadoSeg: 720,
 );
 
+/// Sin nada por repasar: la cuenta nueva.
+const PorRepasar repasoVacio = PorRepasar(total: 0, limite: 10, pruebas: []);
+
+/// El boceto A24, con el plan Gratis: 5 de M1 y 3 de M2.
+const PorRepasar repasoDeEjemplo = PorRepasar(
+  total: 8,
+  limite: 10,
+  pruebas: [
+    PruebaPorRepasar(
+      id: 1,
+      codigo: 'M1',
+      nombre: 'Matemática M1',
+      preguntas: 5,
+      ejes: [
+        EjePorRepasar(id: 12, nombre: 'Geometría', preguntas: 3),
+        EjePorRepasar(id: 13, nombre: 'Álgebra y funciones', preguntas: 2),
+      ],
+    ),
+    PruebaPorRepasar(
+      id: 2,
+      codigo: 'M2',
+      nombre: 'Matemática M2',
+      preguntas: 3,
+      ejes: [EjePorRepasar(id: 21, nombre: 'Números', preguntas: 3)],
+    ),
+  ],
+);
+
 /// Repositorio de la práctica sin red: guarda lo que se intentó iniciar y
 /// responde la práctica, salvo mientras queden [erroresAlIniciar].
 class RepositorioPracticaFalso implements RepositorioPractica {
@@ -102,6 +131,15 @@ class RepositorioPracticaFalso implements RepositorioPractica {
 
   /// Si no es `null`, responder responde este error.
   ErrorApi? errorAlResponder;
+
+  /// Lo que responde GET /evaluaciones/repaso.
+  PorRepasar datosPorRepasar = repasoVacio;
+
+  /// Repasos iniciados: (prueba, eje).
+  final List<(int, int?)> repasos = [];
+
+  /// Si no es `null`, iniciar un repaso responde este error.
+  ErrorApi? errorAlRepasar;
 
   /// Lo que responde GET /evaluaciones/abierta; sin nada abierto por defecto.
   ConsultaEvaluacionAbierta consultaAbierta = const ConsultaEvaluacionAbierta();
@@ -185,6 +223,18 @@ class RepositorioPracticaFalso implements RepositorioPractica {
       pruebaId: datos.pruebaId,
       cantidad: datos.cantidad,
     );
+  }
+
+  @override
+  Future<PorRepasar> porRepasar() async => datosPorRepasar;
+
+  @override
+  Future<PracticaIniciada> iniciarRepaso(int pruebaId, {int? ejeId}) async {
+    repasos.add((pruebaId, ejeId));
+    if (errorAlRepasar case final error?) throw error;
+    _cantidad = 5;
+    respuestas.clear();
+    return PracticaIniciada(id: 42, pruebaId: pruebaId, cantidad: 5);
   }
 
   @override

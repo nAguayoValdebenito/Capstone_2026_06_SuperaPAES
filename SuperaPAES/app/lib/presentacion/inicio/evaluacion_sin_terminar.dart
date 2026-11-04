@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,13 +16,14 @@ import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 bool haySinTerminar(ConsultaEvaluacionAbierta? consulta) {
   final abierta = consulta?.abierta;
   return consulta?.cerrada != null ||
-      (abierta != null && (abierta.esPractica || abierta.conTiempo));
+      (abierta != null &&
+          (abierta.esPractica || abierta.esRepaso || abierta.conTiempo));
 }
 
 /// Lo que quedó sin terminar, en Inicio (A12; HU-60, CU-28): «Práctica sin
 /// terminar» con «Seguir», la evaluación con tiempo con «Continuar» (A29) o,
 /// si el servidor la cerró al consultarla, el aviso con su resultado. El
-/// repaso sin terminar se agrega con su historia (HU-39). Sin nada, no
+/// repaso sin terminar se sigue igual que la práctica (HU-39). Sin nada, no
 /// ocupa lugar.
 class EvaluacionSinTerminar extends ConsumerWidget {
   const EvaluacionSinTerminar({super.key});
@@ -49,6 +52,26 @@ class EvaluacionSinTerminar extends ConsumerWidget {
           context.go(Rutas.pregunta);
         }
       },
+    );
+  }
+}
+
+/// Las preguntas por repasar, en Inicio (A12, HU-39), con «Repasar», que abre
+/// A24. Sin errores, no ocupa lugar.
+class TarjetaRepaso extends ConsumerWidget {
+  const TarjetaRepaso({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preguntas = ref.watch(porRepasarProvider).value?.repasables ?? 0;
+    if (preguntas == 0) return const SizedBox.shrink();
+    return _Tarjeta(
+      titulo: 'Repasar errores',
+      detalle: preguntas == 1
+          ? '1 pregunta por repasar'
+          : '$preguntas preguntas por repasar',
+      boton: 'Repasar',
+      onPressed: () => unawaited(context.push(Rutas.repaso)),
     );
   }
 }

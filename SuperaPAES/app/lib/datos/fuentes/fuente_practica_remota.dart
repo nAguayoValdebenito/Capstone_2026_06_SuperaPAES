@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:supera_paes/datos/modelos/por_repasar_modelo.dart';
 import 'package:supera_paes/datos/modelos/practica_modelo.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
+import 'package:supera_paes/dominio/entidades/por_repasar.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
 
@@ -34,6 +36,23 @@ class FuentePracticaRemota {
           PracticaModelo.datos(datos),
           sinData: 'No recibimos la práctica. Inténtalo de nuevo.',
         ),
+      );
+
+  Future<PorRepasar> porRepasar() async => PorRepasarModelo.desde(
+    await pedirObjeto(
+      _dio,
+      'GET',
+      '/evaluaciones/repaso',
+      sinData: 'No recibimos tus errores. Inténtalo de nuevo.',
+    ),
+  );
+
+  Future<PracticaIniciada> iniciarRepaso(int pruebaId, {int? ejeId}) async =>
+      PracticaModelo.iniciada(
+        await publicarObjeto(_dio, '/evaluaciones/repasos', {
+          'pruebaId': pruebaId,
+          'ejeId': ?ejeId,
+        }, sinData: 'No recibimos el repaso. Inténtalo de nuevo.'),
       );
 
   Future<PreguntaDePractica> siguiente(int practicaId) async =>

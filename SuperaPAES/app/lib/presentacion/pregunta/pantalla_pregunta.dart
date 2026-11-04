@@ -81,7 +81,11 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
       for (final a in widget.pregunta.alternativas)
         if (a.id == elegida) a.letra,
     ].first;
-    if (!await confirmarRespuesta(context, letra) || !mounted) return;
+    final esRepaso = ref.read(practicaProvider).esRepaso;
+    if (!await confirmarRespuesta(context, letra, esRepaso: esRepaso) ||
+        !mounted) {
+      return;
+    }
     setState(() {
       _enviando = true;
       _error = null;
@@ -165,9 +169,11 @@ class _SinPregunta extends ConsumerWidget {
           ),
         FilledButton(
           onPressed: () => terminarPractica(context, ref, preguntar: false),
-          child: Text(
-            codigo == 'PRACTICA_COMPLETA' ? 'Ver resumen' : 'Terminar práctica',
-          ),
+          child: Text(switch (codigo) {
+            'PRACTICA_COMPLETA' => 'Ver resumen',
+            _ when ref.watch(practicaProvider).esRepaso => 'Terminar repaso',
+            _ => 'Terminar práctica',
+          }),
         ),
       ],
     );

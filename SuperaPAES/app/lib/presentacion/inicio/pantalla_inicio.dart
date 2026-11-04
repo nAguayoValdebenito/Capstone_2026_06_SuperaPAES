@@ -10,6 +10,7 @@ import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/inicio/aviso_verificar_correo.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/inicio/evaluacion_sin_terminar.dart';
 import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/inicio/pruebas_inicio.dart';
 import 'package:supera_paes/presentacion/inicio/tarjeta_cupo.dart';
@@ -53,6 +54,7 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
           ..invalidate(perfilProvider)
           ..invalidate(cupoDeHoyProvider)
           ..invalidate(evaluacionAbiertaProvider)
+          ..invalidate(porRepasarProvider)
           ..invalidate(disponibilidadDiagnosticoProvider);
       },
     );
@@ -123,6 +125,7 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
         SaludoInicio(nombre: estudiante?.nombre ?? ''),
         const TarjetaHoy(),
         const TarjetaCupo(),
+        const TarjetaRepaso(),
         if (estudiante?.correoVerificado == false) const AvisoVerificarCorreo(),
         const PruebasInicio(),
       ],
