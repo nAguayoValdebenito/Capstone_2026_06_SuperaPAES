@@ -10,13 +10,13 @@ export interface InicioCuenta {
    */
   estadoParaInicio(estudianteId: string, ahora: Date): Promise<EstadoCuentaInicio | null>;
   /** HU-46.1: el código propio de invitación (RN-33); null si la cuenta no existe o se eliminó. */
-  codigoInvitacion(estudianteId: string): Promise<string | null>;
+  codigoInvitacion(estudianteId: string, tx?: Ejecutor): Promise<string | null>;
 }
 
 export function crearInicioCuenta(bd: Ejecutor): InicioCuenta {
   const repositorio = crearInicioRepositorio(bd);
   return {
     estadoParaInicio: (id, ahora) => repositorio.estadoParaInicio(id, ahora),
-    codigoInvitacion: (id) => repositorio.codigoInvitacion(id),
+    codigoInvitacion: (id, tx) => repositorio.codigoInvitacion(id, tx),
   };
 }

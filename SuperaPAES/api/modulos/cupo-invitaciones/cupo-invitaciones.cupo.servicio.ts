@@ -85,9 +85,11 @@ function rechazoDeSaldo(error: unknown): boolean {
 export function maximoDelDia(
   dependencias: Pick<DependenciasCupoDiario, 'administracion'>,
   correoVerificado: boolean,
+  tx?: Ejecutor,
 ) {
   return dependencias.administracion.obtenerParametroEntero(
     correoVerificado ? 'cupo_verificado' : 'cupo_inicial',
+    tx,
   );
 }
 
@@ -99,7 +101,7 @@ async function consultar(
   const { repositorio, suscripciones } = dependencias;
   const fila = await repositorio.leerCupoDelDia(datos.estudianteId, datos.ahora, tx);
   const { maximo, usadas } = fila ?? {
-    maximo: await maximoDelDia(dependencias, datos.correoVerificado),
+    maximo: await maximoDelDia(dependencias, datos.correoVerificado, tx),
     usadas: 0,
   };
   const saldoExtra = await repositorio.leerSaldoExtra(datos.estudianteId, tx);
@@ -125,7 +127,7 @@ async function reservar(
   const { estudianteId, ahora } = datos;
   if (await suscripciones.cubrePrueba(estudianteId, datos.pruebaId, tx))
     return { tipo: 'suscripcion', confirmar: nadaQueConfirmar };
-  const maximo = await maximoDelDia(dependencias, datos.correoVerificado);
+  const maximo = await maximoDelDia(dependencias, datos.correoVerificado, tx);
   await repositorio.crearCupoDelDia(estudianteId, ahora, maximo, tx);
   if (await repositorio.descontarCupoDelDia(estudianteId, ahora, tx))
     return { tipo: 'cupo', confirmar: nadaQueConfirmar };

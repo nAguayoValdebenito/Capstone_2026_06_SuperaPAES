@@ -3,6 +3,7 @@
 // que ganó invitando: preguntas extra, saldo y las invitaciones premiadas del mes con su tope (A38).
 import { ErrorNoEncontrado } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
+import type { Ejecutor } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { BonoRepositorio } from './cupo-invitaciones.bono.repositorio.js';
 import type { CupoInvitacionesRepositorio } from './cupo-invitaciones.repositorio.js';
@@ -10,7 +11,7 @@ import type { CupoInvitacionesRepositorio } from './cupo-invitaciones.repositori
 /** El código de invitación es de la cuenta (módulo cuentas). */
 export interface CuentaParaInvitar {
   /** null si la cuenta no existe o se eliminó. */
-  codigoInvitacion(estudianteId: string): Promise<string | null>;
+  codigoInvitacion(estudianteId: string, tx?: Ejecutor): Promise<string | null>;
 }
 
 export interface ResumenInvitaciones {

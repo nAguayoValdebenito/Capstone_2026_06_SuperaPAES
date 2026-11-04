@@ -84,7 +84,10 @@ export function crearCupoInvitacionesServicio(
       Promise.reject(new ErrorNoImplementado('El registro de códigos de invitación')),
     registrarInvitacion: (invitacion, tx) => repositorio.crearInvitacion(invitacion, tx),
     aplicarCupoVerificado: async (estudianteId, ahora, tx) => {
-      const maximo = await dependencias.administracion.obtenerParametroEntero('cupo_verificado');
+      const maximo = await dependencias.administracion.obtenerParametroEntero(
+        'cupo_verificado',
+        tx,
+      );
       await repositorio.subirMaximoDelDia(estudianteId, maximo, ahora, tx);
     },
     ...crearCupoDiario({

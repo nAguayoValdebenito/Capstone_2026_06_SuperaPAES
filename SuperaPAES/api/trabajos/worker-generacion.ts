@@ -1,7 +1,7 @@
 // Worker de la cola de generación con IA (productor-consumidor sobre contenido.lote_generacion).
 // Corre en el mismo proceso que la API y llama periódicamente al servicio del generador.
 // Es el primer candidato a separarse en su propio proceso si algún día hace falta.
-import { mensajeDeError, registro } from '../comun/registro.js';
+import { claseDeError, registro } from '../comun/registro.js';
 import type { GeneradorServicio } from '../modulos/generador/index.js';
 
 export interface WorkerGeneracion {
@@ -24,7 +24,7 @@ export function crearWorkerGeneracion(
       if (procesados > 0) registro.info('Lotes de generación procesados', { procesados });
     } catch (error) {
       registro.error('Falló el worker de generación', {
-        error: mensajeDeError(error),
+        error: claseDeError(error),
       });
     }
   };

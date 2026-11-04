@@ -13,21 +13,25 @@ export interface SuscripcionDePrueba {
   tienda?: 'google_play' | 'app_store';
   /** Pruebas de app.suscripcion_prueba (la elegida en «Una prueba»). */
   pruebas?: number[];
+  /** Fin del período pagado; sin él queda vacío. */
+  periodoFin?: Date;
 }
 
 /** Inserta la suscripción y devuelve su id. */
 export async function insertarSuscripcion(
   bd: Ejecutor,
-  { estudianteId, plan, estado, tienda = 'google_play', pruebas = [] }: SuscripcionDePrueba,
+  datos: SuscripcionDePrueba,
 ): Promise<string> {
+  const { estudianteId, plan, estado, tienda = 'google_play', pruebas = [], periodoFin } = datos;
   const { rows } = await bd.query<{ id: string }>(
     `INSERT INTO app.suscripcion
-       (estudiante_id, plan_id, estado_suscripcion_id, vigente, canal_venta_id, inicio, creado_en)
-     SELECT $1, pl.id, e.id, e.vigente, c.id, now(), now()
+       (estudiante_id, plan_id, estado_suscripcion_id, vigente, canal_venta_id, inicio, periodo_fin,
+        creado_en)
+     SELECT $1, pl.id, e.id, e.vigente, c.id, now(), $5::timestamptz, now()
        FROM contenido.plan pl, contenido.estado_suscripcion e, contenido.canal_venta c
       WHERE pl.nombre = $2 AND e.codigo = $3 AND c.codigo = $4
      RETURNING id::text AS id`,
-    [estudianteId, plan, estado, tienda],
+    [estudianteId, plan, estado, tienda, periodoFin ?? null],
   );
   const id = rows[0]?.id;
   if (!id)

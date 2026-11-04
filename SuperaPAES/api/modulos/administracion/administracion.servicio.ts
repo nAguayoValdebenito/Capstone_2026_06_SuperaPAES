@@ -41,7 +41,7 @@ export interface DependenciasAdministracionServicio {
 export interface AdministracionServicio {
   listarUsuariosInternos(): Promise<UsuarioInterno[]>;
   /** La cuenta con su rol y sus áreas, o null si no existe (para la sesión de la consola). */
-  obtenerUsuarioInterno(id: string): Promise<UsuarioInterno | null>;
+  obtenerUsuarioInterno(id: string, tx?: Ejecutor): Promise<UsuarioInterno | null>;
   crearUsuarioInterno(autorId: string, datos: DatosCrearUsuarioInterno): Promise<UsuarioInterno>;
   editarUsuarioInterno(
     autorId: string,
@@ -70,13 +70,14 @@ export interface AdministracionServicio {
   registrarAuditoria(entrada: EntradaAuditoria, tx: Ejecutor): Promise<void>;
   /**
    * Parámetro de negocio entero de contenido.configuracion (por ejemplo cupo_verificado). Falla si la
-   * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto.
+   * clave no existe o no es un entero: un parámetro roto no debe tomar un valor por defecto. Dentro de
+   * una transacción se pasa `tx`: sin él se pediría otra conexión al pool mientras se retiene una (A-01).
    */
-  obtenerParametroEntero(clave: string): Promise<number>;
+  obtenerParametroEntero(clave: string, tx?: Ejecutor): Promise<number>;
   /** Número configurado (con decimales, como un precio); sin valor por defecto si falta o no es un número. */
-  obtenerParametroNumero(clave: string): Promise<number>;
+  obtenerParametroNumero(clave: string, tx?: Ejecutor): Promise<number>;
   /** Texto configurado, sin valor por defecto si falta o tiene un tipo distinto. */
-  obtenerParametroTexto(clave: string): Promise<string>;
+  obtenerParametroTexto(clave: string, tx?: Ejecutor): Promise<string>;
   /**
    * RN-30: de cada documento legal obligatorio (términos y privacidad), la versión con mayor
    * vigente_desde que ya empezó. La usan el registro y las páginas /terminos y /privacidad.
@@ -305,7 +306,7 @@ export function crearAdministracionServicio(
   };
   return {
     listarUsuariosInternos: () => contexto.repositorio.listarUsuariosInternos(),
-    obtenerUsuarioInterno: (id) => contexto.repositorio.buscarUsuarioInterno(id, false),
+    obtenerUsuarioInterno: (id, tx) => contexto.repositorio.buscarUsuarioInterno(id, false, tx),
     crearUsuarioInterno: (autorId, datos) => crearUsuario(contexto, autorId, datos),
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
@@ -314,22 +315,22 @@ export function crearAdministracionServicio(
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
     documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),
     permisoPuntajesVigente: (ahora) => contexto.repositorio.permisoPuntajesVigente(ahora),
-    obtenerParametroTexto: async (clave) => {
-      const valor = await contexto.repositorio.leerParametro(clave);
+    obtenerParametroTexto: async (clave, tx) => {
+      const valor = await contexto.repositorio.leerParametro(clave, tx);
       if (typeof valor !== 'string' || valor.trim() === '') {
         throw new Error('Parámetro de texto ausente o inválido.');
       }
       return valor;
     },
-    obtenerParametroNumero: async (clave) => {
-      const valor = await contexto.repositorio.leerParametro(clave);
+    obtenerParametroNumero: async (clave, tx) => {
+      const valor = await contexto.repositorio.leerParametro(clave, tx);
       if (typeof valor !== 'number' || !Number.isFinite(valor)) {
         throw new Error(`contenido.configuracion no tiene un número en ${clave}.`);
       }
       return valor;
     },
-    obtenerParametroEntero: async (clave) => {
-      const valor = await contexto.repositorio.leerParametro(clave);
+    obtenerParametroEntero: async (clave, tx) => {
+      const valor = await contexto.repositorio.leerParametro(clave, tx);
       if (typeof valor !== 'number' || !Number.isInteger(valor)) {
         throw new Error(`contenido.configuracion no tiene un entero en ${clave}.`);
       }

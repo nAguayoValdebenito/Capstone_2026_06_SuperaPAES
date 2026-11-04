@@ -12,6 +12,7 @@
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
 import type { Tienda } from '../../adaptadores/pagos/pasarela.js';
 import type { Ejecutor } from '../../db/transaccion.js';
+import { MARGEN_FIN_PERIODO } from './suscripciones.cierre.repositorio.js';
 
 /** La suscripción activa o en mora de un estudiante (RN-34): la tienda la sigue cobrando. */
 export interface SuscripcionVigente {
@@ -23,7 +24,8 @@ export interface SuscripcionVigente {
 }
 
 // Solo activa o en mora: una pendiente todavía no se cobra (RN-34). El índice ux_suscripcion_vigente
-// deja una sola vigente por estudiante.
+// deja una sola vigente por estudiante. No mira el fin del período: dice si la tienda puede seguir
+// cobrando, aunque el aviso que cerraría la suscripción no haya llegado.
 const VIGENTE = `
   SELECT e.codigo AS estado, a.nombre AS plan, p.codigo AS periodicidad, c.codigo AS tienda
     FROM app.suscripcion s
@@ -34,8 +36,15 @@ const VIGENTE = `
     JOIN contenido.canal_venta c ON c.id = s.canal_venta_id
    WHERE s.estudiante_id = $1 AND e.codigo IN ('activa', 'en_mora')`;
 
+// A-03: una activa da acceso hasta el fin del período pagado, más el margen para esperar el aviso de la
+// tienda; si no llega, deja de dar acceso aunque siga activa. En mora no se mira: el período ya terminó y
+// la tienda reintenta el cobro (RN-26). `ahora` es el número del parámetro con el reloj de la API.
+const AL_DIA = (ahora: string) =>
+  `(e.codigo = 'en_mora' OR s.periodo_fin IS NULL
+    OR s.periodo_fin >= ${ahora}::timestamptz - ${MARGEN_FIN_PERIODO})`;
+
 // RN-04: solo activa o en mora dan acceso (RN-26). Todas las pruebas cubre cualquier prueba; Una prueba,
-// la elegida en app.suscripcion_prueba. Sigue solo el estado: el fin del período lo aplica HU-44.
+// la elegida en app.suscripcion_prueba.
 const CUBRE_PRUEBA = `
   SELECT EXISTS (
     SELECT 1
@@ -44,6 +53,7 @@ const CUBRE_PRUEBA = `
       JOIN contenido.plan pl ON pl.id = s.plan_id
       JOIN contenido.alcance_plan a ON a.id = pl.alcance_plan_id
      WHERE s.estudiante_id = $1 AND e.codigo IN ('activa', 'en_mora')
+       AND ${AL_DIA('$3')}
        AND (a.codigo = 'todas'
             OR EXISTS (SELECT 1 FROM app.suscripcion_prueba sp
                         WHERE sp.suscripcion_id = s.id AND sp.prueba_id = $2))
@@ -56,18 +66,32 @@ export function crearSuscripcionesRepositorio(bd: Ejecutor) {
       return rows[0] ?? null;
     },
 
-    async cubrePrueba(estudianteId: string, pruebaId: number, tx: Ejecutor = bd): Promise<boolean> {
-      const { rows } = await tx.query<{ cubre: boolean }>(CUBRE_PRUEBA, [estudianteId, pruebaId]);
+    async cubrePrueba(
+      estudianteId: string,
+      pruebaId: number,
+      ahora: Date,
+      tx: Ejecutor = bd,
+    ): Promise<boolean> {
+      const { rows } = await tx.query<{ cubre: boolean }>(CUBRE_PRUEBA, [
+        estudianteId,
+        pruebaId,
+        ahora,
+      ]);
       return rows[0]?.cubre ?? false;
     },
-    async permiteEnsayoCompleto(estudianteId: string, tx: Ejecutor = bd): Promise<boolean> {
+    async permiteEnsayoCompleto(
+      estudianteId: string,
+      ahora: Date,
+      tx: Ejecutor = bd,
+    ): Promise<boolean> {
       const { rows } = await tx.query<{ permite: boolean }>(
         `SELECT EXISTS (SELECT 1 FROM app.suscripcion s
           JOIN contenido.estado_suscripcion e ON e.id=s.estado_suscripcion_id
           JOIN contenido.plan p ON p.id=s.plan_id
           JOIN contenido.alcance_plan a ON a.id=p.alcance_plan_id
-          WHERE s.estudiante_id=$1 AND e.codigo IN ('activa','en_mora') AND a.codigo='todas') AS permite`,
-        [estudianteId],
+          WHERE s.estudiante_id=$1 AND e.codigo IN ('activa','en_mora') AND a.codigo='todas'
+            AND ${AL_DIA('$2')}) AS permite`,
+        [estudianteId, ahora],
       );
       return rows[0]?.permite ?? false;
     },

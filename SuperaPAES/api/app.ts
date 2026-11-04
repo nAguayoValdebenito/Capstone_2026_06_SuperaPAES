@@ -164,7 +164,7 @@ function crearSuscripcionesYCupo(
     suscripciones: { cubrePrueba },
     cuentas: {
       estadoParaInicio: (id, ahora) => cuentas().estadoParaInicio(id, ahora),
-      codigoInvitacion: (id) => cuentas().codigoInvitacion(id),
+      codigoInvitacion: (id, tx) => cuentas().codigoInvitacion(id, tx),
     },
     urlConsola: dependencias.verificacionCorreo.urlConsola,
     reloj: dependencias.reloj,
