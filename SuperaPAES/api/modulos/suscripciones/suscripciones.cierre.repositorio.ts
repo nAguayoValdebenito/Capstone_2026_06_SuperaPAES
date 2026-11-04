@@ -3,6 +3,12 @@
 // el aviso de vencimiento de la tienda; esto cubre el aviso que no llegó. Consultas parametrizadas.
 import type { Ejecutor } from '../../db/transaccion.js';
 
+/**
+ * Tiempo que se espera el aviso de la tienda después del fin del período pagado. El mismo plazo cierra las
+ * canceladas (HU-45.1) y quita el acceso a una activa sin aviso (A-03).
+ */
+export const MARGEN_FIN_PERIODO = "INTERVAL '1 day'";
+
 /** Una cancelada que terminó su período, bloqueada para cerrarla. */
 export interface CanceladaPorCerrar {
   id: string;
@@ -15,7 +21,7 @@ const POR_CERRAR = `
     FROM app.suscripcion s
     JOIN contenido.estado_suscripcion e ON e.id = s.estado_suscripcion_id
    WHERE e.codigo = 'activa' AND s.cancelada_en IS NOT NULL
-     AND s.periodo_fin < $1::timestamptz - INTERVAL '1 day'
+     AND s.periodo_fin < $1::timestamptz - ${MARGEN_FIN_PERIODO}
    ORDER BY s.id
      FOR UPDATE OF s SKIP LOCKED`;
 

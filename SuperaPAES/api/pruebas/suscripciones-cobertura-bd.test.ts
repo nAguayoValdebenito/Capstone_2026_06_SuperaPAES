@@ -1,7 +1,7 @@
 // RN-04, HU-44 esc. 2 y CU-12 paso 6, contra PostgreSQL real: una suscripción activa o en mora cubre
 // las pruebas de su plan (Todas las pruebas: todas; Una prueba: la elegida) y responder en ellas no
-// descuenta cupo. Pendiente, fallida, cancelada y vencida no cubren nada (RN-26). Hasta HU-44 la
-// cobertura sigue solo el estado: nada pasa todavía a cancelada o vencida al terminar el período.
+// descuenta cupo. Pendiente, fallida, cancelada y vencida no cubren nada (RN-26). El fin del período
+// se prueba en suscripciones-fin-periodo-bd.test.ts.
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { FabricaProveedores } from '../adaptadores/fabrica.js';
 import { relojDelSistema } from '../comun/reloj.js';

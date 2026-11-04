@@ -56,7 +56,8 @@ export interface SuscripcionesServicio
   extends ComprasServicio, ValidacionServicio, TrazabilidadServicio, AvisosServicio {
   /**
    * RN-04: ¿una suscripción activa o en mora cubre la prueba? Si la cubre, responder no descuenta
-   * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta).
+   * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta). Una activa cubre
+   * hasta un día después del fin de su período, por si el aviso de la tienda no llega (A-03).
    */
   cubrePrueba(estudianteId: string, pruebaId: number, tx: Ejecutor): Promise<boolean>;
   /** HU-42: el ensayo oficial exige alcance Todas las pruebas. */
@@ -133,12 +134,10 @@ export function crearSuscripcionesServicio(
     ...validacion,
     ...trazabilidad,
     ...avisos,
-    // Sigue solo el estado (RN-26): los avisos de las tiendas (HU-44) la pasan a cancelada o vencida
-    // al terminar su período; sin avisos, una activa sigue cubriendo después de periodo_fin (A-03).
     cubrePrueba: (estudianteId, pruebaId, tx) =>
-      repositorio.cubrePrueba(estudianteId, pruebaId, tx),
+      repositorio.cubrePrueba(estudianteId, pruebaId, dependencias.reloj(), tx),
     permiteEnsayoCompleto: (estudianteId, tx) =>
-      repositorio.permiteEnsayoCompleto(estudianteId, tx),
+      repositorio.permiteEnsayoCompleto(estudianteId, dependencias.reloj(), tx),
     vigenteDe: (estudianteId) => repositorio.vigenteDe(estudianteId),
     cerrarCanceladasVencidas: () =>
       cerrarCanceladas(dependencias, crearCierreRepositorio(dependencias.bd), comprasRepositorio),
