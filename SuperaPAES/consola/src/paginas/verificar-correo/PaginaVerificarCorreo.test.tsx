@@ -60,4 +60,28 @@ describe('página Verificar correo (HU-05.4, CU-02)', () => {
     expect(html).toContain('No pudimos verificar tu correo');
     expect(html).toContain(MENSAJES_VERIFICACION.general);
   });
+
+  it('ofrece reintentar ante una falla y conserva el diseño compartido con A05', () => {
+    const html = renderToString(
+      <ResultadoVerificacion
+        estado={{ tipo: 'fallido', mensaje: MENSAJES_VERIFICACION.general }}
+        alReintentar={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('Reintentar');
+    expect(html).toContain('restablecer__boton');
+  });
+
+  it('un enlace no vigente pide otro correo en lugar de ofrecer reintentar ese enlace', () => {
+    const html = renderToString(
+      <ResultadoVerificacion
+        estado={{ tipo: 'no_vigente', mensaje: 'Este enlace ya no sirve.' }}
+        alReintentar={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('Reenviar correo');
+    expect(html).not.toContain('<button');
+  });
 });

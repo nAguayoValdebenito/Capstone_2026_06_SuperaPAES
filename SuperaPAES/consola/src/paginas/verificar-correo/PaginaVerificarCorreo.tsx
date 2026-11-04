@@ -10,7 +10,13 @@ import {
 import { Aviso } from '../restablecer-contrasena/PaginaRestablecerContrasena';
 import '../restablecer-contrasena/restablecer-contrasena.css';
 
-export function ResultadoVerificacion({ estado }: { estado: EstadoVerificacion }) {
+export function ResultadoVerificacion({
+  estado,
+  alReintentar,
+}: {
+  estado: EstadoVerificacion;
+  alReintentar?: () => void;
+}) {
   switch (estado.tipo) {
     case 'verificando':
       return <h1 role="status">Verificando tu correo…</h1>;
@@ -36,12 +42,22 @@ export function ResultadoVerificacion({ estado }: { estado: EstadoVerificacion }
         />
       );
     case 'fallido':
-      return <Aviso tono="error" titulo="No pudimos verificar tu correo" texto={estado.mensaje} />;
+      return (
+        <>
+          <Aviso tono="error" titulo="No pudimos verificar tu correo" texto={estado.mensaje} />
+          {alReintentar && (
+            <button className="restablecer__boton" type="button" onClick={alReintentar}>
+              Reintentar
+            </button>
+          )}
+        </>
+      );
   }
 }
 
 function Verificacion({ token }: { token: string }) {
-  return <ResultadoVerificacion estado={useVerificacionCorreo(token)} />;
+  const { estado, reintentar } = useVerificacionCorreo(token);
+  return <ResultadoVerificacion estado={estado} alReintentar={reintentar} />;
 }
 
 export function PaginaVerificarCorreo() {
@@ -51,7 +67,7 @@ export function PaginaVerificarCorreo() {
   return (
     <main className="restablecer">
       {token ? (
-        <Verificacion token={token} />
+        <Verificacion key={token} token={token} />
       ) : (
         <Aviso
           tono="error"
