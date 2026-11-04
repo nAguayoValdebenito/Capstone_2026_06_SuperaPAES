@@ -1,13 +1,16 @@
-// Preguntas de ejemplo para probar la práctica en el emulador (TEC-07). SOLO DESARROLLO: no forma parte de
+// Preguntas de ejemplo para probar y mostrar la app (TEC-07, paso 66). SOLO DESARROLLO: no forma parte de
 // las semillas de producción ni de migrar:produccion, y se niega con NODE_ENV=production.
 // Son preguntas inventadas y sencillas, marcadas con [EJEMPLO] al inicio del enunciado, sin material ni
 // facsímiles del DEMRE (RN-29). Se publican por las etapas reales (borrador, revisión, aprobada y
 // publicada), así que las reglas y los triggers de la base las validan igual que a cualquier pregunta.
 import { conBloqueo } from './bloqueo.js';
+import { PREGUNTAS_CIENCIAS, PREGUNTAS_HISTORIA } from './demo/humanidades-ciencias.js';
+import { PREGUNTAS_LECTORA } from './demo/lectora.js';
+import { PREGUNTAS_MATEMATICAS } from './demo/matematicas.js';
+import { MARCA_EJEMPLO, type PreguntaDeEjemplo } from './demo/tipos.js';
 import { ejecutarEnTransaccion, type Ejecutor } from './transaccion.js';
 
-/** Aparece al inicio de cada enunciado y del texto de lectura: nadie confunde estas preguntas con el banco real. */
-export const MARCA_EJEMPLO = '[EJEMPLO]';
+export { MARCA_EJEMPLO };
 
 /** Clave fija del bloqueo que evita dos cargas de ejemplo al mismo tiempo. */
 const CLAVE_BLOQUEO = 20270103;
@@ -16,23 +19,7 @@ export class ErrorSemillaDemo extends Error {
   override name = 'ErrorSemillaDemo';
 }
 
-interface Alternativa {
-  texto: string;
-  explicacion: string;
-}
-
-interface PreguntaDeEjemplo {
-  prueba: string;
-  dificultad: 'facil' | 'media' | 'dificil';
-  enunciado: string;
-  explicacion: string;
-  /** La primera es la correcta (letra A). */
-  alternativas: [Alternativa, Alternativa, Alternativa, Alternativa];
-  /** Solo Competencia Lectora: cada pregunta va ligada a un texto (RN-08). */
-  texto?: { titulo: string; contenido: string };
-}
-
-const PREGUNTAS: readonly PreguntaDeEjemplo[] = [
+const BASICAS: readonly PreguntaDeEjemplo[] = [
   {
     prueba: 'CL',
     dificultad: 'facil',
@@ -104,64 +91,125 @@ const PREGUNTAS: readonly PreguntaDeEjemplo[] = [
   },
 ];
 
+/** Todas las preguntas de ejemplo: alcanzan para practicar en cada prueba, y más en Matemática y Lectora. */
+export const PREGUNTAS_DE_EJEMPLO: readonly PreguntaDeEjemplo[] = [
+  ...BASICAS,
+  ...PREGUNTAS_MATEMATICAS,
+  ...PREGUNTAS_LECTORA,
+  ...PREGUNTAS_HISTORIA,
+  ...PREGUNTAS_CIENCIAS,
+];
+
 const LETRAS = ['A', 'B', 'C', 'D'] as const;
 
 export interface ResultadoSemillaDemo {
-  /** Códigos de las pruebas para las que se creó una pregunta en esta ejecución. */
+  /** Códigos de las pruebas con alguna pregunta nueva en esta ejecución. */
   creadas: string[];
-  /** Códigos de las pruebas que ya tenían su pregunta de ejemplo. */
+  /** Códigos de las pruebas con alguna pregunta que ya estaba. */
   existentes: string[];
+  /** Cuántas preguntas se crearon en esta ejecución. */
+  preguntasNuevas: number;
 }
 
-async function tieneEjemplo(bd: Ejecutor, prueba: string): Promise<boolean> {
+async function yaExiste(bd: Ejecutor, { prueba, enunciado }: PreguntaDeEjemplo): Promise<boolean> {
   const { rows } = await bd.query(
     `SELECT 1 FROM contenido.pregunta p JOIN contenido.prueba pr ON pr.id = p.prueba_id
-      WHERE pr.codigo = $1 AND p.enunciado LIKE $2 || '%' LIMIT 1`,
-    [prueba, MARCA_EJEMPLO],
+      WHERE pr.codigo = $1 AND p.enunciado = $2 LIMIT 1`,
+    [prueba, enunciado],
   );
   return rows.length > 0;
 }
 
-async function crearTexto(bd: Ejecutor, texto: { titulo: string; contenido: string }) {
-  const { rows } = await bd.query<{ id: string }>(
+interface TextoDeLaPregunta {
+  id: string;
+  orden: number;
+}
+
+/** El texto de la pregunta, que varias comparten, y el orden de esta pregunta dentro de él. */
+async function textoDe(
+  bd: Ejecutor,
+  texto: NonNullable<PreguntaDeEjemplo['texto']>,
+): Promise<TextoDeLaPregunta> {
+  const { rows } = await bd.query<TextoDeLaPregunta>(
+    `SELECT t.id::text AS id,
+            (SELECT COALESCE(MAX(p.orden_en_texto), 0)::int + 1 FROM contenido.pregunta p
+              WHERE p.texto_estimulo_id = t.id) AS orden
+       FROM contenido.texto_estimulo t WHERE t.titulo = $1 LIMIT 1`,
+    [texto.titulo],
+  );
+  const existente = rows[0];
+  if (existente) return existente;
+  const { rows: creado } = await bd.query<{ id: string }>(
     `INSERT INTO contenido.texto_estimulo (tipo_texto_id, titulo, contenido, creado_en)
      SELECT id, $1, $2, now() FROM contenido.tipo_texto ORDER BY id LIMIT 1 RETURNING id::text`,
     [texto.titulo, texto.contenido],
   );
-  const id = rows[0]?.id;
+  const id = creado[0]?.id;
   if (!id) throw new ErrorSemillaDemo('Falta el tipo de texto del temario.');
-  return id;
+  return { id, orden: 1 };
 }
 
-/** La pregunta nace en borrador, con el contenido del curso más bajo de la prueba: lo ve cualquier estudiante (RN-24). */
-async function crearPregunta(bd: Ejecutor, pregunta: PreguntaDeEjemplo, textoId: string | null) {
+/**
+ * La pregunta nace en borrador, con el contenido del curso más bajo de su eje, o de la prueba si no indica
+ * uno: lo ve cualquier estudiante.
+ */
+async function crearPregunta(
+  bd: Ejecutor,
+  pregunta: PreguntaDeEjemplo,
+  texto: TextoDeLaPregunta | null,
+) {
   const { rows } = await bd.query<{ id: string }>(
     `INSERT INTO contenido.pregunta
        (prueba_id, contenido_id, habilidad_id, tipo_pregunta_id, texto_estimulo_id, orden_en_texto,
         enunciado, explicacion, estado_pregunta_id, creado_en, actualizado_en)
-     SELECT pr.id, c.id, h.id, t.id, $2::bigint, CASE WHEN $2::bigint IS NULL THEN NULL ELSE 1 END,
-            $3, $4, e.id, now(), now()
+     SELECT pr.id, c.id, h.id, t.id, $2::bigint, $3::smallint, $4, $5, e.id, now(), now()
        FROM contenido.prueba pr
        JOIN LATERAL (SELECT c.id FROM contenido.contenido_tematico c
                        LEFT JOIN contenido.nivel_escolar n ON n.id = c.nivel_escolar_id
-                      WHERE c.prueba_id = pr.id ORDER BY n.orden NULLS LAST, c.id LIMIT 1) c ON true
-       JOIN LATERAL (SELECT id FROM contenido.habilidad WHERE prueba_id = pr.id ORDER BY id LIMIT 1) h ON true
+                       JOIN contenido.eje_tematico ej ON ej.id = c.eje_id
+                      WHERE c.prueba_id = pr.id AND ($6::text IS NULL OR ej.nombre = $6)
+                      ORDER BY n.orden NULLS LAST, c.id LIMIT 1) c ON true
+       JOIN LATERAL (SELECT id FROM contenido.habilidad
+                      WHERE prueba_id = pr.id AND ($7::text IS NULL OR nombre = $7)
+                      ORDER BY id LIMIT 1) h ON true
        CROSS JOIN contenido.tipo_pregunta t CROSS JOIN contenido.estado_pregunta e
       WHERE pr.codigo = $1 AND t.codigo = 'seleccion_multiple' AND e.codigo = 'borrador'
      RETURNING id::text`,
-    [pregunta.prueba, textoId, pregunta.enunciado, pregunta.explicacion],
+    [
+      pregunta.prueba,
+      texto?.id ?? null,
+      texto?.orden ?? null,
+      pregunta.enunciado,
+      pregunta.explicacion,
+      pregunta.eje ?? null,
+      pregunta.habilidad ?? null,
+    ],
   );
   const id = rows[0]?.id;
   if (!id) throw new ErrorSemillaDemo(`Falta el temario de la prueba ${pregunta.prueba}.`);
   return id;
 }
 
+/**
+ * Cuántas letras se corre esta pregunta: sale de su enunciado, así que siempre es la misma. Si la correcta
+ * fuera siempre la A, se notaría en la primera práctica.
+ */
+const desplazamiento = (enunciado: string) =>
+  [...enunciado].reduce((suma, letra) => suma + (letra.codePointAt(0) ?? 0), 0) % LETRAS.length;
+
 async function crearAlternativas(bd: Ejecutor, preguntaId: string, pregunta: PreguntaDeEjemplo) {
+  const corrida = desplazamiento(pregunta.enunciado);
   for (const [indice, alternativa] of pregunta.alternativas.entries()) {
     await bd.query(
       `INSERT INTO contenido.alternativa (pregunta_id, letra, texto, es_correcta, explicacion)
        VALUES ($1, $2, $3, $4, $5)`,
-      [preguntaId, LETRAS[indice], alternativa.texto, indice === 0, alternativa.explicacion],
+      [
+        preguntaId,
+        LETRAS[(indice + corrida) % LETRAS.length],
+        alternativa.texto,
+        indice === 0,
+        alternativa.explicacion,
+      ],
     );
   }
 }
@@ -178,9 +226,28 @@ async function publicar(bd: Ejecutor, preguntaId: string, dificultad: string) {
   }
 }
 
+async function crearLasQueFaltan(tx: Ejecutor): Promise<ResultadoSemillaDemo> {
+  const creadas = new Set<string>();
+  const existentes = new Set<string>();
+  let preguntasNuevas = 0;
+  for (const pregunta of PREGUNTAS_DE_EJEMPLO) {
+    if (await yaExiste(tx, pregunta)) {
+      existentes.add(pregunta.prueba);
+      continue;
+    }
+    const texto = pregunta.texto ? await textoDe(tx, pregunta.texto) : null;
+    const id = await crearPregunta(tx, pregunta, texto);
+    await crearAlternativas(tx, id, pregunta);
+    await publicar(tx, id, pregunta.dificultad);
+    creadas.add(pregunta.prueba);
+    preguntasNuevas += 1;
+  }
+  return { creadas: [...creadas], existentes: [...existentes], preguntasNuevas };
+}
+
 /**
- * Carga las preguntas de ejemplo que falten, en una sola transacción. Idempotente: una prueba que ya
- * tiene su pregunta [EJEMPLO] se deja como está. Se niega con NODE_ENV=production.
+ * Carga las preguntas de ejemplo que falten, en una sola transacción. Idempotente: una pregunta que ya
+ * existe, por su prueba y su enunciado, se deja como está. Se niega con NODE_ENV=production.
  */
 export async function sembrarPreguntasDeEjemplo(
   bd: Ejecutor,
@@ -201,19 +268,7 @@ export async function sembrarPreguntasDeEjemplo(
           'Falta el temario: ejecuta primero npm run semillas -w api (después de npm run migrar -w api).',
         );
       }
-      const resultado: ResultadoSemillaDemo = { creadas: [], existentes: [] };
-      for (const pregunta of PREGUNTAS) {
-        if (await tieneEjemplo(tx, pregunta.prueba)) {
-          resultado.existentes.push(pregunta.prueba);
-          continue;
-        }
-        const textoId = pregunta.texto ? await crearTexto(tx, pregunta.texto) : null;
-        const id = await crearPregunta(tx, pregunta, textoId);
-        await crearAlternativas(tx, id, pregunta);
-        await publicar(tx, id, pregunta.dificultad);
-        resultado.creadas.push(pregunta.prueba);
-      }
-      return resultado;
+      return crearLasQueFaltan(tx);
     }),
   );
 }
