@@ -39,6 +39,9 @@ export function estadoDeError(error: unknown): EstadoVerificacion {
 }
 
 export async function verificarConEnlace(token: string): Promise<EstadoVerificacion> {
+  if (!token.trim()) {
+    return { tipo: 'no_vigente', mensaje: MENSAJES_VERIFICACION.enlaceIncompleto };
+  }
   try {
     const { yaVerificado } = await verificarCorreo(token);
     return { tipo: yaVerificado ? 'ya_verificado' : 'verificado' };
@@ -48,16 +51,21 @@ export async function verificarConEnlace(token: string): Promise<EstadoVerificac
 }
 
 /**
- * Verifica el enlace al abrir la página, una sola vez por token: React repite los efectos en desarrollo, y una
- * segunda llamada respondería «ya estaba verificado» a quien recién verificó.
+ * Reutiliza la petición si React repite los efectos. Solo un reintento explícito emite otra petición.
+ * La página monta una instancia nueva al cambiar el token para no mostrar un resultado anterior.
  */
-export function useVerificacionCorreo(token: string): EstadoVerificacion {
+export function useVerificacionCorreo(token: string) {
   const [estado, cambiarEstado] = useState<EstadoVerificacion>({ tipo: 'verificando' });
-  const pedido = useRef<{ token: string; resultado: Promise<EstadoVerificacion> } | null>(null);
+  const [intento, cambiarIntento] = useState(0);
+  const pedido = useRef<{
+    token: string;
+    intento: number;
+    resultado: Promise<EstadoVerificacion>;
+  } | null>(null);
 
   useEffect(() => {
-    if (pedido.current?.token !== token) {
-      pedido.current = { token, resultado: verificarConEnlace(token) };
+    if (pedido.current?.token !== token || pedido.current.intento !== intento) {
+      pedido.current = { token, intento, resultado: verificarConEnlace(token) };
     }
     let vigente = true;
     void pedido.current.resultado.then((resultado) => {
@@ -66,7 +74,12 @@ export function useVerificacionCorreo(token: string): EstadoVerificacion {
     return () => {
       vigente = false;
     };
-  }, [token]);
+  }, [token, intento]);
 
-  return estado;
+  function reintentar() {
+    cambiarEstado({ tipo: 'verificando' });
+    cambiarIntento((actual) => actual + 1);
+  }
+
+  return { estado, reintentar };
 }

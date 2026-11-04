@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ErrorApi } from '../api/cliente';
+import { configurarToken, ErrorApi } from '../api/cliente';
 import { responderUnaVez } from '../pruebas/sesion';
 import { estadoDeError, MENSAJES_VERIFICACION, verificarConEnlace } from './verificar-correo';
 
@@ -10,6 +10,7 @@ const exito = (yaVerificado: boolean) => ({
 });
 
 afterEach(() => {
+  configurarToken(() => null);
   vi.unstubAllGlobals();
 });
 
@@ -29,6 +30,46 @@ describe('verificar el correo con el enlace (HU-05.4, CU-02)', () => {
     responderUnaVez(exito(true));
 
     expect(await verificarConEnlace('token')).toEqual({ tipo: 'ya_verificado' });
+  });
+
+  it('CP-03: la verificación no envía el token interno aunque haya una sesión de consola', async () => {
+    configurarToken(() => 'sesion-interna-de-prueba');
+    const peticion = responderUnaVez(exito(false));
+
+    expect(await verificarConEnlace('enlace-de-prueba')).toEqual({ tipo: 'verificado' });
+
+    const [, opciones] = peticion.mock.calls[0] as unknown as [string, RequestInit];
+    expect(new Headers(opciones.headers).has('Authorization')).toBe(false);
+  });
+
+  it.each(['', '   '])('no consulta la API si el enlace está incompleto (%j)', async (token) => {
+    const peticion = responderUnaVez(exito(false));
+
+    expect(await verificarConEnlace(token)).toEqual({
+      tipo: 'no_vigente',
+      mensaje: MENSAJES_VERIFICACION.enlaceIncompleto,
+    });
+    expect(peticion).not.toHaveBeenCalled();
+  });
+
+  it.each([null, {}, { verificado: false, yaVerificado: false }, { verificado: true }])(
+    'no confirma la cuenta si la respuesta no confirma la verificación (%j)',
+    async (data) => {
+      responderUnaVez({ data, error: null, meta: null });
+
+      expect(await verificarConEnlace('enlace-de-prueba')).toEqual({
+        tipo: 'fallido',
+        mensaje: MENSAJES_VERIFICACION.general,
+      });
+    },
+  );
+
+  it('permite volver a consultar después de una falla de conexión', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Fallo de red')));
+    expect(await verificarConEnlace('enlace-de-prueba')).toMatchObject({ tipo: 'fallido' });
+
+    responderUnaVez(exito(false));
+    expect(await verificarConEnlace('enlace-de-prueba')).toEqual({ tipo: 'verificado' });
   });
 });
 
