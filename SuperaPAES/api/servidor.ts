@@ -13,6 +13,18 @@ import { comprobarBaseDeDatos, crearPool } from './db/conexion.js';
 import { crearUnidadDeTrabajo } from './db/transaccion.js';
 import { crearWorkerGeneracion } from './trabajos/worker-generacion.js';
 
+/** Las dependencias que solo existen con cierta configuración. */
+function opcionesDe(
+  config: Configuracion,
+): Pick<Dependencias, 'claveTareas' | 'paqueteGooglePlay'> {
+  return {
+    ...(config.pagos.proveedor === 'tiendas' && {
+      paqueteGooglePlay: config.pagos.googlePlay.paquete,
+    }),
+    ...(config.claveTareas && { claveTareas: config.claveTareas }),
+  };
+}
+
 function iniciar(): void {
   const config = leerConfiguracion();
   const pool = crearPool(config.baseDeDatos);
@@ -29,7 +41,7 @@ function iniciar(): void {
     verificacionCorreo: config.verificacionCorreo,
     corsOrigenes: config.corsOrigenes,
     registrarPeticiones: config.entorno !== 'test',
-    ...(config.claveTareas && { claveTareas: config.claveTareas }),
+    ...opcionesDe(config),
   };
   const servicios = crearServicios(dependencias);
   const app = crearApp(dependencias, servicios);

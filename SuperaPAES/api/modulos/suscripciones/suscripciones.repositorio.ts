@@ -21,19 +21,32 @@ export interface SuscripcionVigente {
   plan: string;
   periodicidad: 'mensual' | 'anual';
   tienda: Tienda;
+  /** Fin del período pagado: la próxima renovación, o el término si canceló. */
+  periodoFin: Date | null;
+  /** `false` si el estudiante canceló la renovación en la tienda (CU-12 1.a). */
+  renuevaAutomaticamente: boolean;
+  /** Dónde se gestiona y se cancela en la tienda (HU-45.2). */
+  gestionUrl: string;
 }
+
+/** La vigente como sale de la base: la dirección de la tienda se arma con su producto. */
+export type FilaVigente = Omit<SuscripcionVigente, 'gestionUrl'> & { idProducto: string | null };
 
 // Solo activa o en mora: una pendiente todavía no se cobra (RN-34). El índice ux_suscripcion_vigente
 // deja una sola vigente por estudiante. No mira el fin del período: dice si la tienda puede seguir
 // cobrando, aunque el aviso que cerraría la suscripción no haya llegado.
 const VIGENTE = `
-  SELECT e.codigo AS estado, a.nombre AS plan, p.codigo AS periodicidad, c.codigo AS tienda
+  SELECT e.codigo AS estado, a.nombre AS plan, p.codigo AS periodicidad, c.codigo AS tienda,
+         s.periodo_fin AS "periodoFin", s.cancelada_en IS NULL AS "renuevaAutomaticamente",
+         pt.id_producto AS "idProducto"
     FROM app.suscripcion s
     JOIN contenido.estado_suscripcion e ON e.id = s.estado_suscripcion_id
     JOIN contenido.plan pl ON pl.id = s.plan_id
     JOIN contenido.alcance_plan a ON a.id = pl.alcance_plan_id
     JOIN contenido.periodicidad p ON p.id = pl.periodicidad_id
     JOIN contenido.canal_venta c ON c.id = s.canal_venta_id
+    LEFT JOIN contenido.plan_producto_tienda pt
+      ON pt.plan_id = s.plan_id AND pt.canal_venta_id = s.canal_venta_id
    WHERE s.estudiante_id = $1 AND e.codigo IN ('activa', 'en_mora')`;
 
 // A-03: una activa da acceso hasta el fin del período pagado, más el margen para esperar el aviso de la
@@ -61,8 +74,8 @@ const CUBRE_PRUEBA = `
 
 export function crearSuscripcionesRepositorio(bd: Ejecutor) {
   return {
-    async vigenteDe(estudianteId: string, tx: Ejecutor = bd): Promise<SuscripcionVigente | null> {
-      const { rows } = await tx.query<SuscripcionVigente>(VIGENTE, [estudianteId]);
+    async vigenteDe(estudianteId: string, tx: Ejecutor = bd): Promise<FilaVigente | null> {
+      const { rows } = await tx.query<FilaVigente>(VIGENTE, [estudianteId]);
       return rows[0] ?? null;
     },
 

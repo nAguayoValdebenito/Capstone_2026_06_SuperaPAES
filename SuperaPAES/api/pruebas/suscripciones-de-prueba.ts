@@ -15,6 +15,8 @@ export interface SuscripcionDePrueba {
   pruebas?: number[];
   /** Fin del período pagado; sin él queda vacío. */
   periodoFin?: Date;
+  /** Cuándo el estudiante canceló la renovación; sin él sigue renovando. */
+  canceladaEn?: Date;
 }
 
 /** Inserta la suscripción y devuelve su id. */
@@ -22,16 +24,17 @@ export async function insertarSuscripcion(
   bd: Ejecutor,
   datos: SuscripcionDePrueba,
 ): Promise<string> {
-  const { estudianteId, plan, estado, tienda = 'google_play', pruebas = [], periodoFin } = datos;
+  const { estudianteId, plan, estado, tienda = 'google_play', pruebas = [] } = datos;
+  const { periodoFin = null, canceladaEn = null } = datos;
   const { rows } = await bd.query<{ id: string }>(
     `INSERT INTO app.suscripcion
        (estudiante_id, plan_id, estado_suscripcion_id, vigente, canal_venta_id, inicio, periodo_fin,
-        creado_en)
-     SELECT $1, pl.id, e.id, e.vigente, c.id, now(), $5::timestamptz, now()
+        cancelada_en, creado_en)
+     SELECT $1, pl.id, e.id, e.vigente, c.id, now(), $5::timestamptz, $6::timestamptz, now()
        FROM contenido.plan pl, contenido.estado_suscripcion e, contenido.canal_venta c
       WHERE pl.nombre = $2 AND e.codigo = $3 AND c.codigo = $4
      RETURNING id::text AS id`,
-    [estudianteId, plan, estado, tienda, periodoFin ?? null],
+    [estudianteId, plan, estado, tienda, periodoFin, canceladaEn],
   );
   const id = rows[0]?.id;
   if (!id)
