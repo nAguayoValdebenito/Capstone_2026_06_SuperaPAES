@@ -85,6 +85,11 @@ describe('C04 · importar preguntas (HU-13.2)', () => {
     expect(html).toContain('codigo, tipo_texto, titulo, contenido');
     expect(html).toContain('href="/banco"');
     expect(html).not.toContain('Confirmar importación');
+    expect(html).toContain('Descargar plantilla de preguntas</button>');
+    expect(html).toContain('Descargar plantilla de textos</button>');
+    expect(html).toContain(
+      'Las plantillas están vacías: agrega solo preguntas propias o con permiso de uso.',
+    );
   });
 
   it('CP-10: muestra los contadores y cada fila con error con todos sus motivos', () => {

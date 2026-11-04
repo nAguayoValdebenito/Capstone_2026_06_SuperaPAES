@@ -63,6 +63,9 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
 
   agregarRutasTextos(router, controlador);
 
+  // CU-16 paso 1: descarga de las plantillas CSV (HU-13.3), solo para administradores.
+  router.get('/importaciones/plantillas', exigirRol('admin'), controlador.plantillasImportacion);
+
   // Importar preguntas con la plantilla CSV (C04, HU-13.1, RF-G05, CU-16): revisar entrega el informe
   // sin guardar nada; importar exige la declaración del origen (RN-29) y crea las válidas.
   router.post(

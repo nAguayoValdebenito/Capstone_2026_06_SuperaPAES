@@ -1,7 +1,7 @@
 // C04 · Importar preguntas (HU-13.2, RF-G05, CU-16): el CSV de preguntas y, si hay, el de textos de
 // lectura; el informe con las filas leídas, por crear, omitidas y con error, y el motivo de cada error;
 // la declaración del origen (RN-29) y la confirmación. Se abre desde el banco y vuelve a él. La lógica
-// está en src/estado/importacion.ts. Descargar la plantilla llega con la HU-13.3.
+// está en src/estado/importacion.ts. HU-13.3 permite descargar las plantillas CSV.
 import { Link } from 'react-router';
 import {
   type CualArchivo,
@@ -10,6 +10,7 @@ import {
   useImportacion,
 } from '../../estado/importacion';
 import type { ErrorDeFila, InformeImportacion } from '../../tipos';
+import { PlantillasImportacion } from './PlantillasImportacion';
 
 /** Columnas de la plantilla (CU-16 paso 3 y alternativo 3.a), en el orden de la API (HU-13.1). */
 const COLUMNAS_PREGUNTAS =
@@ -93,6 +94,7 @@ function Archivos({ importacion }: { importacion: Importacion }) {
   return (
     <div className="panel panel--ancho">
       <h2>Archivos</h2>
+      <PlantillasImportacion />
       <div className="importar__archivos">
         <ElegirArchivo
           cual="preguntas"
