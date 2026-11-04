@@ -75,10 +75,8 @@ class _PantallaOfrecerDiagnosticoState
             destino: Rutas.practicar,
           )
         else
-          const EnlaceVolver(
-            texto: 'Evaluaciones',
-            destino: Rutas.evaluaciones,
-          ),
+          // Se llega desde Evaluaciones o desde Inicio, y vuelve allí.
+          const EnlaceVolver(texto: 'Volver', destino: Rutas.evaluaciones),
         Encabezado(
           titulo: desdePractica
               ? 'Antes de practicar $nombre'
