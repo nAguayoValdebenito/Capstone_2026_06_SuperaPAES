@@ -19,7 +19,7 @@ export interface Plazo {
 }
 
 export interface DependenciasResolucion {
-  plazo: () => Promise<Plazo>;
+  plazo: (tx: Ejecutor) => Promise<Plazo>;
   preguntas: Pick<PreguntasServicio, 'resolverRevision'>;
   repositorio: ResolucionRepositorio;
   revisores: Pick<RevisionRepositorio, 'reservarArea' | 'docentesDisponibles' | 'asignarRevisores'>;
@@ -45,7 +45,7 @@ async function asignarDesempate(
       ronda: primera.ronda,
       version: primera.version,
       docenteIds: [tercero.id],
-      ...(await plazo()),
+      ...(await plazo(tx)),
       rol: 'desempate',
     },
     tx,

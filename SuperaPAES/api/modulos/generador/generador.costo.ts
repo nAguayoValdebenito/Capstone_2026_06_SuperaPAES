@@ -3,6 +3,7 @@
 // no se calcula nada: falla de forma segura (PRECIO_IA_NO_CONFIGURADO) y nunca como si costara cero.
 import type { ProveedorIAReal } from '../../adaptadores/ia/proveedor.js';
 import { ErrorPrecioIaNoConfigurado } from '../../comun/errores.js';
+import type { Ejecutor } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 
 export interface PrecioPorMillon {
@@ -14,10 +15,14 @@ export type Precios = Partial<Record<ProveedorIAReal, PrecioPorMillon>>;
 
 type LectorDeParametros = Pick<AdministracionServicio, 'obtenerParametroNumero'>;
 
-async function precioDe(parametros: LectorDeParametros, clave: string): Promise<number> {
+async function precioDe(
+  parametros: LectorDeParametros,
+  clave: string,
+  tx?: Ejecutor,
+): Promise<number> {
   let valor: number;
   try {
-    valor = await parametros.obtenerParametroNumero(clave);
+    valor = await parametros.obtenerParametroNumero(clave, tx);
   } catch {
     throw new ErrorPrecioIaNoConfigurado();
   }
@@ -29,12 +34,13 @@ async function precioDe(parametros: LectorDeParametros, clave: string): Promise<
 export async function leerPrecios(
   parametros: LectorDeParametros,
   proveedores: readonly ProveedorIAReal[],
+  tx?: Ejecutor,
 ): Promise<Precios> {
   const precios: Precios = {};
   for (const proveedor of proveedores) {
     precios[proveedor] = {
-      entrada: await precioDe(parametros, `precio_entrada_ia_${proveedor}`),
-      salida: await precioDe(parametros, `precio_salida_ia_${proveedor}`),
+      entrada: await precioDe(parametros, `precio_entrada_ia_${proveedor}`, tx),
+      salida: await precioDe(parametros, `precio_salida_ia_${proveedor}`, tx),
     };
   }
   return precios;

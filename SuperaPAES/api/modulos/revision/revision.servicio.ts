@@ -82,9 +82,9 @@ const DIA_EN_MS = 24 * 60 * 60 * 1000;
  * Parámetros de contenido.configuracion: cuántos revisores y en cuántos días vence la revisión. Un valor
  * menor que 1 dejaría una pregunta en revisión sin revisores o con el plazo vencido: no se usa.
  */
-async function parametros({ administracion }: DependenciasRevisionServicio) {
-  const requeridos = await administracion.obtenerParametroEntero('revisores_requeridos');
-  const dias = await administracion.obtenerParametroEntero('dias_plazo_revision');
+async function parametros({ administracion }: DependenciasRevisionServicio, tx?: Ejecutor) {
+  const requeridos = await administracion.obtenerParametroEntero('revisores_requeridos', tx);
+  const dias = await administracion.obtenerParametroEntero('dias_plazo_revision', tx);
   if (requeridos < 1 || dias < 1) {
     throw new Error(
       'contenido.configuracion debe tener revisores_requeridos y dias_plazo_revision de al menos 1.',
@@ -94,8 +94,8 @@ async function parametros({ administracion }: DependenciasRevisionServicio) {
 }
 
 /** La hora de la asignación y su fecha límite, desde ahora. */
-async function plazo(dependencias: DependenciasRevisionServicio): Promise<Plazo> {
-  const { dias } = await parametros(dependencias);
+async function plazo(dependencias: DependenciasRevisionServicio, tx: Ejecutor): Promise<Plazo> {
+  const { dias } = await parametros(dependencias, tx);
   const asignadoEn = dependencias.reloj();
   return { asignadoEn, venceEn: new Date(asignadoEn.getTime() + dias * DIA_EN_MS) };
 }
@@ -176,7 +176,7 @@ export function crearRevisionServicio(
 ): RevisionServicio {
   const repositorio = dependencias.repositorio ?? crearRevisionRepositorio(dependencias.bd);
   const resolucion = {
-    plazo: () => plazo(dependencias),
+    plazo: (tx: Ejecutor) => plazo(dependencias, tx),
     preguntas: dependencias.preguntas,
     repositorio: dependencias.repositorioResolucion ?? crearResolucionRepositorio(),
     revisores: repositorio,

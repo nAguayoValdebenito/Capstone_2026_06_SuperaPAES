@@ -35,13 +35,13 @@ function validarFiltros(datos: FiltrosSeleccion): void {
   }
 }
 
-async function parametros({
-  administracion,
-  reloj,
-}: DependenciasSeleccion): Promise<ParametrosSeleccion> {
-  const diasSinRepetir = await administracion.obtenerParametroEntero('dias_sin_repetir');
-  const minRespuestas = await administracion.obtenerParametroEntero('min_respuestas_eje');
-  const umbralDebil = await administracion.obtenerParametroEntero('umbral_eje_debil');
+async function parametros(
+  { administracion, reloj }: DependenciasSeleccion,
+  tx?: Ejecutor,
+): Promise<ParametrosSeleccion> {
+  const diasSinRepetir = await administracion.obtenerParametroEntero('dias_sin_repetir', tx);
+  const minRespuestas = await administracion.obtenerParametroEntero('min_respuestas_eje', tx);
+  const umbralDebil = await administracion.obtenerParametroEntero('umbral_eje_debil', tx);
   return { ahora: reloj(), diasSinRepetir, minRespuestas, umbralDebil };
 }
 
@@ -55,7 +55,7 @@ async function elegir(
     throw new Error('La cantidad debe ser un entero positivo.');
   if (datos.entregadas.length >= datos.cantidad) return null;
   const { repositorio, azar } = dependencias;
-  const p = await parametros(dependencias);
+  const p = await parametros(dependencias, tx);
   const cuotas = datos.cuotas ?? calcularCuotas(datos.cantidad, await repositorio.leerMezcla(tx));
   if (
     Object.values(cuotas).some((n) => !Number.isSafeInteger(n) || n < 0) ||
@@ -74,7 +74,8 @@ export function crearSeleccionPractica(dependencias: DependenciasSeleccion): Sel
   return {
     async contarDisponibles(datos, tx) {
       validarFiltros(datos);
-      return dependencias.repositorio.contarDisponibles(datos, await parametros(dependencias), tx);
+      const p = await parametros(dependencias, tx);
+      return dependencias.repositorio.contarDisponibles(datos, p, tx);
     },
     elegirSiguiente: (datos, tx) => elegir(dependencias, datos, tx),
   };

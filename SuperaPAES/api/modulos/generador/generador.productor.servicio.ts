@@ -116,10 +116,10 @@ function validarTexto(datos: DatosNuevoLoteHttp, contenido: ContenidoParaGenerar
   }
 }
 
-async function modeloInicial(d: DependenciasProductor): Promise<string> {
+async function modeloInicial(d: DependenciasProductor, tx: Ejecutor): Promise<string> {
   const modelo =
     d.ia.nombre === 'deepseek'
-      ? await d.administracion.obtenerParametroTexto('modelo_ia')
+      ? await d.administracion.obtenerParametroTexto('modelo_ia', tx)
       : d.ia.nombre;
   return modelo.slice(0, LARGO_MAXIMO_MODELO);
 }
@@ -131,10 +131,10 @@ async function comprobarTopes(
   tx: Ejecutor,
 ): Promise<void> {
   const ahora = d.reloj();
-  const maximoDiario = await d.administracion.obtenerParametroEntero('tope_diario_ia');
+  const maximoDiario = await d.administracion.obtenerParametroEntero('tope_diario_ia', tx);
   const usadas = await d.lotes.usoDiario(ahora, tx);
   if (usadas + cantidad > maximoDiario) throw new ErrorTopeDiarioIa(usadas, cantidad, maximoDiario);
-  const maximoMensual = await d.administracion.obtenerParametroNumero('tope_mensual_ia_usd');
+  const maximoMensual = await d.administracion.obtenerParametroNumero('tope_mensual_ia_usd', tx);
   const { gastado, sinCosto } = await d.lotes.gastoMensual(ahora, tx);
   if (sinCosto) throw new ErrorPrecioIaNoConfigurado();
   if (gastado >= maximoMensual) throw new ErrorTopeMensualIa(gastado, maximoMensual);
@@ -164,12 +164,12 @@ export function crearProductor(d: DependenciasProductor): Productor {
       await d.lotes.bloquearCreacion(tx);
       const existente = await d.lotes.pendienteIgual({ ...datos, solicitanteId }, tx);
       if (existente) return { lote: aLoteDto(existente), creado: false };
-      await leerPrecios(d.administracion, d.ia.usa);
+      await leerPrecios(d.administracion, d.ia.usa, tx);
       await comprobarTopes(d, datos.cantidad, tx);
       const nuevo: DatosNuevoLote = {
         ...datos,
         solicitanteId,
-        modelo: await modeloInicial(d),
+        modelo: await modeloInicial(d, tx),
         versionInstrucciones: VERSION_INSTRUCCIONES,
         ahora: d.reloj(),
       };

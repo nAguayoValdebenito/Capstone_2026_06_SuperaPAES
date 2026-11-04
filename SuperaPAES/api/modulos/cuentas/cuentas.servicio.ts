@@ -282,12 +282,10 @@ async function ingresarDeEstudiante(
 }
 
 /** En la consola el rol se lee de nuevo: un cambio de rol rige desde la renovación. */
-async function datosDelToken(
-  { administracion }: Contexto,
-  { tipo, cuentaId, dispositivo }: DuenoSesion,
-): Promise<DatosToken> {
+async function datosDelToken(c: Contexto, dueno: DuenoSesion, tx: Ejecutor): Promise<DatosToken> {
+  const { tipo, cuentaId, dispositivo } = dueno;
   if (tipo === 'app') return { tipo, dispositivo };
-  const usuario = await administracion.obtenerUsuarioInterno(cuentaId);
+  const usuario = await c.administracion.obtenerUsuarioInterno(cuentaId, tx);
   if (!usuario?.activo) throw errorSesion();
   return { tipo, rol: usuario.rol, dispositivo };
 }
@@ -302,7 +300,7 @@ async function renovar(
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     const dueno = await repositorio.consumirSesion(tipo, hashDe(tokenRenovacion), reloj(), tx);
     if (!dueno) throw errorSesion();
-    const datos = await datosDelToken(contexto, dueno);
+    const datos = await datosDelToken(contexto, dueno, tx);
     const nuevo = dispositivo?.slice(0, LARGO_DISPOSITIVO) || datos.dispositivo;
     return abrirSesion(contexto, dueno.cuentaId, { ...datos, dispositivo: nuevo }, tx);
   });

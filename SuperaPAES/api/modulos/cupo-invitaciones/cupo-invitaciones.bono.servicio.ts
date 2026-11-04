@@ -34,10 +34,10 @@ export function crearBonoInvitacion(dependencias: DependenciasBono): BonoInvitac
       if (!invitacion) return;
       if (!invitacion.verificada) await repositorio.marcarVerificada(invitacion.id, ahora, tx);
       if (invitacion.bonoEntregado) return;
-      if (!(await cuentas.codigoInvitacion(invitacion.invitanteId))) return;
-      const tope = await administracion.obtenerParametroEntero('tope_invitaciones_mes');
+      if (!(await cuentas.codigoInvitacion(invitacion.invitanteId, tx))) return;
+      const tope = await administracion.obtenerParametroEntero('tope_invitaciones_mes', tx);
       if ((await repositorio.premiadasDelMes(invitacion.invitanteId, ahora, tx)) >= tope) return;
-      const cantidad = await administracion.obtenerParametroEntero('bono_invitacion');
+      const cantidad = await administracion.obtenerParametroEntero('bono_invitacion', tx);
       await repositorio.abonar(
         { invitacionId: invitacion.id, invitanteId: invitacion.invitanteId, cantidad, ahora },
         tx,
