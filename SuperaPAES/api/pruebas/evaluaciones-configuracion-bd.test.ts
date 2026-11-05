@@ -214,6 +214,38 @@ describe.skipIf(!urlBase)('configuración de evaluaciones con PostgreSQL (C08)',
     expect(respuesta.body.error.mensaje).toBe('Elige un electivo válido para esta prueba.');
   });
 
+  it('rechaza huecos en las correctas con 400, sin guardar tabla, filas ni auditoria', async () => {
+    const sesion = await g.sesionAdmin();
+    const antes = await entorno.bd.query('SELECT id FROM contenido.tabla_conversion ORDER BY id');
+    const filasAntes = await entorno.bd.query(
+      'SELECT * FROM contenido.tabla_conversion_fila ORDER BY tabla_conversion_id, correctas',
+    );
+    const registrosAntes = await auditoria('cargar_tabla_conversion');
+    const respuesta = await cargar(
+      sesion,
+      tabla({
+        filas: [
+          { correctas: 0, puntaje: 100 },
+          { correctas: 2, puntaje: 300 },
+        ],
+      }),
+    );
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.error.codigo).toBe('VALIDACION');
+    expect(respuesta.body.error.mensaje).toContain('sin saltos');
+    expect(
+      (await entorno.bd.query('SELECT id FROM contenido.tabla_conversion ORDER BY id')).rows,
+    ).toEqual(antes.rows);
+    expect(
+      (
+        await entorno.bd.query(
+          'SELECT * FROM contenido.tabla_conversion_fila ORDER BY tabla_conversion_id, correctas',
+        )
+      ).rows,
+    ).toEqual(filasAntes.rows);
+    expect(await auditoria('cargar_tabla_conversion')).toBe(registrosAntes);
+  });
+
   it('un docente no entra', async () => {
     const docente = await g.sesionDocente(await g.sesionAdmin());
 
