@@ -58,6 +58,28 @@ describe('Planes C11 (HU-52.2, solo editar)', () => {
     expect(html).toContain('value="31" selected=""');
     expect(html).toContain('value="1990"');
     expect(html).toContain('value="una_prueba_mensual"');
+    expect(html.match(/value="una_prueba_mensual"/g)).toHaveLength(1);
+    expect(html).toContain('Identificador del producto en ambas tiendas');
+    expect(html).toContain('aria-describedby="producto-plan-ayuda"');
+    expect(html).toContain('No puede estar asignado a otro plan en la misma tienda.');
+  });
+
+  it('avisa si un plan guardado tenía identificadores distintos y pide corregirlos', () => {
+    const html = renderToString(
+      <FormularioPlan
+        plan={{
+          ...planDePrueba,
+          productos: { google_play: 'producto_google', app_store: 'producto_apple' },
+        }}
+        opciones={datosPlanes}
+        guardando={false}
+        alGuardar={vi.fn()}
+        alCancelar={vi.fn()}
+      />,
+    );
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('Las tiendas tienen identificadores distintos.');
+    expect(html).toContain('Escribe el identificador común antes de guardar.');
   });
 
   it('muestra carga y permite reintentar una carga fallida', () => {

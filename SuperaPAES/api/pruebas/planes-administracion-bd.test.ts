@@ -1,4 +1,4 @@
-// CP-12 (HU-52.1/52.2): persistencia y auditoría reales. Solo bases temporales terminadas en _test.
+// CP-12 (HU-52.1/52.2/52.3): persistencia, productos y auditoría. Solo bases temporales _test.
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -118,12 +118,58 @@ describe.skipIf(!urlBase)('administración de planes con PostgreSQL (CP-12)', ()
     const respuesta = await guardar({
       ...edicionDe(plan),
       precioClp: 9900,
-      productos: { google_play: 'cambio_a_revertir', app_store: otra.productos.app_store },
+      productos: { google_play: otra.productos.app_store, app_store: otra.productos.app_store },
     });
     expect(respuesta.status).toBe(409);
     expect((await catalogo()).find((p) => p.id === plan.id)).toEqual(plan);
     expect(await auditoria()).toEqual([]);
   });
+
+  it('HU-52.3: un identificador diferente entre tiendas devuelve 400 sin guardar cambios parciales', async () => {
+    const respuesta = await guardar({
+      ...edicionDe(plan),
+      precioClp: 9900,
+      productos: { google_play: 'producto_google', app_store: 'producto_apple' },
+    });
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body).toMatchObject({
+      data: null,
+      error: { codigo: 'VALIDACION', mensaje: expect.stringContaining('debe ser igual') },
+      meta: null,
+    });
+    expect((await catalogo()).find((p) => p.id === plan.id)).toEqual(plan);
+    expect(await auditoria()).toEqual([]);
+  });
+
+  it.each(['google_play', 'app_store'] as const)(
+    'CP-12: la unicidad en %s impide asignar un producto de otro plan y revierte ambas tiendas',
+    async (tienda) => {
+      const otra = originales[1]!;
+      const producto = `producto_ocupado_${tienda}`;
+      // Ocupa solo una tienda para comprobar las dos restricciones por separado.
+      await entorno.bd.query(
+        `UPDATE contenido.plan_producto_tienda SET id_producto=$1 WHERE plan_id=$2
+         AND canal_venta_id=(SELECT id FROM contenido.canal_venta WHERE codigo=$3)`,
+        [producto, otra.id, tienda],
+      );
+      const respuesta = await guardar({
+        ...edicionDe(plan),
+        precioClp: 8800,
+        productos: { google_play: producto, app_store: producto },
+      });
+      expect(respuesta.status).toBe(409);
+      expect(respuesta.body).toMatchObject({
+        data: null,
+        error: {
+          codigo: 'CONFLICTO',
+          mensaje: 'El identificador del producto ya está registrado para otro plan en esa tienda.',
+        },
+        meta: null,
+      });
+      expect((await catalogo()).find((p) => p.id === plan.id)).toEqual(plan);
+      expect(await auditoria()).toEqual([]);
+    },
+  );
 
   it('rechaza nombre y combinación duplicados sin registrar cambios', async () => {
     const otra = originales[1]!;

@@ -7,8 +7,9 @@ function NotasPlanes() {
   return (
     <aside className="planes__notas" aria-label="Información de los planes">
       <p>
-        Antes de guardar, configura el producto y su precio en Google Play y en la App Store. En
-        Google Play, cada producto tiene un solo plan base.
+        Antes de guardar, configura el producto con el mismo identificador y precio en Google Play y
+        en la App Store. Cada plan y periodicidad tiene su propio producto. En Google Play, cada
+        producto tiene un solo plan base.
       </p>
       <p>
         El plan Gratis no se cobra. Sus beneficios dependen del cupo diario, las preguntas extra y

@@ -1,4 +1,4 @@
-// HU-52.1/52.2, CP-12: transacción, validación y permisos. La nomenclatura de productos es HU-52.3.
+// HU-52.1/52.2/52.3, CP-12: transacción, productos iguales en ambas tiendas, validación y permisos.
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { ErrorNoEncontrado } from '../comun/errores.js';
@@ -86,6 +86,47 @@ describe('edición de planes (HU-52, CU-24)', () => {
       'Auditoría no disponible',
     );
   });
+
+  it('HU-52.3: rechaza identificadores distintos sin editar ni auditar', async () => {
+    const { servicio, repositorioPlanes, administracion } = preparar();
+    await expect(
+      servicio.editarPlan('71', PLAN.id, {
+        ...edicionDe(PLAN),
+        productos: { google_play: 'una_prueba_mensual', app_store: 'una_prueba_anual' },
+      }),
+    ).rejects.toMatchObject({
+      estadoHttp: 400,
+      codigo: 'VALIDACION',
+      message: 'El identificador del producto debe ser igual en Google Play y en la App Store.',
+    });
+    expect(repositorioPlanes.editar).not.toHaveBeenCalled();
+    expect(administracion.registrarAuditoria).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['una_prueba', 'mensual'],
+    ['una_prueba', 'anual'],
+    ['todas', 'mensual'],
+    ['todas', 'anual'],
+  ])(
+    'CP-12: guarda el producto común de %s %s con ids de opciones reales',
+    async (alcance, periodo) => {
+      const { servicio, repositorioPlanes: r, bd } = preparar();
+      const actual = {
+        ...PLAN,
+        alcance: { ...PLAN.alcance, codigo: alcance },
+        periodicidad: { ...PLAN.periodicidad, codigo: periodo },
+        productos: { google_play: `${alcance}_${periodo}`, app_store: `${alcance}_${periodo}` },
+      };
+      r.opciones.mockResolvedValue({
+        alcances: [actual.alcance],
+        periodicidades: [actual.periodicidad],
+      });
+      r.obtener.mockResolvedValueOnce(PLAN).mockResolvedValueOnce(actual);
+      expect(await servicio.editarPlan('71', PLAN.id, edicionDe(actual))).toEqual(actual);
+      expect(r.editar).toHaveBeenCalledWith(PLAN.id, edicionDe(actual), bd);
+    },
+  );
 });
 
 describe('rutas de Planes (CP-12 permisos y entrada)', () => {

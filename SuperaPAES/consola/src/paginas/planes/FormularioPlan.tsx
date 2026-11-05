@@ -37,21 +37,28 @@ function Selector({
 function CamposProductos({ formulario }: { formulario: ReturnType<typeof useFormularioPlan> }) {
   const { campos, cambiar } = formulario;
   return (
-    <>
-      {(['google_play', 'app_store'] as const).map((tienda) => (
-        <label className="campo" key={tienda}>
-          {tienda === 'google_play' ? 'Producto en Google Play' : 'Producto en la App Store'}
-          <input
-            required
-            maxLength={100}
-            value={campos.productos[tienda]}
-            onChange={(e) =>
-              cambiar({ productos: { ...campos.productos, [tienda]: e.target.value } })
-            }
-          />
-        </label>
-      ))}
-    </>
+    <label className="campo">
+      Identificador del producto en ambas tiendas
+      <input
+        required
+        maxLength={100}
+        value={campos.productos.google_play}
+        aria-describedby="producto-plan-ayuda"
+        onChange={(e) =>
+          cambiar({ productos: { google_play: e.target.value, app_store: e.target.value } })
+        }
+      />
+      <span id="producto-plan-ayuda" className="campo__ayuda">
+        Registra este mismo identificador en Google Play y en la App Store para el plan y la
+        periodicidad elegidos. No puede estar asignado a otro plan en la misma tienda.
+      </span>
+      {campos.productos.google_play !== campos.productos.app_store && (
+        <span role="alert" className="campo__ayuda">
+          Las tiendas tienen identificadores distintos. Escribe el identificador común antes de
+          guardar.
+        </span>
+      )}
+    </label>
   );
 }
 
