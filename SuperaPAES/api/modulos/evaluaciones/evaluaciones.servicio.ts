@@ -18,6 +18,11 @@ import {
   crearSeleccionPractica,
   type SeleccionPractica,
 } from './evaluaciones.seleccion.servicio.js';
+import { crearConfiguracionRepositorio } from './evaluaciones.configuracion.repositorio.js';
+import {
+  crearConfiguracionEvaluaciones,
+  type ConfiguracionEvaluaciones,
+} from './evaluaciones.configuracion.servicio.js';
 import { crearPracticasRepositorio } from './evaluaciones.practicas.repositorio.js';
 import {
   crearPracticasServicio,
@@ -75,7 +80,8 @@ export interface DependenciasEvaluacionesServicio {
   repositorio?: EvaluacionesRepositorio;
 }
 
-export type EvaluacionesServicio = MiniServicio &
+export type EvaluacionesServicio = ConfiguracionEvaluaciones &
+  MiniServicio &
   EnsayoServicio &
   EntregaServicio &
   SeleccionPractica &
@@ -156,6 +162,11 @@ function crearServicioSinReintento(
   const progreso = crearProgreso(dependencias);
   const repaso = dependenciasRepaso(dependencias);
   return {
+    ...crearConfiguracionEvaluaciones({
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
+      repositorio: crearConfiguracionRepositorio(dependencias.bd),
+      administracion: dependencias.administracion,
+    }),
     ...seleccion,
     ...crearMini(dependencias),
     ...crearEnsayo(dependencias),
