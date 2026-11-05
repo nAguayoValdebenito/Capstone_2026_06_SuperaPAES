@@ -1,27 +1,3 @@
-.revisiones__pestanas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1.5rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--borde);
-}
-
-.revisiones__pestana {
-  padding: 0.5rem 0;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--texto-secundario);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.revisiones__pestana[aria-pressed='true'] {
-  border-bottom-color: var(--primario);
-  color: var(--primario);
-}
-
 .revisiones__tabla {
   min-width: 68rem;
 }

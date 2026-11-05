@@ -2,39 +2,14 @@
 // las revisiones vencidas y las áreas sin docentes. La reasignación de las vencidas llega con HU-28.
 import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
+import { Pestanas } from '../../componentes/Pestanas';
 import { SegunCarga } from '../../componentes/SegunCarga';
 import { useSeguimiento } from '../../estado/seguimiento';
 import { totalDePaginas } from '../../servicios/paginacion';
-import type { GrupoSeguimiento, VistaSeguimiento } from '../../tipos/seguimiento';
+import type { VistaSeguimiento } from '../../tipos/seguimiento';
 import { avisoSinDocentes, PESTANAS } from '../../utilidades/seguimiento';
 import { TablaSeguimiento } from './TablaSeguimiento';
 import './revisiones.css';
-
-function Pestanas({
-  grupo,
-  conteos,
-  alElegir,
-}: {
-  grupo: GrupoSeguimiento;
-  conteos: VistaSeguimiento['conteos'] | null;
-  alElegir: (grupo: GrupoSeguimiento) => void;
-}) {
-  return (
-    <div className="revisiones__pestanas" role="group" aria-label="Grupos de revisiones">
-      {PESTANAS.map((pestana) => (
-        <button
-          key={pestana.grupo}
-          type="button"
-          className="revisiones__pestana"
-          aria-pressed={pestana.grupo === grupo}
-          onClick={() => alElegir(pestana.grupo)}
-        >
-          {conteos ? `${pestana.titulo} (${String(conteos[pestana.grupo])})` : pestana.titulo}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function AvisosSinDocentes({ areas }: { areas: VistaSeguimiento['sinDocentes'] }) {
   if (areas.length === 0) return null;
@@ -60,7 +35,15 @@ export function PaginaRevisiones() {
         Cada pregunta la revisan dos docentes del área, distintos del autor y de quien pidió el
         lote.
       </p>
-      <Pestanas grupo={grupo} conteos={conteos} alElegir={elegirGrupo} />
+      <Pestanas
+        etiqueta="Grupos de revisiones"
+        opciones={PESTANAS.map((pestana) => ({
+          valor: pestana.grupo,
+          texto: conteos ? `${pestana.titulo} (${String(conteos[pestana.grupo])})` : pestana.titulo,
+        }))}
+        valor={grupo}
+        alElegir={elegirGrupo}
+      />
       <SegunCarga carga={carga} cargando="Cargando las revisiones…">
         {({ seguimiento, paginacion }) => (
           <>
