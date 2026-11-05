@@ -6,8 +6,9 @@
 // si no hay suficientes docentes, nada cambia y la pregunta sigue en su etapa. La bandeja del docente y
 // la entrega de su revisión con la pauta (HU-22) están en revision.bandeja.servicio.ts; al entregar la
 // última de la ronda se combinan las revisiones (HU-23, revision.resolucion.servicio.ts), y los
-// desempates del tercer docente (D02, CU-20) están en revision.desempate.servicio.ts.
-import { ErrorConflicto, ErrorNoImplementado } from '../../comun/errores.js';
+// desempates del tercer docente (D02, CU-20) están en revision.desempate.servicio.ts. El seguimiento del
+// administrador (C06) está en revision.seguimiento.servicio.ts.
+import { ErrorConflicto } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
@@ -33,6 +34,8 @@ import {
   type DocenteDisponible,
   type RevisionRepositorio,
 } from './revision.repositorio.js';
+import { crearSeguimientoRepositorio } from './revision.seguimiento.repositorio.js';
+import { crearSeguimiento, type Seguimiento } from './revision.seguimiento.servicio.js';
 
 export interface DependenciasRevisionServicio {
   bd: Ejecutor;
@@ -69,11 +72,9 @@ export interface EnvioARevision {
 }
 
 /** HU-22 y HU-23: la bandeja del docente revisor (D01) y la del tercer docente (D02). */
-export interface RevisionServicio extends BandejaDocente, DesempatesDocente {
+export interface RevisionServicio extends BandejaDocente, DesempatesDocente, Seguimiento {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
-  /** Seguimiento de las revisiones para el administrador (C06). */
-  listarSeguimiento(): Promise<never>;
 }
 
 const DIA_EN_MS = 24 * 60 * 60 * 1000;
@@ -197,13 +198,16 @@ export function crearRevisionServicio(
     revisiones: dependencias.repositorioRevisiones ?? crearDesempateRepositorio(dependencias.bd),
     preguntas: dependencias.preguntas,
   });
+  const seguimiento = crearSeguimiento({
+    reloj: dependencias.reloj,
+    repositorio: crearSeguimientoRepositorio(dependencias.bd),
+    administracion: dependencias.administracion,
+  });
   return {
     ...bandeja,
     ...desempates,
+    ...seguimiento,
     enviarARevision: (administradorId, preguntaId) =>
       enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
-    // Esqueleto: cada método se implementa en la historia de usuario correspondiente.
-    listarSeguimiento: () =>
-      Promise.reject(new ErrorNoImplementado('El seguimiento de las revisiones')),
   };
 }

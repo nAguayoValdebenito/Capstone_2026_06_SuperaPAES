@@ -1,7 +1,11 @@
 // Controlador del módulo revision: traduce HTTP a llamadas del servicio y responde con responder().
 // Sin SQL ni adaptadores. Los parámetros ya vienen validados por validar().
 import type { Request, RequestHandler } from 'express';
-import type { DatosDesempate, DatosRevision } from './revision.validadores.js';
+import type {
+  ConsultaSeguimientoHttp,
+  DatosDesempate,
+  DatosRevision,
+} from './revision.validadores.js';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { RevisionServicio } from './revision.servicio.js';
@@ -64,7 +68,9 @@ export function crearRevisionControlador(servicio: RevisionServicio): RevisionCo
       responder(res, entregado, { estado: 201 });
     },
     listarSeguimiento: async (_req, res) => {
-      responder(res, await servicio.listarSeguimiento());
+      const consulta = res.locals.consulta as ConsultaSeguimientoHttp;
+      const { seguimiento, paginacion } = await servicio.listarSeguimiento(consulta);
+      responder(res, seguimiento, { meta: paginacion });
     },
   };
 }

@@ -264,14 +264,14 @@ describe('permisos por rol en la consola (CP-05 pasos 2 y 3)', () => {
     },
   );
 
-  it('el administrador pasa la autorización del seguimiento (todavía 501)', async () => {
+  it('el administrador pasa la autorización del seguimiento', async () => {
     const tokens = await sesiones();
 
     const respuesta = await request(tokens.app)
       .get(`${ADMIN_API}/revision/seguimiento`)
       .set(tokens.admin);
 
-    expect(respuesta.status).toBe(501);
+    expect([401, 403]).not.toContain(respuesta.status);
   });
 
   it('los dos roles pueden consultar su propio usuario', async () => {

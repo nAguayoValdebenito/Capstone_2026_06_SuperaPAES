@@ -108,6 +108,7 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.alternativas[].id',
   ],
   'POST /api/v1/admin/revision/mis-revisiones/:id': ['data.asignacionId', 'data.preguntaId'],
+  'GET /api/v1/admin/revision/seguimiento': ['data.preguntas[].id'],
   'POST /api/v1/admin/revision/preguntas/:id': [
     'data.preguntaId',
     'data.revisores[].asignacionId',

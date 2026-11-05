@@ -1,6 +1,8 @@
 // Llamadas a /api/v1/admin/revision (módulo revision de la API): bandeja de revisión, desempates y clasificación de dificultad.
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
+import { consultaDeListado, paginacionDe } from './paginacion';
+import type { GrupoSeguimiento, PaginaSeguimiento, VistaSeguimiento } from '../tipos/seguimiento';
 import type {
   DatosDesempate,
   DatosRevision,
@@ -24,6 +26,23 @@ export async function enviarARevision(preguntaId: number): Promise<EnvioARevisio
     { method: 'POST' },
   );
   return data;
+}
+
+/** C06: una página del grupo, con las cantidades de cada pestaña y las áreas sin docentes. */
+export async function obtenerSeguimiento(
+  grupo: GrupoSeguimiento,
+  pagina: number,
+  senal: AbortSignal,
+): Promise<PaginaSeguimiento> {
+  const consulta = consultaDeListado({ grupo }, pagina);
+  const { data, meta } = await solicitarAdmin<VistaSeguimiento>(
+    `/revision/seguimiento${consulta}`,
+    {
+      signal: senal,
+    },
+  );
+  const paginacion = paginacionDe(meta, pagina, data.preguntas.length);
+  return { seguimiento: data, paginacion };
 }
 
 /** HU-22: la bandeja del docente, la fecha límite más próxima primero. */

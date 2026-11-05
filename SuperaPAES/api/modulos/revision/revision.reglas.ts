@@ -49,3 +49,7 @@ const ETAPA_DEL_DESEMPATE: Record<string, EtapaDelDesempate | undefined> = {
  */
 export const etapaDelDesempate = (decision: string): EtapaDelDesempate | undefined =>
   ETAPA_DEL_DESEMPATE[decision];
+
+/** Grupos del seguimiento de C06. */
+export const GRUPOS_SEGUIMIENTO = ['en_curso', 'en_desempate', 'vencidas', 'terminadas'] as const;
+export type GrupoSeguimiento = (typeof GRUPOS_SEGUIMIENTO)[number];
