@@ -11,6 +11,7 @@ import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PreguntasServicio } from '../preguntas/index.js';
 import type { TemarioServicio } from '../temario/index.js';
+import { crearConsultas, type Consultas } from './generador.consultas.servicio.js';
 import { crearLotesRepositorio, type LotesRepositorio } from './generador.lotes.repositorio.js';
 import { crearProcesador, type OpcionesProcesador } from './generador.procesador.servicio.js';
 import { crearProductor, type Productor } from './generador.productor.servicio.js';
@@ -31,7 +32,7 @@ export interface DependenciasGeneradorServicio {
   repositorio?: LotesRepositorio;
 }
 
-export interface GeneradorServicio extends Productor {
+export interface GeneradorServicio extends Productor, Consultas {
   /** Procesa los lotes pendientes y devuelve cuántos procesó. */
   procesarPendientes(): Promise<number>;
 }
@@ -59,5 +60,10 @@ export function crearGeneradorServicio(
     ia: dependencias.ia,
     ...(dependencias.opciones && { opciones: dependencias.opciones }),
   });
-  return { ...productor, ...procesador };
+  const consultas = crearConsultas({
+    reloj: dependencias.reloj,
+    lotes,
+    administracion: dependencias.administracion,
+  });
+  return { ...productor, ...procesador, ...consultas };
 }

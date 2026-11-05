@@ -13,6 +13,7 @@ export interface GeneradorControlador {
   crearLote: Validado<DatosNuevoLoteHttp>;
   obtenerLote: Validado;
   listarLotes: RequestHandler;
+  usoDeLaIa: RequestHandler;
 }
 
 /** Administrador que pide el lote: queda como solicitante y en la auditoría. Lo deja autenticarAdmin. */
@@ -30,6 +31,9 @@ export function crearGeneradorControlador(servicio: GeneradorServicio): Generado
     },
     obtenerLote: async (req, res) => {
       responder(res, await servicio.obtenerLote(String(req.params.id)));
+    },
+    usoDeLaIa: async (_req, res) => {
+      responder(res, await servicio.usoDeLaIa());
     },
     listarLotes: async (_req, res) => {
       // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.

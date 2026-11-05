@@ -16,6 +16,12 @@ export interface DatosNuevoLote extends DatosNuevoLoteHttp {
   ahora: Date;
 }
 
+/** Cuánto se ha usado de los topes de la IA (RNF-03), en días y meses de Chile. */
+export interface UsoDeLaIa {
+  hoy: { usadas: number; maximo: number };
+  mes: { gastadoUsd: number; maximoUsd: number };
+}
+
 /** El lote tal como lo ve la consola. El avance es `procesadas` de `cantidad` (HU-16 esc. 5). */
 export interface LoteDto {
   id: string;
