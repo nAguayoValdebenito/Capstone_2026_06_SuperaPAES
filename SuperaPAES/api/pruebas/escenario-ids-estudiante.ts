@@ -207,6 +207,13 @@ const lote = {
 export const generadorDePrueba = {
   crearLote: vi.fn(() => Promise.resolve({ lote, creado: true })),
   obtenerLote: vi.fn(() => Promise.resolve(lote)),
+  resultadoDeLote: vi.fn(() =>
+    Promise.resolve({
+      texto: null,
+      preguntas: [{ id: '7', enunciado: 'x', habilidad: 'y', dificultadSugerida: null }],
+      descartes: [],
+    }),
+  ),
   listarLotes: vi.fn(() =>
     Promise.resolve({ lotes: [lote], paginacion: { pagina: 1, porPagina: 20, total: 1 } }),
   ),

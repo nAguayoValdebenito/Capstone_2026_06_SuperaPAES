@@ -7,7 +7,7 @@ import type { DependenciasProcesador, FallaDeLaIa, Turno } from './generador.pro
 import { fichasQueFaltan, motivoParaParar, pedirPropuesta } from './generador.turno.js';
 
 export interface Registrador {
-  falla(falla: FallaDeLaIa): Promise<CierreDeLote | null>;
+  falla(falla: FallaDeLaIa, ficha: Ficha): Promise<CierreDeLote | null>;
   respuesta(ficha: Ficha, resultado: ResultadoGeneracion): Promise<void>;
 }
 
@@ -25,7 +25,7 @@ async function correrTanda(
     if (intento.status === 'rejected') {
       inesperado ??= { error: intento.reason };
     } else if (intento.value.tipo === 'falla') {
-      cierre ??= await registrador.falla(intento.value);
+      cierre ??= await registrador.falla(intento.value, tanda[i]!);
     } else {
       await registrador.respuesta(tanda[i]!, intento.value.resultado);
     }

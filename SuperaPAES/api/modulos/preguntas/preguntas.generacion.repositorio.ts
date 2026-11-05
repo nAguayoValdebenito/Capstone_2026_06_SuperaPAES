@@ -87,6 +87,55 @@ async function guardarPropuesta(tx: Ejecutor, propuesta: PropuestaDeIa): Promise
   return id;
 }
 
+export interface PreguntaDeLote {
+  id: string;
+  enunciado: string;
+  habilidad: string;
+  dificultadSugerida: string | null;
+}
+
+export interface TextoDeLote {
+  titulo: string | null;
+  contenido: string | null;
+}
+
+export interface PreguntasDeLote {
+  texto: TextoDeLote | null;
+  preguntas: PreguntaDeLote[];
+}
+
+const PREGUNTAS_DE_LOTE = `
+  SELECT p.id::text AS id, p.enunciado, h.nombre AS habilidad, d.nombre AS "dificultadSugerida"
+    FROM contenido.pregunta p
+    JOIN contenido.habilidad h ON h.id = p.habilidad_id
+    LEFT JOIN contenido.dificultad d ON d.id = p.dificultad_sugerida_id
+   WHERE p.lote_id = $1
+   ORDER BY p.orden_en_texto NULLS LAST, p.id`;
+
+const TEXTO_DE_LOTE = `
+  SELECT titulo, contenido FROM contenido.texto_estimulo WHERE lote_id = $1 ORDER BY id LIMIT 1`;
+
+/** HU-16.2 y HU-17.2: lo que el generador con IA lee del banco. */
+export interface LecturasParaGenerar {
+  /** Los enunciados del contenido en cualquier estado (también rechazadas y retiradas). */
+  enunciadosDelContenido(contenidoId: number, tx?: Ejecutor): Promise<string[]>;
+  /** Preguntas aprobadas o publicadas del contenido, de origen manual o IA, las más recientes primero. */
+  ejemplosAprobados(contenidoId: number, limite: number): Promise<EjemploDePregunta[]>;
+  /** HU-16.2: guarda una propuesta de la IA revisada como borrador, en la transacción del lote. */
+  guardarPropuestaDeIa(propuesta: PropuestaDeIa, tx: Ejecutor): Promise<string>;
+  /** HU-18.1: guarda el texto de lectura de la IA; las preguntas de su lote se enlazan a él. */
+  guardarTextoDeIa(texto: TextoDeIa, tx: Ejecutor): Promise<string>;
+  /** HU-17.3 y HU-18.3: las preguntas guardadas de un lote y su texto de lectura. */
+  preguntasDeLote(loteId: string): Promise<PreguntasDeLote>;
+}
+
+/** Las preguntas guardadas de un lote y su texto de lectura, si tiene (HU-17.3 y HU-18.3). */
+async function leerPreguntasDeLote(bd: Ejecutor, loteId: string): Promise<PreguntasDeLote> {
+  const { rows: preguntas } = await bd.query<PreguntaDeLote>(PREGUNTAS_DE_LOTE, [loteId]);
+  const { rows: textos } = await bd.query<TextoDeLote>(TEXTO_DE_LOTE, [loteId]);
+  return { texto: textos[0] ?? null, preguntas };
+}
+
 export function crearPreguntasGeneracionRepositorio(bd: Ejecutor) {
   return {
     /** Guarda la propuesta como pregunta en borrador con sus alternativas; devuelve su id. */
@@ -103,6 +152,8 @@ export function crearPreguntasGeneracionRepositorio(bd: Ejecutor) {
       ]);
       return rows[0]!.id;
     },
+
+    preguntasDeLote: (loteId: string) => leerPreguntasDeLote(bd, loteId),
 
     /** Los enunciados del contenido en cualquier estado, también rechazadas y retiradas. */
     async enunciadosDelContenido(contenidoId: number, tx: Ejecutor = bd): Promise<string[]> {

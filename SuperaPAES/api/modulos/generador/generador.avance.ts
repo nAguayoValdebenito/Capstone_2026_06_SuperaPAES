@@ -80,13 +80,15 @@ export async function registrarFalla(
   d: DependenciasProcesador,
   turno: Turno,
   falla: FallaDeLaIa,
+  ficha: Ficha,
 ): Promise<CierreDeLote | null> {
   const descartadas = falla.saldoAgotado ? 0 : 1;
   await guardarAvance(d, turno, {
     validas: 0,
     descartadas,
     ...SIN_CONSUMO,
-    anotar: (m) => anotarFalla(m, falla.codigo),
+    anotar: (m) =>
+      falla.saldoAgotado ? anotarFalla(m, falla.codigo) : anotarFalla(m, falla.codigo, ficha),
   });
   return cierreTrasFalla(turno, falla);
 }
@@ -138,6 +140,7 @@ export function guardableDe(
 async function guardarValida(
   d: DependenciasProcesador,
   turno: Turno,
+  ficha: Ficha,
   resultado: ResultadoGeneracion,
 ): Promise<void> {
   const propuesta = resultado.preguntas[0]!;
@@ -163,7 +166,7 @@ async function guardarValida(
       validas: 0,
       descartadas: 1,
       ...consumo,
-      anotar: (m) => anotarFalla(m, 'ERROR_AL_GUARDAR'),
+      anotar: (m) => anotarFalla(m, 'ERROR_AL_GUARDAR', ficha),
     });
   }
 }
@@ -177,12 +180,12 @@ export async function registrarRespuesta(
 ): Promise<void> {
   turno.fallasSeguidas = 0;
   const problemas = revisar(turno, ficha, resultado);
-  if (problemas.length === 0) return guardarValida(d, turno, resultado);
+  if (problemas.length === 0) return guardarValida(d, turno, ficha, resultado);
   const consumo = consumoDe(resultado, turno.precios);
   await guardarAvance(d, turno, {
     validas: 0,
     descartadas: 1,
     ...consumo,
-    anotar: (m) => anotarDescarte(m, problemas),
+    anotar: (m) => anotarDescarte(m, problemas, ficha),
   });
 }

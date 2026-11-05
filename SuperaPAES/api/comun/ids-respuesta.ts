@@ -196,6 +196,7 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
   'POST /api/v1/admin/generador/lotes': ['data.id', 'data.contenidoId'],
   'GET /api/v1/admin/generador/lotes': ['data[].id', 'data[].contenidoId'],
   'GET /api/v1/admin/generador/lotes/:id': ['data.id', 'data.contenidoId'],
+  'GET /api/v1/admin/generador/lotes/:id/resultado': ['data.preguntas[].id'],
   'POST /api/v1/app/suscripciones/:id/compra': [
     'data.id',
     'data.planId',

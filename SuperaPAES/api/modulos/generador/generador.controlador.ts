@@ -13,6 +13,7 @@ export interface GeneradorControlador {
   crearLote: Validado<DatosNuevoLoteHttp>;
   obtenerLote: Validado;
   listarLotes: RequestHandler;
+  resultadoDeLote: Validado;
   usoDeLaIa: RequestHandler;
 }
 
@@ -31,6 +32,9 @@ export function crearGeneradorControlador(servicio: GeneradorServicio): Generado
     },
     obtenerLote: async (req, res) => {
       responder(res, await servicio.obtenerLote(String(req.params.id)));
+    },
+    resultadoDeLote: async (req, res) => {
+      responder(res, await servicio.resultadoDeLote(String(req.params.id)));
     },
     usoDeLaIa: async (_req, res) => {
       responder(res, await servicio.usoDeLaIa());

@@ -63,6 +63,7 @@ export function crearGeneradorServicio(
   const consultas = crearConsultas({
     reloj: dependencias.reloj,
     lotes,
+    preguntas: dependencias.preguntas,
     administracion: dependencias.administracion,
   });
   return { ...productor, ...procesador, ...consultas };
