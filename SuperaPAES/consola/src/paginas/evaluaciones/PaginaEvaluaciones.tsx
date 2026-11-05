@@ -1,13 +1,57 @@
-// Sección Evaluaciones (C08): estructura de cada evaluación y tablas de conversión. Llega con HU-63.
-import { EnConstruccion } from '../../componentes/EnConstruccion';
+// C08 · Evaluaciones (HU-63.2, CU-31): cómo se arma cada evaluación de cada prueba y sus tablas de conversión.
+import { useState } from 'react';
+import { Pestanas } from '../../componentes/Pestanas';
+import { SegunCarga } from '../../componentes/SegunCarga';
+import { useCarga } from '../../estado/carga';
+import { obtenerFiltrosBanco } from '../../servicios/preguntas';
+import { PanelEstructuras } from './PanelEstructuras';
+import { PanelTablas } from './PanelTablas';
+import './evaluaciones.css';
+
+type Seccion = 'estructuras' | 'tablas';
+
+const SECCIONES: readonly { valor: Seccion; texto: string }[] = [
+  { valor: 'estructuras', texto: 'Estructuras' },
+  { valor: 'tablas', texto: 'Tablas de conversión' },
+];
 
 export function PaginaEvaluaciones() {
+  const temario = useCarga(obtenerFiltrosBanco);
+  const [seccion, setSeccion] = useState<Seccion>('estructuras');
+  const [elegida, setElegida] = useState<number | null>(null);
   return (
-    <EnConstruccion titulo="Evaluaciones">
-      <p>
-        Estructura de cada tipo de evaluación por prueba, con su reparto por eje, y las tablas de
-        conversión de puntaje del DEMRE por prueba y proceso de admisión.
+    <section className="pagina pagina--ancha evaluaciones">
+      <h1>Evaluaciones</h1>
+      <p className="pagina__aviso">
+        Cómo se arma cada evaluación de cada prueba. Las ya rendidas conservan su estructura.
       </p>
-    </EnConstruccion>
+      <SegunCarga carga={temario} cargando="Cargando las pruebas…">
+        {({ pruebas }) => {
+          const pruebaId = elegida ?? pruebas[0]?.id ?? 0;
+          const opciones = pruebas.map(({ id, nombre }) => ({ valor: id, texto: nombre }));
+          return (
+            <>
+              <Pestanas
+                etiqueta="Secciones de evaluaciones"
+                opciones={SECCIONES}
+                valor={seccion}
+                alElegir={setSeccion}
+              />
+              <Pestanas
+                etiqueta="Prueba"
+                opciones={opciones}
+                valor={pruebaId}
+                alElegir={setElegida}
+              />
+              {seccion === 'estructuras' ? (
+                <PanelEstructuras key={pruebaId} pruebaId={pruebaId} />
+              ) : (
+                <PanelTablas key={pruebaId} pruebaId={pruebaId} />
+              )}
+            </>
+          );
+        }}
+      </SegunCarga>
+    </section>
   );
 }
