@@ -51,6 +51,28 @@ export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
   return {
     ...base,
     enviarARevision: vi.fn(() => Promise.resolve(envioARevision)),
+    listarSeguimiento: vi.fn(() =>
+      Promise.resolve({
+        seguimiento: {
+          preguntas: [
+            {
+              id: '7',
+              prueba: 'M1',
+              contenido: 'Contenido',
+              estado: { codigo: 'en_revision', nombre: 'En revisión' },
+              posibleConfusa: false,
+              revisores: [],
+              desempate: null,
+              venceEn: null,
+            },
+          ],
+          conteos: { en_curso: 1, en_desempate: 0, vencidas: 0, terminadas: 0 },
+          sinDocentes: [],
+          plazoDias: 3,
+        },
+        paginacion: { pagina: 1, porPagina: 20, total: 1 },
+      }),
+    ),
     listarMisRevisiones: vi.fn(() => Promise.resolve([pendiente])),
     obtenerMiRevision: vi.fn(() => Promise.resolve(preguntaARevisar)),
     entregarRevision: vi.fn(() =>

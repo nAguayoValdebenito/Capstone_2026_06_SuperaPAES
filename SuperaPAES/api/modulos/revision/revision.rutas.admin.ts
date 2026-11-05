@@ -11,6 +11,7 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearRevisionControlador } from './revision.controlador.js';
 import type { RevisionServicio } from './revision.servicio.js';
 import {
+  esquemaConsultaSeguimiento,
   esquemaDesempate,
   esquemaIdPregunta,
   esquemaIdRevision,
@@ -51,7 +52,12 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     controlador.entregarDesempate,
   );
   // Administrador: seguimiento de las revisiones (C06).
-  router.get('/seguimiento', exigirRol('admin'), controlador.listarSeguimiento);
+  router.get(
+    '/seguimiento',
+    exigirRol('admin'),
+    validar({ consulta: esquemaConsultaSeguimiento }),
+    controlador.listarSeguimiento,
+  );
   // Administrador: enviar una pregunta a revisión, que le asigna sus revisores (C02, HU-21, CU-18).
   router.post(
     '/preguntas/:id',

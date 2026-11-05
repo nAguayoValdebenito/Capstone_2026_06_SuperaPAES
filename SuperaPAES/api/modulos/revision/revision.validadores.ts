@@ -1,12 +1,24 @@
 // Esquemas zod de entrada del módulo revision. Se usan con validar() en las rutas.
 import { z } from 'zod';
 import { idDeRuta } from '../../comun/identificadores.js';
+import { GRUPOS_SEGUIMIENTO } from './revision.reglas.js';
 
 /** HU-21: la pregunta que se envía a revisión. */
 export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
 
 /** HU-22 y HU-23: la revisión o el desempate (la asignación) que abre o entrega el docente. */
 export const esquemaIdRevision = z.strictObject({ id: idDeRuta });
+
+const POR_PAGINA_SEGUIMIENTO = 20;
+
+/** C06: el grupo que se mira y la página. */
+export const esquemaConsultaSeguimiento = z.strictObject({
+  grupo: z.enum(GRUPOS_SEGUIMIENTO).default('en_curso'),
+  pagina: z.coerce.number().int().min(1).max(100_000).default(1),
+  porPagina: z.coerce.number().int().min(1).max(50).default(POR_PAGINA_SEGUIMIENTO),
+});
+
+export type ConsultaSeguimientoHttp = z.output<typeof esquemaConsultaSeguimiento>;
 
 /** Código de una lista de opciones (criterio_pauta, dificultad, decision_revision). */
 const codigo = z.string().regex(/^[a-z_]{1,30}$/, 'El código no es válido.');
