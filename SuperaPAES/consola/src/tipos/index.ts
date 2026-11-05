@@ -99,6 +99,8 @@ export interface OpcionesFiltrosBanco {
 
 /** Filtros elegidos en el banco (C02, HU-11). Un filtro sin valor no se aplica. */
 export interface FiltrosBanco {
+  /** HU-18.3: lote elegido en el generador. */
+  lote?: string;
   prueba?: number;
   eje?: number;
   contenido?: number;

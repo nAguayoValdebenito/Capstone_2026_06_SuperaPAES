@@ -277,6 +277,7 @@ async function listarBanco(
     estado: filtros.estado,
     origen: filtros.origen,
     dificultad: filtros.dificultad,
+    loteId: filtros.lote,
     limite: porPagina,
     desde: (pagina - 1) * porPagina,
   });

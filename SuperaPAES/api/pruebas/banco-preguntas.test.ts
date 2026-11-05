@@ -105,6 +105,15 @@ function escenario(filas: FilaBanco[] = [fila()], total = filas.length) {
 const comoAdmin = async () => ({ Authorization: `Bearer ${await tokenAdmin('admin')}` });
 
 describe('banco de preguntas: lista (HU-11, CP-08)', () => {
+  it('HU-18.3: pasa el lote elegido al repositorio sin limitarlo a borradores', async () => {
+    const { app, consultas } = escenario();
+    const respuesta = await request(app)
+      .get(`${RUTA}?lote=9007199254740991`)
+      .set(await comoAdmin());
+    expect(respuesta.status).toBe(200);
+    expect(consultas[0]).toMatchObject({ loteId: Number.MAX_SAFE_INTEGER, estado: undefined });
+  });
+
   it('sin filtros entrega la primera página de 20, con el estado y los nombres del temario (esc. 2)', async () => {
     const { app, consultas } = escenario([fila()], 134);
 
@@ -138,6 +147,7 @@ describe('banco de preguntas: lista (HU-11, CP-08)', () => {
         estado: undefined,
         origen: undefined,
         dificultad: undefined,
+        loteId: undefined,
         limite: 20,
         desde: 0,
       },
@@ -247,6 +257,9 @@ describe('banco de preguntas: lista (HU-11, CP-08)', () => {
 
   it.each([
     ['porPagina mayor que 100', 'porPagina=101', 'porPagina'],
+    ['un lote inválido', 'lote=otro', 'lote'],
+    ['un lote negativo', 'lote=-1', 'lote'],
+    ['un lote impreciso', 'lote=9007199254740992', 'lote'],
     ['página 0', 'pagina=0', 'pagina'],
     ['un id que no es un número', 'prueba=dos', 'prueba'],
     ['un origen desconocido', 'origen=otro', 'origen'],

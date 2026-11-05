@@ -29,6 +29,7 @@ export interface ConsultaBanco {
   estado?: string | undefined;
   origen?: OrigenPregunta | undefined;
   dificultad?: string | undefined;
+  loteId?: number | undefined;
   limite: number;
   desde: number;
 }
@@ -70,7 +71,7 @@ const opcionJson = (alias: string) =>
   `CASE WHEN ${alias}.id IS NULL THEN NULL
         ELSE json_build_object('codigo', ${alias}.codigo, 'nombre', ${alias}.nombre) END`;
 
-/** Preguntas que cumplen los filtros ($1 a $6); un filtro en NULL no se aplica. */
+/** Preguntas que cumplen los filtros ($1 a $7); un filtro en NULL no se aplica. */
 const PREGUNTAS_FILTRADAS = `
     FROM contenido.pregunta p
     JOIN contenido.estado_pregunta ep ON ep.id = p.estado_pregunta_id
@@ -81,7 +82,8 @@ const PREGUNTAS_FILTRADAS = `
      AND ($3::smallint IS NULL OR p.habilidad_id = $3)
      AND ($4::text IS NULL OR ep.codigo = $4)
      AND ($5::text IS NULL OR ${ORIGEN} = $5)
-     AND ($6::text IS NULL OR da.codigo = $6)`;
+     AND ($6::text IS NULL OR da.codigo = $6)
+     AND ($7::bigint IS NULL OR p.lote_id = $7)`;
 
 // count(*) OVER () cuenta todas las filas del filtro antes de LIMIT, en la misma consulta.
 const BANCO = `
@@ -96,14 +98,14 @@ const BANCO = `
          count(*) OVER ()::int AS total
   ${PREGUNTAS_FILTRADAS}
    ORDER BY p.actualizado_en DESC, p.id DESC
-   LIMIT $7 OFFSET $8`;
+   LIMIT $8 OFFSET $9`;
 
 /** El total, cuando la página pedida queda después de la última fila y no trae ninguna. */
 const TOTAL_BANCO = `SELECT count(*)::int AS total ${PREGUNTAS_FILTRADAS}`;
 
 type FilaConTotal = FilaBanco & { total: number };
 
-/** $1 a $6 de PREGUNTAS_FILTRADAS: un filtro que no viene va como NULL y no se aplica. */
+/** $1 a $7 de PREGUNTAS_FILTRADAS: un filtro que no viene va como NULL y no se aplica. */
 const parametrosDelFiltro = (consulta: ConsultaBanco) => [
   consulta.pruebaId ?? null,
   consulta.contenidoIds ?? null,
@@ -111,6 +113,7 @@ const parametrosDelFiltro = (consulta: ConsultaBanco) => [
   consulta.estado ?? null,
   consulta.origen ?? null,
   consulta.dificultad ?? null,
+  consulta.loteId ?? null,
 ];
 
 export function crearPreguntasRepositorio(bd: Ejecutor): PreguntasRepositorio {

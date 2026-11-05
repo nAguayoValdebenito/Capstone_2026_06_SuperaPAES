@@ -2,11 +2,13 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGenerador } from '../../estado/generador';
+import { useTextosGenerados } from '../../estado/textos-generados';
 import { M1 } from '../../pruebas/temario';
 import type { Lote } from '../../tipos/generador';
 import { PaginaGenerador } from './PaginaGenerador';
 
 vi.mock('../../estado/generador', () => ({ useGenerador: vi.fn() }));
+vi.mock('../../estado/textos-generados', () => ({ useTextosGenerados: vi.fn() }));
 
 const lote: Lote = {
   id: '32',
@@ -48,9 +50,32 @@ const dibujar = () =>
     </MemoryRouter>,
   );
 
-beforeEach(() => vi.mocked(useGenerador).mockReturnValue(estado([lote])));
+beforeEach(() => {
+  vi.mocked(useGenerador).mockReturnValue(estado([lote]));
+  vi.mocked(useTextosGenerados).mockReset();
+  vi.mocked(useTextosGenerados).mockReturnValue({
+    carga: { tipo: 'cargando' },
+    reintentar: vi.fn(),
+  });
+});
 
 describe('Generador C05', () => {
+  it('HU-18.3: consulta el texto y sus preguntas al seleccionar un lote con texto ya guardado', () => {
+    vi.mocked(useGenerador).mockReturnValue(estado([{ ...lote, conTexto: true }]));
+    expect(dibujar()).toContain('Texto y preguntas del lote');
+    expect(useTextosGenerados).toHaveBeenCalledWith('32');
+  });
+
+  it.each([
+    { ...lote, conTexto: false },
+    { ...lote, conTexto: true, estado: 'pendiente' as const },
+    { ...lote, conTexto: true, validas: 0 },
+  ])('no consulta lecturas si no hay un texto guardado ($estado, $validas válidas)', (datos) => {
+    vi.mocked(useGenerador).mockReturnValue(estado([datos]));
+    expect(dibujar()).not.toContain('Texto y preguntas del lote');
+    expect(useTextosGenerados).not.toHaveBeenCalled();
+  });
+
   it('muestra el formulario, el resultado con sus motivos y el enlace al banco', () => {
     const html = dibujar();
     for (const texto of [

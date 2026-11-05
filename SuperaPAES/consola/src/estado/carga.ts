@@ -9,21 +9,31 @@ export type Carga<T> =
   | { tipo: 'lista'; datos: T }
   | { tipo: 'fallida'; codigo: string; mensaje: string };
 
-export function useCarga<T>(cargar: ((senal: AbortSignal) => Promise<T>) | null): Carga<T> {
-  const [resultado, setResultado] = useState<{ de: unknown; carga: Carga<T> } | null>(null);
+export function useCarga<T>(
+  cargar: ((senal: AbortSignal) => Promise<T>) | null,
+  version = 0,
+): Carga<T> {
+  const [resultado, setResultado] = useState<{
+    de: unknown;
+    version: number;
+    carga: Carga<T>;
+  } | null>(null);
   useEffect(() => {
     if (!cargar) return;
     const control = new AbortController();
     cargar(control.signal).then(
       (datos) => {
-        if (!control.signal.aborted) setResultado({ de: cargar, carga: { tipo: 'lista', datos } });
+        if (!control.signal.aborted)
+          setResultado({ de: cargar, version, carga: { tipo: 'lista', datos } });
       },
       (error: unknown) => {
         if (control.signal.aborted) return;
-        setResultado({ de: cargar, carga: { tipo: 'fallida', ...mensajeDeError(error) } });
+        setResultado({ de: cargar, version, carga: { tipo: 'fallida', ...mensajeDeError(error) } });
       },
     );
     return () => control.abort();
-  }, [cargar]);
-  return resultado?.de === cargar ? resultado.carga : { tipo: 'cargando' };
+  }, [cargar, version]);
+  return resultado?.de === cargar && resultado.version === version
+    ? resultado.carga
+    : { tipo: 'cargando' };
 }

@@ -22,6 +22,26 @@
   margin-top: 2rem;
 }
 
+.generador__lecturas {
+  margin-top: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.generador__pregunta {
+  border-top: 1px solid var(--borde);
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
+.generador__alternativas {
+  list-style: none;
+  padding: 0;
+}
+
+.generador__pregunta details {
+  margin-bottom: 1rem;
+}
+
 .generador progress {
   width: 100%;
 }
