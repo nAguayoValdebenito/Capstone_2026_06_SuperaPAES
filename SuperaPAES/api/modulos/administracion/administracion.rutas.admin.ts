@@ -13,6 +13,7 @@ import {
   esquemaCrearUsuarioInterno,
   esquemaEditarUsuarioInterno,
   esquemaIdUsuarioInterno,
+  esquemaPanel,
 } from './administracion.validadores.js';
 
 export function crearRutasAdminAdministracion(servicio: AdministracionServicio): Router {
@@ -20,6 +21,8 @@ export function crearRutasAdminAdministracion(servicio: AdministracionServicio):
   const controlador = crearAdministracionControlador(servicio);
   const soloAdmin = exigirRol('admin');
 
+  // Panel (C01, HU-48, CU-25).
+  router.get('/panel', soloAdmin, validar({ consulta: esquemaPanel }), controlador.obtenerPanel);
   // Usuarios internos (C10, HU-04, CU-23).
   const conId = validar({ parametros: esquemaIdUsuarioInterno });
   router.get('/usuarios-internos', soloAdmin, controlador.listarUsuariosInternos);

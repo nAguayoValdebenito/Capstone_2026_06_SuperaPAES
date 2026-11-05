@@ -1,0 +1,94 @@
+.panel-inicio__indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.panel-inicio__indicador {
+  padding: 1rem 1.25rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.panel-inicio .panel {
+  align-content: start;
+}
+
+.panel-inicio .panel-inicio__indicador h2 {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.panel-inicio__valor {
+  margin: 0.25rem 0;
+  font-size: var(--texto-lg);
+  font-weight: 700;
+}
+
+.panel-inicio__barras {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 11rem;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--borde);
+  list-style: none;
+}
+
+.panel-inicio__barras li {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  max-width: 3rem;
+  min-width: 0;
+  height: 100%;
+}
+
+.panel-inicio__barras span {
+  display: block;
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--primario);
+}
+
+.panel-inicio__barras li:hover span {
+  background: var(--primario-oscuro);
+}
+
+.panel-inicio__eje {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.25rem 0 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.panel-inicio__columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+}
+
+.panel-inicio__lista {
+  margin: 0;
+}
+
+.panel-inicio__lista div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.panel-inicio__lista dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.panel-inicio__sistema {
+  margin-top: 1.5rem;
+}

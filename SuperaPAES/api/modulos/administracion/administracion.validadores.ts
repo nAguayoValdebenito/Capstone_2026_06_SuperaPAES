@@ -39,6 +39,13 @@ export const esquemaEditarUsuarioInterno = z
     message: 'Indica al menos un cambio.',
   });
 
+/** C01: el período del Panel. CU-25 parte en los últimos 30 días. */
+export const esquemaPanel = z.strictObject({
+  periodo: z.enum(['hoy', '7d', '30d', 'mes']).default('30d'),
+});
+
+export type ConsultaPanel = z.output<typeof esquemaPanel>;
+
 export const esquemaIdUsuarioInterno = z.strictObject({
   id: idDeRuta,
 });
