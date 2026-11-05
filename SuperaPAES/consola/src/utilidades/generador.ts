@@ -1,7 +1,7 @@
 // Textos y cálculos de C05 · Generador con IA: traduce los códigos del lote y ubica su contenido.
 import { busquedaDe } from '../estado/banco';
 import type { PruebaTemario } from '../tipos';
-import type { EstadoLote, Lote } from '../tipos/generador';
+import type { EstadoLote, Lote, ResultadoLote, UsoIa } from '../tipos/generador';
 
 export const ESTADOS_LOTE: Record<EstadoLote, string> = {
   pendiente: 'En proceso',
@@ -38,6 +38,69 @@ const CIERRES: Record<string, string> = {
   texto_invalido: 'El lote se detuvo porque la IA no entregó un texto de lectura válido.',
 };
 
+const textoDeMotivo = (codigo: string) => MOTIVOS[codigo] ?? 'Otro motivo';
+
+const DIFICULTADES: Record<string, string> = {
+  facil: 'Fácil',
+  media: 'Media',
+  dificil: 'Difícil',
+};
+
+export interface FilaResultado {
+  clave: string;
+  propuesta: string;
+  /** Solo las válidas: de las descartadas no se guarda el texto del modelo. */
+  enunciado: string | null;
+  habilidad: string;
+  dificultad: string;
+  resultado: string;
+  /** La pregunta que se abre en el banco, si quedó guardada. */
+  preguntaId: string | null;
+}
+
+/** Una fila por pregunta: primero las válidas y después las descartadas, por su número en el lote. */
+export function filasDelResultado({ preguntas, descartes }: ResultadoLote): FilaResultado[] {
+  const validas = preguntas.map((pregunta, indice) => ({
+    clave: `valida-${pregunta.id}`,
+    propuesta: `Pregunta ${String(indice + 1)}`,
+    enunciado: pregunta.enunciado,
+    habilidad: pregunta.habilidad,
+    dificultad: pregunta.dificultadSugerida ?? '—',
+    resultado: 'Borrador creado',
+    preguntaId: pregunta.id,
+  }));
+  const descartadas = [...descartes]
+    .sort((a, b) => a.orden - b.orden)
+    .map((descarte) => ({
+      clave: `descarte-${String(descarte.orden)}`,
+      propuesta: `Pregunta ${String(descarte.orden)}`,
+      enunciado: null,
+      habilidad: descarte.habilidad,
+      dificultad: DIFICULTADES[descarte.dificultad] ?? descarte.dificultad,
+      resultado: `Descartada: ${textoDeMotivo(descarte.motivo)}`,
+      preguntaId: null,
+    }));
+  return [...validas, ...descartadas];
+}
+
+/** Si hay descartes que la tabla no muestra: lotes antiguos o textos de lectura rechazados. */
+export function faltaDetalle({ descartadas, motivos }: Lote, resultado: ResultadoLote): boolean {
+  return resultado.descartes.length < descartadas || Boolean(motivos?.textos);
+}
+
+const dolares = new Intl.NumberFormat('es-CL', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Las etiquetas de los topes de C05. */
+export function textosDeUso({ hoy, mes }: UsoIa): { hoy: string; mes: string } {
+  return {
+    hoy: `Hoy: ${String(hoy.usadas)} de ${String(hoy.maximo)} preguntas`,
+    mes: `Mes: US$ ${dolares.format(mes.gastadoUsd)} de ${String(mes.maximoUsd)}`,
+  };
+}
+
 export interface MotivoLegible {
   texto: string;
   cantidad: number;
@@ -48,7 +111,7 @@ export function motivosLegibles({ motivos }: Lote): MotivoLegible[] {
   const grupos = [motivos?.porMotivo, motivos?.fallas, motivos?.textos];
   const suma = new Map<string, number>();
   for (const [codigo, cantidad] of grupos.flatMap((grupo) => Object.entries(grupo ?? {}))) {
-    const texto = MOTIVOS[codigo] ?? 'Otro motivo';
+    const texto = textoDeMotivo(codigo);
     suma.set(texto, (suma.get(texto) ?? 0) + cantidad);
   }
   return [...suma].map(([texto, cantidad]) => ({ texto, cantidad }));

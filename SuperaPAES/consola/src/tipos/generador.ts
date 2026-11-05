@@ -25,6 +25,33 @@ export interface Lote {
   creadoEn: string;
 }
 
+/** Lo usado de los topes de la IA (RNF-03). */
+export interface UsoIa {
+  hoy: { usadas: number; maximo: number };
+  mes: { gastadoUsd: number; maximoUsd: number };
+}
+
+export interface PreguntaDeLote {
+  id: string;
+  enunciado: string;
+  habilidad: string;
+  dificultadSugerida: string | null;
+}
+
+export interface DescarteDeLote {
+  orden: number;
+  habilidad: string;
+  dificultad: string;
+  motivo: string;
+}
+
+/** Las preguntas guardadas del lote, su texto de lectura y cada descarte (HU-17.3 y HU-18.3). */
+export interface ResultadoLote {
+  texto: { titulo: string | null; contenido: string | null } | null;
+  preguntas: PreguntaDeLote[];
+  descartes: DescarteDeLote[];
+}
+
 export interface PedidoLote {
   contenidoId: number;
   cantidad: number;

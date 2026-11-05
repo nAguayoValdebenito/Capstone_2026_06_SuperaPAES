@@ -35,6 +35,19 @@ function estado(lotes: Lote[]): ReturnType<typeof useGenerador> {
       datos: { lotes, paginacion: { pagina: 1, porPagina: 20, total: lotes.length } },
     },
     lote: lotes[0] ?? null,
+    uso: { hoy: { usadas: 40, maximo: 100 }, mes: { gastadoUsd: 3.2, maximoUsd: 10 } },
+    resultado: {
+      tipo: 'lista',
+      datos: {
+        texto: { titulo: 'El río', contenido: 'Un texto sobre el río.' },
+        preguntas: [
+          { id: '7', enunciado: '¿Qué dice?', habilidad: 'Localizar', dificultadSugerida: 'Media' },
+        ],
+        descartes: [
+          { orden: 2, habilidad: 'Evaluar', dificultad: 'dificil', motivo: 'sin_tildes' },
+        ],
+      },
+    },
     elegir: vi.fn(),
     irAPagina: vi.fn(),
     pedir: vi.fn().mockResolvedValue(undefined),
@@ -86,10 +99,21 @@ describe('Generador C05', () => {
       'El enunciado ya estaba en el banco o en el lote',
       'Ver en el banco de preguntas',
       'Lotes anteriores',
+      'Hoy: 40 de 100 preguntas',
+      'Mes: US$ 3,20 de 10',
+      'Selección múltiple',
+      'Texto de lectura: El río',
+      'Un texto sobre el río.',
+      '¿Qué dice?',
+      'Borrador creado',
+      'Pregunta 2',
+      'Difícil',
+      'Descartada: El texto venía sin tildes',
     ]) {
       expect(html).toContain(texto);
     }
     expect(html).toContain('/banco?prueba=2&amp;eje=11&amp;contenido=110');
+    expect(html).toContain('href="/banco/7"');
   });
 
   it('muestra el avance mientras el lote está en proceso', () => {

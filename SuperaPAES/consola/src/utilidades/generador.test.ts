@@ -4,9 +4,12 @@ import type { Lote } from '../tipos/generador';
 import {
   enlaceAlBanco,
   errorDelPedido,
+  faltaDetalle,
+  filasDelResultado,
   hayPendientes,
   motivosLegibles,
   notaDeCierre,
+  textosDeUso,
   ubicarContenido,
 } from './generador';
 
@@ -50,6 +53,54 @@ describe('motivos del lote (HU-17.3)', () => {
     expect(notaDeCierre(lote({ motivos: { cierre: 'ia_no_disponible' } }))).toBe(
       'El lote se detuvo porque la IA dejó de responder.',
     );
+  });
+});
+
+describe('resultado por pregunta (HU-17.3)', () => {
+  const pregunta = { id: '7', enunciado: 'Uno', habilidad: 'Modelar', dificultadSugerida: null };
+  const descarte = (orden: number) => ({
+    orden,
+    habilidad: 'Argumentar',
+    dificultad: 'media',
+    motivo: 'desconocido',
+  });
+
+  it('pone primero las válidas y ordena las descartadas por su número', () => {
+    const filas = filasDelResultado({
+      texto: null,
+      preguntas: [pregunta],
+      descartes: [descarte(4), descarte(2)],
+    });
+
+    expect(filas.map((fila) => fila.propuesta)).toEqual(['Pregunta 1', 'Pregunta 2', 'Pregunta 4']);
+    expect(filas[0]).toMatchObject({ dificultad: '—', preguntaId: '7' });
+    expect(filas[1]).toMatchObject({
+      enunciado: null,
+      dificultad: 'Media',
+      resultado: 'Descartada: Otro motivo',
+      preguntaId: null,
+    });
+  });
+
+  it('avisa si hay descartes que la tabla no muestra', () => {
+    const resultado = { texto: null, preguntas: [], descartes: [descarte(1)] };
+
+    expect(faltaDetalle(lote({ descartadas: 1 }), resultado)).toBe(false);
+    expect(faltaDetalle(lote({ descartadas: 2 }), resultado)).toBe(true);
+    expect(
+      faltaDetalle(lote({ descartadas: 1, motivos: { textos: { texto_corto: 1 } } }), resultado),
+    ).toBe(true);
+  });
+});
+
+describe('topes (RNF-03)', () => {
+  it('escribe lo usado de hoy y del mes', () => {
+    const uso = { hoy: { usadas: 40, maximo: 100 }, mes: { gastadoUsd: 3.2, maximoUsd: 10 } };
+
+    expect(textosDeUso(uso)).toEqual({
+      hoy: 'Hoy: 40 de 100 preguntas',
+      mes: 'Mes: US$ 3,20 de 10',
+    });
   });
 });
 
