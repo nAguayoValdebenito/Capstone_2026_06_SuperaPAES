@@ -1,6 +1,7 @@
 // Llamadas a /api/v1/admin/administracion (módulo administracion de la API): usuarios internos, configuración, auditoría, panel de métricas y estudiantes.
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
+import type { IndicadoresPanel, PeriodoPanel } from '../tipos/panel';
 import type { CambiosCuenta, CuentaInterna, DatosCuentaNueva } from '../tipos';
 
 const USUARIOS_INTERNOS = '/administracion/usuarios-internos';
@@ -41,4 +42,13 @@ export async function cambiarEstadoUsuarioInterno(
     method: 'POST',
   });
   return data;
+}
+
+/** C01: los indicadores del período. */
+export async function obtenerPanel(
+  periodo: PeriodoPanel,
+  senal: AbortSignal,
+): Promise<IndicadoresPanel> {
+  const ruta = `/administracion/panel?periodo=${periodo}`;
+  return (await solicitarAdmin<IndicadoresPanel>(ruta, { signal: senal })).data;
 }
