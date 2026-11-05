@@ -55,6 +55,55 @@ export const esquemaIdsItem = z.object({ id: idDeRuta, item: idDeRuta });
 // No es strictObject a propósito: un campo de más (por ejemplo esCorrecta) se descarta y nunca se usa.
 // La corrección la hace el servidor (RN-06).
 export const esquemaRespuesta = z.object({ alternativaId: idDeCuerpo });
+
+/** C08: la prueba cuya configuración se mira. */
+export const esquemaPruebaConfiguracion = z.strictObject({
+  pruebaId: z.coerce.number().int().positive().max(32767),
+});
+
+export const esquemaIdEstructura = z.object({ id: idDeRuta });
+
+const cantidadEstructura = z.number().int().min(0).max(500);
+
+/** CU-31 paso 3: los valores y cuántas preguntas lleva cada fila del reparto. */
+export const esquemaEstructura = z.strictObject({
+  cantidadMin: cantidadEstructura.min(1),
+  cantidadMax: cantidadEstructura.min(1),
+  noPuntuables: cantidadEstructura,
+  duracionMin: z.number().int().min(1).max(600).nullable(),
+  textos: z.number().int().min(1).max(50).nullable(),
+  usosGratisMes: z.number().int().min(0).max(100),
+  reparto: z
+    .array(
+      z.strictObject({
+        id: identificadorContenido,
+        cantidad: cantidadEstructura.min(1),
+      }),
+    )
+    .max(50),
+});
+
+/** CU-31 paso 5: la tabla del DEMRE de una prueba, con su año y su proceso de admisión. */
+export const esquemaNuevaTabla = z.strictObject({
+  pruebaId: identificador,
+  procesoId: identificador,
+  anioAdmision: z.number().int().min(2023).max(2100),
+  electivoAreaId: identificador.nullable(),
+  publicadaEn: z.iso.date('La fecha de publicación no es válida.'),
+  filas: z
+    .array(
+      z.strictObject({
+        correctas: z.number().int().min(0).max(200),
+        puntaje: z.number().int().min(100).max(1000),
+      }),
+    )
+    .min(1)
+    .max(201),
+});
+
+export type ConsultaPrueba = z.infer<typeof esquemaPruebaConfiguracion>;
+export type DatosEstructura = z.infer<typeof esquemaEstructura>;
+export type DatosTablaConversion = z.infer<typeof esquemaNuevaTabla>;
 export type DatosInicioPractica = z.infer<typeof esquemaInicioPractica>;
 export type DatosInicioRepaso = z.infer<typeof esquemaInicioRepaso>;
 export type DatosHistorial = z.infer<typeof esquemaHistorial>;

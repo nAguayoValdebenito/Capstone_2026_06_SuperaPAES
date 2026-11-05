@@ -48,6 +48,7 @@ import {
 } from './modulos/generador/index.js';
 import {
   crearEvaluacionesServicio,
+  crearRutasAdminEvaluaciones,
   crearRutasAppEvaluaciones,
   type EvaluacionesServicio,
 } from './modulos/evaluaciones/index.js';
@@ -279,6 +280,7 @@ function crearRouterAdmin(s: Servicios, mw: MiddlewareRutas): Router {
   router.use('/preguntas', crearRutasAdminPreguntas(s.preguntas));
   router.use('/generador', crearRutasAdminGenerador(s.generador));
   router.use('/revision', crearRutasAdminRevision(s.revision));
+  router.use('/evaluaciones', crearRutasAdminEvaluaciones(s.evaluaciones));
   router.use('/suscripciones', crearRutasAdminSuscripciones(s.suscripciones));
   router.use('/privacidad', crearRutasAdminPrivacidad(s.privacidad));
   router.use('/administracion', crearRutasAdminAdministracion(s.administracion));
