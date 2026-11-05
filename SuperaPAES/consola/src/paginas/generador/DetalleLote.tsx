@@ -1,5 +1,5 @@
-// El lote elegido en C05: avance mientras se procesa y, al cerrar, cada pregunta con su resultado y el texto
-// de lectura (CU-17 paso 7, HU-17.3 y HU-18.3).
+// El lote elegido en C05: avance mientras se procesa y, al cerrar, cada pregunta con su resultado
+// (CU-17 paso 7, HU-17.3).
 import { Link } from 'react-router';
 import { SegunCarga } from '../../componentes/SegunCarga';
 import type { Carga } from '../../estado/carga';

@@ -33,7 +33,7 @@ export function crearRutasAdminGenerador(servicio: GeneradorServicio): Router {
     validar({ parametros: esquemaIdLote }),
     controlador.obtenerLote,
   );
-  // HU-17.3 y HU-18.3: las preguntas del lote, su texto de lectura y cada descarte con su motivo.
+  // HU-17.3: las preguntas guardadas del lote y cada descarte con su motivo.
   router.get(
     '/lotes/:id/resultado',
     exigirRol('admin'),

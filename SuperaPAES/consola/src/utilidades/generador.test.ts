@@ -57,7 +57,13 @@ describe('motivos del lote (HU-17.3)', () => {
 });
 
 describe('resultado por pregunta (HU-17.3)', () => {
-  const pregunta = { id: '7', enunciado: 'Uno', habilidad: 'Modelar', dificultadSugerida: null };
+  const pregunta = {
+    id: '7',
+    enunciado: 'Uno',
+    habilidad: 'Modelar',
+    dificultadSugerida: null,
+    estado: 'Borrador',
+  };
   const descarte = (orden: number) => ({
     orden,
     habilidad: 'Argumentar',
@@ -67,7 +73,6 @@ describe('resultado por pregunta (HU-17.3)', () => {
 
   it('pone primero las válidas y ordena las descartadas por su número', () => {
     const filas = filasDelResultado({
-      texto: null,
       preguntas: [pregunta],
       descartes: [descarte(4), descarte(2)],
     });
@@ -82,8 +87,17 @@ describe('resultado por pregunta (HU-17.3)', () => {
     });
   });
 
+  it('muestra el estado actual de la pregunta, que cambia después del lote', () => {
+    const resultado = { preguntas: [{ ...pregunta, estado: 'Aprobada' }], descartes: [] };
+
+    expect(filasDelResultado(resultado)[0]?.resultado).toBe('Aprobada');
+    expect(filasDelResultado({ preguntas: [pregunta], descartes: [] })[0]?.resultado).toBe(
+      'Borrador creado',
+    );
+  });
+
   it('avisa si hay descartes que la tabla no muestra', () => {
-    const resultado = { texto: null, preguntas: [], descartes: [descarte(1)] };
+    const resultado = { preguntas: [], descartes: [descarte(1)] };
 
     expect(faltaDetalle(lote({ descartadas: 1 }), resultado)).toBe(false);
     expect(faltaDetalle(lote({ descartadas: 2 }), resultado)).toBe(true);

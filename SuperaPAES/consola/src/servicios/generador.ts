@@ -19,7 +19,7 @@ export async function obtenerUso(senal: AbortSignal): Promise<UsoIa> {
   return (await solicitarAdmin<UsoIa>('/generador/uso', { signal: senal })).data;
 }
 
-/** HU-17.3 y HU-18.3: las preguntas del lote, su texto de lectura y cada descarte. */
+/** HU-17.3: las preguntas del lote y cada descarte. */
 export async function obtenerResultado(id: string, senal: AbortSignal): Promise<ResultadoLote> {
   const ruta = `${LOTES}/${id}/resultado`;
   return (await solicitarAdmin<ResultadoLote>(ruta, { signal: senal })).data;

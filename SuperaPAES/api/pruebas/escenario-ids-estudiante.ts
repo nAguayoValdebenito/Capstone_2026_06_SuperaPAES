@@ -209,8 +209,9 @@ export const generadorDePrueba = {
   obtenerLote: vi.fn(() => Promise.resolve(lote)),
   resultadoDeLote: vi.fn(() =>
     Promise.resolve({
-      texto: null,
-      preguntas: [{ id: '7', enunciado: 'x', habilidad: 'y', dificultadSugerida: null }],
+      preguntas: [
+        { id: '7', enunciado: 'x', habilidad: 'y', dificultadSugerida: null, estado: 'Borrador' },
+      ],
       descartes: [],
     }),
   ),

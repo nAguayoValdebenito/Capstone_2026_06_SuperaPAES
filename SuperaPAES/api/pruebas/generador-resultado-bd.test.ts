@@ -1,13 +1,12 @@
 // C05 contra PostgreSQL real y con un proveedor de IA falso: los topes usados (RNF-03), el resultado de un lote
-// pregunta por pregunta (HU-17.3) y el texto de lectura con sus preguntas (HU-18.3). Lo descartado nunca
-// devuelve el texto del modelo (HU-16.5).
+// pregunta por pregunta (HU-17.3). Lo descartado nunca devuelve el texto del modelo (HU-16.5).
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import type { SolicitudGeneracion } from '../adaptadores/ia/proveedor.js';
 import { ErrorIANoDisponible } from '../comun/errores.js';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
 import { prepararGenerador, RUTA_LOTES } from './generador-bd.js';
-import { propuestaValida, resultadoDeTexto, resultadoValido } from './ia-falsa.js';
+import { propuestaValida, resultadoValido } from './ia-falsa.js';
 
 const RUTA_USO = '/api/v1/admin/generador/uso';
 const CANARIO = 'CANARIO-DEL-MODELO';
@@ -38,11 +37,11 @@ describe.skipIf(!urlBase)('consultas del generador con PostgreSQL (C05)', () => 
     const respuesta = await leerResultado(sesion, creado.body.data.id);
 
     expect(respuesta.status).toBe(200);
-    expect(respuesta.body.data.texto).toBeNull();
     expect(respuesta.body.data.preguntas).toHaveLength(1);
     expect(respuesta.body.data.preguntas[0]).toMatchObject({
       id: expect.anything() as unknown,
       habilidad: expect.any(String) as unknown,
+      estado: 'Borrador',
     });
     expect(respuesta.body.data.descartes).toEqual([
       expect.objectContaining({ orden: 2, motivo: 'habilidad_invalida' }),
@@ -61,23 +60,6 @@ describe.skipIf(!urlBase)('consultas del generador con PostgreSQL (C05)', () => 
     expect(respuesta.body.data.descartes).toEqual([
       expect.objectContaining({ orden: 2, motivo: 'IA_NO_DISPONIBLE' }),
     ]);
-  });
-
-  it('entrega el texto de lectura con sus preguntas en orden', async () => {
-    const sesion = await g.sesionAdmin();
-    const creado = await g.pedirLote(sesion, {
-      contenidoId: g.contenidos.cl,
-      cantidad: 3,
-      conTexto: true,
-    });
-    ia.encolar((_s: SolicitudGeneracion, n: number) => resultadoDeTexto(n));
-    for (let i = 0; i < 3; i++) ia.encolar(valida);
-
-    await g.trabajador().procesarPendientes();
-    const respuesta = await leerResultado(sesion, creado.body.data.id);
-
-    expect(respuesta.body.data.texto.contenido).toEqual(expect.any(String));
-    expect(respuesta.body.data.preguntas).toHaveLength(3);
   });
 
   it('responde 404 si el lote no existe', async () => {

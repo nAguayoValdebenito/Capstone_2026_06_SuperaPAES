@@ -1,10 +1,10 @@
 // Lecturas del generador para C05: lo usado de los topes (RNF-03) y el resultado de un lote, pregunta por
-// pregunta (HU-17.3 y HU-18.3). Las preguntas y el texto vienen del servicio de preguntas; lo descartado, de
-// los motivos del lote, que nunca guardan el texto del modelo (HU-16.5).
+// pregunta (HU-17.3). Las preguntas vienen del servicio de preguntas; lo descartado, de los motivos del lote,
+// que nunca guardan el texto del modelo (HU-16.5).
 import { ErrorNoEncontrado } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { AdministracionServicio } from '../administracion/index.js';
-import type { PreguntasDeLote, PreguntasServicio } from '../preguntas/index.js';
+import type { PreguntaDeLote, PreguntasServicio } from '../preguntas/index.js';
 import type { LotesRepositorio } from './generador.lotes.repositorio.js';
 import { leerDetalle, type DescarteDePregunta } from './generador.motivos.js';
 import type { UsoDeLaIa } from './generador.tipos.js';
@@ -16,7 +16,8 @@ export interface DependenciasConsultas {
   administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'obtenerParametroNumero'>;
 }
 
-export interface ResultadoDeLote extends PreguntasDeLote {
+export interface ResultadoDeLote {
+  preguntas: PreguntaDeLote[];
   descartes: DescarteDePregunta[];
 }
 
@@ -40,8 +41,8 @@ export function crearConsultas(d: DependenciasConsultas): Consultas {
     async resultadoDeLote(id) {
       const lote = await d.lotes.obtener(id);
       if (lote === null) throw new ErrorNoEncontrado('El lote no existe.');
-      const guardado = await d.preguntas.preguntasDeLote(id);
-      return { ...guardado, descartes: leerDetalle(lote.motivosDescarte) };
+      const preguntas = await d.preguntas.preguntasDeLote(id);
+      return { preguntas, descartes: leerDetalle(lote.motivosDescarte) };
     },
   };
 }

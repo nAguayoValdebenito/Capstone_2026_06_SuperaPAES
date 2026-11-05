@@ -39,9 +39,14 @@ function estado(lotes: Lote[]): ReturnType<typeof useGenerador> {
     resultado: {
       tipo: 'lista',
       datos: {
-        texto: { titulo: 'El río', contenido: 'Un texto sobre el río.' },
         preguntas: [
-          { id: '7', enunciado: '¿Qué dice?', habilidad: 'Localizar', dificultadSugerida: 'Media' },
+          {
+            id: '7',
+            enunciado: '¿Qué dice?',
+            habilidad: 'Localizar',
+            dificultadSugerida: 'Media',
+            estado: 'Borrador',
+          },
         ],
         descartes: [
           { orden: 2, habilidad: 'Evaluar', dificultad: 'dificil', motivo: 'sin_tildes' },
@@ -102,8 +107,6 @@ describe('Generador C05', () => {
       'Hoy: 40 de 100 preguntas',
       'Mes: US$ 3,20 de 10',
       'Selección múltiple',
-      'Texto de lectura: El río',
-      'Un texto sobre el río.',
       '¿Qué dice?',
       'Borrador creado',
       'Pregunta 2',

@@ -66,7 +66,7 @@ export function filasDelResultado({ preguntas, descartes }: ResultadoLote): Fila
     enunciado: pregunta.enunciado,
     habilidad: pregunta.habilidad,
     dificultad: pregunta.dificultadSugerida ?? '—',
-    resultado: 'Borrador creado',
+    resultado: pregunta.estado === 'Borrador' ? 'Borrador creado' : pregunta.estado,
     preguntaId: pregunta.id,
   }));
   const descartadas = [...descartes]

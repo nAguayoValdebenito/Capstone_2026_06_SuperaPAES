@@ -36,6 +36,7 @@ export interface PreguntaDeLote {
   enunciado: string;
   habilidad: string;
   dificultadSugerida: string | null;
+  estado: string;
 }
 
 export interface DescarteDeLote {
@@ -45,9 +46,8 @@ export interface DescarteDeLote {
   motivo: string;
 }
 
-/** Las preguntas guardadas del lote, su texto de lectura y cada descarte (HU-17.3 y HU-18.3). */
+/** Las preguntas guardadas del lote y cada descarte (HU-17.3). */
 export interface ResultadoLote {
-  texto: { titulo: string | null; contenido: string | null } | null;
   preguntas: PreguntaDeLote[];
   descartes: DescarteDeLote[];
 }

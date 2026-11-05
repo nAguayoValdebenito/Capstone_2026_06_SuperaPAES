@@ -92,28 +92,19 @@ export interface PreguntaDeLote {
   enunciado: string;
   habilidad: string;
   dificultadSugerida: string | null;
-}
-
-export interface TextoDeLote {
-  titulo: string | null;
-  contenido: string | null;
-}
-
-export interface PreguntasDeLote {
-  texto: TextoDeLote | null;
-  preguntas: PreguntaDeLote[];
+  /** El nombre de su estado actual: la pregunta sigue su camino después del lote. */
+  estado: string;
 }
 
 const PREGUNTAS_DE_LOTE = `
-  SELECT p.id::text AS id, p.enunciado, h.nombre AS habilidad, d.nombre AS "dificultadSugerida"
+  SELECT p.id::text AS id, p.enunciado, h.nombre AS habilidad, d.nombre AS "dificultadSugerida",
+         e.nombre AS estado
     FROM contenido.pregunta p
     JOIN contenido.habilidad h ON h.id = p.habilidad_id
+    JOIN contenido.estado_pregunta e ON e.id = p.estado_pregunta_id
     LEFT JOIN contenido.dificultad d ON d.id = p.dificultad_sugerida_id
    WHERE p.lote_id = $1
    ORDER BY p.orden_en_texto NULLS LAST, p.id`;
-
-const TEXTO_DE_LOTE = `
-  SELECT titulo, contenido FROM contenido.texto_estimulo WHERE lote_id = $1 ORDER BY id LIMIT 1`;
 
 /** HU-16.2 y HU-17.2: lo que el generador con IA lee del banco. */
 export interface LecturasParaGenerar {
@@ -125,15 +116,14 @@ export interface LecturasParaGenerar {
   guardarPropuestaDeIa(propuesta: PropuestaDeIa, tx: Ejecutor): Promise<string>;
   /** HU-18.1: guarda el texto de lectura de la IA; las preguntas de su lote se enlazan a él. */
   guardarTextoDeIa(texto: TextoDeIa, tx: Ejecutor): Promise<string>;
-  /** HU-17.3 y HU-18.3: las preguntas guardadas de un lote y su texto de lectura. */
-  preguntasDeLote(loteId: string): Promise<PreguntasDeLote>;
+  /** HU-17.3: las preguntas guardadas de un lote. */
+  preguntasDeLote(loteId: string): Promise<PreguntaDeLote[]>;
 }
 
-/** Las preguntas guardadas de un lote y su texto de lectura, si tiene (HU-17.3 y HU-18.3). */
-async function leerPreguntasDeLote(bd: Ejecutor, loteId: string): Promise<PreguntasDeLote> {
-  const { rows: preguntas } = await bd.query<PreguntaDeLote>(PREGUNTAS_DE_LOTE, [loteId]);
-  const { rows: textos } = await bd.query<TextoDeLote>(TEXTO_DE_LOTE, [loteId]);
-  return { texto: textos[0] ?? null, preguntas };
+/** Las preguntas guardadas de un lote (HU-17.3). */
+async function leerPreguntasDeLote(bd: Ejecutor, loteId: string): Promise<PreguntaDeLote[]> {
+  const { rows } = await bd.query<PreguntaDeLote>(PREGUNTAS_DE_LOTE, [loteId]);
+  return rows;
 }
 
 export function crearPreguntasGeneracionRepositorio(bd: Ejecutor) {
