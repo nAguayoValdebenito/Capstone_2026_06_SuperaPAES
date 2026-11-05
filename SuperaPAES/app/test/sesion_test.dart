@@ -11,6 +11,7 @@ import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/interceptor_sesion.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/enrutador.dart';
+import 'package:supera_paes/presentacion/ingreso/accesos_demo.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
@@ -494,6 +495,19 @@ void main() {
       expect(almacen.guardada, same(sesionDeEjemplo));
       expect(rutaActual(contenedor), Rutas.inicio);
     });
+
+    testWidgets(
+      'en desarrollo entra con un toque a la cuenta de demostración',
+      (tester) async {
+        await abrir(tester);
+        await tocar(tester, find.text('Estudiante con avance'));
+
+        final ingreso = repositorio.ingresos.single;
+        expect(ingreso.correo, 'demo@ejemplo.cl');
+        expect(ingreso.contrasena, claveDemo);
+        expect(rutaActual(contenedor), Rutas.inicio);
+      },
+    );
 
     testWidgets('con credenciales incorrectas muestra el mensaje de la API', (
       tester,

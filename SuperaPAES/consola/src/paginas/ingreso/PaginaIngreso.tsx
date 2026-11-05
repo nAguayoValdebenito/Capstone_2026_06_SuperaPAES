@@ -7,6 +7,7 @@ import { esSesionProvisional, useSesion } from '../../estado/contexto-sesion';
 import { useIngreso, type EstadoIngreso } from '../../estado/ingreso';
 import { INICIO_POR_ROL } from '../../rutas/secciones';
 import type { Credenciales } from '../../tipos';
+import { ACCESOS_DEMO, CLAVE_DEMO } from './accesos-demo';
 
 function leerCredenciales(formulario: HTMLFormElement): Credenciales {
   const datos = new FormData(formulario);
@@ -15,6 +16,33 @@ function leerCredenciales(formulario: HTMLFormElement): Credenciales {
     return typeof valor === 'string' ? valor : '';
   };
   return { correo: texto('correo').trim(), contrasena: texto('contrasena') };
+}
+
+/** Solo en desarrollo: entrar a la demostración con un toque, sin escribir las credenciales. */
+function AccesosDemo({
+  deshabilitado,
+  alElegir,
+}: {
+  deshabilitado: boolean;
+  alElegir: (credenciales: Credenciales) => void;
+}) {
+  if (ACCESOS_DEMO.length === 0) return null;
+  return (
+    <section className="ingreso__demo" aria-label="Accesos de demostración">
+      <p>Entrar a la demostración como:</p>
+      {ACCESOS_DEMO.map(({ etiqueta, correo }) => (
+        <button
+          key={correo}
+          type="button"
+          className="boton"
+          disabled={deshabilitado}
+          onClick={() => alElegir({ correo, contrasena: CLAVE_DEMO })}
+        >
+          {etiqueta}
+        </button>
+      ))}
+    </section>
+  );
 }
 
 export function FormularioIngreso({
@@ -49,6 +77,7 @@ export function FormularioIngreso({
       <button className="boton boton--primario" type="submit" disabled={enviando}>
         {enviando ? 'Ingresando…' : 'Ingresar'}
       </button>
+      <AccesosDemo deshabilitado={enviando} alElegir={alEnviar} />
     </form>
   );
 }
