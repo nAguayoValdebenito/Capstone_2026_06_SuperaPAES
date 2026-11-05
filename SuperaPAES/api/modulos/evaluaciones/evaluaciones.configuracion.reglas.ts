@@ -78,6 +78,9 @@ export function problemaDeLasFilas(
     if (actual.correctas === anterior.correctas) {
       return `La tabla repite ${String(actual.correctas)} respuestas correctas.`;
     }
+    if (actual.correctas !== anterior.correctas + 1) {
+      return 'La tabla debe incluir todas las cantidades de correctas desde 0, sin saltos.';
+    }
     if (actual.puntaje < anterior.puntaje) {
       return `El puntaje baja en ${String(actual.correctas)} respuestas correctas.`;
     }
