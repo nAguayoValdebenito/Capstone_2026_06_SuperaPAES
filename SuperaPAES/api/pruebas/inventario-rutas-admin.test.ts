@@ -148,6 +148,7 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
       'GET /suscripciones/avisos-error': ['admin'],
       'GET /suscripciones/': ['admin'],
       'GET /suscripciones/:id': ['admin'],
+      'GET /administracion/panel': ['admin'],
       'GET /administracion/usuarios-internos': ['admin'],
       'POST /administracion/usuarios-internos': ['admin'],
       'PATCH /administracion/usuarios-internos/:id': ['admin'],

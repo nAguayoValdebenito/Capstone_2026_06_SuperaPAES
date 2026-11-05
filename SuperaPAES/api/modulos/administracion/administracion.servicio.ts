@@ -2,8 +2,11 @@
 // parámetros del sistema (contenido.configuracion), documentos legales, auditoría, panel de
 // métricas y consulta de estudiantes.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
+import { crearPanelRepositorio } from './administracion.panel.repositorio.js';
+import { crearPanel, type PanelAdministracion } from './administracion.panel.servicio.js';
 import { cifrarContrasena, validarContrasena } from '../../comun/contrasenas.js';
 import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
+import type { Reloj } from '../../comun/reloj.js';
 import type { RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import {
@@ -23,6 +26,8 @@ export type { DocumentoLegalVigente, UsuarioInterno } from './administracion.rep
 
 export interface DependenciasAdministracionServicio {
   bd: Ejecutor;
+  /** Hora del Panel. Sin ella, la del servidor. */
+  reloj?: Reloj;
   unidadDeTrabajo: UnidadDeTrabajo;
   /**
    * Cierra las sesiones abiertas de una cuenta que se desactiva, en la misma transacción (CU-23 3.b):
@@ -39,7 +44,7 @@ export interface DependenciasAdministracionServicio {
  * cada creación, edición, activación y desactivación queda en contenido.auditoria, en la misma
  * transacción que el cambio (RNF-08). La auditoría nunca guarda la contraseña ni su hash.
  */
-export interface AdministracionServicio {
+export interface AdministracionServicio extends PanelAdministracion {
   listarUsuariosInternos(): Promise<UsuarioInterno[]>;
   /** La cuenta con su rol y sus áreas, o null si no existe (para la sesión de la consola). */
   obtenerUsuarioInterno(id: string, tx?: Ejecutor): Promise<UsuarioInterno | null>;
@@ -308,7 +313,12 @@ export function crearAdministracionServicio(
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
     revocarSesiones: dependencias.revocarSesionesUsuarioInterno,
   };
+  const panel = crearPanel({
+    reloj: dependencias.reloj ?? (() => new Date()),
+    repositorio: crearPanelRepositorio(dependencias.bd),
+  });
   return {
+    ...panel,
     listarUsuariosInternos: () => contexto.repositorio.listarUsuariosInternos(),
     obtenerUsuarioInterno: (id, tx) => contexto.repositorio.buscarUsuarioInterno(id, false, tx),
     crearUsuarioInterno: (autorId, datos) => crearUsuario(contexto, autorId, datos),

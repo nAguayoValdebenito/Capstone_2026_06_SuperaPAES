@@ -5,6 +5,7 @@ import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { AdministracionServicio } from './administracion.servicio.js';
 import type {
+  ConsultaPanel,
   DatosCrearUsuarioInterno,
   DatosEditarUsuarioInterno,
 } from './administracion.validadores.js';
@@ -13,6 +14,7 @@ import type {
 type Validado<P, C = unknown> = RequestHandler<P, unknown, C>;
 
 export interface AdministracionControlador {
+  obtenerPanel: RequestHandler;
   listarUsuariosInternos: RequestHandler;
   crearUsuarioInterno: Validado<Record<string, string>, DatosCrearUsuarioInterno>;
   editarUsuarioInterno: Validado<Record<string, string>, DatosEditarUsuarioInterno>;
@@ -30,6 +32,10 @@ export function crearAdministracionControlador(
   servicio: AdministracionServicio,
 ): AdministracionControlador {
   return {
+    obtenerPanel: async (_req, res) => {
+      const { periodo } = res.locals.consulta as ConsultaPanel;
+      responder(res, await servicio.obtenerPanel(periodo));
+    },
     listarUsuariosInternos: async (_req, res) => {
       responder(res, await servicio.listarUsuariosInternos());
     },
