@@ -2,6 +2,7 @@
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
 import type { Credenciales, SesionIniciada } from '../tipos';
+import type { EstudianteConsola } from '../tipos/estudiantes';
 
 export async function ingresar(credenciales: Credenciales): Promise<SesionIniciada> {
   const { data } = await solicitarAdmin<SesionIniciada>('/cuentas/ingreso', {
@@ -26,4 +27,20 @@ export async function cerrar(tokenRenovacion: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({ tokenRenovacion }),
   });
+}
+
+/** C15: la búsqueda exacta por correo, sin distinguir mayúsculas. */
+export async function buscarEstudiantes(correo: string): Promise<EstudianteConsola[]> {
+  const consulta = new URLSearchParams({ correo }).toString();
+  const { data } = await solicitarAdmin<EstudianteConsola[]>(`/cuentas/estudiantes?${consulta}`);
+  return data;
+}
+
+/** CU-02b: confirma la cuenta cuando el correo de verificación no llega. Queda en la auditoría. */
+export async function confirmarCorreoEstudiante(id: number): Promise<EstudianteConsola> {
+  const { data } = await solicitarAdmin<EstudianteConsola>(
+    `/cuentas/estudiantes/${String(id)}/confirmar-correo`,
+    { method: 'POST' },
+  );
+  return data;
 }

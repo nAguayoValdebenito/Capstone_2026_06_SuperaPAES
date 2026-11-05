@@ -1,5 +1,6 @@
 // La tabla de C06: una fila por pregunta, con sus revisores, el desempate, la fecha límite y su estado.
 import { Link } from 'react-router';
+import { EncabezadoTabla } from '../../componentes/EncabezadoTabla';
 import type { DocenteSeguido, PreguntaSeguida } from '../../tipos/seguimiento';
 import { codigoDePregunta, fechaLimite } from '../../utilidades/revision';
 import { etiquetaDeDocente } from '../../utilidades/seguimiento';
@@ -63,15 +64,7 @@ export function TablaSeguimiento({ preguntas }: { preguntas: readonly PreguntaSe
   return (
     <div className="tabla-desplazable">
       <table className="tabla revisiones__tabla">
-        <thead>
-          <tr>
-            {COLUMNAS.map((columna) => (
-              <th key={columna} scope="col">
-                {columna}
-              </th>
-            ))}
-          </tr>
-        </thead>
+        <EncabezadoTabla columnas={COLUMNAS} />
         <tbody>
           {preguntas.map((pregunta) => (
             <Fila key={pregunta.id} pregunta={pregunta} />

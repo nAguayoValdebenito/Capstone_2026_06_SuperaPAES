@@ -1,4 +1,5 @@
 // Lotes anteriores de C05, incluidos los fallidos. Elegir uno muestra su resultado.
+import { EncabezadoTabla } from '../../componentes/EncabezadoTabla';
 import { Paginacion } from '../../componentes/Paginacion';
 import { totalDePaginas } from '../../servicios/paginacion';
 import type { PruebaTemario } from '../../tipos';
@@ -61,15 +62,7 @@ export function TablaLotes({
       <h2>Lotes anteriores</h2>
       <div className="tabla-desplazable">
         <table className="tabla">
-          <thead>
-            <tr>
-              {COLUMNAS.map((columna) => (
-                <th key={columna} scope="col">
-                  {columna}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          <EncabezadoTabla columnas={COLUMNAS} />
           <tbody>
             {datos.lotes.map((lote) => (
               <FilaLote
