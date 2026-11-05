@@ -2,6 +2,7 @@
 // muestra su enunciado, porque el servidor no guarda el texto del modelo (HU-16.5). El texto de lectura se ve
 // en TextosDelLote.
 import { Link } from 'react-router';
+import { EncabezadoTabla } from '../../componentes/EncabezadoTabla';
 import type { ResultadoLote } from '../../tipos/generador';
 import { filasDelResultado } from '../../utilidades/generador';
 import { TextoConFormulas } from '../pregunta/TextoConFormulas';
@@ -15,15 +16,7 @@ export function ResultadoDelLote({ resultado }: { resultado: ResultadoLote }) {
       {filas.length > 0 && (
         <div className="tabla-desplazable">
           <table className="tabla generador__resultado">
-            <thead>
-              <tr>
-                {COLUMNAS.map((columna) => (
-                  <th key={columna} scope="col">
-                    {columna}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+            <EncabezadoTabla columnas={COLUMNAS} />
             <tbody>
               {filas.map((fila) => (
                 <tr key={fila.clave}>
