@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +11,7 @@ import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
+import 'package:supera_paes/presentacion/ingreso/accesos_demo.dart';
 
 /// Pantalla Iniciar sesión (A03; HU-02, CU-03), según su boceto en Figma,
 /// con el logo (DAS 7.5). Al entrar, la sesión queda guardada y la app pasa
@@ -52,6 +56,13 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
       _errorGeneral = null;
       _erroresServidor = Map.of(_erroresServidor)..remove(campo);
     });
+  }
+
+  /// Solo en desarrollo: llena el formulario con la cuenta y entra.
+  void _entrarCon(AccesoDemo acceso) {
+    _correo.text = acceso.correo;
+    _contrasena.text = claveDemo;
+    unawaited(_ingresar());
   }
 
   Future<void> _ingresar() async {
@@ -161,6 +172,8 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
                       ? const CargandoEnBoton()
                       : const Text('Entrar'),
                 ),
+                if (kDebugMode)
+                  AccesosDemo(onElegir: _enviando ? null : _entrarCon),
               ],
             ),
           ),

@@ -194,6 +194,19 @@ a {
   margin: 0;
   font-size: var(--texto-md);
 }
+.ingreso__demo {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--borde);
+}
+
+.ingreso__demo p {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
 .ingreso__error {
   margin: 0;
   color: var(--error);
