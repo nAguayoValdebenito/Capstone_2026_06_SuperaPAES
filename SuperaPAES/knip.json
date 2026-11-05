@@ -7,7 +7,7 @@
       "ignore": ["modulos/privacidad/privacidad.validadores.ts", "eslint.reglas-arquitectura.d.ts"]
     },
     "consola": {
-      "ignore": ["src/servicios/generador.ts", "src/servicios/privacidad.ts"]
+      "ignore": ["src/servicios/privacidad.ts"]
     }
   },
   "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"]

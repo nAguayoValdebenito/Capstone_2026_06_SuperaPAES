@@ -1,0 +1,41 @@
+.generador__columnas {
+  display: grid;
+  grid-template-columns: minmax(20rem, 2fr) minmax(0, 3fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.generador__titulo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.generador__motivos {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.generador__lotes {
+  margin-top: 2rem;
+}
+
+.generador progress {
+  width: 100%;
+}
+
+.generador .etiqueta--completado {
+  color: var(--exito);
+}
+
+.generador .etiqueta--pendiente {
+  color: var(--aviso);
+}
+
+@media (max-width: 60rem) {
+  .generador__columnas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
