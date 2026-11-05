@@ -31,6 +31,7 @@ describe.skipIf(!urlBase)('banco de preguntas con PostgreSQL (HU-11, CP-08)', ()
   let base: BaseTemporal;
   let ids: Ids & { habilidadA2: number };
   let banco: ReturnType<typeof crearPreguntasServicio>;
+  let loteId: number;
   const ia: number[] = [];
   const importadas: number[] = [];
 
@@ -56,6 +57,7 @@ describe.skipIf(!urlBase)('banco de preguntas con PostgreSQL (HU-11, CP-08)', ()
         WHERE t.codigo = 'seleccion_multiple' AND e.codigo = 'completado' RETURNING id`,
       [temario.contenidoA2, usuario],
     );
+    loteId = lote;
     const importacion = await uno(
       bd,
       `INSERT INTO contenido.importacion (usuario_id, nombre_archivo, filas_total, filas_creadas,
@@ -126,6 +128,18 @@ describe.skipIf(!urlBase)('banco de preguntas con PostgreSQL (HU-11, CP-08)', ()
     expect(preguntas).toHaveLength(20);
     const fechas = preguntas.map((p) => p.actualizadoEn);
     expect([...fechas].sort().reverse()).toEqual(fechas);
+  });
+
+  it('HU-18.3: el lote excluye manuales e importadas, incluye preguntas en revisión y pagina el total', async () => {
+    const { preguntas, paginacion } = await filtrar({ lote: loteId });
+    expect(preguntas.map(({ id }) => Number(id)).sort()).toEqual([...ia].sort());
+    expect(preguntas.some(({ estado }) => estado.codigo === 'en_revision')).toBe(true);
+    expect(paginacion.total).toBe(2);
+    expect(await filtrar({ lote: loteId, pagina: 3 })).toEqual({
+      preguntas: [],
+      paginacion: { pagina: 3, porPagina: 20, total: 2 },
+    });
+    expect((await filtrar({ lote: loteId + 1 })).preguntas).toEqual([]);
   });
 
   it('la página 2 trae las 7 restantes, sin repetir ninguna (esc. 3, CP-08 paso 4)', async () => {

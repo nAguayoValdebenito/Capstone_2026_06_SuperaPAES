@@ -4,6 +4,7 @@ import { useGenerador } from '../../estado/generador';
 import { DetalleLote } from './DetalleLote';
 import { FormularioLote } from './FormularioLote';
 import { TablaLotes } from './TablaLotes';
+import { TextosDelLote } from './TextosDelLote';
 import './generador.css';
 
 export function PaginaGenerador() {
@@ -27,6 +28,9 @@ export function PaginaGenerador() {
               />
               <DetalleLote lote={lote} pruebas={pruebas} />
             </div>
+            {lote?.conTexto && lote.estado !== 'pendiente' && lote.validas > 0 && (
+              <TextosDelLote key={lote.id} loteId={lote.id} pruebas={pruebas} />
+            )}
             <SegunCarga carga={lotes} cargando="Cargando los lotes…">
               {(datos) => (
                 <TablaLotes

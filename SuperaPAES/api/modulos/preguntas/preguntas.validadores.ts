@@ -28,6 +28,13 @@ export const esquemaFiltrosBanco = z.strictObject({
   estado: codigoConsulta.optional(),
   origen: z.enum(ORIGENES_PREGUNTA, 'El origen debe ser manual, importacion o ia.').optional(),
   dificultad: codigoConsulta.optional(),
+  /** HU-18.3: recuperar solo las preguntas del lote elegido en C05. */
+  lote: z
+    .string()
+    .regex(/^[1-9]\d{0,15}$/, 'El identificador no es válido.')
+    .transform(Number)
+    .pipe(z.number().max(Number.MAX_SAFE_INTEGER, 'El identificador no es válido.'))
+    .optional(),
   pagina: numeroDePagina(1, 100_000),
   porPagina: numeroDePagina(POR_PAGINA_BANCO, MAXIMO_POR_PAGINA_BANCO),
 });
