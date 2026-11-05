@@ -1,16 +1,21 @@
-// El lote elegido en C05: avance mientras se procesa y, al cerrar, las válidas y las descartadas con su
-// motivo (CU-17 paso 7, HU-17.3). Las preguntas se revisan en el banco, con sus textos de lectura.
+// El lote elegido en C05: avance mientras se procesa y, al cerrar, cada pregunta con su resultado
+// (CU-17 paso 7, HU-17.3).
 import { Link } from 'react-router';
+import { SegunCarga } from '../../componentes/SegunCarga';
+import type { Carga } from '../../estado/carga';
 import type { PruebaTemario } from '../../tipos';
-import type { Lote } from '../../tipos/generador';
+import type { Lote, ResultadoLote } from '../../tipos/generador';
 import {
   enlaceAlBanco,
   ESTADOS_LOTE,
+  faltaDetalle,
   motivosLegibles,
   notaDeCierre,
   ubicarContenido,
 } from '../../utilidades/generador';
+import { ResultadoDelLote } from './ResultadoDelLote';
 
+/** Los motivos agrupados: los lotes antiguos no tienen el detalle, y un texto rechazado no es una fila. */
 function Motivos({ lote }: { lote: Lote }) {
   const motivos = motivosLegibles(lote);
   if (motivos.length === 0) return null;
@@ -40,11 +45,27 @@ function Avance({ lote }: { lote: Lote }) {
   );
 }
 
+function Resultado({ lote, carga }: { lote: Lote; carga: Carga<ResultadoLote> }) {
+  if (lote.estado === 'pendiente') return <Avance lote={lote} />;
+  return (
+    <SegunCarga carga={carga} cargando="Cargando el resultado…">
+      {(resultado) => (
+        <>
+          <ResultadoDelLote resultado={resultado} />
+          {faltaDetalle(lote, resultado) && <Motivos lote={lote} />}
+        </>
+      )}
+    </SegunCarga>
+  );
+}
+
 export function DetalleLote({
   lote,
+  resultado,
   pruebas,
 }: {
   lote: Lote | null;
+  resultado: Carga<ResultadoLote>;
   pruebas: readonly PruebaTemario[];
 }) {
   if (!lote) {
@@ -65,14 +86,13 @@ export function DetalleLote({
         </h2>
         <span className={`etiqueta etiqueta--${lote.estado}`}>{ESTADOS_LOTE[lote.estado]}</span>
       </div>
-      {lote.estado === 'pendiente' && <Avance lote={lote} />}
       <p>
         Válidas: <strong>{lote.validas}</strong> · Descartadas: <strong>{lote.descartadas}</strong>{' '}
         · Modelo: {lote.modelo}
         {lote.conTexto && ' · Con texto de lectura'}
       </p>
       {nota && <p className="estado__error">{nota}</p>}
-      <Motivos lote={lote} />
+      <Resultado lote={lote} carga={resultado} />
       {lote.validas > 0 && (
         <Link to={enlaceAlBanco(pruebas, lote)}>Ver en el banco de preguntas</Link>
       )}

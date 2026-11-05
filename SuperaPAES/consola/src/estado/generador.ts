@@ -1,9 +1,9 @@
 // C05 · Generador con IA: carga el temario y los lotes, pide uno nuevo y sigue su avance mientras está en
 // proceso. Si una consulta del avance falla, conserva lo que ya se ve y lo intenta de nuevo.
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { listarLotes, pedirLote } from '../servicios/generador';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { listarLotes, obtenerResultado, obtenerUso, pedirLote } from '../servicios/generador';
 import { obtenerFiltrosBanco } from '../servicios/preguntas';
-import type { PaginaLotes, PedidoLote } from '../tipos/generador';
+import type { Lote, PaginaLotes, PedidoLote, UsoIa } from '../tipos/generador';
 import { hayPendientes } from '../utilidades/generador';
 import { useCarga, type Carga } from './carga';
 import { mensajeDeError } from './usuarios-internos';
@@ -42,6 +42,31 @@ function useLotes(pagina: number) {
   return { carga, recargar };
 }
 
+/**
+ * Lo usado de los topes; se vuelve a leer cuando cambian los lotes. Es solo informativo: si falla, no se muestra,
+ * y el tope igual se aplica al pedir.
+ */
+function useUso(lotes: readonly Lote[]) {
+  const [uso, setUso] = useState<UsoIa | null>(null);
+  const huella = lotes.map((l) => `${l.id}:${String(l.procesadas)}:${l.estado}`).join();
+  useEffect(() => {
+    const control = new AbortController();
+    obtenerUso(control.signal).then(setUso, () => undefined);
+    return () => control.abort();
+  }, [huella]);
+  return uso;
+}
+
+/** El resultado se pide cuando el lote ya cerró; mientras tanto se muestra su avance. */
+function useResultado(lote: Lote | null) {
+  const id = lote && lote.estado !== 'pendiente' ? lote.id : null;
+  const cargar = useMemo(
+    () => (id === null ? null : (senal: AbortSignal) => obtenerResultado(id, senal)),
+    [id],
+  );
+  return useCarga(cargar);
+}
+
 export function useGenerador() {
   const temario = useCarga(obtenerFiltrosBanco);
   const [pagina, setPagina] = useState(1);
@@ -52,6 +77,8 @@ export function useGenerador() {
   const enCurso = useRef(false);
   const lista = lotes.tipo === 'lista' ? lotes.datos.lotes : [];
   const lote = lista.find(({ id }) => id === elegido) ?? lista[0] ?? null;
+  const uso = useUso(lista);
+  const resultado = useResultado(lote);
 
   const pedir = async (pedido: PedidoLote) => {
     if (enCurso.current) return;
@@ -71,5 +98,16 @@ export function useGenerador() {
     }
   };
 
-  return { temario, lotes, lote, elegir, irAPagina: setPagina, pedir, enviando, error };
+  return {
+    temario,
+    lotes,
+    lote,
+    uso,
+    resultado,
+    elegir,
+    irAPagina: setPagina,
+    pedir,
+    enviando,
+    error,
+  };
 }

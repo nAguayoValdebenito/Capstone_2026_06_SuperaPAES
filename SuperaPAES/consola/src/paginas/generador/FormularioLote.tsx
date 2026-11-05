@@ -8,6 +8,8 @@ import { CANTIDAD_MAXIMA, errorDelPedido, type CamposLote } from '../../utilidad
 import { deTemario, numero } from '../../utilidades/opciones';
 
 const INICIO: CamposLote = { cantidad: '5', conTexto: false };
+/** El servidor genera solo selección múltiple; Suficiencia de Datos llega con HU-20. */
+const TIPOS = [{ valor: 'seleccion_multiple', texto: 'Selección múltiple' }];
 
 interface PropiedadesCampos {
   campos: CamposLote;
@@ -54,6 +56,14 @@ function CamposCantidad({ campos, alCambiar, pruebas }: PropiedadesCampos) {
   const prueba = pruebas.find(({ id }) => id === campos.pruebaId);
   return (
     <>
+      <Selector
+        etiqueta="Tipo de pregunta"
+        valor={TIPOS[0]?.valor}
+        opciones={TIPOS}
+        textoVacio={null}
+        deshabilitado
+        alCambiar={() => undefined}
+      />
       <label className="campo">
         Cantidad (hasta {CANTIDAD_MAXIMA})
         <input

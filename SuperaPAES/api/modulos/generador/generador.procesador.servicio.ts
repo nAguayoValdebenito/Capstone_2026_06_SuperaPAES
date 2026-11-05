@@ -26,7 +26,7 @@ export const claveDeLote = (id: string): bigint => BASE_DE_CLAVES + BigInt(id);
 /** Un lote sin texto: cada pregunta se guarda en cuanto llega, con su avance. */
 const trabajar = (d: DependenciasProcesador, turno: Turno): Promise<CierreDeLote> =>
   recorrerFichas(d, turno, {
-    falla: (falla) => registrarFalla(d, turno, falla),
+    falla: (falla, ficha) => registrarFalla(d, turno, falla, ficha),
     respuesta: (ficha, resultado) => registrarRespuesta(d, turno, ficha, resultado),
   });
 

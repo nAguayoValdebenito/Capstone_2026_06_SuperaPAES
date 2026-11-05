@@ -87,6 +87,45 @@ async function guardarPropuesta(tx: Ejecutor, propuesta: PropuestaDeIa): Promise
   return id;
 }
 
+export interface PreguntaDeLote {
+  id: string;
+  enunciado: string;
+  habilidad: string;
+  dificultadSugerida: string | null;
+  /** El nombre de su estado actual: la pregunta sigue su camino después del lote. */
+  estado: string;
+}
+
+const PREGUNTAS_DE_LOTE = `
+  SELECT p.id::text AS id, p.enunciado, h.nombre AS habilidad, d.nombre AS "dificultadSugerida",
+         e.nombre AS estado
+    FROM contenido.pregunta p
+    JOIN contenido.habilidad h ON h.id = p.habilidad_id
+    JOIN contenido.estado_pregunta e ON e.id = p.estado_pregunta_id
+    LEFT JOIN contenido.dificultad d ON d.id = p.dificultad_sugerida_id
+   WHERE p.lote_id = $1
+   ORDER BY p.orden_en_texto NULLS LAST, p.id`;
+
+/** HU-16.2 y HU-17.2: lo que el generador con IA lee del banco. */
+export interface LecturasParaGenerar {
+  /** Los enunciados del contenido en cualquier estado (también rechazadas y retiradas). */
+  enunciadosDelContenido(contenidoId: number, tx?: Ejecutor): Promise<string[]>;
+  /** Preguntas aprobadas o publicadas del contenido, de origen manual o IA, las más recientes primero. */
+  ejemplosAprobados(contenidoId: number, limite: number): Promise<EjemploDePregunta[]>;
+  /** HU-16.2: guarda una propuesta de la IA revisada como borrador, en la transacción del lote. */
+  guardarPropuestaDeIa(propuesta: PropuestaDeIa, tx: Ejecutor): Promise<string>;
+  /** HU-18.1: guarda el texto de lectura de la IA; las preguntas de su lote se enlazan a él. */
+  guardarTextoDeIa(texto: TextoDeIa, tx: Ejecutor): Promise<string>;
+  /** HU-17.3: las preguntas guardadas de un lote. */
+  preguntasDeLote(loteId: string): Promise<PreguntaDeLote[]>;
+}
+
+/** Las preguntas guardadas de un lote (HU-17.3). */
+async function leerPreguntasDeLote(bd: Ejecutor, loteId: string): Promise<PreguntaDeLote[]> {
+  const { rows } = await bd.query<PreguntaDeLote>(PREGUNTAS_DE_LOTE, [loteId]);
+  return rows;
+}
+
 export function crearPreguntasGeneracionRepositorio(bd: Ejecutor) {
   return {
     /** Guarda la propuesta como pregunta en borrador con sus alternativas; devuelve su id. */
@@ -103,6 +142,8 @@ export function crearPreguntasGeneracionRepositorio(bd: Ejecutor) {
       ]);
       return rows[0]!.id;
     },
+
+    preguntasDeLote: (loteId: string) => leerPreguntasDeLote(bd, loteId),
 
     /** Los enunciados del contenido en cualquier estado, también rechazadas y retiradas. */
     async enunciadosDelContenido(contenidoId: number, tx: Ejecutor = bd): Promise<string[]> {

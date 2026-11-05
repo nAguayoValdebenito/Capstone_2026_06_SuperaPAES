@@ -18,6 +18,8 @@ export function crearRutasAdminGenerador(servicio: GeneradorServicio): Router {
     validar({ cuerpo: esquemaNuevoLote }),
     controlador.crearLote,
   );
+  // RNF-03: lo usado de los topes diario y mensual, para mostrarlos antes de pedir.
+  router.get('/uso', exigirRol('admin'), controlador.usoDeLaIa);
   // HU-16.3: la consola consulta el avance del lote (polling).
   router.get(
     '/lotes',
@@ -30,6 +32,13 @@ export function crearRutasAdminGenerador(servicio: GeneradorServicio): Router {
     exigirRol('admin'),
     validar({ parametros: esquemaIdLote }),
     controlador.obtenerLote,
+  );
+  // HU-17.3: las preguntas guardadas del lote y cada descarte con su motivo.
+  router.get(
+    '/lotes/:id/resultado',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdLote }),
+    controlador.resultadoDeLote,
   );
   return router;
 }

@@ -100,9 +100,11 @@ function registradorAcumulado(
   acum: Acumulado,
 ): Registrador {
   return {
-    falla(falla: FallaDeLaIa) {
-      acum.motivos = anotarFalla(acum.motivos, falla.codigo);
+    falla(falla: FallaDeLaIa, ficha: Ficha) {
       // Sin saldo la llamada no se atendió y no cuenta como pregunta pedida.
+      acum.motivos = falla.saldoAgotado
+        ? anotarFalla(acum.motivos, falla.codigo)
+        : anotarFalla(acum.motivos, falla.codigo, ficha);
       if (!falla.saldoAgotado) acum.descartadas += 1;
       return Promise.resolve(cierreTrasFalla(turno, falla));
     },
@@ -112,7 +114,7 @@ function registradorAcumulado(
       const problemas = revisar(turno, ficha, resultado);
       if (problemas.length > 0) {
         acum.descartadas += 1;
-        acum.motivos = anotarDescarte(acum.motivos, problemas);
+        acum.motivos = anotarDescarte(acum.motivos, problemas, ficha);
         return;
       }
       const propuesta = resultado.preguntas[0]!;
