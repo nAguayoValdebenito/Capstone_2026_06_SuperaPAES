@@ -569,8 +569,8 @@ void main() {
         await tocar(tester, find.text('Rendir mini-ensayo'));
         expect(tester.takeException(), isNull);
         if (ruta == Rutas.preguntaConReloj) {
-          await tester.tap(find.text('Empezar ahora'));
-          await tester.pumpAndSettle();
+          // Con la letra al doble el botón baja al final del contenido.
+          await tocar(tester, find.text('Empezar ahora'));
           expect(tester.takeException(), isNull);
           await ir(tester, contenedor, Rutas.verTodas);
           expect(tester.takeException(), isNull);

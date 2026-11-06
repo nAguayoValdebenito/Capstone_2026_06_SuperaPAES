@@ -231,7 +231,7 @@ void main() {
     );
 
     expect(find.text('Revisa tu correo. Te llegará un enlace.'), findsOne);
-    expect(find.byIcon(Icons.check_circle_outline), findsOne);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsOne);
   });
 
   testWidgets('CampoCodigo muestra un dígito por casilla y su error', (

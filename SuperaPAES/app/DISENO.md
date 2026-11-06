@@ -51,8 +51,32 @@ diseño es el del prototipo v3 (DAS 7.2 y 7.5) y ya está en el código:
 | `neutroSuave`     | `#EEF1F6` | Botón desactivado y aviso neutro                   |
 | `exito` / `exitoSuave` / `exitoTexto` | `#15803D` / `#E7F6EC` / `#14532D` | Aviso de éxito |
 | `error` / `errorSuave` / `errorTexto` | `#B91C1C` / `#FDECEC` / `#7F1D1D` | Errores y aviso de error |
-| `aviso` / `avisoSuave` / `avisoBorde` / `avisoTexto` | `#B45309` / `#FFF4E5` / `#F5C77E` / `#7C2D12` | Aviso de advertencia |
-| `logoOscuro` / `logoCeleste` | `#0B2653` / `#009CD2` | Solo el logo                |
+| `aviso` / `avisoSuave` / `avisoBorde` / `avisoTexto` | `#B45309` / `#FFF4E5` / `#F5C77E` / `#7C2D12` | **En retiro.** El ámbar ya no es de la identidad: las pantallas que aún lo usan (reloj de A27, cupo de A12, Progreso, Historial) lo cambian por `Destacado` o por la paleta en sus fases (F3 a F6); el token sigue hasta entonces |
+| `logoOscuro` / `logoCeleste` | `#0B2653` / `#009CD2` | El logo, el trazo, la racha y el texto de `Destacado` |
+| `sobreMarcaSuave` | `#FFFFFF` al 86 % | Texto de apoyo sobre el degradado de «Hoy» (5,2:1 sobre `primario`) |
+| `neutroFuerte` | `#475569` | Ícono de la corrección sin acierto (6,7:1 sobre `neutroSuave`) |
+| `primarioMedio` | `#6585E0` | Barras de las semanas pasadas (3,5:1 sobre blanco) |
+| `cuadricula` / `pasoCuadricula` | `#E3E8F1` / 22 | Líneas del fondo de cuaderno (`FondoCuaderno`) |
+| `destacador` | `#009CD2` al 30 % | Franja de `Destacado` |
+| `degradadoHoy` y `sombraMarca` | `primario` → `primarioOscuro`; `primario` al 18 %, blur 16, +8 | Solo la tarjeta «Hoy» de Inicio: es el único degradado de la app |
+
+Los **tonos de las cinco pruebas** viven en el `enum Prueba` de `tema.dart` (código, nombre, nombre
+corto, `tono` y `fondo`); no se escriben en ninguna pantalla:
+
+| Prueba | Tono | Fondo |
+| ------ | ---- | ----- |
+| `Prueba.cl` (Lectora) | `#0369A1` | `#E0F2FE` |
+| `Prueba.m1` | `#1D4ED8` | `#E8EEFD` |
+| `Prueba.m2` | `#4338CA` | `#EEF2FF` |
+| `Prueba.hcs` (Historia) | `#1E40AF` | `#DBEAFE` |
+| `Prueba.cie` (Ciencias) | `#0E7490` | `#E0F7FA` |
+
+`Prueba.deCodigo('M1')` entrega la prueba de un código de la API; uno desconocido da `m1`.
+
+Los `surfaceContainer*` del `ColorScheme` están fijados a `superficie` y `neutroSuave`, y el tema define
+`dialogTheme` y `bottomSheetTheme` (fondo `superficie`, esquinas de `radioHoja`, asa), así que ningún
+diálogo, menú u hoja toma el lila de `fromSeed`. La barra inferior deja `indicatorColor:
+primarioSuave`; el indicador animado lo dibuja `BarraInferior` (fase 1).
 
 ## Texto
 
@@ -100,7 +124,9 @@ Los colores van con `copyWith`, por ejemplo
 | `altoAvance`      | 6     | Barra del avance de la práctica (A17)           |
 | `radioHoja`       | 20    | Esquinas de arriba de las hojas que suben desde abajo (A11 y A18) |
 | `radioDato`       | 10    | Recuadros de un dato chico, como el acierto por dificultad (A35) |
-| `altoBarraSemana` / `radioBarraSemana` | 88 / 6 | Barra más alta del avance semana a semana y su radio (A35) |
+| `altoBarraSemana` / `radioBarraSemana` / `anchoBarraSemana` | 88 / 6 / 40 | Barra más alta del avance semana a semana, su radio y su ancho (A35) |
+| `anilloResumen` | 148 | Diámetro del anillo del resumen de la práctica (A21) |
+| `altoBarraReloj` | 3 | Barra del tiempo restante bajo el reloj (A27) |
 
 Entre los elementos de un formulario van 16 de separación; el diseño de referencia mide 390 × 844.
 
@@ -113,13 +139,23 @@ También:
 | `sombraSuave` | sombra de `texto` al 6 % | Lo que se toca (opciones, tarjetas de prueba de A12, `ListaDeFilas`). Lo que solo informa queda plano, con borde |
 | `zonaTactil` | 48 | Zona mínima que responde al toque; usa `ZonaTactil` si lo que se ve es más chico |
 | `movimientoRapido` / `Normal` / `Lento` | 150 / 200 / 400 ms | Duración de las animaciones, siempre con `duracion(context, ...)` |
+| `movimientoFoco` | 700 ms | El único momento de autor de una pantalla (anillo, conteo del puntaje) |
 | `curvaEntrada` / `curvaSalida` | `easeOutCubic` / `easeInCubic` | Curvas de las animaciones |
+| `curvaEnfasis` / `curvaLineal` | `emphasizedDecelerate` / lineal | Momentos de autor y transiciones de pantalla / esqueleto y barra del reloj |
+| `desplazamientoPantalla` / `desplazamientoLista` | 24 / 8 dp | Eje horizontal entre pantallas / entrada escalonada de una lista |
+| `pasoEscalonado` / `topeEscalonado` | 40 ms / 6 | Entrada escalonada: 40 ms entre elementos y, desde el sexto, todos juntos |
+| `tabulares` y `tabular(estilo)` | `FontFeature.tabularFigures()` | Todo número que cambia o cuenta (cupo, porcentaje, puntaje, reloj): conserva su ancho |
 | `anchoFormulario` / `anchoLectura` | 560 / 720 | Ancho máximo del contenido en tablet (formularios y pantallas de lectura) |
 | `anchoTablet` | 600 | Lado corto desde el que el equipo es tablet; bajo eso, la app queda en vertical |
 
-**Movimiento:** solo se animan opacidad, escala y color, nunca el diseño de la página, y toda
-duración pasa por `duracion(context, base)` (`comunes/movimiento.dart`), que da cero si el teléfono
-pide reducir el movimiento.
+**Movimiento:** solo se animan opacidad, escala, traslación y color, nunca el diseño de la página, y
+toda duración pasa por `duracion(context, base, {conservarFundido})` (`comunes/movimiento.dart`), que
+da cero si el teléfono pide reducir el movimiento; con `conservarFundido: true` queda un fundido de
+150 ms (el que confirma lo que el estudiante eligió: chips, cambio de plan). Las animaciones de autor
+(trazo, anillo, conteo, destellos) usan `sinAnimarMomentos(context)` y con movimiento reducido llegan
+a su estado final **en el primer cuadro**. Cada controlador se libera en `dispose`; no se usan
+`BackdropFilter`, sombras grandes en listas ni temporizadores sueltos (el retraso va dentro de la misma
+animación con un `Interval`).
 
 ## Componentes
 
@@ -133,29 +169,53 @@ pide reducir el movimiento.
 | `CampoContrasena(etiqueta:, controller:)` | Igual, con el ojo para mostrarla.                     |
 | `CampoConEtiqueta(etiqueta:, child:)` | Para poner la etiqueta y la ayuda a otro control.           |
 | `CampoCodigo(controller:)` (en `verificar_correo/`) | Código de 6 dígitos en casillas, con `error`. |
-| `Aviso(tono:, texto:, destacado:)` | Recuadro con ícono. Tonos de `TonoAviso`: `info`, `aviso`, `error`, `exito`, `neutro` y `primario`. Con `textoRico`, la negrita puede ir en medio (A09b). |
+| `Aviso(tono:, texto:, destacado:)` | Hoja blanca con borde fino y el ícono en su tono (sin relleno pastel; el texto va en tinta). Tonos de `TonoAviso`: `info`, `aviso`, `error`, `exito`, `neutro` y `primario`; error y éxito llevan además su propio borde e ícono. Con `textoRico`, la negrita puede ir en medio (A09b). |
 | `Tarjeta(child:)`                  | Recuadro blanco con borde, radio 16 y relleno 16.              |
 | `BotonChico(texto:, onPressed:)`   | Botón de 40 dentro de un aviso o de una fila.                  |
-| `IconoEnCirculo(icono:, fondo:, color:)` | Ícono de 24 en un círculo de 48 sobre el título: el basurero de A42 y el reloj de A29. |
+| `IconoEnCirculo(icono:, color:)` | Ícono suelto (sin círculo) de 32 en una zona de 48 sobre el título: el basurero de A42 y el reloj de A29. |
 | `BotonTexto(child:, onPressed:)`   | Botón de texto a lo ancho, como «Reenviar enlace».             |
-| `CargandoEnBoton()`                | Indicador dentro de un botón mientras se envía.                |
+| `CargandoEnBoton()`                | Indicador dentro de un botón mientras se envía. **En retiro:** lo reemplaza `BotonPrincipal(estado: EstadoBoton.cargando)` a medida que cada pantalla se porta (F2 a F6); queda solo en botones que no son el principal. |
 | `PieConEnlace(pregunta:, enlace:, onPressed:)` | «¿No tienes cuenta? **Crea una**».                 |
 | `DatoResumen(valor:, texto:)`      | Número grande con su texto debajo, en un tercio de una `Row` («15 correctas» de A21 y A30). |
 | `AlternativaCorregidaVista(...)` y `ExplicacionCorreccion(...)` (en `correccion/partes_correccion.dart`) | Alternativa ya corregida y la tarjeta «Explicación» con «Por qué la B no es correcta» (A19 y A33). |
-| `HojaConfirmacion(titulo:, contenido:, confirmar:, cancelar:)` y `confirmarEnHoja(context, hoja)` (en `hoja_confirmacion.dart`) | Hoja que sube desde abajo con un botón que confirma y otro que vuelve (A18, A41); devuelve `true` si confirma. |
+| `HojaConfirmacion(titulo:, contenido:, confirmar:, cancelar:, confirmarEsPrincipal:, icono:)` y `confirmarEnHoja(context, hoja)` (en `hoja_confirmacion.dart`) | Hoja que sube desde abajo, sobre el teléfono completo y la barra inferior (`mostrarHoja` usa `useRootNavigator`), con un botón que confirma y otro que vuelve (A18, A41); devuelve `true` si confirma. Con `confirmarEsPrincipal: false` (terminar una práctica), el botón lleno es «Seguir practicando». El fondo, las esquinas y el asa salen de `bottomSheetTheme`. |
 | `ErrorConReintento(error:, mensaje:, alReintentar:)` (en `error_con_reintento.dart`) | Lo que no se pudo cargar, con «Reintentar» (Progreso, A41). Se ve como `EstadoError`. |
 
 Identidad y estados (tanda A del plan de mejora visual, 03/11):
 
 | Componente | Para qué |
 | ---------- | -------- |
-| `SelloPrueba(codigo:)` y `estiloDePrueba(codigo)` (en `sello_prueba.dart`) | Sello de cada prueba: su ícono en su tono sobre su fondo suave (Lectora #0369A1, M1 #1D4ED8, M2 #4338CA, Historia #1E40AF, Ciencias #0E7490). Úsalo junto al nombre de la prueba. |
-| `Trazo(ancho:, color:, avance:)` (en `trazo.dart`) | El trazo que sube del logo, dibujado con código: el símbolo de vacíos, errores y logros. `avance` de 0 a 1 lo dibuja en parte (para animarlo). |
-| `Esqueleto(ancho:, alto:)` y `EsqueletoTarjeta(lineas:)` (en `estados.dart`) | Carga con la forma de lo que viene, en vez de la rueda centrada. |
+| `SelloPrueba(Prueba.m1, tamano:, sobreMarca:)` (en `sello_prueba.dart`) | Sello de cada prueba: su glifo en su tono sobre su fondo suave; con `sobreMarca`, sobre el degradado de «Hoy». Úsalo junto al nombre de la prueba. |
+| `GlifoPrueba(prueba, tamano:, color:)` e `IconoPestana(indice, color:, activa:)` (en `glifos.dart`) | Los cinco glifos de prueba y los cinco de pestaña, dibujados con `CustomPainter` con el trazo redondeado del logo. Reemplazan a los `Icons.*` de los sellos y de la barra inferior. |
+| `ChipPrueba(prueba:, seleccionado:, onTap:)` y `ChipsDePrueba(pruebas:, seleccionada:, onChanged:)` (en `sello_prueba.dart`) | Chip con el sello de la prueba; el elegido toma el fondo y el borde de su tono y suma un ✓ (no depende solo del color). Zona de 48 y fundido de 150 ms que se conserva con movimiento reducido. |
+| `FilaEje(nombre:, valor:, indice:)` y `nivelDeEje(valor)` (en `ejes.dart`) | Un eje con su nivel («Firme» ✓, «En camino» ↗, «Reforzar» ⚑ con destacador; RN-14), su porcentaje tabular y su barra, que se llena escalonada. |
+| `Trazo(ancho:, color:, avance:)`, `TrazoAnimado(hasta:, retraso:)`, `SimboloLogo(ancho:, avance:)` y `PintorTrazoLogo` (en `trazo.dart`) | El trazo que sube del logo, dibujado con código: el símbolo de vacíos, errores y logros. `avance` de 0 a 1 lo dibuja en parte; `TrazoAnimado` se dibuja solo al aparecer (completo con movimiento reducido). `SimboloLogo` es el símbolo del logo (`simbolo_sin_trazo.png`) con el trazo celeste dibujado encima, para la apertura. |
+| `GrupoEsqueleto(child:, quieto:)` y `Bloque(ancho:, alto:, radio:)` (en `estados.dart`) | Carga con la forma de lo que viene. Un solo controlador por pantalla: todos los `Bloque` laten juntos y el lector dice «Cargando» una vez. `quieto` (sin conexión) o movimiento reducido dejan el gris fijo. `EsqueletoTarjeta(lineas:)` arma una tarjeta y crea su propio grupo solo si no hay uno encima. |
 | `EstadoVacio(titulo:, texto:, accion:, alTocar:)` (en `estados.dart`) | Lo que se muestra cuando no hay nada todavía, con el trazo y un botón opcional. |
 | `EstadoError(error:, mensaje:, alReintentar:, titulo:)` (en `estados.dart`) | Lo que no se pudo cargar, en tono neutro, con el trazo a medio camino y «Reintentar». En depuración anota la causa de un error que no vino de la API. |
 | `AvisoServidor(child:)` | Sobre todas las pantallas, en la raíz de la app: si una respuesta tarda más de 5 s, avisa que el servidor está despertando (Render gratuito). Flota arriba, no mueve la pantalla y deja pasar los toques. No se usa a mano |
 | `ZonaTactil(onTap:, child:)` (en `componentes_seleccion.dart`) | Lleva la zona de toque a 48 sin cambiar lo que se ve (chips y segmentos). |
+
+Base de diseño y movimiento (fase 0 de la implementación de las maquetas, 06/11). Todo en
+`comunes/`, con sus pruebas en `test/base_de_diseno_test.dart`:
+
+| Componente | Para qué | Con «reducir movimiento» |
+| ---------- | -------- | ------------------------ |
+| `FondoCuaderno(child:)` y `PantallaFormulario` | Cuadrícula estática (un `RepaintBoundary` que se pinta una vez) detrás de toda `PantallaFormulario`. Con letra de 1,5 o más, el `pie` fijo pasa al final del contenido desplazable | Igual |
+| `Destacado(texto:, icono:)` | Franja celeste al 30 % bajo el texto: lo que pide atención («Reforzar», «Sin verificar», «Tu racha subió»). Reemplaza al ámbar | Igual |
+| `LineaDatos(datos: [('8', 'correctas'), …])` | Los datos de apoyo en una línea, con cifras tabulares; pasa a la siguiente sin partir un dato. Reemplaza las fichas iguales | Igual |
+| `Presionable(onTap:, child:)` | Escala 0,98 en 100 ms (vuelve en 150) con ondulación | Solo la ondulación |
+| `AparecerEscalonado(indice:, child:)` | Fundido + 8 dp, 200 ms, 40 ms entre elementos, tope de 6; solo la primera carga (`activo`) | Todo junto, ya visible |
+| `BarraAnimada(valor:, retraso:, etiquetaSemantica:)` | Barra de 400 ms sobre un riel visible; si el valor cambia sigue desde donde estaba | Barra final |
+| `ContadorAnimado(valor:, estilo:, sufijo:, miles:)` | Número que cuenta (700 ms) con cifras tabulares y `FittedBox` (no se parte a 2,0); el lector oye solo el final | Número final |
+| `AnilloAvance(valor:, centro:, destellos:)` | Anillo de 148 que se llena en 700 ms; con `destellos`, 8 chispas al terminar (una vez) | Anillo lleno, sin destellos |
+| `Sacudida(veces:, child:)` | 4 dp en 300 ms al fallar (sube `veces`) | Sin sacudida |
+| `Cambiante(clave:, child:)` | Fundido de 200 ms + 15 % hacia arriba al cambiar un texto o bloque | Fundido de 150 ms |
+| `MarcaRacha(encender:)` | El trazo del logo como marca de la racha; crece con la letra | Trazo completo |
+| `BotonPrincipal(texto:, onPressed:, estado:, error:, intentosFallidos:)` | El `FilledButton` principal con estados `EstadoBoton.normal`, `cargando` (sigue azul, rueda blanca, no se apaga), `exito` (✓ verde) y `error` (texto encima y sacudida) | Corte entre estados |
+
+Mientras cada pantalla no se porte a sus componentes nuevos (fases 1 a 6) conviven con los
+anteriores; al portarla se borra el anterior.
 
 Los mensajes de error que ve el estudiante no dicen «API»: «Sin conexión por ahora. Revisa tu internet e
 inténtalo de nuevo.», «Tuvimos un problema. Inténtalo en un rato.» y «No recibimos … Inténtalo de nuevo.».
@@ -181,15 +241,16 @@ No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las f
 `$\frac{x}{2}$`.
 | `TarjetaCasilla(titulo:, marcada:, onTap:, detalle:, etiqueta:)` | Tarjeta con casilla (pruebas de A10).  |
 | `ChipSeleccion(texto:, seleccionado:, onTap:)` y `GrupoChips(chips:)` | Chips Normal y Activo, que pasan a la línea siguiente (A09 y A10). |
-| `Etiqueta(texto:, tono:)`           | «Sugerida» (`TonoEtiqueta.primario`), «Sin verificar» (`aviso`), «Correcta» (`exito`) o «Tu respuesta» fallada (`error`). |
+| `Etiqueta(texto:, tono:, icono:)`   | Ícono y texto en su tono, sin píldora pastel: «Sugerida» (`TonoEtiqueta.primario`), «Sin verificar» (`aviso`, va con `Destacado`), «Correcta» o «Rendido» (`exito`, con ✓) y «Tu respuesta» fallada (`error`, con ✕). |
 | `IndicadorPasos(paso:, total:, opcional:, accion:)` | «Paso 2 de 3 · Opcional» con su barra y «Omitir». |
 | `FilaDato(etiqueta:, valor:)`       | «Curso · 3° medio» dentro de una tarjeta (A37). Una etiqueta larga baja de línea y ocupa a lo más la mitad. |
-| `FilaNavegacion(texto:, onTap:, detalle:, icono:, peligro:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. Con `peligro`, el título y el ícono van en rojo y sin círculo («Borrar mi cuenta» en A39). |
+| `FilaNavegacion(texto:, onTap:, detalle:, icono:, peligro:)` y `ListaDeFilas(filas:)` | Filas con «›» separadas por una línea (A37). Con `icono` y `detalle`, como las opciones de A22. Con `peligro`, el título y el ícono van en rojo («Borrar mi cuenta» en A39). El ícono va suelto, en azul, sin círculo. `ListaDeFilas` es una lista plana con borde, sin sombra. |
 
 Los botones grandes no necesitan estilo propio: `FilledButton` (principal) y `OutlinedButton`
 (contorno, como «Cerrar sesión») ya salen con 52 de alto, a lo ancho y con radio 14. Las casillas
 son `Checkbox` y la barra inferior es la `NavigationBar` de `secciones.dart`. Los íconos son los de
-Material (`Icons.…_outlined`) en vez de los SVG de Figma.
+Material (`Icons.…_rounded` o `_outlined`) en vez de los SVG de Figma, salvo los glifos de las pruebas y
+de las pestañas, que son propios (`glifos.dart`).
 
 Ejemplo, una pantalla con formulario:
 

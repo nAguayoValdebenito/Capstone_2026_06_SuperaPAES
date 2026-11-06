@@ -96,7 +96,7 @@ class _HoyDiagnostico extends ConsumerWidget {
       detalle:
           '${diagnostico.cantidad} preguntas, no usa tu cupo. Con él sabremos '
           'qué $medida reforzar primero.',
-      simbolo: SelloPrueba(codigo: codigo),
+      simbolo: SelloPrueba(Prueba.deCodigo(codigo)),
       onPressed: () {
         ref.read(ofertaDiagnosticoProvider.notifier).ofrecer(diagnostico);
         unawaited(context.push(Rutas.ofrecerDiagnostico));
@@ -121,7 +121,7 @@ class _HoyReforzar extends ConsumerWidget {
     return _Hoy(
       titulo: 'Hoy: refuerza $nombre.',
       detalle: 'Tu práctica parte por lo que más necesitas.',
-      simbolo: SelloPrueba(codigo: codigo),
+      simbolo: SelloPrueba(Prueba.deCodigo(codigo)),
       onPressed: () {
         ref.read(borradorPracticaProvider.notifier).elegirPrueba(pruebaId);
         context.go(Rutas.practicar);

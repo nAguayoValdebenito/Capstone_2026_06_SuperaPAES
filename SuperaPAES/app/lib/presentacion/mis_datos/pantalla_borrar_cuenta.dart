@@ -93,7 +93,6 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
         ),
         const IconoEnCirculo(
           icono: Icons.delete_outline,
-          fondo: TemaSuperaPaes.errorSuave,
           color: TemaSuperaPaes.error,
         ),
         const Encabezado(

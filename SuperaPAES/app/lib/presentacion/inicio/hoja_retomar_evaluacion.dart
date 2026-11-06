@@ -193,11 +193,7 @@ class _HojaRetomarEvaluacionState extends State<HojaRetomarEvaluacion> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const IconoEnCirculo(
-              icono: Icons.timer_outlined,
-              fondo: TemaSuperaPaes.primarioSuave,
-              color: TemaSuperaPaes.primario,
-            ),
+            const IconoEnCirculo(icono: Icons.timer_outlined),
             for (final hijo in hijos) ...[const SizedBox(height: 14), hijo],
             const SizedBox(height: 8),
             BotonTexto(

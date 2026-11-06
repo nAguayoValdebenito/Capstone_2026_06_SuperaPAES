@@ -29,6 +29,7 @@ flutter:
   # Logo oficial (Figura 63 del DAS), en el inicio de sesión.
   assets:
     - assets/imagenes/logo_supera_paes.png
+    - assets/imagenes/simbolo_sin_trazo.png
   # Fuentes empaquetadas (licencia OFL, ver assets/fuentes): no se descargan al usar la app.
   fonts:
     - family: Figtree

@@ -152,7 +152,7 @@ class _DetalleState extends ConsumerState<_Detalle> {
                     texto: suscripcion.enMora ? 'En mora' : 'Activa',
                     tono: suscripcion.enMora
                         ? TonoEtiqueta.aviso
-                        : TonoEtiqueta.exitoSuave,
+                        : TonoEtiqueta.exito,
                   ),
                 ],
               ),

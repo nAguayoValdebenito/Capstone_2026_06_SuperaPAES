@@ -24,13 +24,9 @@ Future<void> mostrarConfirmarCurso(
   isDismissible: false,
   enableDrag: false,
   isScrollControlled: true,
-  backgroundColor: TemaSuperaPaes.superficie,
+  // No se puede arrastrar: sin asa.
+  showDragHandle: false,
   barrierColor: TemaSuperaPaes.texto.withValues(alpha: 0.9),
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(
-      top: Radius.circular(TemaSuperaPaes.radioHoja),
-    ),
-  ),
   builder: (context) => HojaConfirmarCurso(perfil: perfil),
 );
 
