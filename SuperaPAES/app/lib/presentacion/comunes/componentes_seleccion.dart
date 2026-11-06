@@ -5,6 +5,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart'
+    show Destacado;
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 
 /// Opción con radio (Opción: Normal y Seleccionada), como los cursos de A08.
@@ -536,59 +538,65 @@ class ZonaTactil extends StatelessWidget {
   }
 }
 
-/// Tonos de [Etiqueta]: primario («Sugerida»), aviso («Sin verificar»),
-/// éxito («Correcta») y error («Tu respuesta» incorrecta).
-/// [exito] y [error] son blancos, para ir sobre la tarjeta de color de la
-/// corrección; sobre una tarjeta blanca va [exitoSuave].
-enum TonoEtiqueta { primario, aviso, exito, exitoSuave, error }
+/// Tonos de [Etiqueta]: primario («Sugerida», «Tu plan»), aviso («Sin
+/// verificar», «Reforzar»: va con el destacador), éxito («Correcta»,
+/// «Rendido») y error («Tu respuesta» incorrecta).
+enum TonoEtiqueta { primario, aviso, exito, error }
 
-/// Etiqueta (Texto/Pequeño fuerte sobre fondo suave, radio 12).
+/// Etiqueta (Texto/Pequeño fuerte): ícono y texto en su tono, sin píldora
+/// pastel. El tono aviso va con el [Destacado] del cuaderno. Éxito y error
+/// llevan un ícono por defecto (✓ y ✕), para no depender solo del color.
 class Etiqueta extends StatelessWidget {
   const Etiqueta({
     required this.texto,
     super.key,
     this.tono = TonoEtiqueta.primario,
+    this.icono,
   });
 
   final String texto;
   final TonoEtiqueta tono;
 
+  /// Ícono antes del texto; sin él, éxito y error usan el suyo.
+  final IconData? icono;
+
   @override
   Widget build(BuildContext context) {
-    final (fondo, color) = switch (tono) {
-      TonoEtiqueta.primario => (
-        TemaSuperaPaes.primarioSuave,
-        TemaSuperaPaes.primario,
-      ),
-      TonoEtiqueta.aviso => (
-        TemaSuperaPaes.avisoSuave,
-        TemaSuperaPaes.avisoTexto,
-      ),
+    if (tono == TonoEtiqueta.aviso) {
+      return Destacado(texto: texto, icono: icono);
+    }
+    final (color, simbolo) = switch (tono) {
       TonoEtiqueta.exito => (
-        TemaSuperaPaes.superficie,
         TemaSuperaPaes.exitoTexto,
-      ),
-      TonoEtiqueta.exitoSuave => (
-        TemaSuperaPaes.exitoSuave,
-        TemaSuperaPaes.exitoTexto,
+        icono ?? Icons.check_circle_rounded,
       ),
       TonoEtiqueta.error => (
-        TemaSuperaPaes.superficie,
         TemaSuperaPaes.errorTexto,
+        icono ?? Icons.cancel_rounded,
       ),
+      _ => (TemaSuperaPaes.primario, icono),
     };
-    // Sin `alignment`: así mide lo que su texto (13 × 1,4 + 6 ≈ 24 de alto)
-    // y no se estira dentro de un Wrap.
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: fondo,
-        borderRadius: BorderRadius.circular(TemaSuperaPaes.altoEtiqueta / 2),
-      ),
-      child: Text(
-        texto,
-        style: TemaSuperaPaes.pequenoFuerte.copyWith(color: color),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (simbolo != null) ...[
+          Icon(
+            simbolo,
+            size: MediaQuery.textScalerOf(context).scale(15),
+            color: color,
+          ),
+          const SizedBox(width: TemaSuperaPaes.espacio4),
+        ],
+        Flexible(
+          child: Text(
+            texto,
+            style: TemaSuperaPaes.pequenoFuerte.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -716,11 +724,11 @@ class FilaNavegacion extends StatelessWidget {
   /// en A22.
   final String? detalle;
 
-  /// Ícono a la izquierda, en un círculo `primarioSuave` (A22).
+  /// Ícono suelto a la izquierda, en azul (A22).
   final IconData? icono;
 
   /// Acción que no se deshace, como «Borrar mi cuenta» en A39: el título y
-  /// el ícono van en rojo, y el ícono sin círculo.
+  /// el ícono van en rojo.
   final bool peligro;
 
   @override
@@ -731,18 +739,11 @@ class FilaNavegacion extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            if (icono case final simbolo? when peligro) ...[
-              Icon(simbolo, size: 22, color: TemaSuperaPaes.error),
-              const SizedBox(width: 12),
-            ] else if (icono case final simbolo?) ...[
-              Container(
-                width: TemaSuperaPaes.altoBotonChico,
-                height: TemaSuperaPaes.altoBotonChico,
-                decoration: const BoxDecoration(
-                  color: TemaSuperaPaes.primarioSuave,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(simbolo, size: 20, color: TemaSuperaPaes.primario),
+            if (icono case final simbolo?) ...[
+              Icon(
+                simbolo,
+                size: 22,
+                color: peligro ? TemaSuperaPaes.error : TemaSuperaPaes.primario,
               ),
               const SizedBox(width: 12),
             ],
@@ -765,8 +766,8 @@ class FilaNavegacion extends StatelessWidget {
   }
 }
 
-/// Tarjeta con filas que se tocan, separadas por una línea (A37), con la
-/// sombra suave de lo que se toca.
+/// Lista plana con borde y filas que se tocan, separadas por una línea (A37).
+/// Sin sombra: la sombra suave queda para tarjetas sueltas.
 class ListaDeFilas extends StatelessWidget {
   const ListaDeFilas({required this.filas, super.key});
 
@@ -775,23 +776,20 @@ class ListaDeFilas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radio = BorderRadius.circular(TemaSuperaPaes.radioTarjeta);
-    return DecoratedBox(
-      decoration: BoxDecoration(
+    return Material(
+      color: TemaSuperaPaes.superficie,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
         borderRadius: radio,
-        boxShadow: TemaSuperaPaes.sombraSuave,
+        side: const BorderSide(color: TemaSuperaPaes.borde),
       ),
-      child: Material(
-        color: TemaSuperaPaes.superficie,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: radio),
-        child: Column(
-          children: [
-            for (final (i, fila) in filas.indexed) ...[
-              if (i > 0) const Divider(height: 1),
-              fila,
-            ],
+      child: Column(
+        children: [
+          for (final (i, fila) in filas.indexed) ...[
+            if (i > 0) const Divider(height: 1),
+            fila,
           ],
-        ),
+        ],
       ),
     );
   }

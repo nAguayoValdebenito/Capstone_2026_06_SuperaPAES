@@ -8,10 +8,12 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 
 /// Pantalla de los bocetos de la app: sin barra superior, con el contenido
-/// desplazable y márgenes de 24. Arriba puede ir un [EnlaceVolver]; el [pie]
-/// queda fijo abajo, como el botón «Continuar» de A08. Un error de ese botón
-/// va en el pie, sobre él (ver [PieConError]), para que siempre se vea. En
-/// tablet, el contenido y el pie van centrados con [anchoMaximo].
+/// desplazable sobre el fondo de cuaderno y márgenes de 24. Arriba puede ir
+/// un [EnlaceVolver]; el [pie] queda fijo abajo, como el botón «Continuar» de
+/// A08. Un error de ese botón va en el pie, sobre él (ver [PieConError]),
+/// para que siempre se vea. Con letra de 1,5 o más, el pie fijo taparía media
+/// pantalla: pasa al final del contenido desplazable. En tablet, el
+/// contenido y el pie van centrados con [anchoMaximo].
 class PantallaFormulario extends StatelessWidget {
   const PantallaFormulario({
     required this.hijos,
@@ -36,11 +38,19 @@ class PantallaFormulario extends StatelessWidget {
   /// pantallas de lectura, [TemaSuperaPaes.anchoLectura].
   final double anchoMaximo;
 
+  /// Desde esta escala de letra el [pie] deja de ir fijo y baja al final del
+  /// contenido (RNF-12).
+  static const double escalaParaPieEnLista = 1.5;
+
   @override
   Widget build(BuildContext context) {
     final espacio = separacion ?? 16;
     final margen = margenLateral(context, anchoMaximo);
     const abajo = TemaSuperaPaes.margenPantalla;
+    final pieEnLista =
+        pie != null &&
+        MediaQuery.textScalerOf(context).scale(1) >= escalaParaPieEnLista;
+    final pieFijo = pieEnLista ? null : pie;
     final lista = ListView(
       // Se puede deslizar para actualizar aunque el contenido quepa entero.
       physics: alActualizar == null
@@ -50,38 +60,83 @@ class PantallaFormulario extends StatelessWidget {
         margen,
         8,
         margen,
-        pie == null ? abajo : espacio,
+        pieFijo == null ? abajo : espacio,
       ),
       children: [
         for (final (i, hijo) in hijos.indexed) ...[
           if (i > 0) SizedBox(height: espacio),
           hijo,
         ],
+        if (pieEnLista) ...[const SizedBox(height: abajo), ?pie],
       ],
     );
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: switch (alActualizar) {
-                final actualizar? => RefreshIndicator(
-                  onRefresh: actualizar,
-                  child: lista,
-                ),
-                null => lista,
-              },
-            ),
-            if (pie case final contenido?)
-              Padding(
-                padding: EdgeInsets.fromLTRB(margen, 0, margen, abajo),
-                child: contenido,
+      body: FondoCuaderno(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: switch (alActualizar) {
+                  final actualizar? => RefreshIndicator(
+                    onRefresh: actualizar,
+                    child: lista,
+                  ),
+                  null => lista,
+                },
               ),
-          ],
+              if (pieFijo case final contenido?)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(margen, 0, margen, abajo),
+                  child: contenido,
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Identidad «cuaderno de cuadros»: el fondo de la pantalla con una cuadrícula
+/// fina, como la hoja de matemática. Se pinta una vez (pintor estático dentro
+/// de un `RepaintBoundary`), así que no cuesta nada al desplazar.
+class FondoCuaderno extends StatelessWidget {
+  const FondoCuaderno({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      const Positioned.fill(
+        child: RepaintBoundary(
+          child: CustomPaint(painter: _PintorCuadricula()),
+        ),
+      ),
+      child,
+    ],
+  );
+}
+
+class _PintorCuadricula extends CustomPainter {
+  const _PintorCuadricula();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linea = Paint()
+      ..color = TemaSuperaPaes.cuadricula
+      ..strokeWidth = 1;
+    const paso = TemaSuperaPaes.pasoCuadricula;
+    for (var x = paso / 2; x < size.width; x += paso) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), linea);
+    }
+    for (var y = paso / 2; y < size.height; y += paso) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), linea);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PintorCuadricula anterior) => false;
 }
 
 /// Margen de los lados de una pantalla: 24, o más en tablet para que el
@@ -341,12 +396,16 @@ class _CampoContrasenaState extends State<CampoContrasena> {
   }
 }
 
-/// Tonos de [Aviso] (Aviso: Info, Aviso, Error, Éxito, Neutro y Primario).
+/// Tonos de [Aviso] (Info, Aviso, Error, Éxito, Neutro y Primario). El tono
+/// decide el ícono y su color; el texto va siempre en tinta.
 enum TonoAviso { info, aviso, error, exito, neutro, primario }
 
-/// Aviso con ícono y texto (Texto/Pequeño). [destacado] va en negrita al
-/// inicio, como «Revisa tu correo.» en A04; [textoRico] reemplaza al texto
-/// cuando la negrita va en medio, como el área de carrera en A09b.
+/// Aviso con ícono y texto (Texto/Pequeño): hoja blanca con borde fino y el
+/// ícono en su tono, sin relleno pastel. El color de alarma queda para lo que
+/// de verdad lo es (error y éxito, que además llevan su propio ícono).
+/// [destacado] va en negrita al inicio, como «Revisa tu correo.» en A04;
+/// [textoRico] reemplaza al texto cuando la negrita va en medio, como el
+/// área de carrera en A09b.
 class Aviso extends StatelessWidget {
   const Aviso({
     required this.tono,
@@ -363,58 +422,50 @@ class Aviso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (fondo, colorTexto, icono, borde) = switch (tono) {
-      TonoAviso.info => (
-        TemaSuperaPaes.primarioSuave,
-        TemaSuperaPaes.primarioOscuro,
-        Icons.info_outline,
-        null,
+    final (color, icono, borde) = switch (tono) {
+      TonoAviso.info || TonoAviso.primario => (
+        TemaSuperaPaes.primario,
+        Icons.info_outline_rounded,
+        TemaSuperaPaes.borde,
       ),
       TonoAviso.aviso => (
-        TemaSuperaPaes.avisoSuave,
-        TemaSuperaPaes.avisoTexto,
-        Icons.warning_amber_rounded,
-        TemaSuperaPaes.avisoBorde,
+        TemaSuperaPaes.primarioOscuro,
+        Icons.error_outline_rounded,
+        TemaSuperaPaes.borde,
       ),
       TonoAviso.error => (
-        TemaSuperaPaes.errorSuave,
-        TemaSuperaPaes.errorTexto,
+        TemaSuperaPaes.error,
         Icons.cancel_outlined,
-        null,
+        TemaSuperaPaes.error,
       ),
       TonoAviso.exito => (
-        TemaSuperaPaes.exitoSuave,
-        TemaSuperaPaes.exitoTexto,
-        Icons.check_circle_outline,
-        null,
+        TemaSuperaPaes.exito,
+        Icons.check_circle_outline_rounded,
+        TemaSuperaPaes.exito,
       ),
       TonoAviso.neutro => (
-        TemaSuperaPaes.neutroSuave,
-        TemaSuperaPaes.texto,
-        Icons.info_outline,
-        null,
-      ),
-      TonoAviso.primario => (
-        TemaSuperaPaes.primarioSuave,
-        TemaSuperaPaes.primario,
-        Icons.info_outline,
-        null,
+        TemaSuperaPaes.textoSecundario,
+        Icons.info_outline_rounded,
+        TemaSuperaPaes.borde,
       ),
     };
-    final estilo = TemaSuperaPaes.pequeno.copyWith(color: colorTexto);
     return Semantics(
       liveRegion: tono == TonoAviso.error || tono == TonoAviso.exito,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: fondo,
+          color: TemaSuperaPaes.superficie,
           borderRadius: BorderRadius.circular(TemaSuperaPaes.radioCampo),
-          border: borde == null ? null : Border.all(color: borde),
+          border: Border.all(color: borde),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icono, size: 20, color: colorTexto),
+            Icon(
+              icono,
+              size: MediaQuery.textScalerOf(context).scale(20),
+              color: color,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text.rich(
@@ -428,7 +479,7 @@ class Aviso extends StatelessWidget {
                     textoRico ?? TextSpan(text: texto),
                   ],
                 ),
-                style: estilo,
+                style: TemaSuperaPaes.pequeno,
               ),
             ),
           ],
@@ -487,29 +538,27 @@ class Tarjeta extends StatelessWidget {
   }
 }
 
-/// Ícono de 24 en un círculo de 48, sobre el título de una pantalla o una
-/// hoja: el basurero de A42 o el reloj de A29.
+/// Ícono suelto (sin círculo pastel) sobre el título de una pantalla o una
+/// hoja: el basurero de A42 o el reloj de A29. Es decorativo.
 class IconoEnCirculo extends StatelessWidget {
   const IconoEnCirculo({
     required this.icono,
-    required this.fondo,
-    required this.color,
     super.key,
+    this.color = TemaSuperaPaes.primario,
   });
 
   final IconData icono;
-  final Color fondo;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
-        child: Icon(icono, size: 24, color: color),
+      child: ExcludeSemantics(
+        child: SizedBox.square(
+          dimension: 48,
+          child: Icon(icono, size: 32, color: color),
+        ),
       ),
     );
   }
@@ -637,4 +686,112 @@ class PieConEnlace extends StatelessWidget {
       ],
     );
   }
+}
+
+/// El destacador del cuaderno: una franja celeste (el celeste del logo al
+/// 30 %) bajo la mitad inferior del texto, como un subrayado con destacador.
+/// Marca lo que pide atención («Reforzar», «Sin verificar», «Tu racha subió»)
+/// sin usar amarillo ni naranja. Con [icono], va antes del texto.
+class Destacado extends StatelessWidget {
+  const Destacado({required this.texto, super.key, this.icono, this.estilo});
+
+  final String texto;
+  final IconData? icono;
+  final TextStyle? estilo;
+
+  @override
+  Widget build(BuildContext context) {
+    final letra =
+        estilo ??
+        TemaSuperaPaes.pequenoFuerte.copyWith(
+          color: TemaSuperaPaes.logoOscuro,
+          fontWeight: FontWeight.w800,
+        );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icono != null) ...[
+          Icon(
+            icono,
+            size: MediaQuery.textScalerOf(context).scale(15),
+            color: TemaSuperaPaes.logoOscuro,
+          ),
+          const SizedBox(width: TemaSuperaPaes.espacio4),
+        ],
+        Flexible(
+          child: CustomPaint(
+            painter: const _PintorDestacador(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Text(texto, style: letra),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PintorDestacador extends CustomPainter {
+  const _PintorDestacador();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final franja = RRect.fromRectAndCorners(
+      Rect.fromLTWH(0, size.height * 0.48, size.width, size.height * 0.44),
+      topLeft: const Radius.circular(2),
+      topRight: const Radius.circular(6),
+      bottomLeft: const Radius.circular(6),
+      bottomRight: const Radius.circular(2),
+    );
+    canvas.drawRRect(franja, Paint()..color = TemaSuperaPaes.destacador);
+  }
+
+  @override
+  bool shouldRepaint(_PintorDestacador anterior) => false;
+}
+
+/// Los datos de apoyo de una pantalla en una sola línea, sin fichas
+/// iguales: «**8** correctas · **2** incorrectas · **9 min** de tiempo». Cada
+/// dato es (valor, texto). Con letra grande pasa a la línea siguiente sin
+/// partir un dato; el valor va en cifras tabulares.
+class LineaDatos extends StatelessWidget {
+  const LineaDatos({required this.datos, super.key});
+
+  final List<(String, String)> datos;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    crossAxisAlignment: WrapCrossAlignment.center,
+    spacing: TemaSuperaPaes.espacio12,
+    runSpacing: TemaSuperaPaes.espacio4,
+    children: [
+      for (final (i, (valor, texto)) in datos.indexed)
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: valor,
+                style: TemaSuperaPaes.tabular(
+                  TemaSuperaPaes.h2.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              TextSpan(
+                text: ' $texto',
+                style: TemaSuperaPaes.pequeno.copyWith(
+                  color: TemaSuperaPaes.textoSecundario,
+                ),
+              ),
+              if (i < datos.length - 1)
+                TextSpan(
+                  text: '   ·',
+                  style: TemaSuperaPaes.pequeno.copyWith(
+                    color: TemaSuperaPaes.bordeInput,
+                  ),
+                ),
+            ],
+          ),
+        ),
+    ],
+  );
 }

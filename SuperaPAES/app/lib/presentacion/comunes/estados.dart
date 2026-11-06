@@ -11,11 +11,75 @@ import 'package:supera_paes/presentacion/comunes/trazo.dart';
 /// saltar la pantalla y alarmaban de más. Los textos de cada pantalla los
 /// pone quien la usa.
 
-/// Bloque gris con un brillo leve mientras carga, con la forma de lo que va
-/// a aparecer. Solo anima la opacidad, y sin brillo si el teléfono pide
-/// reducir el movimiento.
-class Esqueleto extends StatefulWidget {
-  const Esqueleto({
+/// Un solo controlador por pantalla: todos los [Bloque] de dentro laten
+/// juntos (de `neutroSuave` a `borde`, 1.200 ms en ciclo, lineal) y el lector
+/// de pantalla dice «Cargando» una sola vez. Con [quieto] (sin conexión) o
+/// con «reducir movimiento» el gris queda fijo.
+class GrupoEsqueleto extends StatefulWidget {
+  const GrupoEsqueleto({required this.child, super.key, this.quieto = false});
+
+  final Widget child;
+  final bool quieto;
+
+  /// ¿Hay un grupo sobre [context]?
+  static bool existe(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<_Latido>() != null;
+
+  @override
+  State<GrupoEsqueleto> createState() => _GrupoEsqueletoState();
+}
+
+class _GrupoEsqueletoState extends State<GrupoEsqueleto>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _latido = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _ajustar();
+  }
+
+  @override
+  void didUpdateWidget(GrupoEsqueleto anterior) {
+    super.didUpdateWidget(anterior);
+    _ajustar();
+  }
+
+  void _ajustar() {
+    if (widget.quieto || reducirMovimiento(context)) {
+      _latido
+        ..stop()
+        ..value = 0;
+    } else if (!_latido.isAnimating) {
+      _latido.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _latido.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: widget.quieto ? null : 'Cargando',
+    child: _Latido(animacion: _latido, child: widget.child),
+  );
+}
+
+class _Latido extends InheritedNotifier<Animation<double>> {
+  const _Latido({required Animation<double> animacion, required super.child})
+    : super(notifier: animacion);
+}
+
+/// Un bloque gris con la forma de lo que va a aparecer. Late con el
+/// [GrupoEsqueleto] que lo contiene.
+class Bloque extends StatelessWidget {
+  const Bloque({
     super.key,
     this.ancho,
     this.alto = 16,
@@ -28,47 +92,21 @@ class Esqueleto extends StatefulWidget {
   final double radio;
 
   @override
-  State<Esqueleto> createState() => _EsqueletoState();
-}
-
-class _EsqueletoState extends State<Esqueleto>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _brillo = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-    lowerBound: 0.55,
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (duracion(context, _brillo.duration!) == Duration.zero) {
-      _brillo
-        ..stop()
-        ..value = 1;
-    } else if (!_brillo.isAnimating) {
-      _brillo.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _brillo.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: FadeTransition(
-        opacity: _brillo,
-        child: Container(
-          width: widget.ancho,
-          height: widget.alto,
-          decoration: BoxDecoration(
-            color: TemaSuperaPaes.neutroSuave,
-            borderRadius: BorderRadius.circular(widget.radio),
+    final latido = context
+        .dependOnInheritedWidgetOfExactType<_Latido>()
+        ?.notifier;
+    return ExcludeSemantics(
+      child: Container(
+        width: ancho,
+        height: alto,
+        decoration: BoxDecoration(
+          color: Color.lerp(
+            TemaSuperaPaes.neutroSuave,
+            TemaSuperaPaes.borde,
+            latido?.value ?? 0,
           ),
+          borderRadius: BorderRadius.circular(radio),
         ),
       ),
     );
@@ -76,7 +114,7 @@ class _EsqueletoState extends State<Esqueleto>
 }
 
 /// Esqueleto de una tarjeta: un título y [lineas] de texto, dentro de una
-/// tarjeta blanca. El lector de pantalla dice «Cargando».
+/// tarjeta blanca. Si no hay un [GrupoEsqueleto] encima, crea el suyo.
 class EsqueletoTarjeta extends StatelessWidget {
   const EsqueletoTarjeta({super.key, this.lineas = 2});
 
@@ -84,29 +122,27 @@ class EsqueletoTarjeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Cargando',
-      child: ExcludeSemantics(
-        child: Container(
-          padding: const EdgeInsets.all(TemaSuperaPaes.espacio16),
-          decoration: BoxDecoration(
-            color: TemaSuperaPaes.superficie,
-            borderRadius: BorderRadius.circular(TemaSuperaPaes.radioTarjeta),
-            border: Border.all(color: TemaSuperaPaes.borde),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Esqueleto(ancho: 140, alto: 20),
-              for (var i = 0; i < lineas; i++) ...[
-                const SizedBox(height: TemaSuperaPaes.espacio12),
-                Esqueleto(ancho: i == lineas - 1 ? 180 : null),
-              ],
-            ],
-          ),
-        ),
+    final tarjeta = Container(
+      padding: const EdgeInsets.all(TemaSuperaPaes.espacio16),
+      decoration: BoxDecoration(
+        color: TemaSuperaPaes.superficie,
+        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioTarjeta),
+        border: Border.all(color: TemaSuperaPaes.borde),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Bloque(ancho: 140, alto: 20),
+          for (var i = 0; i < lineas; i++) ...[
+            const SizedBox(height: TemaSuperaPaes.espacio12),
+            Bloque(ancho: i == lineas - 1 ? 180 : null),
+          ],
+        ],
       ),
     );
+    return GrupoEsqueleto.existe(context)
+        ? tarjeta
+        : GrupoEsqueleto(child: tarjeta);
   }
 }
 

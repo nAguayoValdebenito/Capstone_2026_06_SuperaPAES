@@ -254,7 +254,7 @@ class _DatosPrueba extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SelloPrueba(codigo: codigo),
+            SelloPrueba(Prueba.deCodigo(codigo)),
             if (!prueba.reforzar && !pendiente)
               const Icon(
                 Icons.chevron_right,

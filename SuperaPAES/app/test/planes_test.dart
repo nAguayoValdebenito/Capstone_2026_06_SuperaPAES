@@ -199,7 +199,7 @@ void main() {
       expect(find.text('Todas las pruebas'), findsOne);
       expect(find.text('Activa'), findsOne);
       final etiqueta = tester.widget<Etiqueta>(find.byType(Etiqueta));
-      expect(etiqueta.tono, TonoEtiqueta.exitoSuave);
+      expect(etiqueta.tono, TonoEtiqueta.exito);
       expect(find.text(r'Mensual · $2.990'), findsOne);
       expect(find.text('Próxima renovación'), findsOne);
       expect(find.text('20/11/2026'), findsOne);
