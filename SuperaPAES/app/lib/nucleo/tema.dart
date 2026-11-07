@@ -96,6 +96,12 @@ abstract final class TemaSuperaPaes {
   static const Duration fundidoApertura = Duration(milliseconds: 300);
   static const Duration umbralEsperaApertura = Duration(seconds: 1);
 
+  /// Logo y confirmación del botón de acceso (F2).
+  static const double anchoLogoAcceso = 146;
+  static const double altoLogoAcceso = 120;
+  static const double escalaEntradaLogoAcceso = 0.96;
+  static const Duration confirmacionAcceso = Duration(milliseconds: 600);
+
   /// Salida de las páginas y medidas de la barra inferior (F1).
   static const Duration movimientoSalidaPantalla = Duration(milliseconds: 280);
   static const double altoBarraNavegacion = 72;

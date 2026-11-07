@@ -48,6 +48,7 @@ class EstadoSesion extends AsyncNotifier<SesionEstudiante?> {
   /// Abre la sesión que devolvió el registro o el ingreso y la guarda.
   Future<void> abrir(SesionEstudiante sesion) async {
     await _almacen.guardar(sesion);
+    ref.read(avisoSesionVencidaProvider.notifier).limpiar();
     state = AsyncData(sesion);
   }
 
@@ -66,7 +67,7 @@ class EstadoSesion extends AsyncNotifier<SesionEstudiante?> {
       state = AsyncData(renovada);
       return true;
     } on ErrorApi catch (error) {
-      if (error.estadoHttp == 401) await _olvidar();
+      if (error.estadoHttp == 401) await _olvidar(vencida: true);
       return false;
     }
   }
@@ -114,14 +115,36 @@ class EstadoSesion extends AsyncNotifier<SesionEstudiante?> {
   /// olvida en el teléfono.
   Future<void> olvidarCuentaBorrada() => _olvidar();
 
-  Future<void> _olvidar() async {
+  Future<void> _olvidar({bool vencida = false}) async {
     await _almacen.borrar();
+    final aviso = ref.read(avisoSesionVencidaProvider.notifier);
+    if (vencida) {
+      aviso.mostrar();
+    } else {
+      aviso.limpiar();
+    }
     state = const AsyncData(null);
   }
 }
 
 final sesionProvider = AsyncNotifierProvider<EstadoSesion, SesionEstudiante?>(
   EstadoSesion.new,
+);
+
+/// Motivo visual de volver al ingreso. No se guarda ni modifica la sesión:
+/// solo se activa si la API rechazó su renovación, y se limpia al ingresar
+/// de nuevo, al cerrar voluntariamente o al borrar la cuenta.
+class AvisoSesionVencida extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void mostrar() => state = true;
+
+  void limpiar() => state = false;
+}
+
+final avisoSesionVencidaProvider = NotifierProvider<AvisoSesionVencida, bool>(
+  AvisoSesionVencida.new,
 );
 
 /// Cliente HTTP para las rutas que exigen sesión: agrega el token de acceso
