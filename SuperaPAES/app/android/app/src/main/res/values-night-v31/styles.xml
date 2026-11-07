@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mismo arranque de marca con el modo oscuro del sistema. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/fondo_apertura</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/simbolo_apertura_android12</item>
+        <item name="android:statusBarColor">@color/fondo_apertura</item>
+        <item name="android:navigationBarColor">@color/fondo_apertura</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>
