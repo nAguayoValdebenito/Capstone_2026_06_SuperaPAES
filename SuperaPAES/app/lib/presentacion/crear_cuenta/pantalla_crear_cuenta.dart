@@ -9,8 +9,13 @@ import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/comunes/logo_acceso.dart';
+import 'package:supera_paes/presentacion/comunes/movimiento.dart';
+import 'package:supera_paes/presentacion/crear_cuenta/requisitos_contrasena.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
 
 /// Pantalla Crear cuenta (A01 y A01b; HU-01, CU-01): nombre, correo,
@@ -36,7 +41,8 @@ abstract final class _Campo {
   static const String declaraEdad = 'declaraTenerCatorceAnios';
 }
 
-class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
+class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta>
+    with SingleTickerProviderStateMixin {
   final _formulario = GlobalKey<FormState>();
   final _nombre = TextEditingController();
   final _correo = TextEditingController();
@@ -44,7 +50,16 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
   final _codigo = TextEditingController();
 
   bool _acepta = false;
-  bool _enviando = false;
+  late final AnimationController _confirmacion = AnimationController(
+    vsync: this,
+  );
+  EstadoBoton _estado = EstadoBoton.normal;
+  int _intentosFallidos = 0;
+  int _intentosAceptacion = 0;
+  bool _contrasenaComunRechazada = false;
+
+  bool get _enviando =>
+      _estado == EstadoBoton.cargando || _estado == EstadoBoton.exito;
 
   /// Mostrar el aviso de la casilla solo después de intentar crear la cuenta.
   bool _intentoEnviar = false;
@@ -56,28 +71,57 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
   String? _errorGeneral;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _confirmacion.duration = duracion(
+      context,
+      TemaSuperaPaes.confirmacionAcceso,
+    );
+    if (reducirMovimiento(context) && _confirmacion.isAnimating) {
+      _confirmacion.value = 1;
+    }
+  }
+
+  @override
   void dispose() {
     _nombre.dispose();
     _correo.dispose();
     _contrasena.dispose();
     _codigo.dispose();
+    _confirmacion.dispose();
     super.dispose();
   }
 
   void _limpiarErrorServidor(String campo) {
-    if (!_erroresServidor.containsKey(campo)) return;
+    if (!_erroresServidor.containsKey(campo) &&
+        _estado != EstadoBoton.error &&
+        campo != _Campo.correo &&
+        campo != _Campo.contrasena) {
+      return;
+    }
     setState(() {
+      _estado = EstadoBoton.normal;
+      _errorGeneral = null;
+      if (campo == _Campo.contrasena) _contrasenaComunRechazada = false;
       _erroresServidor = Map.of(_erroresServidor)..remove(campo);
     });
   }
 
   Future<void> _crearCuenta(List<DocumentoLegal> documentos) async {
+    if (_enviando) return;
     setState(() {
       _intentoEnviar = true;
       _errorGeneral = null;
     });
     final valido = _formulario.currentState?.validate() ?? false;
-    if (!valido || !_acepta) return;
+    if (!valido || !_acepta) {
+      setState(() {
+        _estado = EstadoBoton.error;
+        _intentosFallidos++;
+        if (!_acepta) _intentosAceptacion++;
+      });
+      return;
+    }
 
     final codigo = ValidacionesRegistro.normalizarCodigo(_codigo.text);
     final datos = DatosRegistro(
@@ -88,19 +132,29 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
       codigoInvitacion: codigo.isEmpty ? null : codigo,
     );
 
-    setState(() => _enviando = true);
+    setState(() => _estado = EstadoBoton.cargando);
+    var completado = false;
     try {
       final sesion = await ref
           .read(repositorioCuentasProvider)
           .registrar(datos);
+      if (!mounted) return;
+      setState(() => _estado = EstadoBoton.exito);
+      await _confirmacion.forward(from: 0).orCancel;
+      if (!mounted) return;
       await ref.read(sesionProvider.notifier).abrir(sesion);
       if (!mounted) return;
+      completado = true;
       context.go(Rutas.verificarCorreo);
     } on ErrorApi catch (error) {
       if (!mounted) return;
       _mostrarError(error);
+    } on TickerCanceled {
+      // Se dejó el registro durante la confirmación; no se abre otra sesión.
     } finally {
-      if (mounted) setState(() => _enviando = false);
+      if (mounted && !completado && _enviando) {
+        setState(() => _estado = EstadoBoton.normal);
+      }
     }
   }
 
@@ -117,7 +171,17 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
     );
     if (documentosCambiaron) ref.invalidate(documentosVigentesProvider);
     setState(() {
-      if (documentosCambiaron) _acepta = false;
+      _estado = EstadoBoton.error;
+      _intentosFallidos++;
+      if (documentosCambiaron) {
+        _acepta = false;
+        _intentosAceptacion++;
+      }
+      _contrasenaComunRechazada = error.problemas.any(
+        (problema) =>
+            problema.ruta == _Campo.contrasena &&
+            problema.motivo == 'contrasena_comun',
+      );
       _erroresServidor = porCampo;
       _errorGeneral = porCampo.isEmpty ? error.mensaje : null;
     });
@@ -129,6 +193,8 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
     return PantallaFormulario(
       separacion: 14,
       hijos: [
+        const SizedBox(height: TemaSuperaPaes.espacio24),
+        const Center(child: LogoAcceso()),
         const Encabezado(
           titulo: 'Crea tu cuenta',
           bajada: 'Practica la PAES con preguntas revisadas por docentes.',
@@ -212,6 +278,12 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
               validator: (valor) =>
                   ValidacionesRegistro.contrasena(valor, _correo.text),
             ),
+            RequisitosContrasena(
+              contrasena: _contrasena.text,
+              correo: _correo.text,
+              aceptadaPorServidor: _estado == EstadoBoton.exito,
+              comunRechazada: _contrasenaComunRechazada,
+            ),
             const SizedBox(height: 14),
             CampoTexto(
               etiqueta: 'Código de invitación (opcional)',
@@ -234,12 +306,15 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
             const SizedBox(height: 14),
             _CasillaAceptacion(
               aceptada: _acepta,
+              intentosFallidos: _intentosAceptacion,
               documentos: documentos,
               error: errorAceptacion,
               onChanged: _enviando
                   ? null
                   : (valor) => setState(() {
                       _acepta = valor;
+                      _estado = EstadoBoton.normal;
+                      _errorGeneral = null;
                       _erroresServidor = Map.of(_erroresServidor)
                         ..remove(_Campo.documentosAceptados)
                         ..remove(_Campo.declaraEdad);
@@ -252,16 +327,13 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
                 color: TemaSuperaPaes.textoSecundario,
               ),
             ),
-            if (_errorGeneral case final mensaje?) ...[
-              const SizedBox(height: 14),
-              Aviso(tono: TonoAviso.error, texto: mensaje),
-            ],
             const SizedBox(height: 14),
-            FilledButton(
-              onPressed: _enviando ? null : () => _crearCuenta(documentos),
-              child: _enviando
-                  ? const CargandoEnBoton()
-                  : const Text('Crear cuenta'),
+            BotonPrincipal(
+              texto: 'Crear cuenta',
+              onPressed: () => _crearCuenta(documentos),
+              estado: _estado,
+              error: _errorGeneral,
+              intentosFallidos: _intentosFallidos,
             ),
           ],
         ),
@@ -270,8 +342,7 @@ class _PantallaCrearCuentaState extends ConsumerState<PantallaCrearCuenta> {
   }
 }
 
-/// Casilla «Acepto los Términos y condiciones y la Política de privacidad, y
-/// declaro que tengo 14 años o más» (Casilla del sistema de diseño). Los
+/// Casilla de DOC-06 con la versión vigente y la declaración de edad. Los
 /// nombres de los documentos, en negrita, abren su texto vigente (A02 y
 /// A02b).
 class _CasillaAceptacion extends StatefulWidget {
@@ -279,10 +350,12 @@ class _CasillaAceptacion extends StatefulWidget {
     required this.aceptada,
     required this.documentos,
     required this.onChanged,
+    required this.intentosFallidos,
     this.error,
   });
 
   final bool aceptada;
+  final int intentosFallidos;
   final List<DocumentoLegal> documentos;
   final ValueChanged<bool>? onChanged;
   final String? error;
@@ -292,10 +365,8 @@ class _CasillaAceptacion extends StatefulWidget {
 }
 
 class _CasillaAceptacionState extends State<_CasillaAceptacion> {
-  late final _abrirTerminos = TapGestureRecognizer()
-    ..onTap = () => context.push(Rutas.terminos);
-  late final _abrirPrivacidad = TapGestureRecognizer()
-    ..onTap = () => context.push(Rutas.privacidad);
+  late final _abrirTerminos = TapGestureRecognizer();
+  late final _abrirPrivacidad = TapGestureRecognizer();
 
   @override
   void dispose() {
@@ -304,77 +375,128 @@ class _CasillaAceptacionState extends State<_CasillaAceptacion> {
     super.dispose();
   }
 
-  String _nombre(TipoDocumentoLegal tipo, String porDefecto) =>
-      widget.documentos.where((d) => d.tipo == tipo).firstOrNull?.nombre ??
-      porDefecto;
+  DocumentoLegal? _documento(TipoDocumentoLegal tipo) =>
+      widget.documentos.where((d) => d.tipo == tipo).firstOrNull;
+
+  String? get _versionCompartida {
+    final terminos = _documento(TipoDocumentoLegal.terminos);
+    final privacidad = _documento(TipoDocumentoLegal.privacidad);
+    return terminos != null && terminos.version == privacidad?.version
+        ? terminos.version
+        : null;
+  }
+
+  String _nombre(TipoDocumentoLegal tipo, String porDefecto) {
+    final documento = _documento(tipo);
+    final nombre = documento?.nombre ?? porDefecto;
+    return documento != null && _versionCompartida == null
+        ? '$nombre (versión ${documento.version})'
+        : nombre;
+  }
 
   @override
   Widget build(BuildContext context) {
     const negrita = TextStyle(fontWeight: FontWeight.w700);
     final onChanged = widget.onChanged;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox.square(
-              dimension: 22,
-              child: Checkbox(
-                value: widget.aceptada,
-                onChanged: onChanged == null
-                    ? null
-                    : (valor) => onChanged(valor ?? false),
-                materialTapTargetSize: MaterialTapTargetSize.padded,
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: GestureDetector(
-                onTap: onChanged == null
-                    ? null
-                    : () => onChanged(!widget.aceptada),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      const TextSpan(text: 'Acepto los '),
-                      TextSpan(
-                        text: _nombre(
-                          TipoDocumentoLegal.terminos,
-                          'Términos y condiciones',
-                        ),
-                        style: negrita,
-                        recognizer: _abrirTerminos,
-                      ),
-                      const TextSpan(text: ' y la '),
-                      TextSpan(
-                        text: _nombre(
-                          TipoDocumentoLegal.privacidad,
-                          'Política de privacidad',
-                        ),
-                        style: negrita,
-                        recognizer: _abrirPrivacidad,
-                      ),
-                      const TextSpan(
-                        text: ', y declaro que tengo 14 años o más.',
-                      ),
-                    ],
-                  ),
-                  style: TemaSuperaPaes.pequeno,
-                ),
-              ),
-            ),
-          ],
+    _abrirTerminos.onTap = onChanged == null
+        ? null
+        : () => context.push(Rutas.terminos);
+    _abrirPrivacidad.onTap = onChanged == null
+        ? null
+        : () => context.push(Rutas.privacidad);
+    return Sacudida(
+      veces: widget.intentosFallidos,
+      child: DecoratedBox(
+        key: const ValueKey('casilla-aceptacion'),
+        decoration: BoxDecoration(
+          border: widget.error == null
+              ? null
+              : Border.all(color: TemaSuperaPaes.error),
+          borderRadius: BorderRadius.circular(TemaSuperaPaes.radioChico),
         ),
-        if (widget.error case final mensaje?) ...[
-          const SizedBox(height: 8),
-          Text(
-            mensaje,
-            style: TemaSuperaPaes.pequeno.copyWith(color: TemaSuperaPaes.error),
+        child: Padding(
+          padding: const EdgeInsets.all(TemaSuperaPaes.espacio8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox.square(
+                    dimension: TemaSuperaPaes.zonaTactil,
+                    child: Checkbox(
+                      value: widget.aceptada,
+                      onChanged: onChanged == null
+                          ? null
+                          : (valor) => onChanged(valor ?? false),
+                      materialTapTargetSize: MaterialTapTargetSize.padded,
+                      isError: widget.error != null,
+                    ),
+                  ),
+                  const SizedBox(width: TemaSuperaPaes.espacio8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onChanged == null
+                          ? null
+                          : () => onChanged(!widget.aceptada),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: TemaSuperaPaes.zonaTactil,
+                        ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                const TextSpan(text: 'Acepto los '),
+                                TextSpan(
+                                  text: _nombre(
+                                    TipoDocumentoLegal.terminos,
+                                    'Términos y condiciones',
+                                  ),
+                                  style: negrita,
+                                  recognizer: _abrirTerminos,
+                                ),
+                                const TextSpan(text: ' y la '),
+                                TextSpan(
+                                  text: _nombre(
+                                    TipoDocumentoLegal.privacidad,
+                                    'Política de privacidad',
+                                  ),
+                                  style: negrita,
+                                  recognizer: _abrirPrivacidad,
+                                ),
+                                if (_versionCompartida case final version?)
+                                  TextSpan(text: ' (versión $version)'),
+                                const TextSpan(
+                                  text: ' y declaro tener 14 años o más.',
+                                ),
+                              ],
+                            ),
+                            style: TemaSuperaPaes.pequeno,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (widget.error case final mensaje?) ...[
+                const SizedBox(height: 8),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    mensaje,
+                    style: TemaSuperaPaes.pequeno.copyWith(
+                      color: TemaSuperaPaes.error,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }

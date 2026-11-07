@@ -358,13 +358,54 @@ el almacenamiento seguro, los contratos ni las redirecciones.
 Las medidas nuevas están en `TemaSuperaPaes`: `anchoLogoAcceso` (146),
 `altoLogoAcceso` (120), `escalaEntradaLogoAcceso` (0,96) y `confirmacionAcceso`
 (600 ms). La entrada reutiliza `movimientoLento` y todas las duraciones animadas
-pasan por `duracion`. A01 y A04 adoptarán estos componentes en sus propias tareas.
+pasan por `duracion`. A01 los adopta en F2.5 y A04 lo hará en su propia tarea.
 
 `ingreso_diseno_test.dart` verifica el logo, la espera por la apertura, los estados
 del botón, envíos repetidos, errores de credenciales, aviso a través del interceptor,
 limpieza tras ingresar, cierre voluntario, falta de conexión, letra a 2,0,
 movimiento reducido y desmontaje durante la confirmación. Las pruebas previas de
 sesión, apertura y tamaños se conservan.
+
+## Crear cuenta (F2.5)
+
+A01 usa `LogoAcceso` y los cuatro estados de `BotonPrincipal`. Conserva el formulario,
+las validaciones locales y de la API, el código de invitación opcional y la salida a
+Verificar correo. El envío se protege contra duplicados; campos, casilla y enlaces
+quedan bloqueados al enviar y confirmar. El éxito se muestra durante 600 ms antes de
+guardar la sesión, sin espera con movimiento reducido. El controlador se cancela al
+desmontar, como en A03.
+
+`RequisitosContrasena` actualiza sus marcas al editar la contraseña o el correo:
+
+- Largo de 8 a 72 caracteres, contando caracteres Unicode como el validador existente.
+- Distinta del correo, con su misma normalización de espacios y mayúsculas.
+- Contraseña no común: queda pendiente hasta que la API acepta el registro; un rechazo
+  por `contrasena_comun` la marca como no cumplida. Editarla vuelve a dejarla pendiente.
+
+Las marcas usan ícono, color y estado semántico; no duplican la lista de contraseñas
+comunes ni el control de bytes de la API. La ayuda bajo el campo conserva la copia
+de DOC-06: «De 8 a 72 caracteres. No uses una contraseña común ni tu correo.».
+
+La casilla conserva los nombres y las versiones de los documentos vigentes obtenidos
+por el provider. Si ambos comparten versión, la copia de DOC-06 se presenta como:
+
+> Acepto los Términos y condiciones y la Política de privacidad (versión 1.0) y declaro tener 14 años o más.
+
+`1.0` es solo el ejemplo de DOC-06: no está fijado en el código. Si las versiones son
+distintas se muestra la de cada documento junto a su nombre. Los dos enlaces siguen
+abriendo los textos vigentes. Si la API indica que los documentos cambiaron, se recargan
+y se vuelve a exigir aceptación; se envían los identificadores de las nuevas versiones.
+
+Cuando falta aceptar, la casilla tiene borde y marca de error, una sacudida por intento
+y un mensaje con región semántica activa. La sacudida se omite con movimiento reducido.
+La casilla y el texto conservan una zona de toque mínima de 48 dp. Aceptar elimina el
+error visual sin enviar automáticamente el registro. Se reutilizan los tokens del tema.
+
+`registro_diseno_test.dart` cubre marcas, Unicode y correo, autoridad de la API sobre
+contraseñas comunes, error y movimiento de la casilla, tamaño de toque, versiones
+distintas y cambiantes, enlaces, registro pendiente y duplicados, desmontaje y letra
+a 2,0 con y sin movimiento reducido. `registro_test.dart` mantiene sus casos; la
+expectativa de la casilla se actualiza a la copia exacta de DOC-06.
 
 ## Navegación persistente (F1)
 
