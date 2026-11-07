@@ -9,8 +9,7 @@ abstract final class ValidacionesRegistro {
 
   /// Requisitos de RN-31 que se muestran bajo el campo (A01).
   static const String requisitosContrasena =
-      'De 8 a 72 caracteres. No uses una contraseña común, como 12345678, ni '
-      'tu correo.';
+      'De 8 a 72 caracteres. No uses una contraseña común ni tu correo.';
 
   static final RegExp _correo = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 

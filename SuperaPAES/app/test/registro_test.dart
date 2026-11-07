@@ -298,8 +298,8 @@ void main() {
       expect(find.text(ValidacionesRegistro.requisitosContrasena), findsOne);
       expect(
         find.text(
-          'Acepto los Términos y condiciones y la Política de privacidad, y '
-          'declaro que tengo 14 años o más.',
+          'Acepto los Términos y condiciones y la Política de privacidad '
+          '(versión 1.0) y declaro tener 14 años o más.',
         ),
         findsOne,
       );
