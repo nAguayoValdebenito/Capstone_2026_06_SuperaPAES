@@ -77,7 +77,7 @@ class PantallaFormulario extends StatelessWidget {
             children: [
               Expanded(
                 child: switch (alActualizar) {
-                  final actualizar? => RefreshIndicator(
+                  final actualizar? => RefreshIndicator.adaptive(
                     onRefresh: actualizar,
                     child: lista,
                   ),

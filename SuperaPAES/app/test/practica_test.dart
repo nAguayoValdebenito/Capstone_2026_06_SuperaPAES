@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/modelos/practica_modelo.dart';
+import 'package:supera_paes/dominio/entidades/cupo_de_hoy.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/practicar/pantalla_resumen_practica.dart';
 
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
+import 'apoyo/repositorio_cupo_falso.dart';
 import 'apoyo/repositorio_practica_falso.dart';
 
 /// Abre Practicar con el perfil de ejemplo (Lectora, M1 a reforzar y
@@ -17,10 +21,23 @@ import 'apoyo/repositorio_practica_falso.dart';
 Future<(ProviderContainer, RepositorioPracticaFalso)> _abrirPracticar(
   WidgetTester tester, {
   RepositorioPracticaFalso? practica,
+  RepositorioCupoFalso? cupo,
 }) async {
   final repositorio = practica ?? RepositorioPracticaFalso();
   final contenedor = crearContenedor(
-    sesion: sesionDeEjemplo,
+    sesion: sesionDeEjemplo.conCorreoVerificado(),
+    cupo:
+        cupo ??
+        RepositorioCupoFalso(
+          cupo: CupoDeHoy(
+            maximo: 20,
+            usadas: 0,
+            restantes: 20,
+            saldoExtra: 0,
+            reiniciaEn: DateTime.now().add(const Duration(hours: 5)),
+            racha: 5,
+          ),
+        ),
     practica: repositorio,
   );
   await iniciarApp(tester, contenedor, ruta: Rutas.practicar);
@@ -47,12 +64,12 @@ void main() {
 
       expect(repositorio.cursos, ['3M']);
       final chips = tester
-          .widgetList<ChipSeleccion>(find.byType(ChipSeleccion))
-          .map((chip) => (chip.texto, chip.seleccionado));
+          .widgetList<ChipPrueba>(find.byType(ChipPrueba))
+          .map((chip) => (chip.prueba, chip.seleccionado));
       expect(chips, [
-        ('M1 · reforzar', true),
-        ('Lectora', false),
-        ('Ciencias', false),
+        (Prueba.m1, true),
+        (Prueba.cl, false),
+        (Prueba.cie, false),
       ]);
       expect(_marcada(tester, 'Toda la prueba'), isTrue);
     });
@@ -85,6 +102,11 @@ void main() {
 
     testWidgets('sugiere 10 preguntas y va de 5 a 20 (esc. 3)', (tester) async {
       final (contenedor, _) = await _abrirPracticar(tester);
+      await tester.scrollUntilVisible(
+        find.byTooltip('Más preguntas'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('10'), findsOne);
       expect(find.text('de 5 a 20'), findsOne);
 
@@ -105,8 +127,25 @@ void main() {
     });
 
     testWidgets('muestra las preguntas que quedan hoy', (tester) async {
-      await _abrirPracticar(tester);
+      await _abrirPracticar(
+        tester,
+        cupo: RepositorioCupoFalso(
+          cupo: CupoDeHoy(
+            maximo: 20,
+            usadas: 17,
+            restantes: 3,
+            saldoExtra: 5,
+            reiniciaEn: DateTime.now().add(const Duration(hours: 5)),
+            racha: 5,
+          ),
+        ),
+      );
 
+      await tester.scrollUntilVisible(
+        find.text('Hoy te quedan 8 preguntas: 3 del cupo diario y 5 extra.'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.text('Hoy te quedan 8 preguntas: 3 del cupo diario y 5 extra.'),
         findsOne,

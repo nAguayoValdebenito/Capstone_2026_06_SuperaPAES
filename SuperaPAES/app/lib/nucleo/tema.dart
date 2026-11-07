@@ -126,6 +126,7 @@ abstract final class TemaSuperaPaes {
   /// escalonada de las listas.
   static const double desplazamientoPantalla = 24;
   static const double desplazamientoLista = 8;
+  static const double trazoFondoHoy = 116;
 
   /// Entrada escalonada: 40 ms entre elementos y, desde el sexto, entran
   /// todos con él.

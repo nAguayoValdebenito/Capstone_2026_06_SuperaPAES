@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/disponibilidad_practica.dart';
+import 'package:supera_paes/presentacion/comunes/trazo.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/empezar_practica.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
@@ -62,6 +63,9 @@ class _PantallaSinPreguntasState extends ConsumerState<PantallaSinPreguntas>
               : _explicacion(aviso, prueba, dificultades),
           bajada: aviso == null ? 'Vuelve a elegir qué practicar.' : null,
         ),
+        const Center(child: Trazo()),
+        if (aviso != null)
+          DisponibilidadPractica(pruebaId: aviso.datos.pruebaId),
         ListaDeFilas(
           filas: [
             if (aviso case final aviso? when aviso.usarMezcla)

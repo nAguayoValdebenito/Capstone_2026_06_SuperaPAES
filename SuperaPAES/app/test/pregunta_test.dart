@@ -3,6 +3,7 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/modelos/practica_modelo.dart';
+import 'package:supera_paes/dominio/entidades/cupo_de_hoy.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -11,6 +12,7 @@ import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
+import 'apoyo/repositorio_cupo_falso.dart';
 import 'apoyo/repositorio_practica_falso.dart';
 
 /// Empieza una práctica de M1 (la prueba a reforzar del perfil de ejemplo)
@@ -22,7 +24,17 @@ Future<ProviderContainer> _empezar(
   int restar = 0,
 }) async {
   final contenedor = crearContenedor(
-    sesion: sesionDeEjemplo,
+    sesion: sesionDeEjemplo.conCorreoVerificado(),
+    cupo: RepositorioCupoFalso(
+      cupo: CupoDeHoy(
+        maximo: 20,
+        usadas: 0,
+        restantes: 20,
+        saldoExtra: 0,
+        reiniciaEn: DateTime.now().add(const Duration(hours: 5)),
+        racha: 5,
+      ),
+    ),
     practica: repositorio,
   );
   await iniciarApp(tester, contenedor, ruta: Rutas.practicar);
@@ -59,7 +71,7 @@ void main() {
       expect(rutaActual(contenedor), Rutas.pregunta);
       expect(find.text('Terminar'), findsOne);
       expect(
-        find.textContaining('Hoy te quedan 8', findRichText: true),
+        find.textContaining('Hoy te quedan 20', findRichText: true),
         findsOne,
       );
       expect(find.text('M1 · Mezcla'), findsOne);

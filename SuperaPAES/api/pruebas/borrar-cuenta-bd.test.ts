@@ -158,6 +158,9 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
     expect((await estadoDeLaCuenta(ana.token)).body.data.suscripcionVigente).toEqual({
       estado: 'activa',
       plan: 'Todas las pruebas',
+      alcance: 'todas',
+      pruebasIncluidas: [],
+      coberturaVigente: true,
       periodicidad: 'mensual',
       tienda: 'google_play',
       periodoFin: null,
@@ -167,6 +170,9 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
     expect((await estadoDeLaCuenta(beto.token)).body.data.suscripcionVigente).toEqual({
       estado: 'en_mora',
       plan: 'Una prueba',
+      alcance: 'una_prueba',
+      pruebasIncluidas: [],
+      coberturaVigente: true,
       periodicidad: 'anual',
       tienda: 'app_store',
       periodoFin: null,

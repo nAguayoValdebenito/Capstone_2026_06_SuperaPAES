@@ -8,9 +8,11 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
-import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/comunes/cuenta_regresiva_cupo.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
 import 'package:supera_paes/presentacion/comunes/navegar.dart';
-import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 /// Cupo agotado (A22; HU-33 esc. 1 y 2, HU-47 esc. 3, CU-07a, CU-07b, RF-A09,
 /// RN-01, RN-04): se abre cuando la práctica recibe `CUPO_AGOTADO`. Cuenta el
@@ -23,11 +25,28 @@ class PantallaCupoAgotado extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sinVerificar =
-        ref.watch(sesionProvider).value?.estudiante.correoVerificado == false;
+        ref.watch(estadoUsuarioProvider).value?.verificado == false;
+    final usuario = ref.watch(estadoUsuarioProvider).value;
+    final opciones = ref.watch(opcionesPerfilProvider).value;
     return PantallaFormulario(
       hijos: [
         const EnlaceVolver(texto: 'Inicio', destino: Rutas.inicio),
         const _EncabezadoCupo(),
+        if (ref.watch(estadoUsuarioProvider).value?.cupo.reiniciaEn
+            case final reinicia?)
+          CuentaRegresivaCupo(reiniciaEn: reinicia),
+        if (usuario != null && opciones != null)
+          for (final id in usuario.perfil.pruebas.where(usuario.cubre))
+            OutlinedButton(
+              onPressed: () {
+                ref.read(borradorPracticaProvider.notifier).elegirPrueba(id);
+                context.go(Rutas.practicar);
+              },
+              child: Text(
+                'Practicar ${opciones.prueba(id)?.nombreCorto ?? ''}'
+                ' · incluida en tu plan',
+              ),
+            ),
         ListaDeFilas(
           filas: [
             if (sinVerificar)
@@ -59,6 +78,12 @@ class PantallaCupoAgotado extends ConsumerWidget {
         ),
         ListaDeFilas(
           filas: [
+            FilaNavegacion(
+              icono: Icons.replay,
+              texto: 'Ver diagnósticos',
+              detalle: 'No usan tu cupo de práctica.',
+              onTap: () => context.go(Rutas.evaluaciones),
+            ),
             FilaNavegacion(
               icono: Icons.replay,
               texto: 'Repasar errores',
@@ -124,10 +149,20 @@ class _EncabezadoCupoState extends ConsumerState<_EncabezadoCupo> {
 
   @override
   Widget build(BuildContext context) {
-    final reiniciaEn = ref.watch(cupoDeHoyProvider).value?.reiniciaEn;
+    final estado = ref.watch(estadoUsuarioProvider).value;
+    final reiniciaEn = estado?.cupo.reiniciaEn;
+    final pocas =
+        estado != null &&
+        !estado.cupo.agotado &&
+        estado.cupoRestante + estado.bonos < BorradorPractica.cantidadMinima;
     return Encabezado(
-      titulo: 'Por hoy completaste tu cupo',
-      bajada: textoDeRegreso(reiniciaEn, clock.now()),
+      titulo: pocas
+          ? 'Te quedan ${estado.cupoRestante + estado.bonos} preguntas'
+          : 'Por hoy completaste tu cupo',
+      bajada:
+          '${pocas ? 'Una práctica necesita al menos '
+                    '${BorradorPractica.cantidadMinima} preguntas. ' : ''}'
+          '${textoDeRegreso(reiniciaEn, clock.now())}',
     );
   }
 }

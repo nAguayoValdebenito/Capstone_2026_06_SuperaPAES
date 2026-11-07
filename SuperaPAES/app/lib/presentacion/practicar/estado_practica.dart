@@ -129,6 +129,16 @@ class EstadoBorradorPractica extends Notifier<BorradorPractica> {
   );
 
   /// Lo que se eligió en el aviso de A15.
+  void fijarCantidad(int cantidad) => state = BorradorPractica(
+    pruebaId: state.pruebaId,
+    alcance: state.alcance,
+    dificultadId: state.dificultadId,
+    cantidad: cantidad.clamp(
+      BorradorPractica.cantidadMinima,
+      BorradorPractica.cantidadMaxima,
+    ),
+  );
+
   void usar(DatosPractica datos) => state = BorradorPractica(
     pruebaId: datos.pruebaId,
     alcance: datos.alcance,
