@@ -213,6 +213,7 @@ Base de diseño y movimiento (fase 0 de la implementación de las maquetas, 06/1
 | `Cambiante(clave:, child:)` | Fundido de 200 ms + 15 % hacia arriba al cambiar un texto o bloque | Fundido de 150 ms |
 | `MarcaRacha(encender:)` | El trazo del logo como marca de la racha; crece con la letra | Trazo completo |
 | `BotonPrincipal(texto:, onPressed:, estado:, error:, intentosFallidos:)` | El `FilledButton` principal con estados `EstadoBoton.normal`, `cargando` (sigue azul, rueda blanca, no se apaga), `exito` (✓ verde) y `error` (texto encima y sacudida) | Corte entre estados |
+| `LogoAcceso()` | Logo oficial de los formularios de acceso: entrada de escala 0,96 a 1 en 400 ms, con espacio fijo de 146 × 120; espera a que termine la apertura inicial | Escala final en el primer cuadro |
 
 Mientras cada pantalla no se porte a sus componentes nuevos (fases 1 a 6) conviven con los
 anteriores; al portarla se borra el anterior.
@@ -327,6 +328,43 @@ Los valores viven en `TemaSuperaPaes`: `anchoSimboloApertura` (160),
 `test/apertura_test.dart` cubre los tiempos, sesión rápida y lenta, ausencia de sesión,
 error del almacén, espera por perfil incompleto, dirección pública, movimiento reducido,
 centrado con letra a 2,0 en teléfono y tablet, cierre de sesión y desmontaje anticipado.
+
+## Ingreso y sesión vencida (F2.4)
+
+A03 usa `LogoAcceso` y `BotonPrincipal`. La entrada del logo comienza cuando la
+apertura inicial deja de cubrir el formulario. No cambia el espacio del logo ni
+se repite al corregir un campo. Con movimiento reducido se ve completo desde el
+primer cuadro, incluso si se activa la preferencia mientras está entrando.
+
+El botón conserva el azul al enviar, bloquea envíos repetidos y muestra la marca
+de éxito durante 600 ms antes de guardar la sesión y continuar con la navegación
+existente. Esta confirmación usa un controlador cancelable; con movimiento reducido
+no espera. Durante el envío y la confirmación los campos y enlaces quedan bloqueados.
+Los errores generales de la API aparecen una sola vez sobre el botón; los errores
+por campo mantienen su lugar. Cada intento fallido actualiza la sacudida existente,
+que se omite al reducir movimiento. Corregir un campo restablece el estado normal.
+
+Cuando el interceptor intenta renovar y la API responde 401, `EstadoSesion` mantiene
+su cierre local existente y activa `avisoSesionVencidaProvider`, un estado de
+presentación solo en memoria. A03 muestra el aviso con región semántica activa:
+
+> Tu sesión terminó. Vuelve a entrar para seguir.
+
+El aviso se limpia al abrir una sesión nueva, al cerrar voluntariamente o al borrar
+la cuenta. No se activa por una contraseña incorrecta ni por una renovación sin
+conexión; esta última conserva la sesión, como antes. No cambia el interceptor,
+el almacenamiento seguro, los contratos ni las redirecciones.
+
+Las medidas nuevas están en `TemaSuperaPaes`: `anchoLogoAcceso` (146),
+`altoLogoAcceso` (120), `escalaEntradaLogoAcceso` (0,96) y `confirmacionAcceso`
+(600 ms). La entrada reutiliza `movimientoLento` y todas las duraciones animadas
+pasan por `duracion`. A01 y A04 adoptarán estos componentes en sus propias tareas.
+
+`ingreso_diseno_test.dart` verifica el logo, la espera por la apertura, los estados
+del botón, envíos repetidos, errores de credenciales, aviso a través del interceptor,
+limpieza tras ingresar, cierre voluntario, falta de conexión, letra a 2,0,
+movimiento reducido y desmontaje durante la confirmación. Las pruebas previas de
+sesión, apertura y tamaños se conservan.
 
 ## Navegación persistente (F1)
 

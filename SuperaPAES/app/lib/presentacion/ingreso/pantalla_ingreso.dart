@@ -8,8 +8,11 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/comunes/logo_acceso.dart';
+import 'package:supera_paes/presentacion/comunes/movimiento.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/validaciones_registro.dart';
 import 'package:supera_paes/presentacion/ingreso/accesos_demo.dart';
 
@@ -22,18 +25,29 @@ class PantallaIngreso extends ConsumerStatefulWidget {
 
   /// Logo oficial (Figura 63 del DAS), empaquetado con la app con fondo
   /// transparente.
-  static const String logo = 'assets/imagenes/logo_supera_paes.png';
+  static const String logo = LogoAcceso.recurso;
+
+  static const String avisoSesionVencida =
+      'Tu sesión terminó. Vuelve a entrar para seguir.';
 
   @override
   ConsumerState<PantallaIngreso> createState() => _PantallaIngresoState();
 }
 
-class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
+class _PantallaIngresoState extends ConsumerState<PantallaIngreso>
+    with SingleTickerProviderStateMixin {
   final _formulario = GlobalKey<FormState>();
   final _correo = TextEditingController();
   final _contrasena = TextEditingController();
 
-  bool _enviando = false;
+  late final AnimationController _confirmacion = AnimationController(
+    vsync: this,
+  );
+  EstadoBoton _estado = EstadoBoton.normal;
+  int _intentosFallidos = 0;
+
+  bool get _enviando =>
+      _estado == EstadoBoton.cargando || _estado == EstadoBoton.exito;
 
   /// Errores de la API por campo (`VALIDACION`).
   Map<String, String> _erroresServidor = const {};
@@ -44,15 +58,33 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
   String? _errorGeneral;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _confirmacion.duration = duracion(
+      context,
+      TemaSuperaPaes.confirmacionAcceso,
+    );
+    if (reducirMovimiento(context) && _confirmacion.isAnimating) {
+      _confirmacion.value = 1;
+    }
+  }
+
+  @override
   void dispose() {
     _correo.dispose();
     _contrasena.dispose();
+    _confirmacion.dispose();
     super.dispose();
   }
 
   void _limpiarErrores(String campo) {
-    if (_errorGeneral == null && !_erroresServidor.containsKey(campo)) return;
+    if (_estado != EstadoBoton.error &&
+        _errorGeneral == null &&
+        !_erroresServidor.containsKey(campo)) {
+      return;
+    }
     setState(() {
+      _estado = EstadoBoton.normal;
       _errorGeneral = null;
       _erroresServidor = Map.of(_erroresServidor)..remove(campo);
     });
@@ -60,16 +92,25 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
 
   /// Solo en desarrollo: llena el formulario con la cuenta y entra.
   void _entrarCon(AccesoDemo acceso) {
+    if (_enviando) return;
     _correo.text = acceso.correo;
     _contrasena.text = claveDemo;
     unawaited(_ingresar());
   }
 
   Future<void> _ingresar() async {
+    if (_enviando) return;
     setState(() => _errorGeneral = null);
-    if (!(_formulario.currentState?.validate() ?? false)) return;
+    if (!(_formulario.currentState?.validate() ?? false)) {
+      setState(() {
+        _estado = EstadoBoton.error;
+        _intentosFallidos++;
+      });
+      return;
+    }
 
-    setState(() => _enviando = true);
+    setState(() => _estado = EstadoBoton.cargando);
+    var completado = false;
     try {
       final sesion = await ref
           .read(repositorioCuentasProvider)
@@ -78,20 +119,31 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
             contrasena: _contrasena.text,
             dispositivo: nombreDispositivo(),
           );
+      if (!mounted) return;
+      setState(() => _estado = EstadoBoton.exito);
+      await _confirmacion.forward(from: 0).orCancel;
+      if (!mounted) return;
       await ref.read(sesionProvider.notifier).abrir(sesion);
       if (!mounted) return;
+      completado = true;
       context.go(Rutas.inicio);
     } on ErrorApi catch (error) {
       if (!mounted) return;
       setState(() {
+        _estado = EstadoBoton.error;
+        _intentosFallidos++;
         _erroresServidor = {
           for (final problema in error.problemas)
             problema.ruta: problema.mensaje,
         };
         _errorGeneral = _erroresServidor.isEmpty ? error.mensaje : null;
       });
+    } on TickerCanceled {
+      // Se dejó la pantalla durante la confirmación; no se abre otra sesión.
     } finally {
-      if (mounted) setState(() => _enviando = false);
+      if (mounted && !completado && _enviando) {
+        setState(() => _estado = EstadoBoton.normal);
+      }
     }
   }
 
@@ -99,17 +151,8 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
   Widget build(BuildContext context) {
     return PantallaFormulario(
       hijos: [
-        const SizedBox(height: 24),
-        Center(
-          child: Image.asset(
-            PantallaIngreso.logo,
-            // Proporción del logo (932 × 764, con fondo transparente desde
-            // el 03/11, sin la caja blanca): reserva su lugar antes de cargar.
-            width: 146,
-            height: 120,
-            semanticLabel: Textos.nombreApp,
-          ),
-        ),
+        const SizedBox(height: TemaSuperaPaes.espacio24),
+        const Center(child: LogoAcceso()),
         // En el boceto, el logo es el título; la bajada va centrada.
         Semantics(
           header: true,
@@ -122,6 +165,14 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
             ),
           ),
         ),
+        if (ref.watch(avisoSesionVencidaProvider))
+          Semantics(
+            liveRegion: true,
+            child: const Aviso(
+              tono: TonoAviso.info,
+              texto: PantallaIngreso.avisoSesionVencida,
+            ),
+          ),
         Form(
           key: _formulario,
           child: AutofillGroup(
@@ -162,15 +213,12 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso> {
                     child: const Text('¿Olvidaste tu contraseña?'),
                   ),
                 ),
-                if (_errorGeneral case final mensaje?) ...[
-                  Aviso(tono: TonoAviso.error, texto: mensaje),
-                  const SizedBox(height: 16),
-                ],
-                FilledButton(
-                  onPressed: _enviando ? null : _ingresar,
-                  child: _enviando
-                      ? const CargandoEnBoton()
-                      : const Text('Entrar'),
+                BotonPrincipal(
+                  texto: 'Entrar',
+                  onPressed: _ingresar,
+                  estado: _estado,
+                  error: _errorGeneral,
+                  intentosFallidos: _intentosFallidos,
                 ),
                 if (kDebugMode)
                   AccesosDemo(onElegir: _enviando ? null : _entrarCon),
