@@ -65,7 +65,10 @@ class _PantallaIngresoState extends ConsumerState<PantallaIngreso>
       TemaSuperaPaes.confirmacionAcceso,
     );
     if (reducirMovimiento(context) && _confirmacion.isAnimating) {
-      _confirmacion.value = 1;
+      // Termina la espera sin cancelarla: todavía debe guardarse la sesión.
+      _confirmacion
+        ..stop(canceled: false)
+        ..value = 1;
     }
   }
 

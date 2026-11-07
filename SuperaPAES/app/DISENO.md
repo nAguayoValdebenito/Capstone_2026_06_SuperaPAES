@@ -482,6 +482,27 @@ semántica de `ChipTexto` y activar movimiento reducido durante las barras.
 Se conservan las aserciones de `perfil_test.dart`; su selector de refuerzo
 adopta `ChipPrueba`. No se modifican API, modelo de datos, rutas ni dependencias.
 
+## Revisión de la fase de arranque (F2.8)
+
+`arranque_marca_integracion_test.dart` recorre los widgets de la app con los
+repositorios de prueba, sin red: ingreso → registro → verificación pendiente →
+perfil inicial → Inicio → cierre → nuevo ingreso. También cubre recuperación,
+reenvío, regreso al ingreso, renovación rechazada, credenciales incorrectas y
+reingreso que limpia el aviso. Ambos recorridos se prueban con letra 2,0, con y
+sin movimiento reducido. Se comprueban la sesión guardada, las llamadas, la
+aceptación legal, el perfil, la barra y que la apertura no se repita.
+
+Si se activa movimiento reducido durante el éxito de A03 o A01, la espera se
+termina sin cancelarla: la sesión aceptada todavía debe guardarse y continuar
+al destino. Dos casos de regresión reproducían la pérdida de ese paso antes
+de la corrección. Abandonar la pantalla conserva la cancelación por desmontaje
+ya cubierta en las pruebas previas. No cambia el contrato ni el almacenamiento.
+
+La validación automática incluye formato, análisis, suite completa, compilación
+Android y revisión de los recursos nativos de íconos y apertura. Los recorridos
+con repositorios de prueba y la validación de XML/PNG no reemplazan la revisión
+manual en un dispositivo; compilar y verificar iOS requiere macOS.
+
 ## Navegación persistente (F1)
 
 `enrutador.dart` mantiene un navegador independiente por pestaña. La fuente de pantallas sigue
