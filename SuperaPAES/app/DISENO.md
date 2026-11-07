@@ -253,6 +253,25 @@ Las pestañas y las pantallas siguen declaradas en `secciones.dart`. Los íconos
 Material (`Icons.…_rounded` o `_outlined`) en vez de los SVG de Figma, salvo los glifos de las pruebas y
 de las pestañas, que son propios (`glifos.dart`).
 
+## Íconos nativos (F2.1)
+
+Los íconos usan los recursos aprobados `icono_ios_1024.png` e
+`icono_android_frente_432.png` de la maqueta, sin dependencias adicionales.
+
+- **Android:** `mipmap-anydpi-v26/ic_launcher.xml` define el ícono adaptativo con
+  fondo blanco (`fondo_icono_launcher`) y el símbolo centrado del frente original.
+  `ic_launcher_foreground.png` tiene un lienzo de 108 dp: 108, 162, 216, 324 y
+  432 px según la densidad. Un margen nativo de 7 % por lado mantiene también las
+  puntas del libro dentro de la zona segura circular de 66 dp, sin recortar el PNG.
+  Los cinco `ic_launcher.png` de respaldo también usan la marca. El manifiesto
+  apunta al mismo recurso para `icon` y `roundIcon`; el lanzador aplica su máscara.
+- **iOS:** `AppIcon.appiconset` conserva su catálogo y sus nombres; todos los PNG
+  tienen el tamaño requerido por `Contents.json`, fondo blanco opaco y formato RGB
+  sin canal alfa. La imagen de App Store mide 1024 × 1024 px. Las esquinas las aplica
+  el sistema, no la imagen.
+
+La apertura nativa y la pantalla de carga se implementan en las tareas siguientes.
+
 ## Navegación persistente (F1)
 
 `enrutador.dart` mantiene un navegador independiente por pestaña. La fuente de pantallas sigue
