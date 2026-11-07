@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ancho de SimboloLogo; el alto conserva la proporción 590 × 564. -->
+    <dimen name="ancho_simbolo_apertura">160dp</dimen>
+    <dimen name="alto_simbolo_apertura">153dp</dimen>
+</resources>

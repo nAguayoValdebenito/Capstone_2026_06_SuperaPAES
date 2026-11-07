@@ -270,7 +270,28 @@ Los íconos usan los recursos aprobados `icono_ios_1024.png` e
   sin canal alfa. La imagen de App Store mide 1024 × 1024 px. Las esquinas las aplica
   el sistema, no la imagen.
 
-La apertura nativa y la pantalla de carga se implementan en las tareas siguientes.
+## Apertura nativa (F2.2)
+
+La apertura muestra únicamente el libro y el birrete de
+`assets/imagenes/simbolo_sin_trazo.png` (590 × 564, transparente). Es el mismo recurso
+de la maqueta y de `SimboloLogo`: el trazo celeste se dibujará en Flutter en F2.3.
+El fondo nativo es `#F4F6FA`, equivalente a `TemaSuperaPaes.fondo`, tanto en modo claro
+como oscuro. No se agregan dependencias ni esperas nativas.
+
+El símbolo queda centrado en la ventana, en una caja de 160 × 153 dp/pt. Este es el
+contrato de posición y tamaño para la pantalla de carga Flutter; el alto redondea la
+proporción original del símbolo al ancho 160 de `SimboloLogo`.
+
+| Plataforma | Recursos |
+| ---------- | -------- |
+| Android 8–11 | `drawable/launch_background.xml` y su variante `drawable-v21` usan `fondo_apertura` y el símbolo centrado con las dimensiones de `dimensiones_apertura.xml`. |
+| Android 12 o superior | `values-v31/styles.xml` y `values-night-v31/styles.xml` asignan el fondo con `windowSplashScreenBackground` y el símbolo estático con `windowSplashScreenAnimatedIcon`. El PNG tiene un lienzo transparente de 288 dp y el mismo símbolo de 160 × 153 dp dentro, protegido frente a la máscara circular de 192 dp del sistema. |
+| iOS | `LaunchScreen.storyboard` centra `LaunchImage` con restricciones de 160 × 153 pt y `scaleAspectFit`; el catálogo aporta los PNG transparentes 1x, 2x y 3x. |
+
+Los PNG de Android tienen variantes mdpi, hdpi, xhdpi, xxhdpi y xxxhdpi. Los temas
+`NormalTheme` mantienen el mismo fondo mientras Flutter prepara su primer cuadro.
+La pantalla de carga, su animación, la espera por sesión y el fundido al destino
+pertenecen a F2.3; F2.2 solo configura la apertura nativa estática.
 
 ## Navegación persistente (F1)
 
