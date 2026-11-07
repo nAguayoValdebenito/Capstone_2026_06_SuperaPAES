@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/borrador_perfil.dart';
@@ -79,15 +81,13 @@ class _PantallaPasoCursoState extends ConsumerState<PantallaPasoCurso>
     final correccion = borrador.modo == ModoPerfil.correccion;
     return ConOpciones(
       builder: (opciones) => PantallaFormulario(
-        separacion: 14,
-        pie: PieConError(
+        separacion: TemaSuperaPaes.espacio16,
+        pie: BotonPrincipal(
+          texto: correccion ? 'Guardar mi curso' : 'Continuar',
+          onPressed: borrador.curso == null ? null : _continuar,
+          estado: estadoGuardar,
           error: errorGuardar,
-          boton: FilledButton(
-            onPressed: borrador.curso == null || guardando ? null : _continuar,
-            child: guardando
-                ? const CargandoEnBoton()
-                : Text(correccion ? 'Guardar mi curso' : 'Continuar'),
-          ),
+          intentosFallidos: intentosGuardar,
         ),
         hijos: [
           if (borrador.modo != ModoPerfil.bienvenida)
@@ -108,6 +108,7 @@ class _PantallaPasoCursoState extends ConsumerState<PantallaPasoCurso>
               for (final (i, curso) in opciones.cursos.indexed) ...[
                 if (i > 0) const SizedBox(height: 8),
                 OpcionRadio(
+                  conMovimiento: true,
                   texto: curso.esEgresado ? 'Ya egresé' : curso.nombre,
                   seleccionada: borrador.curso == curso.codigo,
                   onTap: () {

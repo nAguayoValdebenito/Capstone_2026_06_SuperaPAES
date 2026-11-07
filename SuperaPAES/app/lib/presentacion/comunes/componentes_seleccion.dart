@@ -2,12 +2,18 @@
 // «Componentes» de Figma, versión 3): Opción, Chip, Etiqueta, la tarjeta con
 // casilla de A10, el indicador de pasos de A08 a A10 y las filas de A37.
 // Guía: app/DISENO.md.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart'
     show Destacado;
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
+import 'package:supera_paes/presentacion/comunes/movimiento.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 
 /// Opción con radio (Opción: Normal y Seleccionada), como los cursos de A08.
 class OpcionRadio extends StatelessWidget {
@@ -17,6 +23,7 @@ class OpcionRadio extends StatelessWidget {
     required this.onTap,
     super.key,
     this.detalle,
+    this.conMovimiento = false,
   });
 
   final String texto;
@@ -25,6 +32,7 @@ class OpcionRadio extends StatelessWidget {
 
   /// Texto gris bajo el título, como el contenido elegido en A13.
   final String? detalle;
+  final bool conMovimiento;
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +41,22 @@ class OpcionRadio extends StatelessWidget {
       checked: seleccionada,
       child: _Seleccionable(
         seleccionada: seleccionada,
-        bordeAncho: seleccionada ? 2 : 1,
+        conMovimiento: conMovimiento,
+        bordeAncho: conMovimiento || seleccionada ? 2 : 1,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        onTap: onTap,
+        onTap: () {
+          if (conMovimiento && !seleccionada) {
+            unawaited(HapticFeedback.selectionClick());
+          }
+          onTap();
+        },
         child: Row(
           children: [
-            _Marca(redonda: true, marcada: seleccionada),
+            _Marca(
+              redonda: true,
+              marcada: seleccionada,
+              conMovimiento: conMovimiento,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: _TituloConDetalle(texto: texto, detalle: detalle),
@@ -95,6 +113,7 @@ class TarjetaCasilla extends StatelessWidget {
     super.key,
     this.detalle,
     this.etiqueta,
+    this.prueba,
   });
 
   final String titulo;
@@ -103,19 +122,41 @@ class TarjetaCasilla extends StatelessWidget {
   final String? detalle;
   final String? etiqueta;
 
+  /// Identidad de A10; las tarjetas aún no migradas conservan su estilo.
+  final Prueba? prueba;
+
   @override
   Widget build(BuildContext context) {
+    final identidad = prueba;
     return Semantics(
       checked: marcada,
       child: _Seleccionable(
         seleccionada: marcada,
+        conMovimiento: identidad != null,
+        colores: marcada && identidad != null
+            ? (identidad.fondo, identidad.tono)
+            : null,
         bordeAncho: 1,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        onTap: onTap,
+        onTap: () {
+          if (identidad != null) {
+            unawaited(HapticFeedback.selectionClick());
+          }
+          onTap();
+        },
         child: Row(
           children: [
-            _Marca(redonda: false, marcada: marcada),
+            _Marca(
+              redonda: false,
+              marcada: marcada,
+              tono: identidad?.tono,
+              conMovimiento: identidad != null,
+            ),
             const SizedBox(width: 12),
+            if (identidad != null) ...[
+              SelloPrueba(identidad),
+              const SizedBox(width: TemaSuperaPaes.espacio12),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,12 +169,16 @@ class TarjetaCasilla extends StatelessWidget {
                         color: TemaSuperaPaes.textoSecundario,
                       ),
                     ),
+                  if (identidad != null && etiqueta != null) ...[
+                    const SizedBox(height: TemaSuperaPaes.espacio4),
+                    Etiqueta(texto: etiqueta!),
+                  ],
                 ],
               ),
             ),
-            if (etiqueta case final texto?) ...[
+            if (identidad == null && etiqueta != null) ...[
               const SizedBox(width: 8),
-              Etiqueta(texto: texto),
+              Etiqueta(texto: etiqueta!),
             ],
           ],
         ),
@@ -153,6 +198,7 @@ class _Seleccionable extends StatelessWidget {
     required this.onTap,
     required this.child,
     this.colores,
+    this.conMovimiento = false,
   });
 
   final bool seleccionada;
@@ -165,6 +211,7 @@ class _Seleccionable extends StatelessWidget {
 
   /// Fondo y borde propios, como el verde de la alternativa correcta.
   final (Color, Color)? colores;
+  final bool conMovimiento;
 
   @override
   Widget build(BuildContext context) {
@@ -179,6 +226,27 @@ class _Seleccionable extends StatelessWidget {
                 // El borde transparente mantiene el tamaño al seleccionar.
                 conSombra ? Colors.transparent : TemaSuperaPaes.borde,
               ));
+    if (conMovimiento) {
+      return AnimatedContainer(
+        duration: duracion(context, TemaSuperaPaes.movimientoRapido),
+        curve: TemaSuperaPaes.curvaEntrada,
+        decoration: BoxDecoration(
+          color: fondo,
+          borderRadius: forma,
+          border: Border.all(color: borde, width: bordeAncho),
+          boxShadow: conSombra ? TemaSuperaPaes.sombraSuave : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: forma,
+          child: InkWell(
+            borderRadius: forma,
+            onTap: onTap,
+            child: Padding(padding: padding, child: child),
+          ),
+        ),
+      );
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: forma,
@@ -202,20 +270,39 @@ class _Seleccionable extends StatelessWidget {
 
 /// Radio (redonda) o casilla (cuadrada) de 22, marcada en azul.
 class _Marca extends StatelessWidget {
-  const _Marca({required this.redonda, required this.marcada});
+  const _Marca({
+    required this.redonda,
+    required this.marcada,
+    this.tono,
+    this.conMovimiento = false,
+  });
 
   final bool redonda;
   final bool marcada;
+  final Color? tono;
+  final bool conMovimiento;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: conMovimiento
+          ? duracion(context, TemaSuperaPaes.movimientoRapido)
+          : Duration.zero,
       width: 22,
       height: 22,
       decoration: BoxDecoration(
-        color: marcada ? TemaSuperaPaes.primario : TemaSuperaPaes.superficie,
+        color: marcada
+            ? tono ?? TemaSuperaPaes.primario
+            : TemaSuperaPaes.superficie,
         borderRadius: BorderRadius.circular(redonda ? 11 : 6),
-        border: marcada
+        border: conMovimiento
+            ? Border.all(
+                color: marcada
+                    ? tono ?? TemaSuperaPaes.primario
+                    : TemaSuperaPaes.bordeInput,
+                width: 2,
+              )
+            : marcada
             ? null
             : Border.all(color: TemaSuperaPaes.bordeInput, width: 2),
       ),
@@ -243,15 +330,69 @@ class ChipSeleccion extends StatelessWidget {
     required this.seleccionado,
     required this.onTap,
     super.key,
+    this.conMovimiento = false,
   });
 
   final String texto;
   final bool seleccionado;
   final VoidCallback onTap;
+  final bool conMovimiento;
 
   @override
   Widget build(BuildContext context) {
     final forma = BorderRadius.circular(TemaSuperaPaes.radioChip);
+    if (conMovimiento) {
+      return Semantics(
+        checked: seleccionado,
+        button: true,
+        label: texto,
+        onTap: onTap,
+        child: ExcludeSemantics(
+          child: Presionable(
+            radio: TemaSuperaPaes.radioChip,
+            onTap: () {
+              unawaited(HapticFeedback.selectionClick());
+              onTap();
+            },
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: TemaSuperaPaes.zonaTactil,
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: AnimatedContainer(
+                  duration: duracion(context, TemaSuperaPaes.movimientoRapido),
+                  curve: TemaSuperaPaes.curvaEntrada,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TemaSuperaPaes.espacio16,
+                    vertical: TemaSuperaPaes.espacio8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: seleccionado
+                        ? TemaSuperaPaes.primario
+                        : TemaSuperaPaes.superficie,
+                    borderRadius: forma,
+                    border: Border.all(
+                      color: seleccionado
+                          ? TemaSuperaPaes.primario
+                          : TemaSuperaPaes.bordeInput,
+                    ),
+                  ),
+                  child: Text(
+                    texto,
+                    style: TemaSuperaPaes.etiqueta.copyWith(
+                      color: seleccionado
+                          ? TemaSuperaPaes.superficie
+                          : TemaSuperaPaes.texto,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return ZonaTactil(
       onTap: onTap,
       child: Semantics(
@@ -289,6 +430,29 @@ class ChipSeleccion extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Chip de texto animado (F2): selección con vibración y color, zona de 48.
+/// Mantiene ChipSeleccion como base para migrar cada pantalla por fase.
+class ChipTexto extends StatelessWidget {
+  const ChipTexto({
+    required this.texto,
+    required this.seleccionado,
+    required this.onTap,
+    super.key,
+  });
+
+  final String texto;
+  final bool seleccionado;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ChipSeleccion(
+    texto: texto,
+    seleccionado: seleccionado,
+    onTap: onTap,
+    conMovimiento: true,
+  );
 }
 
 /// Grupo de chips que pasan a la línea siguiente, con 8 de separación.
@@ -642,13 +806,12 @@ class IndicadorPasos extends StatelessWidget {
             for (var i = 1; i <= total; i++) ...[
               if (i > 1) const SizedBox(width: 6),
               Expanded(
-                child: Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: i <= paso
-                        ? TemaSuperaPaes.primario
-                        : TemaSuperaPaes.neutroSuave,
-                    borderRadius: BorderRadius.circular(3),
+                child: ExcludeSemantics(
+                  child: BarraAnimada(
+                    valor: i <= paso ? 1 : 0,
+                    desde: i < paso ? 1 : 0,
+                    alto: TemaSuperaPaes.altoAvance,
+                    riel: TemaSuperaPaes.neutroSuave,
                   ),
                 ),
               ),

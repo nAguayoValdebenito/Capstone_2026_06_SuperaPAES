@@ -201,9 +201,12 @@ class _BarraAnimadaState extends State<BarraAnimada>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_iniciado) return;
-    _iniciado = true;
-    _animar(retraso: widget.retraso);
+    if (!_iniciado) {
+      _iniciado = true;
+      _animar(retraso: widget.retraso);
+    } else if (reducirMovimiento(context)) {
+      _c.value = 1;
+    }
   }
 
   @override
