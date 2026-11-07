@@ -358,7 +358,7 @@ el almacenamiento seguro, los contratos ni las redirecciones.
 Las medidas nuevas están en `TemaSuperaPaes`: `anchoLogoAcceso` (146),
 `altoLogoAcceso` (120), `escalaEntradaLogoAcceso` (0,96) y `confirmacionAcceso`
 (600 ms). La entrada reutiliza `movimientoLento` y todas las duraciones animadas
-pasan por `duracion`. A01 los adopta en F2.5 y A04 lo hará en su propia tarea.
+pasan por `duracion`. A01 los adopta en F2.5 y A04 en F2.6.
 
 `ingreso_diseno_test.dart` verifica el logo, la espera por la apertura, los estados
 del botón, envíos repetidos, errores de credenciales, aviso a través del interceptor,
@@ -406,6 +406,37 @@ contraseñas comunes, error y movimiento de la casilla, tamaño de toque, versio
 distintas y cambiantes, enlaces, registro pendiente y duplicados, desmontaje y letra
 a 2,0 con y sin movimiento reducido. `registro_test.dart` mantiene sus casos; la
 expectativa de la casilla se actualiza a la copia exacta de DOC-06.
+
+## Recuperar contraseña (F2.6)
+
+A04 usa `LogoAcceso` y `BotonPrincipal` con los estados normal, cargando, éxito y
+error. Conserva el correo, su validación, el enlace de vuelta al ingreso y la llamada
+pública existente de recuperación; la contraseña nueva sigue definiéndose en A05.
+
+Al aceptar la API la solicitud, el botón confirma éxito durante 600 ms y muestra el
+estado de correo enviado con el texto genérico existente: «Si [correo] está registrado,
+te llegará un enlace…». La pantalla no determina ni revela si existe esa cuenta.
+La confirmación es una región semántica activa y mantiene la explicación de un solo
+uso, vencimiento y sustitución del enlace anterior.
+
+El botón principal pasa de «Enviar enlace» a «Reenviar enlace» y pide otro al mismo
+correo confirmado. Durante cualquiera de las solicitudes y su confirmación se bloquean
+los envíos repetidos y la edición del correo. El reenvío usa el mismo contrato: no
+se agrega una espera ni un límite local; los errores y límites de la API se muestran.
+
+Editar un correo distinto limpia la confirmación anterior y vuelve al envío inicial.
+Un error de reenvío conserva el correo confirmado para reintentar. Los errores de
+campo quedan bajo el correo y los generales aparecen una sola vez sobre el botón.
+Con movimiento reducido el logo aparece completo y no hay espera de confirmación;
+también se respeta activar la preferencia durante el éxito. El controlador se libera
+al desmontar y las respuestas tardías no actualizan la pantalla descartada.
+
+Se reutilizan los tokens y componentes de F2.4; no se agregan dependencias, rutas,
+parámetros de negocio ni cambios en la API o la sesión.
+`recuperacion_diseno_test.dart` cubre estados, duplicados, correo normalizado, envío
+y reenvío pendientes, errores de campo, desconexión y 429, reintento, cambio de correo,
+letra 2,0, movimiento reducido y desmontaje. Los casos de `recuperacion_test.dart`
+se mantienen; su selector de reenvío adopta el botón principal.
 
 ## Navegación persistente (F1)
 

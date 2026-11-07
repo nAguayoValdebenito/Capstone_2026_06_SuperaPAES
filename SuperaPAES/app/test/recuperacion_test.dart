@@ -131,7 +131,7 @@ void main() {
     testWidgets('reenvía el enlace al mismo correo', (tester) async {
       await abrir(tester);
       await enviar(tester, 'camila@ejemplo.cl');
-      await tocar(tester, find.widgetWithText(TextButton, 'Reenviar enlace'));
+      await tocar(tester, find.widgetWithText(FilledButton, 'Reenviar enlace'));
 
       expect(repositorio.recuperaciones, [
         'camila@ejemplo.cl',
