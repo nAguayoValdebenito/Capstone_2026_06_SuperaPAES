@@ -248,9 +248,56 @@ No muestres el texto de una pregunta con `Text`: usa `TextoConFormulas`, o las f
 
 Los botones grandes no necesitan estilo propio: `FilledButton` (principal) y `OutlinedButton`
 (contorno, como «Cerrar sesión») ya salen con 52 de alto, a lo ancho y con radio 14. Las casillas
-son `Checkbox` y la barra inferior es la `NavigationBar` de `secciones.dart`. Los íconos son los de
+son `Checkbox`. En teléfono, la barra es `BarraInferior`; en tablet se conserva `NavigationBar`.
+Las pestañas y las pantallas siguen declaradas en `secciones.dart`. Los íconos son los de
 Material (`Icons.…_rounded` o `_outlined`) en vez de los SVG de Figma, salvo los glifos de las pruebas y
 de las pestañas, que son propios (`glifos.dart`).
+
+## Navegación persistente (F1)
+
+`enrutador.dart` mantiene un navegador independiente por pestaña. La fuente de pantallas sigue
+siendo `secciones.dart`; `rutas_navegacion.dart` declara su pestaña dueña y las excepciones sin barra.
+No cambia ninguna dirección pública ni el control de sesión o de perfil inicial.
+
+| Pestaña | Pantallas secundarias existentes que conservan su barra |
+| ------- | ------------------------------------------------------- |
+| Inicio | Verificar correo, Cupo agotado y Repaso de errores |
+| Practicar | Elegir alcance, Sin preguntas, Ofrecer diagnóstico y Resumen de práctica |
+| Evaluaciones | Antes de empezar, Antes del ensayo, Resultado y Revisión |
+| Progreso | Historial; conserva la dirección anterior `/evaluaciones/historial` |
+| Perfil | Mi suscripción, Planes, Invitaciones, Mis datos, Puntajes, Borrar cuenta, Términos y Privacidad |
+
+La pestaña dueña queda seleccionada en sus pantallas secundarias. Tocar otra pestaña conserva la
+pila y el estado de la anterior; tocar de nuevo la activa vuelve a su raíz con `goBranch` e
+`initialLocation`. Las páginas fuera del shell se declaran en `rutasSinBarra`: carga y acceso,
+los tres pasos del perfil inicial, pregunta y corrección de práctica, pregunta con reloj y mapa
+para entregar. Al entrar a concentración se apila sobre el navegador raíz; la corrección y la
+pregunta siguiente se reemplazan para no acumular respuestas en la pila.
+
+**Planes compartidos:** `/planes` sigue siendo el enlace canónico de Perfil. `abrirPlanes(context)`
+lo abre en la rama actual: desde Cupo usa `/inicio/planes` y desde Evaluaciones,
+`/evaluaciones/planes`. Son variantes internas de la misma pantalla y los mismos providers;
+volver regresa a la pantalla de origen. No agregan datos ni procesos de compra.
+
+Términos y Privacidad mantienen `/terminos` y `/privacidad`, y se pueden abrir sin sesión. En ese
+caso, o durante el perfil inicial, no se muestra la barra. Con sesión y perfil completo pertenecen
+a Perfil. Las hojas usan `useRootNavigator: true` y cubren también la barra.
+
+| Componente | Presentación y accesibilidad |
+| ---------- | --------------------------- |
+| `BarraInferior` | Cinco destinos con `IconoPestana`, píldora que se traslada y pulso al cambiar. Expone etiqueta, acción y selección a lectores de pantalla. La letra se limita a 1,3 solo dentro de la barra, con una línea y `FittedBox`; el contenido de las pantallas conserva la escala completa del sistema. Sin movimiento, el indicador y el glifo aparecen en su estado final en el primer cuadro. |
+| `ContenedorPestanas` | Fundido de 200 ms entre navegadores sin desmontarlos. Las ramas inactivas no reciben toques, foco, semántica ni ticks. Con movimiento reducido el cambio es inmediato. |
+| `paginaConMovimiento` / `transicionDePantalla` | `CustomTransitionPage` con 24 dp horizontales, entrada de 400 ms y salida de 280 ms. Con movimiento reducido solo queda un fundido de 150 ms. En iPhone conserva el detector nativo del borde; durante el gesto normal la página sigue el dedo. |
+
+Los valores nuevos pertenecen a `TemaSuperaPaes`: `movimientoSalidaPantalla` (280 ms),
+`altoBarraNavegacion` (72), `anchoIndicadorNavegacion` (64), `altoIndicadorNavegacion` (32),
+`escalaLetraBarra` (1,3) y `escalaPulsoPestana` (1,08). La píldora usa `primarioSuave` y las etiquetas
+usan `mini`. Android habilita `enableOnBackInvokedCallback` para el gesto predictivo de volver.
+
+Las pruebas de F1 están en `navegacion_test.dart` y `barra_inferior_test.dart`: direcciones,
+pestañas, pilas, Planes compartidos, concentración, sesión y perfil, hojas, letra a 2,0 y movimiento
+reducido. `widget_test.dart` y `tamanos_test.dart` siguen recorriendo todas las pantallas actuales.
+Las pantallas de fases posteriores que todavía no existen no se crean en F1.
 
 Ejemplo, una pantalla con formulario:
 

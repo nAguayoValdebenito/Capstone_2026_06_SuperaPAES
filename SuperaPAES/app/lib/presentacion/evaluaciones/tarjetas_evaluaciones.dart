@@ -4,7 +4,6 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -13,6 +12,7 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart'
     show registrarErrorInesperado;
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
 
@@ -114,7 +114,7 @@ class TarjetaMiniEnsayo extends ConsumerWidget {
               'desde el ${proximoMes(clock.now())}.',
             ),
             OutlinedButton(
-              onPressed: () => context.push(Rutas.planes),
+              onPressed: () => abrirPlanes(context),
               child: const Text('Ver planes'),
             ),
           ],
@@ -168,7 +168,7 @@ class TarjetaEnsayoCompleto extends ConsumerWidget {
             )
           else if (value.faltaElPlan)
             OutlinedButton(
-              onPressed: () => context.push(Rutas.planes),
+              onPressed: () => abrirPlanes(context),
               child: const Text('Ver planes'),
             )
           else ...[

@@ -135,8 +135,18 @@ void main() {
       tester,
     ) async {
       await _abrir(tester, RepositorioPuntajesFalso(estado: _conM1));
+      await tester.scrollUntilVisible(
+        find.text('701'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('701'), findsOne);
 
+      await tester.scrollUntilVisible(
+        find.byType(Switch),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
       expect(find.text('¿Retirar el permiso?'), findsOne);

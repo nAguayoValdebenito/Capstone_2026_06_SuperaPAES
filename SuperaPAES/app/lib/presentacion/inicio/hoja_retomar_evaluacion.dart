@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/hoja_confirmacion.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
@@ -68,10 +68,10 @@ Future<void> ofrecerRetomar(
       context.go(Rutas.evaluaciones);
     case AccionRetomar.continuar:
       ref.read(evaluacionConTiempoProvider.notifier).retomar(abierta.conReloj);
-      context.go(Rutas.preguntaConReloj);
+      abrirConcentracion(context, Rutas.preguntaConReloj);
     case AccionRetomar.entregar:
       ref.read(evaluacionConTiempoProvider.notifier).retomar(abierta.conReloj);
-      context.go(Rutas.verTodas);
+      abrirConcentracion(context, Rutas.verTodas);
     case AccionRetomar.verResultado:
       // Al consultarlo, el servidor la cierra y la corrige (RN-21).
       ref.invalidate(evaluacionAbiertaProvider);

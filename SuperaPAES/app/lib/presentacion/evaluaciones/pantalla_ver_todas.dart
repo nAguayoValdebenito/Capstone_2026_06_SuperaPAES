@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/evaluaciones/cabecera_con_reloj.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 
@@ -34,8 +34,9 @@ class _PantallaVerTodasState extends ConsumerState<PantallaVerTodas> {
     _seguir();
   }
 
-  void _seguir() =>
-      context.canPop() ? context.pop() : context.go(Rutas.preguntaConReloj);
+  void _seguir() => context.canPop()
+      ? context.pop()
+      : abrirConcentracion(context, Rutas.preguntaConReloj);
 
   @override
   Widget build(BuildContext context) {

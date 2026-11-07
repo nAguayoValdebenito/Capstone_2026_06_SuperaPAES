@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/pregunta/cuerpo_pregunta.dart';
 import 'package:supera_paes/presentacion/pregunta/hoja_confirmar_respuesta.dart';
@@ -94,7 +94,7 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
       await ref
           .read(practicaProvider.notifier)
           .responder(widget.pregunta, elegida);
-      if (mounted) context.go(Rutas.correccion);
+      if (mounted) abrirConcentracion(context, Rutas.correccion);
     } on ErrorApi catch (error) {
       if (!mounted) return;
       if (error.codigo == 'CUPO_AGOTADO') {

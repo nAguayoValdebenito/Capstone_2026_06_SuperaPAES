@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/presentacion/comunes/contenedor_pestanas.dart';
 import 'package:supera_paes/presentacion/comunes/esqueleto_con_pestanas.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/comunes/rutas_navegacion.dart';
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
+import 'package:supera_paes/presentacion/comunes/transiciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 
 /// Pantallas que no exigen sesión.
@@ -47,9 +49,14 @@ String? redirigirSegunSesion(
   return null;
 }
 
-/// Enrutador de la app: las pestañas comparten la barra inferior y el resto de
-/// las pantallas se abre a pantalla completa. Todo sale de [secciones].
+/// Las pantallas conservan su dirección y pertenecen al navegador de su
+/// pestaña. Acceso, perfil inicial y concentración usan el navegador raíz.
 final enrutadorProvider = Provider<GoRouter>((ref) {
+  final raiz = GlobalKey<NavigatorState>(debugLabel: 'raiz');
+  final ramas = [
+    for (final p in pestanas) GlobalKey<NavigatorState>(debugLabel: p.ruta),
+  ];
+  final planes = secciones.singleWhere((s) => s.ruta == Rutas.planes);
   // Cada cambio de la sesión o del perfil vuelve a evaluar la redirección.
   final cambiosSesion = ValueNotifier<int>(0);
   ref
@@ -58,6 +65,7 @@ final enrutadorProvider = Provider<GoRouter>((ref) {
     ..onDispose(cambiosSesion.dispose);
 
   final enrutador = GoRouter(
+    navigatorKey: raiz,
     initialLocation: Rutas.ingreso,
     refreshListenable: cambiosSesion,
     redirect: (context, state) => redirigirSegunSesion(
@@ -70,26 +78,57 @@ final enrutadorProvider = Provider<GoRouter>((ref) {
         path: Rutas.cargando,
         builder: (context, state) => const _PantallaCargando(),
       ),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         builder: (context, state, navegacion) =>
             EsqueletoConPestanas(navegacion: navegacion),
+        navigatorContainerBuilder: (context, shell, hijos) =>
+            ContenedorPestanas(seleccionada: shell.currentIndex, hijos: hijos),
         branches: [
-          for (final pestana in pestanas)
+          for (var indice = 0; indice < pestanas.length; indice++)
             StatefulShellBranch(
+              navigatorKey: ramas[indice],
+              initialLocation: pestanas[indice].ruta,
               routes: [
                 GoRoute(
-                  path: pestana.ruta,
-                  builder: (context, state) => pestana.pantalla(),
+                  path: pestanas[indice].ruta,
+                  pageBuilder: (context, state) => paginaConMovimiento(
+                    context,
+                    state,
+                    pestanas[indice].pantalla(),
+                  ),
+                  routes: [
+                    if (pestanas[indice].ruta != Rutas.perfil)
+                      GoRoute(
+                        path: 'planes',
+                        parentNavigatorKey: ramas[indice],
+                        pageBuilder: (context, state) => paginaConMovimiento(
+                          context,
+                          state,
+                          planes.pantalla(),
+                        ),
+                      ),
+                  ],
                 ),
+                for (final seccion in secciones.where(
+                  (s) => !s.esPestana && s.rutaPestana == pestanas[indice].ruta,
+                ))
+                  GoRoute(
+                    path: seccion.ruta,
+                    parentNavigatorKey: ramas[indice],
+                    pageBuilder: (context, state) =>
+                        paginaConMovimiento(context, state, seccion.pantalla()),
+                  ),
               ],
             ),
         ],
       ),
       for (final seccion in secciones)
-        if (!seccion.esPestana)
+        if (rutasSinBarra.contains(seccion.ruta))
           GoRoute(
             path: seccion.ruta,
-            builder: (context, state) => seccion.pantalla(),
+            parentNavigatorKey: raiz,
+            pageBuilder: (context, state) =>
+                paginaConMovimiento(context, state, seccion.pantalla()),
           ),
     ],
   );

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/rutas_navegacion.dart';
 import 'package:supera_paes/presentacion/cupo_agotado/pantalla_cupo_agotado.dart';
 
 import 'apoyo/app_de_prueba.dart';
@@ -127,7 +128,7 @@ void main() {
 
     for (final (opcion, destino) in [
       ('Invita a alguien', Rutas.invitaciones),
-      ('Suscríbete', Rutas.planes),
+      ('Suscríbete', rutaPlanesEnRama(Rutas.inicio)),
       ('Repasar errores', Rutas.repaso),
       ('Mini-ensayo', Rutas.evaluaciones),
     ]) {
