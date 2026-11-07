@@ -9,6 +9,7 @@ import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/rutas_navegacion.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/evaluaciones/tarjetas_evaluaciones.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
@@ -238,7 +239,7 @@ void main() {
       expect(find.textContaining('Ya usaste tu mini-ensayo gratis'), findsOne);
 
       await tocar(tester, find.text('Ver planes').first);
-      expect(rutaActual(contenedor), Rutas.planes);
+      expect(rutaActual(contenedor), rutaPlanesEnRama(Rutas.evaluaciones));
     });
 
     testWidgets('con un plan que cubre la prueba, «Incluido en tu plan»', (

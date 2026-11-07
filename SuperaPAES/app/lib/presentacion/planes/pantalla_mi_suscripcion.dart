@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/plan.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
@@ -12,6 +10,7 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
 import 'package:supera_paes/presentacion/planes/estado_planes.dart';
 import 'package:supera_paes/presentacion/progreso/tarjetas_progreso.dart';
@@ -63,7 +62,7 @@ class _PlanGratis extends StatelessWidget {
               'Con un plan tienes más preguntas y evaluaciones. Tu progreso es '
               'el mismo con cualquier plan.',
           accion: 'Ver planes',
-          alTocar: () => unawaited(context.push(Rutas.planes)),
+          alTocar: () => abrirPlanes(context),
         ),
       ],
     );
@@ -176,11 +175,11 @@ class _DetalleState extends ConsumerState<_Detalle> {
               if (suscripcion.periodicidad == 'mensual')
                 FilaNavegacion(
                   texto: 'Cambiar a anual',
-                  onTap: () => context.push(Rutas.planes),
+                  onTap: () => abrirPlanes(context),
                 ),
               FilaNavegacion(
                 texto: 'Cambiar de plan',
-                onTap: () => context.push(Rutas.planes),
+                onTap: () => abrirPlanes(context),
               ),
             ],
           ),

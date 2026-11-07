@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/por_repasar.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
@@ -34,7 +34,7 @@ mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       final empezo = await ref.read(practicaProvider.notifier).iniciar(datos);
       if (!mounted) return;
       if (empezo) {
-        context.go(Rutas.pregunta);
+        abrirConcentracion(context, Rutas.pregunta);
       } else if (!esAvisoSinPreguntas) {
         await context.push(Rutas.sinPreguntas);
       }
@@ -69,7 +69,7 @@ mixin EmpezarPractica<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     });
     try {
       await ref.read(practicaProvider.notifier).iniciarRepaso(prueba, eje: eje);
-      if (mounted) context.go(Rutas.pregunta);
+      if (mounted) abrirConcentracion(context, Rutas.pregunta);
     } on ErrorApi catch (error) {
       if (!mounted) return;
       if (error.codigo == codigoConTiempoAbierta && await _ofrecerRetomar()) {

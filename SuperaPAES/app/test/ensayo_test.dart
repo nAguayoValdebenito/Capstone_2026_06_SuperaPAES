@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/fuentes/fuente_evaluaciones_remota.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/rutas_navegacion.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
 import 'apoyo/app_de_prueba.dart';
@@ -91,7 +92,7 @@ void main() {
       expect(find.text('Rendir ensayo completo'), findsNothing);
 
       await tocar(tester, find.text('Ver planes').last);
-      expect(rutaActual(contenedor), Rutas.planes);
+      expect(rutaActual(contenedor), rutaPlanesEnRama(Rutas.evaluaciones));
     });
 
     testWidgets('en Ciencias sin electivo, lleva a elegirlo', (tester) async {
@@ -123,6 +124,11 @@ void main() {
           '5 preguntas no puntúan, como en la PAES. Sabrás cuáles al revisar.',
         ),
         findsOne,
+      );
+      await tester.scrollUntilVisible(
+        find.textContaining('puntaje estimado de 100 a 1.000'),
+        200,
+        scrollable: find.byType(Scrollable).first,
       );
       expect(find.textContaining('puntaje estimado de 100 a 1.000'), findsOne);
       await tester.scrollUntilVisible(

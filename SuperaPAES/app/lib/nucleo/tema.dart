@@ -88,6 +88,14 @@ abstract final class TemaSuperaPaes {
   static const Duration movimientoNormal = Duration(milliseconds: 200);
   static const Duration movimientoLento = Duration(milliseconds: 400);
 
+  /// Salida de las páginas y medidas de la barra inferior (F1).
+  static const Duration movimientoSalidaPantalla = Duration(milliseconds: 280);
+  static const double altoBarraNavegacion = 72;
+  static const double anchoIndicadorNavegacion = 64;
+  static const double altoIndicadorNavegacion = 32;
+  static const double escalaLetraBarra = 1.3;
+  static const double escalaPulsoPestana = 1.08;
+
   /// Un solo momento de autor por pantalla: el anillo del resumen o el
   /// conteo del puntaje.
   static const Duration movimientoFoco = Duration(milliseconds: 700);
@@ -387,7 +395,7 @@ abstract final class TemaSuperaPaes {
         backgroundColor: superficie,
         indicatorColor: primarioSuave,
         elevation: 0,
-        height: 72,
+        height: altoBarraNavegacion,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (estados) => estados.contains(WidgetState.selected)
               ? mini.copyWith(color: primario, fontWeight: FontWeight.w800)

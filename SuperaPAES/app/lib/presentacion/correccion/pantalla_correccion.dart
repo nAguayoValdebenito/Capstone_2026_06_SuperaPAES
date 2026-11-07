@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/correccion/partes_correccion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/pregunta/partes_pregunta.dart';
@@ -79,7 +79,7 @@ class PantallaCorreccion extends ConsumerWidget {
             : () {
                 ref.read(practicaProvider.notifier).seguir();
                 ref.invalidate(preguntaActualProvider);
-                context.go(Rutas.pregunta);
+                abrirConcentracion(context, Rutas.pregunta);
               },
         child: Text(pregunta.esLaUltima ? 'Ver resumen' : 'Siguiente pregunta'),
       ),

@@ -5,6 +5,7 @@ import 'package:supera_paes/nucleo/configuracion.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
+import 'package:supera_paes/presentacion/comunes/barra_inferior.dart';
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 
@@ -33,6 +34,7 @@ void main() {
     expect(rutaActual(contenedor), Rutas.ingreso);
     expect(find.image(const AssetImage(PantallaIngreso.logo)), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(BarraInferior), findsNothing);
   });
 
   testWidgets('con sesión navega a todas las pantallas', (tester) async {
@@ -49,10 +51,10 @@ void main() {
         reason: 'La ruta ${seccion.ruta} debe abrir ${seccion.titulo}',
       );
       expect(
-        find.byType(NavigationBar),
-        seccion.esPestana ? findsOneWidget : findsNothing,
+        find.byType(BarraInferior),
+        seccion.rutaPestana != null ? findsOneWidget : findsNothing,
         reason:
-            'Solo las pestañas muestran la barra inferior (${seccion.ruta})',
+            'Cada subruta conserva la barra de su pestaña (${seccion.ruta})',
       );
     }
   });
@@ -86,7 +88,7 @@ void main() {
 
     await tocar(tester, find.text('Mi suscripción'));
     expect(find.text('Estás en el plan Gratis'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(BarraInferior), findsOneWidget);
 
     await tocar(tester, find.text('Volver'));
     expect(rutaActual(contenedor), Rutas.perfil);

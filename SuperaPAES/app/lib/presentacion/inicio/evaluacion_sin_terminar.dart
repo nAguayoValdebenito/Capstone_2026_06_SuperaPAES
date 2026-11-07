@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
@@ -49,7 +49,7 @@ class EvaluacionSinTerminar extends ConsumerWidget {
           await ofrecerRetomar(context, ref, abierta);
         } else {
           ref.read(practicaProvider.notifier).retomar(abierta);
-          context.go(Rutas.pregunta);
+          abrirConcentracion(context, Rutas.pregunta);
         }
       },
     );

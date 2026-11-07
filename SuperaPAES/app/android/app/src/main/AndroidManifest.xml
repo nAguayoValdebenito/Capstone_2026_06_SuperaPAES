@@ -6,6 +6,7 @@
         android:label="Supera PAES"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true"
         android:allowBackup="false">
         <activity
             android:name=".MainActivity"

@@ -1,9 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
@@ -26,7 +25,7 @@ mixin EmpezarConTiempo<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     });
     try {
       await iniciar();
-      if (mounted) context.go(Rutas.preguntaConReloj);
+      if (mounted) abrirConcentracion(context, Rutas.preguntaConReloj);
     } on ErrorApi catch (error) {
       if (!mounted) return;
       if (error.codigo == 'EVALUACION_CON_TIEMPO_ABIERTA' &&

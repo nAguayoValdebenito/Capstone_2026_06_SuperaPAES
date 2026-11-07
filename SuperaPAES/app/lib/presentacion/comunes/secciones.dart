@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/presentacion/comunes/rutas_navegacion.dart';
 import 'package:supera_paes/presentacion/correccion/pantalla_correccion.dart';
 import 'package:supera_paes/presentacion/crear_cuenta/pantalla_crear_cuenta.dart';
 import 'package:supera_paes/presentacion/cupo_agotado/pantalla_cupo_agotado.dart';
@@ -66,6 +67,9 @@ class Seccion {
   /// Ícono relleno de la pestaña activa, para no distinguirla solo por el
   /// color (WCAG 1.4.1).
   final IconData? iconoActivo;
+
+  /// Rama que conserva la pantalla y su pila, sin cambiar su dirección.
+  String? get rutaPestana => pestanaDeRuta(ruta);
 }
 
 const List<Seccion> secciones = [

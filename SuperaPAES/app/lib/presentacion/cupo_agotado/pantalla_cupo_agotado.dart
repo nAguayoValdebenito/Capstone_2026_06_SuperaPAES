@@ -4,12 +4,12 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 
 /// Cupo agotado (A22; HU-33 esc. 1 y 2, HU-47 esc. 3, CU-07a, CU-07b, RF-A09,
@@ -49,7 +49,7 @@ class PantallaCupoAgotado extends ConsumerWidget {
               icono: Icons.workspace_premium_outlined,
               texto: 'Suscríbete',
               detalle: 'Practica sin límite con un plan mensual o anual.',
-              onTap: () => context.push(Rutas.planes),
+              onTap: () => abrirPlanes(context),
             ),
           ],
         ),
