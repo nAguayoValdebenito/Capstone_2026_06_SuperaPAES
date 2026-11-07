@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/borrador_perfil.dart';
@@ -46,10 +47,10 @@ class _PantallaPasoAreasState extends ConsumerState<PantallaPasoAreas> {
     );
     return ConOpciones(
       builder: (opciones) => PantallaFormulario(
-        separacion: 14,
-        pie: FilledButton(
+        separacion: TemaSuperaPaes.espacio16,
+        pie: BotonPrincipal(
           onPressed: _siguiente,
-          child: const Text('Ver pruebas sugeridas'),
+          texto: 'Ver pruebas sugeridas',
         ),
         hijos: [
           IndicadorPasos(
@@ -88,7 +89,7 @@ class _PantallaPasoAreasState extends ConsumerState<PantallaPasoAreas> {
           GrupoChips(
             chips: [
               for (final area in opciones.areasCarrera)
-                ChipSeleccion(
+                ChipTexto(
                   texto: area.nombre,
                   seleccionado: borrador.areas.contains(area.id),
                   onTap: () => _alternar(area.id, area.nombre),
@@ -96,19 +97,22 @@ class _PantallaPasoAreasState extends ConsumerState<PantallaPasoAreas> {
             ],
           ),
           if (_areaRechazada case final area?)
-            Aviso(
-              tono: TonoAviso.aviso,
-              textoRico: TextSpan(
-                children: [
-                  const TextSpan(
-                    text: 'Puedes marcar hasta 3 áreas. Para elegir ',
-                  ),
-                  TextSpan(
-                    text: area,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const TextSpan(text: ', primero desmarca otra.'),
-                ],
+            Semantics(
+              liveRegion: true,
+              child: Aviso(
+                tono: TonoAviso.info,
+                textoRico: TextSpan(
+                  children: [
+                    const TextSpan(
+                      text: 'Puedes marcar hasta 3 áreas. Para elegir ',
+                    ),
+                    TextSpan(
+                      text: area,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const TextSpan(text: ', primero desmarca otra.'),
+                  ],
+                ),
               ),
             )
           else

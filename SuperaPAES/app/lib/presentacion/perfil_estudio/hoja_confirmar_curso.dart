@@ -8,6 +8,7 @@ import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/borrador_perfil.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
@@ -42,8 +43,10 @@ class HojaConfirmarCurso extends ConsumerStatefulWidget {
 class _HojaConfirmarCursoState extends ConsumerState<HojaConfirmarCurso> {
   bool _guardando = false;
   String? _error;
+  int _intentosFallidos = 0;
 
   Future<void> _confirmar(Curso curso) async {
+    if (_guardando) return;
     setState(() {
       _guardando = true;
       _error = null;
@@ -57,15 +60,18 @@ class _HojaConfirmarCursoState extends ConsumerState<HojaConfirmarCurso> {
           );
       if (mounted) Navigator.of(context).pop();
     } on ErrorApi catch (error) {
+      if (!mounted) return;
       setState(() {
         _guardando = false;
         _error = error.mensaje;
+        _intentosFallidos++;
       });
     }
   }
 
   /// «Corregir mi curso» abre A08 con el curso de hoy ya marcado.
   void _corregir() {
+    if (_guardando) return;
     ref
         .read(borradorPerfilProvider.notifier)
         .iniciar(ModoPerfil.correccion, widget.perfil);
@@ -83,48 +89,39 @@ class _HojaConfirmarCursoState extends ConsumerState<HojaConfirmarCurso> {
     );
     const fuerte = TextStyle(fontWeight: FontWeight.w700);
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          TemaSuperaPaes.espacio24,
+          TemaSuperaPaes.espacio24,
+          TemaSuperaPaes.espacio24,
+          TemaSuperaPaes.espacio32,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: TemaSuperaPaes.bordeInput,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Align(
+            const Align(
               alignment: Alignment.centerLeft,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: TemaSuperaPaes.primarioSuave,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 20,
-                  color: TemaSuperaPaes.primario,
-                ),
+              child: IconoEnCirculo(icono: Icons.calendar_today_outlined),
+            ),
+            const SizedBox(height: TemaSuperaPaes.espacio16),
+            Text(
+              'Comenzó el año escolar ${anioEscolar(DateTime.now())}',
+              style: TemaSuperaPaes.pequeno.copyWith(
+                color: TemaSuperaPaes.textoSecundario,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: TemaSuperaPaes.espacio8),
             Semantics(
               header: true,
               child: Text(
-                'Comenzó el año escolar ${anioEscolar(DateTime.now())}',
-                style: TemaSuperaPaes.h2,
+                curso.esEgresado
+                    ? '¿Ya egresaste de 4° medio?'
+                    : '¿Sigues en ${curso.nombre}?',
+                style: TemaSuperaPaes.numero,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: TemaSuperaPaes.espacio16),
             Text.rich(
               curso.esEgresado
                   ? const TextSpan(
@@ -147,22 +144,21 @@ class _HojaConfirmarCursoState extends ConsumerState<HojaConfirmarCurso> {
                     ),
               style: gris,
             ),
-            if (_error case final error?) ...[
-              const SizedBox(height: 14),
-              Aviso(tono: TonoAviso.error, texto: error),
-            ],
-            const SizedBox(height: 14),
-            FilledButton(
-              onPressed: _guardando ? null : () => _confirmar(curso),
-              child: _guardando
-                  ? const CargandoEnBoton()
-                  : Text(
-                      curso.esEgresado
-                          ? 'Sí, ya egresé'
-                          : 'Sí, estoy en ${curso.nombre}',
-                    ),
+            const SizedBox(height: TemaSuperaPaes.espacio24),
+            BotonPrincipal(
+              texto: curso.esEgresado
+                  ? 'Sí, ya egresé'
+                  : 'Sí, estoy en ${curso.nombre}',
+              onPressed: () => _confirmar(curso),
+              estado: _guardando
+                  ? EstadoBoton.cargando
+                  : _error != null
+                  ? EstadoBoton.error
+                  : EstadoBoton.normal,
+              error: _error,
+              intentosFallidos: _intentosFallidos,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: TemaSuperaPaes.espacio12),
             OutlinedButton(
               onPressed: _guardando ? null : _corregir,
               child: const Text('Corregir mi curso'),

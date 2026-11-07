@@ -7,6 +7,7 @@ import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
@@ -222,7 +223,7 @@ void main() {
       expect(find.text('Biología es la sugerida para Salud.'), findsOne);
 
       await tocar(tester, prueba('Competencia Matemática 2'));
-      await tocar(tester, chip('M1'));
+      await tocar(tester, find.widgetWithText(ChipPrueba, 'M1'));
       await tocar(tester, find.text('Guardar y empezar'));
 
       final datos = repositorio.guardados.single;

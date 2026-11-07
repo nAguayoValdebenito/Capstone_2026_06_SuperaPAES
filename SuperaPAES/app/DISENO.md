@@ -438,6 +438,50 @@ y reenvío pendientes, errores de campo, desconexión y 429, reintento, cambio d
 letra 2,0, movimiento reducido y desmontaje. Los casos de `recuperacion_test.dart`
 se mantienen; su selector de reenvío adopta el botón principal.
 
+## Perfil inicial (F2.7)
+
+A08–A10 mantienen el borrador, los catálogos, las sugerencias y el contrato de
+guardado existentes. `IndicadorPasos` llena cada segmento con `BarraAnimada`;
+los segmentos de los pasos anteriores ya aparecen completos. Los pasos usan
+la transición horizontal de F1 (24 dp, entrada de 400 ms y salida de 280 ms),
+incluido volver conservando la selección. Con movimiento reducido queda el
+fundido de 150 ms y las barras aparecen completas; activar la preferencia
+durante el avance termina la animación.
+
+Las opciones de curso usan `OpcionRadio(conMovimiento: true)` y las áreas y
+electivos, `ChipTexto`. Animan el color en 150 ms y dan vibración de selección.
+Los chips conservan una zona táctil de al menos 48 y el estado semántico. Los
+componentes anteriores siguen disponibles para las pantallas de otras fases.
+El ancho del borde de las opciones animadas no cambia al seleccionar.
+
+A09b anuncia el tope existente de tres áreas con una región semántica activa;
+el aviso usa el tono informativo de la identidad. No cambia la selección al
+intentar una cuarta área.
+
+A10 identifica cada tarjeta por el código de prueba recibido: `TarjetaCasilla`
+con `prueba:` usa su tono, fondo y `SelloPrueba`. Las sugerencias quedan bajo el
+título para permitir letra grande. La prueba a reforzar usa `ChipPrueba`;
+«Ninguna» usa `ChipTexto`. Se conservan el electivo de Ciencias, la preferencia
+opcional y su limpieza si se desmarca esa prueba.
+
+Los botones de los pasos usan `BotonPrincipal` y muestran carga y errores sin
+duplicarlos. El guardado bloquea solicitudes repetidas y conserva el destino
+existente: Inicio en la bienvenida, Perfil al editar y solo curso al corregir.
+
+A11 mantiene la hoja sobre el navegador raíz, sin cierre por arrastre ni por
+toque exterior. Muestra «¿Sigues en [curso]?», usando el curso de la API; para
+egresados pregunta si ya egresaron. Conserva la explicación y los datos que
+envía al confirmar o corregir. Es desplazable con letra 2,0; durante la petición
+bloquea ambas acciones y al fallar permite reintentar. Un error tardío no
+actualiza la hoja descartada.
+
+`perfil_diseno_test.dart` cubre pasos, vibración, transiciones, tonos, sellos,
+borrador al volver, refuerzo, guardado lento, reintento y A08b/A09b/A11 con letra
+2,0, con y sin movimiento reducido. `componentes_test.dart` comprueba la
+semántica de `ChipTexto` y activar movimiento reducido durante las barras.
+Se conservan las aserciones de `perfil_test.dart`; su selector de refuerzo
+adopta `ChipPrueba`. No se modifican API, modelo de datos, rutas ni dependencias.
+
 ## Navegación persistente (F1)
 
 `enrutador.dart` mantiene un navegador independiente por pestaña. La fuente de pantallas sigue

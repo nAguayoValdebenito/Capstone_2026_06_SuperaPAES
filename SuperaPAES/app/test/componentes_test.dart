@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/verificar_correo/campo_codigo.dart';
@@ -18,6 +19,64 @@ Future<void> montar(WidgetTester tester, Widget hijo) => tester.pumpWidget(
 );
 
 void main() {
+  testWidgets('ChipTexto selecciona una vez y expone su estado semántico', (
+    tester,
+  ) async {
+    var seleccionado = false;
+    var toques = 0;
+    await montar(
+      tester,
+      StatefulBuilder(
+        builder: (context, cambiar) => Wrap(
+          children: [
+            ChipTexto(
+              texto: 'Salud',
+              seleccionado: seleccionado,
+              onTap: () => cambiar(() {
+                seleccionado = !seleccionado;
+                toques++;
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.tap(find.text('Salud'));
+    await tester.pumpAndSettle();
+    expect(toques, 1);
+    expect(
+      tester.getSemantics(find.byType(ChipTexto)),
+      matchesSemantics(
+        label: 'Salud',
+        isButton: true,
+        hasCheckedState: true,
+        isChecked: true,
+        hasTapAction: true,
+      ),
+    );
+    expect(
+      tester.getSize(find.byType(ChipTexto)).height,
+      greaterThanOrEqualTo(48),
+    );
+  });
+
+  testWidgets('IndicadorPasos termina al activar movimiento reducido', (
+    tester,
+  ) async {
+    await montar(tester, const IndicadorPasos(paso: 2, total: 3));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.hasRunningAnimations, isTrue);
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Paso 2 de 3'), findsOne);
+    expect(find.byType(BarraAnimada), findsNWidgets(3));
+    expect(tester.hasRunningAnimations, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('CampoTexto muestra la etiqueta arriba y la ayuda abajo', (
     tester,
   ) async {

@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/borrador_perfil.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/con_opciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
@@ -40,7 +42,10 @@ class _PantallaPasoPruebasState extends ConsumerState<PantallaPasoPruebas>
     final borrador = ref.read(borradorPerfilProvider);
     final problema = _problema(borrador, opciones);
     if (problema != null) {
-      setState(() => errorGuardar = problema);
+      setState(() {
+        errorGuardar = problema;
+        intentosGuardar++;
+      });
       return;
     }
     // Desde Perfil se vuelve a Perfil; en la bienvenida, a Inicio (CU-05
@@ -64,19 +69,15 @@ class _PantallaPasoPruebasState extends ConsumerState<PantallaPasoPruebas>
         final rindeCiencias =
             ciencias != null && borrador.pruebas.contains(ciencias.id);
         return PantallaFormulario(
-          separacion: 12,
-          pie: PieConError(
+          separacion: TemaSuperaPaes.espacio12,
+          pie: BotonPrincipal(
+            texto: borrador.modo == ModoPerfil.edicion
+                ? 'Guardar cambios'
+                : 'Guardar y empezar',
+            onPressed: () => _guardar(opciones),
+            estado: estadoGuardar,
             error: errorGuardar,
-            boton: FilledButton(
-              onPressed: guardando ? null : () => _guardar(opciones),
-              child: guardando
-                  ? const CargandoEnBoton()
-                  : Text(
-                      borrador.modo == ModoPerfil.edicion
-                          ? 'Guardar cambios'
-                          : 'Guardar y empezar',
-                    ),
-            ),
+            intentosFallidos: intentosGuardar,
           ),
           hijos: [
             const EnlaceVolver(
@@ -90,7 +91,10 @@ class _PantallaPasoPruebasState extends ConsumerState<PantallaPasoPruebas>
                 prueba: prueba,
                 elegidas: elegidas,
                 marcada: borrador.pruebas.contains(prueba.id),
-                onTap: () => notificador.alternarPrueba(prueba.id),
+                onTap: () {
+                  notificador.alternarPrueba(prueba.id);
+                  setState(() => errorGuardar = null);
+                },
               ),
             if (rindeCiencias)
               _Electivo(
@@ -161,6 +165,7 @@ class _TarjetaPrueba extends StatelessWidget {
         if (area.pruebasSugeridas.contains(prueba.id)) area.nombre,
     ];
     return TarjetaCasilla(
+      prueba: Prueba.deCodigo(prueba.codigo),
       titulo: prueba.nombre,
       marcada: marcada,
       onTap: onTap,
@@ -230,7 +235,7 @@ class _Electivo extends StatelessWidget {
         GrupoChips(
           chips: [
             for (final electivo in ciencias.electivos)
-              ChipSeleccion(
+              ChipTexto(
                 texto: electivo.nombre,
                 seleccionado: electivo.id == electivoId,
                 onTap: () => onElegir(electivo.id),
@@ -279,14 +284,14 @@ class _Reforzar extends StatelessWidget {
         const SizedBox(height: 8),
         GrupoChips(
           chips: [
-            ChipSeleccion(
+            ChipTexto(
               texto: 'Ninguna',
               seleccionado: elegidaId == null,
               onTap: () => onElegir(null),
             ),
             for (final prueba in pruebas)
-              ChipSeleccion(
-                texto: prueba.nombreCorto,
+              ChipPrueba(
+                prueba: Prueba.deCodigo(prueba.codigo),
                 seleccionado: prueba.id == elegidaId,
                 onTap: () => onElegir(prueba.id),
               ),
