@@ -291,7 +291,42 @@ proporción original del símbolo al ancho 160 de `SimboloLogo`.
 Los PNG de Android tienen variantes mdpi, hdpi, xhdpi, xxhdpi y xxxhdpi. Los temas
 `NormalTheme` mantienen el mismo fondo mientras Flutter prepara su primer cuadro.
 La pantalla de carga, su animación, la espera por sesión y el fundido al destino
-pertenecen a F2.3; F2.2 solo configura la apertura nativa estática.
+se describen en F2.3; F2.2 configura la apertura nativa estática.
+
+## Apertura Flutter (F2.3)
+
+`AperturaApp`, en `presentacion/apertura/`, cubre una sola vez el arranque de la app.
+Usa `PantallaCargando` con `SimboloLogo`, centrado en la ventana y con el ancho de
+160 de la apertura nativa. La línea de espera se coloca debajo sin mover el símbolo.
+El fondo es `TemaSuperaPaes.fondo`; el símbolo usa el PNG sin trazo existente y el
+trazo se dibuja con `PintorTrazoLogo`.
+
+| Momento | Comportamiento |
+| ------- | -------------- |
+| Entrada | Trazo de 400 ms y pausa de 250 ms, en una misma animación de 650 ms. |
+| Destino listo | Se revela mediante un fundido de 300 ms. No se fuerza otra espera si la lectura tardó más que la entrada. |
+| Lectura superior a 1 s | Una línea fina indica la espera, sin rueda ni porcentaje inventado. Se mantiene el símbolo completo. |
+| Movimiento reducido | Símbolo completo en el primer cuadro y cambio directo al estar listo; la línea de espera es estática. También se respeta activar la preferencia durante la apertura. |
+
+La apertura observa los providers existentes de sesión y perfil. El enrutador sigue
+decidiendo entre ingreso, Inicio y perfil inicial; se conserva la dirección que
+esté preparando, sin reiniciar el navegador ni cambiar las reglas de redirección.
+Se espera la lectura inicial del perfil para evitar mostrar Inicio antes del paso
+de perfil que corresponda. Los errores conservan el tratamiento existente de las rutas.
+
+Mientras la apertura está visible, el destino no recibe toques, foco ni semántica.
+`AmbitoApertura` evita una segunda transición de ruta debajo del fundido inicial;
+después se conservan los movimientos de F1. Al cerrar o renovar sesión no se repite
+la apertura. Los dos controladores y el temporizador del umbral se liberan al desmontar.
+
+Los valores viven en `TemaSuperaPaes`: `anchoSimboloApertura` (160),
+`altoSimboloApertura` (153), `grosorLineaApertura` (2), `pausaApertura` (250 ms),
+`fundidoApertura` (300 ms) y `umbralEsperaApertura` (1 s). El trazo reutiliza
+`movimientoLento` (400 ms). Todas las duraciones animadas pasan por `duracion`.
+
+`test/apertura_test.dart` cubre los tiempos, sesión rápida y lenta, ausencia de sesión,
+error del almacén, espera por perfil incompleto, dirección pública, movimiento reducido,
+centrado con letra a 2,0 en teléfono y tablet, cierre de sesión y desmontaje anticipado.
 
 ## Navegación persistente (F1)
 
