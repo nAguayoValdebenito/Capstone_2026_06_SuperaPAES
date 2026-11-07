@@ -191,9 +191,10 @@ void main() {
         ),
         findsOne,
       );
-      expect(find.text('18:05'), findsOne);
-      await tester.pump(const Duration(seconds: 1));
+      // La apertura inicial y la hoja consumen un segundo; el reloj continúa.
       expect(find.text('18:04'), findsOne);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('18:03'), findsOne);
 
       await tester.tap(find.text('Continuar').last);
       await tester.pumpAndSettle();

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/apertura/ambito_apertura.dart';
 import 'package:supera_paes/presentacion/comunes/movimiento.dart';
 
 CustomTransitionPage<void> paginaConMovimiento(
@@ -13,16 +14,20 @@ CustomTransitionPage<void> paginaConMovimiento(
   key: estado.pageKey,
   name: estado.matchedLocation,
   child: pantalla,
-  transitionDuration: duracion(
-    context,
-    TemaSuperaPaes.movimientoLento,
-    conservarFundido: true,
-  ),
-  reverseTransitionDuration: duracion(
-    context,
-    TemaSuperaPaes.movimientoSalidaPantalla,
-    conservarFundido: true,
-  ),
+  transitionDuration: AmbitoApertura.estaEnCurso(context)
+      ? Duration.zero
+      : duracion(
+          context,
+          TemaSuperaPaes.movimientoLento,
+          conservarFundido: true,
+        ),
+  reverseTransitionDuration: AmbitoApertura.estaEnCurso(context)
+      ? Duration.zero
+      : duracion(
+          context,
+          TemaSuperaPaes.movimientoSalidaPantalla,
+          conservarFundido: true,
+        ),
   transitionsBuilder: transicionDePantalla,
 );
 

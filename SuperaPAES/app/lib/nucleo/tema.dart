@@ -88,6 +88,14 @@ abstract final class TemaSuperaPaes {
   static const Duration movimientoNormal = Duration(milliseconds: 200);
   static const Duration movimientoLento = Duration(milliseconds: 400);
 
+  /// Apertura Flutter, coordinada con los recursos nativos (F2).
+  static const double anchoSimboloApertura = 160;
+  static const double altoSimboloApertura = 153;
+  static const double grosorLineaApertura = 2;
+  static const Duration pausaApertura = Duration(milliseconds: 250);
+  static const Duration fundidoApertura = Duration(milliseconds: 300);
+  static const Duration umbralEsperaApertura = Duration(seconds: 1);
+
   /// Salida de las páginas y medidas de la barra inferior (F1).
   static const Duration movimientoSalidaPantalla = Duration(milliseconds: 280);
   static const double altoBarraNavegacion = 72;

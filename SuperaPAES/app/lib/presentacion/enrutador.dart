@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/presentacion/apertura/pantalla_cargando.dart';
 import 'package:supera_paes/presentacion/comunes/contenedor_pestanas.dart';
 import 'package:supera_paes/presentacion/comunes/esqueleto_con_pestanas.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
@@ -76,11 +77,14 @@ final enrutadorProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: Rutas.cargando,
-        builder: (context, state) => const _PantallaCargando(),
+        builder: (context, state) => const PantallaCargando(),
       ),
       StatefulShellRoute(
-        builder: (context, state, navegacion) =>
-            EsqueletoConPestanas(navegacion: navegacion),
+        pageBuilder: (context, state, navegacion) => paginaConMovimiento(
+          context,
+          state,
+          EsqueletoConPestanas(navegacion: navegacion),
+        ),
         navigatorContainerBuilder: (context, shell, hijos) =>
             ContenedorPestanas(seleccionada: shell.currentIndex, hijos: hijos),
         branches: [
@@ -135,12 +139,3 @@ final enrutadorProvider = Provider<GoRouter>((ref) {
   ref.onDispose(enrutador.dispose);
   return enrutador;
 });
-
-class _PantallaCargando extends StatelessWidget {
-  const _PantallaCargando();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-  }
-}

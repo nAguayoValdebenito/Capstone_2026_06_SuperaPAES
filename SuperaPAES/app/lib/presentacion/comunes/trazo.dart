@@ -163,7 +163,11 @@ class _TrazoAnimadoState extends State<TrazoAnimado>
 /// con el trazo celeste dibujado por código encima, para animarlo en la
 /// apertura Con `avance: 1` es idéntico al símbolo del logo.
 class SimboloLogo extends StatelessWidget {
-  const SimboloLogo({super.key, this.ancho = 160, this.avance = 1});
+  const SimboloLogo({
+    super.key,
+    this.ancho = TemaSuperaPaes.anchoSimboloApertura,
+    this.avance = 1,
+  });
 
   final double ancho;
   final double avance;
