@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:supera_paes/datos/fuentes/fuente_practica_remota.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_practica_api.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
@@ -161,6 +160,7 @@ class Practica {
     this.sinPreguntas,
     this.resumen,
     this.esRepaso = false,
+    this.rachaInicial,
   });
 
   final PracticaIniciada? enCurso;
@@ -177,6 +177,9 @@ class Practica {
   /// Es un repaso de errores (HU-39): usa las pantallas de la práctica, pero
   /// no el cupo, y el resumen es otro.
   final bool esRepaso;
+
+  /// Dato real anterior a la practica; nunca se deduce de los aciertos.
+  final int? rachaInicial;
 }
 
 /// La pregunta pendiente de la práctica en curso (A17 y A20); `null` sin
@@ -204,6 +207,7 @@ class EstadoPractica extends Notifier<Practica> {
   Future<bool> iniciar(DatosPractica datos) async {
     try {
       state = Practica(
+        rachaInicial: ref.read(cupoDeHoyProvider).value?.racha,
         enCurso: await _repositorio.iniciar(datos),
         datos: datos,
       );
@@ -239,6 +243,7 @@ class EstadoPractica extends Notifier<Practica> {
   }) async {
     final repaso = await _repositorio.iniciarRepaso(prueba.id, ejeId: eje?.id);
     state = Practica(
+      rachaInicial: ref.read(cupoDeHoyProvider).value?.racha,
       esRepaso: true,
       enCurso: repaso,
       datos: DatosPractica(
@@ -269,6 +274,7 @@ class EstadoPractica extends Notifier<Practica> {
       datos: state.datos,
       correccion: (pregunta: pregunta, correccion: correccion),
       esRepaso: state.esRepaso,
+      rachaInicial: state.rachaInicial,
     );
     // La respuesta descontó cupo (RN-01), ya cuenta en el progreso y suma
     // una respondida en «Práctica sin terminar».
@@ -287,6 +293,7 @@ class EstadoPractica extends Notifier<Practica> {
       enCurso: state.enCurso,
       datos: state.datos,
       esRepaso: state.esRepaso,
+      rachaInicial: state.rachaInicial,
     );
   }
 
@@ -298,6 +305,7 @@ class EstadoPractica extends Notifier<Practica> {
     state = Practica(
       resumen: await _repositorio.cerrar(id),
       esRepaso: state.esRepaso,
+      rachaInicial: state.rachaInicial,
     );
     ref
       ..invalidate(cupoDeHoyProvider)
@@ -311,6 +319,7 @@ class EstadoPractica extends Notifier<Practica> {
   /// responda.
   void retomar(EvaluacionAbierta abierta) {
     state = Practica(
+      rachaInicial: ref.read(cupoDeHoyProvider).value?.racha,
       enCurso: abierta.practica,
       datos: abierta.datos,
       esRepaso: abierta.esRepaso,

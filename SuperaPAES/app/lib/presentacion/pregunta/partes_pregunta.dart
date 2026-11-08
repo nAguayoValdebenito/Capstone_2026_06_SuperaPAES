@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
+import 'package:supera_paes/presentacion/comunes/hoja_confirmacion.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
@@ -114,7 +116,21 @@ class AvancePractica extends ConsumerWidget {
           alignment: WrapAlignment.spaceBetween,
           spacing: 8,
           children: [
-            Text(descripcion, style: secundario),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (datos != null) ...[
+                  SelloPrueba(
+                    Prueba.deCodigo(
+                      nombres?.prueba(datos.pruebaId)?.codigo ?? '',
+                    ),
+                    tamano: TemaSuperaPaes.selloCabeceraPractica,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(child: Text(descripcion, style: secundario)),
+              ],
+            ),
             Text(
               'Pregunta ${pregunta.orden} de ${pregunta.total}',
               style: secundario,
@@ -122,28 +138,7 @@ class AvancePractica extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 8),
-        ExcludeSemantics(
-          child: Container(
-            height: TemaSuperaPaes.altoAvance,
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              color: TemaSuperaPaes.neutroSuave,
-              borderRadius: BorderRadius.circular(TemaSuperaPaes.altoAvance),
-            ),
-            child: FractionallySizedBox(
-              widthFactor: hechas.clamp(0, 1),
-              heightFactor: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: TemaSuperaPaes.primario,
-                  borderRadius: BorderRadius.circular(
-                    TemaSuperaPaes.altoAvance,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+        BarraAnimada(valor: hechas.clamp(0, 1)),
       ],
     );
   }
@@ -158,29 +153,20 @@ Future<void> terminarPractica(
 }) async {
   final esRepaso = ref.read(practicaProvider).esRepaso;
   if (preguntar) {
-    final terminar = await showDialog<bool>(
-      context: context,
-      builder: (contexto) => AlertDialog(
-        title: Text(
-          esRepaso ? '¿Terminar el repaso?' : '¿Terminar la práctica?',
-        ),
-        content: const Text(
+    final terminar = await confirmarEnHoja(
+      context,
+      HojaConfirmacion(
+        titulo: esRepaso ? '¿Terminar el repaso?' : '¿Terminar la práctica?',
+        contenido: const Text(
           'Las preguntas que no respondiste quedan sin responder en tu '
           'resumen.',
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(contexto).pop(false),
-            child: Text(esRepaso ? 'Seguir repasando' : 'Seguir practicando'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(contexto).pop(true),
-            child: const Text('Terminar'),
-          ),
-        ],
+        confirmar: 'Terminar',
+        cancelar: esRepaso ? 'Seguir repasando' : 'Seguir practicando',
+        confirmarEsPrincipal: false,
       ),
     );
-    if (terminar != true) return;
+    if (!terminar) return;
   }
   try {
     await ref.read(practicaProvider.notifier).cerrar();

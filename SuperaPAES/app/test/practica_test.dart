@@ -7,6 +7,7 @@ import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/practicar/pantalla_resumen_practica.dart';
@@ -329,7 +330,8 @@ void main() {
       await tocar(tester, find.text('Empezar práctica'));
 
       await tocar(tester, find.text('Terminar'));
-      await tester.tap(find.widgetWithText(TextButton, 'Terminar').last);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Terminar'));
       await tester.pumpAndSettle();
 
       expect(rutaActual(contenedor), Rutas.resumenPractica);
@@ -337,8 +339,22 @@ void main() {
       expect(find.text('Matemática M1 · Potencias y raíces'), findsOne);
       expect(find.text('Mezcla de dificultad · 10 preguntas'), findsOne);
       expect(find.text('7/10'), findsOne);
-      expect(find.text('70 % de acierto'), findsOne);
-      expect(find.text('12 min'), findsOne);
+      expect(find.text('70 %'), findsOne);
+      expect(find.text('de acierto'), findsOne);
+      expect(tester.widget<LineaDatos>(find.byType(LineaDatos)).datos, [
+        ('7', 'correctas'),
+        ('3', 'incorrectas'),
+        ('12 min', 'tiempo'),
+      ]);
+      await tester.scrollUntilVisible(
+        find.textContaining(
+          'Las 3 incorrectas pasaron a Repasar errores. '
+          'La práctica quedó en tu historial.',
+          findRichText: true,
+        ),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.textContaining(
           'Las 3 incorrectas pasaron a Repasar errores. La práctica quedó en '

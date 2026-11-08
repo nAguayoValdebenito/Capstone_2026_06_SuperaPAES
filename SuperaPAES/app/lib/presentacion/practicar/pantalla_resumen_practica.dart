@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/practicar/momento_resumen.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 /// Resumen de la práctica (A21; HU-30 esc. 5, CU-06 paso 7): aciertos,
@@ -99,34 +99,11 @@ class PantallaResumenPractica extends ConsumerWidget {
         ],
       ),
       Tarjeta(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              marcadorDe(resumen),
-              style: TemaSuperaPaes.display,
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              '${resumen.porcentaje.round()} % de acierto',
-              style: TemaSuperaPaes.cuerpo,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                DatoResumen(valor: '${resumen.correctas}', texto: 'correctas'),
-                DatoResumen(
-                  valor: '${resumen.incorrectas}',
-                  texto: 'incorrectas',
-                ),
-                DatoResumen(
-                  valor: tiempoDePractica(resumen.tiempoUsadoSeg),
-                  texto: 'tiempo',
-                ),
-              ],
-            ),
-          ],
+        child: MomentoResumen(
+          key: ValueKey(resumen.id),
+          resumen: resumen,
+          marcador: marcadorDe(resumen),
+          tiempo: tiempoDePractica(resumen.tiempoUsadoSeg),
         ),
       ),
       if (esRepaso)

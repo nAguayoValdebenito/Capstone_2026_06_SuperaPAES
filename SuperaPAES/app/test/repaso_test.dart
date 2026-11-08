@@ -244,6 +244,11 @@ void main() {
       expect(find.text('Repaso terminado'), findsOne);
       expect(find.text('Seguir repasando'), findsOne);
       expect(find.text('Practicar de nuevo'), findsNothing);
+      await tester.scrollUntilVisible(
+        find.textContaining('salieron de tu lista', findRichText: true),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.textContaining('salieron de tu lista', findRichText: true),
         findsOne,

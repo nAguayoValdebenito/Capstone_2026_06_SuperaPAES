@@ -10,6 +10,7 @@ import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 import 'package:supera_paes/presentacion/comunes/navegar.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/pregunta/cuerpo_pregunta.dart';
+import 'package:supera_paes/presentacion/pregunta/hoja_avisar_error.dart';
 import 'package:supera_paes/presentacion/pregunta/hoja_confirmar_respuesta.dart';
 import 'package:supera_paes/presentacion/pregunta/partes_pregunta.dart';
 
@@ -117,11 +118,16 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
         const CabeceraPractica(),
         AvancePractica(pregunta: pregunta),
         ...cuerpoDePregunta(
+          conMovimiento: true,
           texto: pregunta.texto,
           enunciado: pregunta.enunciado,
           alternativas: pregunta.alternativas,
           elegida: _elegida,
           alElegir: _enviando ? null : _elegir,
+        ),
+        BotonTexto(
+          onPressed: () => avisarError(context),
+          child: const Text('Avisar un error'),
         ),
       ],
       pie: PieConError(

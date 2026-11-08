@@ -187,10 +187,15 @@ abstract final class TemaSuperaPaes {
 
   /// Círculo con la letra de cada alternativa (A17 a A20).
   static const double circuloLetra = 28;
+  static const double escalaPulsoAlternativa = 1.08;
+  static const double escalaPulsoCorrecta = 1.03;
+  static const double anchoTrazoCorreccion = 48;
+  static const double iconoCorreccion = 40;
+  static const double selloCabeceraPractica = 28;
 
   /// Alto máximo del texto de lectura dentro de la pregunta (A20); el resto
   /// se recorre ahí mismo o con «Ampliar texto».
-  static const double altoTextoLectura = 210;
+  static const double altoTextoLectura = 150;
 
   /// Barra del avance de la práctica (A17), como la de los pasos del perfil.
   static const double altoAvance = 6;

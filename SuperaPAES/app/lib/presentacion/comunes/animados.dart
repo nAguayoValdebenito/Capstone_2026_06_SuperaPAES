@@ -307,30 +307,34 @@ class ContadorAnimado extends StatelessWidget {
     return '${s.substring(0, s.length - 3)}.${s.substring(s.length - 3)}';
   }
 
+  Widget _numero(int valor) => FittedBox(
+    fit: BoxFit.scaleDown,
+    alignment: Alignment.centerLeft,
+    child: Text(
+      '${_formato(valor)}$sufijo',
+      style: TemaSuperaPaes.tabular(estilo),
+      maxLines: 1,
+      softWrap: false,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final animar = !sinAnimarMomentos(context);
     return Semantics(
       label: '${_formato(valor)}$sufijo',
       child: ExcludeSemantics(
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(
-            begin: animar ? desde.toDouble() : valor.toDouble(),
-            end: valor.toDouble(),
-          ),
-          duration: animar ? duracionBase : Duration.zero,
-          curve: TemaSuperaPaes.curvaEnfasis,
-          builder: (_, v, _) => FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '${_formato(v.round())}$sufijo',
-              style: TemaSuperaPaes.tabular(estilo),
-              maxLines: 1,
-              softWrap: false,
-            ),
-          ),
-        ),
+        child: !animar
+            ? _numero(valor)
+            : TweenAnimationBuilder<double>(
+                tween: Tween(
+                  begin: animar ? desde.toDouble() : valor.toDouble(),
+                  end: valor.toDouble(),
+                ),
+                duration: animar ? duracionBase : Duration.zero,
+                curve: TemaSuperaPaes.curvaEnfasis,
+                builder: (_, v, _) => _numero(v.round()),
+              ),
       ),
     );
   }
@@ -345,6 +349,7 @@ class AnilloAvance extends StatefulWidget {
     super.key,
     this.tamano = TemaSuperaPaes.anilloResumen,
     this.destellos = false,
+    this.animar = true,
     this.color = TemaSuperaPaes.primario,
   });
 
@@ -352,6 +357,7 @@ class AnilloAvance extends StatefulWidget {
   final Widget centro;
   final double tamano;
   final bool destellos;
+  final bool animar;
   final Color color;
 
   @override
@@ -373,15 +379,26 @@ class _AnilloAvanceState extends State<AnilloAvance>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_iniciado) return;
-    _iniciado = true;
-    if (sinAnimarMomentos(context)) {
-      _llenar.value = 1;
+    if (sinAnimarMomentos(context) || !widget.animar) {
+      _iniciado = true;
+      _llenar
+        ..stop()
+        ..value = 1;
+      _chispas
+        ..stop()
+        ..value = 0;
       return; // Sin destellos con movimiento reducido.
     }
+    if (_iniciado) return;
+    _iniciado = true;
     unawaited(
       _llenar.forward().whenComplete(() {
-        if (!mounted || !widget.destellos) return;
+        if (!mounted ||
+            !widget.destellos ||
+            sinAnimarMomentos(context) ||
+            !widget.animar) {
+          return;
+        }
         unawaited(HapticFeedback.lightImpact());
         _chispas.forward();
       }),
@@ -404,10 +421,11 @@ class _AnilloAvanceState extends State<AnilloAvance>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          if (widget.destellos)
+          if (widget.destellos && widget.animar && !sinAnimarMomentos(context))
             Positioned.fill(
               child: RepaintBoundary(
                 child: CustomPaint(
+                  key: const ValueKey('destellos-resumen'),
                   painter: _PintorChispas(_chispas, widget.tamano),
                 ),
               ),

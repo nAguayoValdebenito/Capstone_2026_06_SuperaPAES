@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/por_repasar.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/practicar/empezar_practica.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
@@ -86,6 +87,16 @@ class _PantallaRepasoState extends ConsumerState<PantallaRepaso>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Row(
+                children: [
+                  SelloPrueba(Prueba.deCodigo(prueba.codigo)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(prueba.codigo, style: TemaSuperaPaes.h2),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               for (final eje in prueba.ejes)
                 FilaNavegacion(
                   texto: eje.nombre,

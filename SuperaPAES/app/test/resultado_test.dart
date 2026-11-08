@@ -232,7 +232,8 @@ void main() {
       await iniciarApp(tester, contenedor, ruta: Rutas.practicar);
       await tocar(tester, find.text('Empezar práctica'));
       await tocar(tester, find.text('Terminar'));
-      await tester.tap(find.widgetWithText(TextButton, 'Terminar').last);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Terminar'));
       await tester.pumpAndSettle();
       expect(rutaActual(contenedor), Rutas.resumenPractica);
 

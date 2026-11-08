@@ -114,7 +114,8 @@ void main() {
         expect(find.text('Pregunta $orden de 5'), findsOne);
         await tocar(tester, _alternativa('A'));
         await _responder(tester);
-        expect(find.text('Respuesta incorrecta'), findsOne);
+        expect(find.text('Era la C.'), findsOne);
+        expect(find.text('Mira cómo se resuelve. Tú marcaste la A.'), findsOne);
         if (orden < 5) await tocar(tester, find.text('Siguiente pregunta'));
       }
 
@@ -135,7 +136,8 @@ void main() {
       expect(rutaActual(contenedor), Rutas.pregunta);
 
       await tocar(tester, find.text('Terminar'));
-      await tester.tap(find.widgetWithText(TextButton, 'Terminar').last);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Terminar'));
       await tester.pumpAndSettle();
       expect(rutaActual(contenedor), Rutas.resumenPractica);
     });
