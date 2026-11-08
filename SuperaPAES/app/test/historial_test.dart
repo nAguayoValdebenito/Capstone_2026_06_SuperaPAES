@@ -104,6 +104,91 @@ void main() {
   });
 
   group('Historial (A34)', () {
+    testWidgets('el Hero del sello se activa con push y no con go', (
+      tester,
+    ) async {
+      final repo = RepositorioResultadosFalso()
+        ..paginaHistorial = historialDeEjemplo;
+      final contenedor = crearContenedor(
+        sesion: sesionDeEjemplo,
+        resultados: repo,
+      );
+      await iniciarApp(tester, contenedor, ruta: Rutas.historial);
+      await tester.tap(find.text('Matemática M1').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const ValueKey('vuelo-sello-41')), findsOne);
+      await tester.pumpAndSettle();
+      expect(rutaActual(contenedor), Rutas.resultadoHistorial);
+      final modo = find.byWidgetPredicate(
+        (widget) =>
+            widget is HeroMode &&
+            widget.child is Hero &&
+            (widget.child as Hero).tag == 'sello-evaluacion-41',
+      );
+      expect(repo.resultadosPedidos, [41]);
+      expect(tester.widget<HeroMode>(modo).enabled, isTrue);
+      await ir(tester, contenedor, Rutas.evaluaciones);
+      await ir(tester, contenedor, Rutas.resultado);
+      expect(tester.widget<HeroMode>(modo).enabled, isFalse);
+    });
+    testWidgets('segmentos agrupan en el servidor y reinician la pagina', (
+      tester,
+    ) async {
+      final repo = await _abrir(tester, pagina: historialConPaginas);
+      await _pantallaAlta(tester);
+      await tocar(tester, find.text('Siguiente'));
+      expect(repo.consultas.last.pagina, 2);
+      await tester.scrollUntilVisible(
+        find.text('Prácticas'),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text('Prácticas'));
+      expect(repo.consultas.last.grupo, 'practicas');
+      expect(repo.consultas.last.pagina, 1);
+      await tocar(
+        tester,
+        find.descendant(
+          of: find.byKey(const ValueKey('grupo-historial')),
+          matching: find.text('Evaluaciones'),
+        ),
+      );
+      expect(repo.consultas.last.grupo, 'evaluaciones');
+      await tocar(tester, find.text('Todo'));
+      expect(repo.consultas.last.grupo, isNull);
+    });
+
+    testWidgets('movimiento reducido conserva el detalle sin vuelo Hero', (
+      tester,
+    ) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      final repo = RepositorioResultadosFalso()
+        ..paginaHistorial = historialDeEjemplo;
+      final contenedor = crearContenedor(
+        sesion: sesionDeEjemplo,
+        resultados: repo,
+      );
+      await iniciarApp(tester, contenedor, ruta: Rutas.historial);
+      await tester.tap(find.text('Matemática M1').first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const ValueKey('vuelo-sello-41')), findsNothing);
+      await tester.pumpAndSettle();
+      expect(rutaActual(contenedor), Rutas.resultadoHistorial);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Hero && w.tag == 'sello-evaluacion-41',
+        ),
+        findsOne,
+      );
+      expect(tester.hasRunningAnimations, isFalse);
+      expect(tester.takeException(), isNull);
+    });
     testWidgets('muestra cada evaluación con su detalle', (tester) async {
       await _abrir(tester);
 
@@ -118,6 +203,11 @@ void main() {
       await _abrir(tester);
 
       expect(find.text('Abandonada: se guardó lo respondido'), findsOne);
+      await tester.scrollUntilVisible(
+        find.text('Recalculado: se anuló una pregunta con error'),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.text('Recalculado: se anuló una pregunta con error'),
         findsOne,

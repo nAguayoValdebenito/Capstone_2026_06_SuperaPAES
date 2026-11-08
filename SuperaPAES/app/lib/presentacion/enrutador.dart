@@ -12,6 +12,7 @@ import 'package:supera_paes/presentacion/comunes/rutas_navegacion.dart';
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
 import 'package:supera_paes/presentacion/comunes/transiciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/resultado/pantalla_resultado.dart';
 
 /// Pantallas que no exigen sesión.
 const Set<String> rutasPublicas = {
@@ -121,6 +122,16 @@ final enrutadorProvider = Provider<GoRouter>((ref) {
                     parentNavigatorKey: ramas[indice],
                     pageBuilder: (context, state) =>
                         paginaConMovimiento(context, state, seccion.pantalla()),
+                  ),
+                if (pestanas[indice].ruta == Rutas.progreso)
+                  GoRoute(
+                    path: Rutas.resultadoHistorial,
+                    parentNavigatorKey: ramas[indice],
+                    pageBuilder: (context, state) => paginaConMovimiento(
+                      context,
+                      state,
+                      const PantallaResultado(),
+                    ),
                   ),
               ],
             ),

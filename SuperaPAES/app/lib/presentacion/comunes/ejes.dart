@@ -39,6 +39,7 @@ class FilaEje extends StatelessWidget {
     required this.valor,
     required this.indice,
     super.key,
+    this.mostrarNivel = true,
   });
 
   final String nombre;
@@ -49,6 +50,9 @@ class FilaEje extends StatelessWidget {
   /// Posición en la lista, para escalonar la barra.
   final int indice;
 
+  /// El resultado usa las marcas del servidor, sin recalcular RN-14.
+  final bool mostrarNivel;
+
   @override
   Widget build(BuildContext context) {
     final nivel = nivelDeEje(valor);
@@ -56,7 +60,9 @@ class FilaEje extends StatelessWidget {
         duracion(context, TemaSuperaPaes.pasoEscalonado) *
         (indice.clamp(0, TemaSuperaPaes.topeEscalonado - 1) + 2);
     return Semantics(
-      label: '$nombre: ${(valor * 100).round()} %, ${nivel.texto}',
+      label:
+          '$nombre: ${(valor * 100).round()} %'
+          '${mostrarNivel ? ', ${nivel.texto}' : ''}',
       child: ExcludeSemantics(
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -76,11 +82,12 @@ class FilaEje extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: TemaSuperaPaes.espacio8,
                     children: [
-                      Etiqueta(
-                        texto: nivel.texto,
-                        tono: nivel.tono,
-                        icono: nivel.icono,
-                      ),
+                      if (mostrarNivel)
+                        Etiqueta(
+                          texto: nivel.texto,
+                          tono: nivel.tono,
+                          icono: nivel.icono,
+                        ),
                       Text(
                         '${(valor * 100).round()} %',
                         style: TemaSuperaPaes.tabular(

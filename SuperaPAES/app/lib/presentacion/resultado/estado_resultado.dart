@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/datos/fuentes/fuente_resultados_remota.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_resultados_api.dart';
 import 'package:supera_paes/dominio/entidades/historial.dart';
@@ -53,16 +52,26 @@ class EstadoFiltrosHistorial extends Notifier<FiltrosHistorial> {
     return const FiltrosHistorial();
   }
 
-  void elegirPrueba(int? id) =>
-      state = FiltrosHistorial(pruebaId: id, tipo: state.tipo);
+  void elegirPrueba(int? id) => state = FiltrosHistorial(
+    pruebaId: id,
+    tipo: state.tipo,
+    grupo: state.grupo,
+  );
 
-  void elegirTipo(String? tipo) =>
-      state = FiltrosHistorial(pruebaId: state.pruebaId, tipo: tipo);
+  void elegirGrupo(String? grupo) =>
+      state = FiltrosHistorial(pruebaId: state.pruebaId, grupo: grupo);
+
+  void elegirTipo(String? tipo) => state = FiltrosHistorial(
+    pruebaId: state.pruebaId,
+    tipo: tipo,
+    grupo: state.grupo,
+  );
 
   void irAPagina(int pagina) => state = FiltrosHistorial(
     pruebaId: state.pruebaId,
     tipo: state.tipo,
     pagina: pagina,
+    grupo: state.grupo,
   );
 
   void limpiar() => state = const FiltrosHistorial();
@@ -89,9 +98,18 @@ final FutureProvider<PaginaHistorial?> historialProvider =
 
 /// Abre el resultado de la evaluación (A30, A32): desde la entrega (HU-40) y
 /// el historial (HU-62).
-Future<void> abrirResultado(BuildContext context, WidgetRef ref, int id) {
+Future<void> abrirResultado(
+  BuildContext context,
+  WidgetRef ref,
+  int id, {
+  bool desdeHistorial = false,
+  String? codigoPrueba,
+}) {
   ref.read(evaluacionConsultadaProvider.notifier).evaluacion = id;
-  return context.push(Rutas.resultado);
+  return context.push(
+    desdeHistorial ? Rutas.resultadoHistorial : Rutas.resultado,
+    extra: desdeHistorial ? DetalleDesdeHistorial(id, codigoPrueba) : null,
+  );
 }
 
 /// Abre la revisión pregunta por pregunta (A33): desde A30 y desde «Ver la
@@ -99,4 +117,11 @@ Future<void> abrirResultado(BuildContext context, WidgetRef ref, int id) {
 Future<void> abrirRevision(BuildContext context, WidgetRef ref, int id) {
   ref.read(evaluacionConsultadaProvider.notifier).evaluacion = id;
   return context.push(Rutas.revision);
+}
+
+/// Solo datos visuales para el sello; el resultado se consulta en el servidor.
+class DetalleDesdeHistorial {
+  const DetalleDesdeHistorial(this.id, this.codigoPrueba);
+  final int id;
+  final String? codigoPrueba;
 }

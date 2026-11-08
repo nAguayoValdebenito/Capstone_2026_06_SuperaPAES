@@ -39,6 +39,7 @@ abstract final class Rutas {
   static const String resultado = '/evaluaciones/resultado';
   static const String revision = '/evaluaciones/revision';
   static const String historial = '/evaluaciones/historial';
+  static const String resultadoHistorial = '$historial/resultado';
 
   // Desde Perfil
   static const String planes = '/planes';

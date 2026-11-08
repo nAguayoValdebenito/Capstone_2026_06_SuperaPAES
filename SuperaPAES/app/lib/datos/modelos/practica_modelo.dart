@@ -181,6 +181,12 @@ abstract final class PracticaModelo {
       cantidad: json['cantidad'] as int,
       respondidas: json['respondidas'] as int,
       segundosRestantes: json['segundosRestantes'] as int?,
+      venceEnServidor: DateTime.tryParse(json['venceEn'] as String? ?? ''),
+      duracionSegundos: json['venceEn'] != null && json['iniciadaEn'] != null
+          ? DateTime.parse(
+              json['venceEn'] as String,
+            ).difference(DateTime.parse(json['iniciadaEn'] as String)).inSeconds
+          : null,
       preguntas: EvaluacionConTiempoModelo.preguntas(json['preguntas']),
     );
   }

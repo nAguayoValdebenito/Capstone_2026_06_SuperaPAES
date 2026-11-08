@@ -20,6 +20,7 @@ abstract final class ResultadoModelo {
         prueba['nombre'] as String,
       ),
       pruebaId: leerId(prueba['id']),
+      codigoPrueba: prueba['codigo'] as String?,
       estado: estado['codigo'] as String,
       cantidad: json['cantidad'] as int,
       puntuables: json['puntuables'] as int,

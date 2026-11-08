@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/ejes.dart';
 import 'package:supera_paes/presentacion/practicar/pantalla_resumen_practica.dart';
+import 'package:supera_paes/presentacion/resultado/momento_resultado.dart';
 import 'package:supera_paes/presentacion/resultado/partes_diagnostico.dart';
 
 /// Las partes del resultado (A30, A31, A32 y A32b), en el orden de los
@@ -34,6 +35,8 @@ abstract final class ContenidoResultado {
         ],
       ),
       _TarjetaPrincipal(datos: datos),
+      if (fraseDeResultado(datos) case final frase?)
+        Text(frase, style: TemaSuperaPaes.cuerpoFuerte),
       if (datos.esEnsayo) Text(_notaEnsayo(datos), style: secundario),
       if (datos.esEnsayo && datos.puntaje == null)
         const Aviso(
@@ -154,11 +157,7 @@ class _TarjetaPrincipal extends StatelessWidget {
               style: TemaSuperaPaes.etiqueta,
               textAlign: TextAlign.center,
             ),
-            Text(
-              '$puntaje',
-              style: TemaSuperaPaes.display,
-              textAlign: TextAlign.center,
-            ),
+            MomentoResultado(datos: datos),
             Text(
               'Escala de 100 a 1.000 · tabla de conversión DEMRE, '
               'admisión ${tabla?.anioAdmision ?? ''} '
@@ -167,16 +166,12 @@ class _TarjetaPrincipal extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             Text(
-              'Es una estimación, no un resultado oficial del DEMRE.',
+              'Es una estimación, no un resultado oficial.',
               style: secundario,
               textAlign: TextAlign.center,
             ),
           ] else ...[
-            Text(
-              '${datos.porcentaje.round()} %',
-              style: TemaSuperaPaes.display,
-              textAlign: TextAlign.center,
-            ),
+            MomentoResultado(datos: datos),
             Text(
               '${datos.correctas} de ${datos.puntuables} correctas',
               style: TemaSuperaPaes.cuerpo,
@@ -226,16 +221,22 @@ class _TarjetaGruposState extends State<_TarjetaGrupos> {
         children: [
           SelectorSegmentado<bool>(
             opciones: const [(true, 'Por eje'), (false, 'Por habilidad')],
+            conMovimiento: true,
             seleccionado: _porEje,
             onChanged: (valor) => setState(() => _porEje = valor),
           ),
-          for (final grupo in grupos) ...[
+          for (final (indice, grupo) in grupos.indexed) ...[
             const SizedBox(height: 12),
-            FilaDato(
-              etiqueta: grupo.nombre,
-              valor:
-                  '${grupo.correctas} de ${grupo.preguntas} · '
-                  '${grupo.porcentaje.round()} %',
+            FilaEje(
+              mostrarNivel: false,
+              nombre: grupo.nombre,
+              valor: grupo.porcentaje / 100,
+              indice: indice,
+            ),
+            Text(
+              '${grupo.correctas} de ${grupo.preguntas} · '
+              '${grupo.porcentaje.round()} %',
+              style: TemaSuperaPaes.pequeno,
             ),
           ],
         ],

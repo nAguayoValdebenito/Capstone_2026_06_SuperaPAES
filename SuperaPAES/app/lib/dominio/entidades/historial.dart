@@ -8,6 +8,7 @@ class EvaluacionDelHistorial {
     required this.cantidad,
     required this.correctas,
     this.alcance,
+    this.codigoPrueba,
     this.abandonada = false,
     this.porcentaje,
     this.puntaje,
@@ -21,6 +22,7 @@ class EvaluacionDelHistorial {
 
   /// Como en Inicio: «Matemática M1».
   final String prueba;
+  final String? codigoPrueba;
 
   /// Lo que se eligió practicar; `null` si fue toda la prueba.
   final String? alcance;
@@ -59,14 +61,20 @@ class PaginaHistorial {
 
 /// Lo que se pide del historial (CU-30 paso 3).
 class FiltrosHistorial {
-  const FiltrosHistorial({this.pruebaId, this.tipo, this.pagina = 1});
+  const FiltrosHistorial({
+    this.pruebaId,
+    this.tipo,
+    this.grupo,
+    this.pagina = 1,
+  });
 
   /// `null`: todas las pruebas.
   final int? pruebaId;
 
   /// Código del tipo de evaluación; `null`: todos.
   final String? tipo;
+  final String? grupo;
   final int pagina;
 
-  bool get sinFiltros => pruebaId == null && tipo == null;
+  bool get sinFiltros => pruebaId == null && tipo == null && grupo == null;
 }

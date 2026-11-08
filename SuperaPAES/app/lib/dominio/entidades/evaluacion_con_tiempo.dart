@@ -131,6 +131,8 @@ class EvaluacionConTiempo {
     required this.pruebaId,
     required this.preguntas,
     required this.segundosRestantes,
+    this.venceEnServidor,
+    this.duracionSegundos,
   });
 
   final int id;
@@ -140,6 +142,8 @@ class EvaluacionConTiempo {
   final int pruebaId;
   final List<PreguntaConTiempo> preguntas;
   final int segundosRestantes;
+  final DateTime? venceEnServidor;
+  final int? duracionSegundos;
 }
 
 /// La entrega (POST /evaluaciones/:id/entregar): con ella ya hay resultado.

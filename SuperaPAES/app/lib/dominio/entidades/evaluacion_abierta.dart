@@ -15,6 +15,8 @@ class EvaluacionAbierta {
     required this.cantidad,
     required this.respondidas,
     this.segundosRestantes,
+    this.venceEnServidor,
+    this.duracionSegundos,
     this.preguntas = const [],
   });
 
@@ -40,6 +42,8 @@ class EvaluacionAbierta {
 
   /// Lo que le quedaba según el servidor al consultarla; `null` sin tiempo.
   final int? segundosRestantes;
+  final DateTime? venceEnServidor;
+  final int? duracionSegundos;
 
   /// Con tiempo, sus preguntas con lo que ya respondió (A27); vacía en la
   /// práctica.
@@ -68,6 +72,8 @@ class EvaluacionAbierta {
     pruebaId: pruebaId,
     preguntas: preguntas,
     segundosRestantes: segundosRestantes ?? 0,
+    venceEnServidor: venceEnServidor,
+    duracionSegundos: duracionSegundos,
   );
 }
 

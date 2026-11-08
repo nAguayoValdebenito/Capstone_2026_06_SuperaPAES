@@ -56,6 +56,13 @@ void main() {
       expect(find.text('omitidas'), findsOne);
       expect(find.text('5 de 6 · 83 %'), findsOne);
       expect(find.text('Resolver problemas'), findsNothing);
+      await tester.scrollUntilVisible(
+        _textoRico(
+          'Las 4 incorrectas y las 3 omitidas pasaron a Repasar errores.',
+        ),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         _textoRico(
           'Las 4 incorrectas y las 3 omitidas pasaron a Repasar errores.',
@@ -63,6 +70,11 @@ void main() {
         findsOne,
       );
 
+      await tester.scrollUntilVisible(
+        find.text('Por habilidad'),
+        -150,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tocar(tester, find.text('Por habilidad'));
       expect(find.text('Resolver problemas'), findsOne);
       expect(find.text('15 de 22 · 68 %'), findsOne);
@@ -86,7 +98,7 @@ void main() {
         findsOne,
       );
       expect(
-        find.text('Es una estimación, no un resultado oficial del DEMRE.'),
+        find.text('Es una estimación, no un resultado oficial.'),
         findsOne,
       );
       expect(
@@ -181,10 +193,19 @@ void main() {
       expect(find.text('Todas (3)'), findsOne);
       expect(find.text('Incorrectas (1)'), findsOne);
       expect(find.text('Omitidas (1)'), findsOne);
+      expect(find.byType(ListTile), findsNWidgets(3));
+      await tocar(tester, find.text('Pregunta 1'));
       expect(find.text('Pregunta 1 de 3 · Números'), findsOne);
       expect(find.text('Correcta'), findsOne);
       expect(_alternativa(tester, 'C').etiqueta, 'Tu respuesta');
       expect(find.text('Explicación de la pregunta 1'), findsOne);
+      await tester.scrollUntilVisible(
+        find.text(
+          'Se muestra tal como la viste, aunque después se haya editado.',
+        ),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.text(
           'Se muestra tal como la viste, aunque después se haya editado.',
@@ -209,6 +230,8 @@ void main() {
       await _abrir(tester, ruta: Rutas.revision);
 
       await tocar(tester, find.text('Omitidas (1)'));
+      expect(find.byType(ListTile), findsOne);
+      await tocar(tester, find.text('Pregunta 3'));
       expect(find.text('Pregunta 3 de 3 · Números'), findsOne);
       expect(find.text('Omitida'), findsOne);
       expect(_alternativa(tester, 'C').etiqueta, 'Correcta');
@@ -217,6 +240,8 @@ void main() {
       expect(find.text('Siguiente'), findsNothing);
 
       await tocar(tester, find.text('Incorrectas (1)'));
+      expect(find.byType(ListTile), findsOne);
+      await tocar(tester, find.text('Pregunta 2'));
       expect(find.text('Pregunta 2 de 3 · Geometría'), findsOne);
     });
 
@@ -241,6 +266,7 @@ void main() {
 
       expect(rutaActual(contenedor), Rutas.revision);
       expect(repositorio.revisionesPedidas, [resumenDeEjemplo.id]);
+      await tocar(tester, find.text('Pregunta 1'));
       expect(find.text('Pregunta 1 de 3 · Números'), findsOne);
     });
   });
@@ -256,6 +282,20 @@ void main() {
     expect(find.text('68 %'), findsOne);
 
     await ir(tester, contenedor, Rutas.revision);
+    for (final orden in [1, 2, 3]) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey('revision-pregunta-$orden')),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.byKey(ValueKey('revision-pregunta-$orden')), findsOne);
+    }
+    await tester.scrollUntilVisible(
+      find.text('Pregunta 1'),
+      -150,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tocar(tester, find.text('Pregunta 1'));
     expect(find.text('Pregunta 1 de 3 · Números'), findsOne);
     expect(tester.takeException(), isNull);
   });

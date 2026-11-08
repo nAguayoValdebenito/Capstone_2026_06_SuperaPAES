@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
@@ -28,6 +27,7 @@ class PantallaRevision extends ConsumerStatefulWidget {
 class _PantallaRevisionState extends ConsumerState<PantallaRevision> {
   FiltroRevision _filtro = FiltroRevision.todas;
   int _indice = 0;
+  bool _verLista = true;
 
   static bool _cumple(PreguntaRevisada pregunta, FiltroRevision filtro) =>
       switch (filtro) {
@@ -67,8 +67,42 @@ class _PantallaRevisionState extends ConsumerState<PantallaRevision> {
             _filtros(preguntas),
             if (actual == null)
               Aviso(tono: TonoAviso.neutro, texto: _sinPreguntas(_filtro))
-            else
+            else if (_verLista)
+              for (final (i, pregunta) in filtradas.indexed)
+                ListTile(
+                  key: ValueKey('revision-pregunta-${pregunta.orden}'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(switch (pregunta.resultado) {
+                    ResultadoPregunta.correcta => Icons.check_circle_outline,
+                    ResultadoPregunta.incorrecta => Icons.cancel_outlined,
+                    ResultadoPregunta.omitida => Icons.remove_circle_outline,
+                  }),
+                  title: Text('Pregunta ${pregunta.orden}'),
+                  subtitle: Text(pregunta.eje),
+                  trailing: Etiqueta(
+                    texto: switch (pregunta.resultado) {
+                      ResultadoPregunta.correcta => 'Correcta',
+                      ResultadoPregunta.incorrecta => 'Incorrecta',
+                      ResultadoPregunta.omitida => 'Omitida',
+                    },
+                    tono: switch (pregunta.resultado) {
+                      ResultadoPregunta.correcta => TonoEtiqueta.exito,
+                      ResultadoPregunta.incorrecta => TonoEtiqueta.error,
+                      ResultadoPregunta.omitida => TonoEtiqueta.primario,
+                    },
+                  ),
+                  onTap: () => setState(() {
+                    _indice = i;
+                    _verLista = false;
+                  }),
+                )
+            else ...[
+              BotonTexto(
+                onPressed: () => setState(() => _verLista = true),
+                child: const Text('Volver a la lista'),
+              ),
               ..._pregunta(actual, preguntas.length),
+            ],
           ],
           AsyncData() => const [
             Encabezado(
@@ -79,7 +113,7 @@ class _PantallaRevisionState extends ConsumerState<PantallaRevision> {
           _ => const [Center(child: CircularProgressIndicator())],
         },
       ],
-      pie: filtradas.length < 2
+      pie: _verLista || filtradas.length < 2
           ? null
           : Row(
               children: [
@@ -119,9 +153,11 @@ class _PantallaRevisionState extends ConsumerState<PantallaRevision> {
           (filtro, '$texto (${cuantas(filtro)})'),
       ],
       seleccionado: _filtro,
+      conMovimiento: true,
       onChanged: (filtro) => setState(() {
         _filtro = filtro;
         _indice = 0;
+        _verLista = true;
       }),
     );
   }

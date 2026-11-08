@@ -199,6 +199,11 @@ void main() {
         _movimiento(tester, reducido);
         final contenedor = crearContenedor(sesion: sesionDeEjemplo);
         await iniciarApp(tester, contenedor, ruta: Rutas.evaluaciones);
+        await tester.scrollUntilVisible(
+          find.text('Ver planes'),
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
         await tocar(tester, find.text('Ver planes').first);
         expect(rutaActual(contenedor), rutaPlanesEnRama(Rutas.evaluaciones));
         expect(

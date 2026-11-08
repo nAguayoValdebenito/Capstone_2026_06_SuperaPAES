@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,6 +57,8 @@ Future<void> ofrecerRetomar(
     accion = await mostrarHoja<AccionRetomar>(
       context,
       HojaRetomarEvaluacion(abierta: abierta),
+      cerrarPorFuera: false,
+      permitirArrastre: false,
     );
   } finally {
     hoja.cerrar();
@@ -103,13 +106,20 @@ class HojaRetomarEvaluacion extends StatefulWidget {
 class _HojaRetomarEvaluacionState extends State<HojaRetomarEvaluacion> {
   late int _restantes = widget.abierta.segundosRestantes ?? 0;
   Timer? _reloj;
+  late final DateTime _vence;
 
   @override
   void initState() {
     super.initState();
+    _vence = clock.now().add(Duration(seconds: _restantes));
     if (_restantes > 0) {
       _reloj = Timer.periodic(const Duration(seconds: 1), (reloj) {
-        setState(() => _restantes--);
+        setState(
+          () => _restantes =
+              (_vence.difference(clock.now()).inMilliseconds / 1000)
+                  .ceil()
+                  .clamp(0, widget.abierta.segundosRestantes ?? 0),
+        );
         if (_restantes <= 0) reloj.cancel();
       });
     }

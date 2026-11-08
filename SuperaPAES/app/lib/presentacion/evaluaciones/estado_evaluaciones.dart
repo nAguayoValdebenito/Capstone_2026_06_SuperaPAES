@@ -1,7 +1,6 @@
 import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show FutureProviderFamily;
-
 import 'package:supera_paes/datos/fuentes/fuente_evaluaciones_remota.dart';
 import 'package:supera_paes/datos/repositorios/repositorio_evaluaciones_api.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
@@ -79,6 +78,7 @@ class EvaluacionEnCurso {
     required this.preguntas,
     required this.actual,
     required this.venceEn,
+    this.desfaseServidor = Duration.zero,
   });
 
   final EvaluacionConTiempo evaluacion;
@@ -87,6 +87,7 @@ class EvaluacionEnCurso {
   /// Índice de la pregunta que se ve.
   final int actual;
   final DateTime venceEn;
+  final Duration desfaseServidor;
 
   PreguntaConTiempo get pregunta => preguntas[actual];
   int get respondidas => preguntas.where((p) => p.respondida).length;
@@ -94,7 +95,9 @@ class EvaluacionEnCurso {
 
   /// Segundos que quedan, redondeados hacia arriba: «48:00» al empezar.
   int get segundosRestantes {
-    final quedan = venceEn.difference(clock.now()).inMilliseconds;
+    final quedan = venceEn
+        .difference(clock.now().add(desfaseServidor))
+        .inMilliseconds;
     return quedan <= 0 ? 0 : (quedan / 1000).ceil();
   }
 
@@ -104,6 +107,7 @@ class EvaluacionEnCurso {
         preguntas: preguntas ?? this.preguntas,
         actual: actual ?? this.actual,
         venceEn: venceEn,
+        desfaseServidor: desfaseServidor,
       );
 }
 
@@ -149,11 +153,18 @@ class EstadoEvaluacionConTiempo extends Notifier<EvaluacionEnCurso?> {
   /// con el reloj que siguió corriendo.
   void retomar(EvaluacionConTiempo evaluacion) {
     final pendiente = evaluacion.preguntas.indexWhere((p) => !p.respondida);
+    final ahora = clock.now();
+    final vence =
+        evaluacion.venceEnServidor ??
+        ahora.add(Duration(seconds: evaluacion.segundosRestantes));
     state = EvaluacionEnCurso(
       evaluacion: evaluacion,
       preguntas: evaluacion.preguntas,
       actual: pendiente < 0 ? 0 : pendiente,
-      venceEn: clock.now().add(Duration(seconds: evaluacion.segundosRestantes)),
+      venceEn: vence,
+      desfaseServidor: vence
+          .subtract(Duration(seconds: evaluacion.segundosRestantes))
+          .difference(ahora),
     );
   }
 

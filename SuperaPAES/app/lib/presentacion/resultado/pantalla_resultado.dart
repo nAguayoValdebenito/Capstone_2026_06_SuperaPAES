@@ -1,17 +1,17 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
+import 'package:supera_paes/presentacion/comunes/movimiento.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 import 'package:supera_paes/presentacion/resultado/partes_diagnostico.dart';
 import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
+import 'package:supera_paes/presentacion/resultado/sello_resultado.dart';
 
 /// Resultado de una evaluación (A30 mini-ensayo, A31 diagnóstico, A32 ensayo
 /// completo y A32b sin tabla de conversión; HU-61 esc. 1, RF-A23, RN-22 y
@@ -25,6 +25,8 @@ class PantallaResultado extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final resultado = ref.watch(resultadoProvider);
     final datos = resultado.value;
+    final extra = GoRouterState.of(context).extra;
+    final origen = extra is DetalleDesdeHistorial ? extra : null;
     return PantallaFormulario(
       anchoMaximo: TemaSuperaPaes.anchoLectura,
       separacion: 14,
@@ -44,6 +46,17 @@ class PantallaResultado extends ConsumerWidget {
             label: const Text('Cerrar'),
           ),
         ),
+        if (origen != null || datos != null)
+          Center(
+            child: SelloResultado(
+              id: origen?.id ?? datos!.id,
+              codigo: origen?.codigoPrueba ?? datos?.codigoPrueba,
+              animar:
+                  origen != null &&
+                  context.canPop() &&
+                  !reducirMovimiento(context),
+            ),
+          ),
         ...switch (resultado) {
           AsyncError(:final error) => [
             ErrorConReintento(
