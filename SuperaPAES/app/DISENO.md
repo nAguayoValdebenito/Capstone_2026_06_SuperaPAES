@@ -120,7 +120,7 @@ Los colores van con `copyWith`, por ejemplo
 | `altoSegmento` / `radioSegmento`                            | 40 / 10              | Opción del selector segmentado (A13); la barra mide 48                             |
 | `botonRedondo`                                              | 44                   | Botones «–» y «+» de la cantidad (A13)                                             |
 | `circuloLetra`                                              | 28                   | Círculo con la letra de cada alternativa (A17)                                     |
-| `altoTextoLectura`                                          | 210                  | Alto máximo del texto de lectura en la pregunta (A20)                              |
+| `altoTextoLectura`                                          | 150                  | Alto máximo del texto de lectura en la pregunta (A20)                              |
 | `altoAvance`                                                | 6                    | Barra del avance de la práctica (A17)                                              |
 | `radioHoja`                                                 | 20                   | Esquinas de arriba de las hojas que suben desde abajo (A11 y A18)                  |
 | `radioDato`                                                 | 10                   | Recuadros de un dato chico, como el acierto por dificultad (A35)                   |
@@ -566,6 +566,48 @@ el rango completo y preguntas de prácticas de diez, disponen de cupo suficiente
 y comprueban la cifra correspondiente a esa cuenta. La prueba del segmento usa
 la Figtree empaquetada y comprueba que las palabras no se partan con letra 2,0.
 
+## Práctica, corrección y resumen (F4)
+
+La rama `feat/practica-momentos` actualiza A17–A24 a partir de la maqueta
+compilada y la especificación F4.
+
+- La cabecera consulta `estadoUsuarioProvider` para el cupo y la cobertura.
+  El total de preguntas procede de la práctica iniciada en el servidor: no se
+  recalcula al consumir cupo. El sello acompaña a la prueba y el riel del progreso
+  usa `borde`, con avance de 400 ms.
+- Las alternativas de práctica activan `conMovimiento`: selección de 150 ms,
+  pulso del círculo y vibración de selección. La correcta pulsa una vez; correcta
+  y elegida conservan sus etiquetas e íconos. La respuesta correcta sigue llegando
+  únicamente después de confirmar y recibir la corrección del servidor (RN-06).
+- `FranjaCorreccion` muestra el acierto en verde con trazo y el error con birrete
+  gris sobre fondo neutro. En el error, la explicación precede al enunciado.
+  La lectura ocupa como máximo 150 dp y conserva «Ampliar texto».
+- «Terminar» usa `HojaConfirmacion` sobre el navegador raíz. A23 permite elegir
+  uno de los cuatro motivos de la maqueta; **el envío está pendiente** de conectar
+  la API de reportes. El botón permanece deshabilitado y la hoja informa que el
+  envío no está disponible. No se simulan confirmaciones.
+- `MomentoResumen` usa el porcentaje del servidor en `AnilloAvance` y
+  `ContadorAnimado`, ambos de 700 ms. Los destellos aparecen desde 70 %, una vez
+  por resumen durante la sesión. Al reducir movimiento se muestran los valores
+  finales, también si la opción cambia durante el conteo. La racha solo se anuncia
+  cuando el dato real aumenta respecto al inicio de la práctica.
+- A24 conserva la consulta del servidor y su límite de preguntas recientes
+  (RN-04/RN-05); los grupos de errores incorporan el sello de la prueba.
+
+Textos **por aprobar** (decisión 2 de la auditoría): «¡Bien! Era la {letra}.»,
+«Era la {letra}. Mira cómo se resuelve. Tú marcaste la {letra}.»,
+«¡Muy buena práctica! {correctas} de {contadas}.»,
+«Vas en camino: {correctas} de {contadas}. Repasa las que fallaste y vuelve a
+intentarlo.», «Tu racha subió a {días} días» y los motivos de A23. La frase de éxito
+omite la cantidad de preguntas difíciles de la maqueta porque el resumen actual
+no entrega ese desglose. El aviso provisional «El envío de avisos aún no está
+disponible.» también queda por aprobar.
+
+Las pruebas cubren acierto, error, 70 %, 40 %, cupo cambiante, racha, regreso al
+resumen, letra 2,0, movimiento reducido y su activación durante una animación.
+Las capturas de revisión se generan desde widgets con repositorios de prueba;
+no representan una validación manual en dispositivo.
+
 ## Navegación persistente (F1)
 
 `enrutador.dart` mantiene un navegador independiente por pestaña. La fuente de pantallas sigue
@@ -656,7 +698,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A14      | Elegir eje, contenido o habilidad            | `33:983`   | `practicar/pantalla_elegir_alcance.dart`                                                                                                                                                                                                                                                                                                                                                        |
 | A15      | Sin preguntas suficientes                    | `33:1059`  | `practicar/pantalla_sin_preguntas.dart`                                                                                                                                                                                                                                                                                                                                                         |
 | A16      | Ofrecer el diagnóstico                       | por anotar | `evaluaciones/pantalla_ofrecer_diagnostico.dart` (se abre al tocar «Empezar práctica» con el diagnóstico pendiente y desde A25)                                                                                                                                                                                                                                                                 |
-| A17      | Pregunta de práctica                         | `33:1134`  | `pregunta/pantalla_pregunta.dart` (sin «Avisar un error», que llega con HU-37)                                                                                                                                                                                                                                                                                                                  |
+| A17      | Pregunta de práctica                         | `33:1134`  | `pregunta/pantalla_pregunta.dart` (F4: incluye la hoja A23; envío pendiente de API)                                                                                                                                                                                                                                                                                                             |
 | A18      | Confirmar respuesta                          | `33:1187`  | `pregunta/hoja_confirmar_respuesta.dart`                                                                                                                                                                                                                                                                                                                                                        |
 | A19      | Corrección con explicación                   | `33:1243`  | `correccion/pantalla_correccion.dart`                                                                                                                                                                                                                                                                                                                                                           |
 | A19b     | Corrección de una respuesta incorrecta       | `33:1299`  | `correccion/pantalla_correccion.dart`                                                                                                                                                                                                                                                                                                                                                           |

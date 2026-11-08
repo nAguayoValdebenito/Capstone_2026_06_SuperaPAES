@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
@@ -17,6 +16,7 @@ class AlternativaCorregidaVista extends StatelessWidget {
     required this.correctaId,
     super.key,
     this.elegidaId,
+    this.conMovimiento = false,
   });
 
   final int id;
@@ -24,12 +24,14 @@ class AlternativaCorregidaVista extends StatelessWidget {
   final String texto;
   final int correctaId;
   final int? elegidaId;
+  final bool conMovimiento;
 
   @override
   Widget build(BuildContext context) {
     final esLaCorrecta = id == correctaId;
     final esLaElegida = id == elegidaId;
     return OpcionAlternativa(
+      conMovimiento: conMovimiento,
       letra: letra,
       texto: texto,
       seleccionada: esLaElegida,

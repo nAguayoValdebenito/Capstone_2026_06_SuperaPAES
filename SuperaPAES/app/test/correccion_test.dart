@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/modelos/practica_modelo.dart';
@@ -101,7 +102,8 @@ void main() {
 
       await _responderCon(tester, 'B');
 
-      expect(find.text('Respuesta incorrecta'), findsOne);
+      expect(find.text('Era la C.'), findsOne);
+      expect(find.text('Mira cómo se resuelve. Tú marcaste la B.'), findsOne);
       final elegida = _opcion(tester, 'B');
       expect(elegida.resultado, ResultadoAlternativa.incorrecta);
       expect(elegida.etiqueta, 'Tu respuesta');
@@ -121,9 +123,14 @@ void main() {
       await _responderCon(tester, 'B');
 
       for (final letra in ['A', 'B', 'C', 'D']) {
+        await tester.scrollUntilVisible(
+          _alternativa(letra),
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
         expect(_opcion(tester, letra).onTap, isNull);
       }
-      await tester.tap(_alternativa('C'));
+      await tocar(tester, _alternativa('C'));
       await tester.pumpAndSettle();
       expect(repositorio.respuestas, hasLength(1));
     });

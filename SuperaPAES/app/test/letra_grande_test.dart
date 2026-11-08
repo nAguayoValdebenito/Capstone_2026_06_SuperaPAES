@@ -51,7 +51,8 @@ void main() {
     // A19 sigue a la pregunta siguiente; la práctica se termina desde A17.
     await tocar(tester, find.text('Siguiente pregunta'));
     await tocar(tester, find.text('Terminar'));
-    await tester.tap(find.widgetWithText(TextButton, 'Terminar').last);
+    expect(find.byType(AlertDialog), findsNothing);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Terminar'));
     await tester.pumpAndSettle();
     expect(rutaActual(contenedor), Rutas.resumenPractica);
     await _recorrer(tester);

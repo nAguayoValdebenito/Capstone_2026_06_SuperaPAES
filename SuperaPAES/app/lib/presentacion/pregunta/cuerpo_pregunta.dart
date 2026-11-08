@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
@@ -16,6 +15,7 @@ List<Widget> cuerpoDePregunta({
   required int? elegida,
   required ValueChanged<int>? alElegir,
   TextoDeLectura? texto,
+  bool conMovimiento = false,
 }) => [
   if (texto != null) TarjetaTextoDeLectura(texto: texto),
   Semantics(
@@ -24,6 +24,7 @@ List<Widget> cuerpoDePregunta({
   ),
   for (final alternativa in alternativas)
     OpcionAlternativa(
+      conMovimiento: conMovimiento,
       letra: alternativa.letra,
       texto: alternativa.texto,
       seleccionada: alternativa.id == elegida,

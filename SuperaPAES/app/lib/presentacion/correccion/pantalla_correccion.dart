@@ -6,8 +6,10 @@ import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 import 'package:supera_paes/presentacion/comunes/navegar.dart';
+import 'package:supera_paes/presentacion/correccion/franja_correccion.dart';
 import 'package:supera_paes/presentacion/correccion/partes_correccion.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/pregunta/hoja_avisar_error.dart';
 import 'package:supera_paes/presentacion/pregunta/partes_pregunta.dart';
 import 'package:supera_paes/presentacion/pregunta/texto_de_lectura.dart';
 
@@ -47,12 +49,22 @@ class PantallaCorreccion extends ConsumerWidget {
       hijos: [
         const CabeceraPractica(),
         AvancePractica(pregunta: pregunta, respondida: true),
-        Aviso(
-          tono: correccion.esCorrecta ? TonoAviso.exito : TonoAviso.error,
-          texto: correccion.esCorrecta
-              ? 'Respuesta correcta'
-              : 'Respuesta incorrecta',
+        FranjaCorreccion(
+          key: ValueKey(pregunta.itemId),
+          acerto: correccion.esCorrecta,
+          correcta: pregunta.alternativas
+              .firstWhere((a) => a.id == correccion.alternativaCorrectaId)
+              .letra,
+          elegida: pregunta.alternativas
+              .firstWhere((a) => a.id == correccion.alternativaElegidaId)
+              .letra,
         ),
+        if (!correccion.esCorrecta)
+          ExplicacionCorreccion(
+            acerto: false,
+            explicacion: correccion.explicacion,
+            elegida: correccion.elegida,
+          ),
         if (pregunta.texto case final texto?)
           TarjetaTextoDeLectura(texto: texto),
         TextoConFormulas(
@@ -61,16 +73,22 @@ class PantallaCorreccion extends ConsumerWidget {
         ),
         for (final alternativa in pregunta.alternativas)
           AlternativaCorregidaVista(
+            conMovimiento: true,
             id: alternativa.id,
             letra: alternativa.letra,
             texto: alternativa.texto,
             correctaId: correccion.alternativaCorrectaId,
             elegidaId: correccion.alternativaElegidaId,
           ),
-        ExplicacionCorreccion(
-          acerto: correccion.esCorrecta,
-          explicacion: correccion.explicacion,
-          elegida: correccion.elegida,
+        if (correccion.esCorrecta)
+          ExplicacionCorreccion(
+            acerto: correccion.esCorrecta,
+            explicacion: correccion.explicacion,
+            elegida: correccion.elegida,
+          ),
+        BotonTexto(
+          onPressed: () => avisarError(context),
+          child: const Text('Avisar un error'),
         ),
       ],
       pie: FilledButton(

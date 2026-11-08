@@ -13,6 +13,7 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart'
     show Destacado;
 import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
 import 'package:supera_paes/presentacion/comunes/movimiento.dart';
+import 'package:supera_paes/presentacion/comunes/pulso.dart';
 import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 
 /// Opción con radio (Opción: Normal y Seleccionada), como los cursos de A08.
@@ -483,6 +484,7 @@ class OpcionAlternativa extends StatelessWidget {
     super.key,
     this.resultado,
     this.etiqueta,
+    this.conMovimiento = false,
   });
 
   final String letra;
@@ -493,6 +495,7 @@ class OpcionAlternativa extends StatelessWidget {
   final VoidCallback? onTap;
   final ResultadoAlternativa? resultado;
   final String? etiqueta;
+  final bool conMovimiento;
 
   /// Desde esta escala de letra, la [etiqueta] baja bajo el texto: al lado no
   /// cabe (RNF-12).
@@ -531,55 +534,71 @@ class OpcionAlternativa extends StatelessWidget {
       inMutuallyExclusiveGroup: true,
       checked: seleccionada,
       label: ['Alternativa $letra', ?etiqueta].join(', '),
-      child: _Seleccionable(
-        seleccionada: seleccionada,
-        bordeAncho: marcada ? 2 : 1,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        onTap: onTap,
-        colores: (fondo, color),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: TemaSuperaPaes.circuloLetra,
-              height: TemaSuperaPaes.circuloLetra,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: marcada ? color : TemaSuperaPaes.neutroSuave,
-              ),
-              child: Text(
-                letra,
-                style: TemaSuperaPaes.etiqueta.copyWith(
-                  color: marcada
-                      ? TemaSuperaPaes.superficie
-                      : TemaSuperaPaes.texto,
+      child: Pulso(
+        activo: conMovimiento && resultado == ResultadoAlternativa.correcta,
+        escala: TemaSuperaPaes.escalaPulsoCorrecta,
+        tiempo: TemaSuperaPaes.movimientoLento,
+        child: _Seleccionable(
+          conMovimiento: conMovimiento,
+          seleccionada: seleccionada,
+          bordeAncho: marcada ? 2 : 1,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          onTap: onTap == null
+              ? null
+              : () {
+                  if (conMovimiento && !seleccionada) {
+                    unawaited(HapticFeedback.selectionClick());
+                  }
+                  onTap!();
+                },
+          colores: (fondo, color),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Pulso(
+                activo: conMovimiento && seleccionada && resultado == null,
+                child: Container(
+                  width: TemaSuperaPaes.circuloLetra,
+                  height: TemaSuperaPaes.circuloLetra,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: marcada ? color : TemaSuperaPaes.neutroSuave,
+                  ),
+                  child: Text(
+                    letra,
+                    style: TemaSuperaPaes.etiqueta.copyWith(
+                      color: marcada
+                          ? TemaSuperaPaes.superficie
+                          : TemaSuperaPaes.texto,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Las alternativas también pueden traer fórmulas e
-                    // imágenes.
-                    TextoConFormulas(texto),
-                    if (etiquetaVista != null && apilar) ...[
-                      const SizedBox(height: 6),
-                      etiquetaVista,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Las alternativas también pueden traer fórmulas e
+                      // imágenes.
+                      TextoConFormulas(texto),
+                      if (etiquetaVista != null && apilar) ...[
+                        const SizedBox(height: 6),
+                        etiquetaVista,
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-            if (etiquetaVista != null && !apilar) ...[
-              const SizedBox(width: 8),
-              etiquetaVista,
+              if (etiquetaVista != null && !apilar) ...[
+                const SizedBox(width: 8),
+                etiquetaVista,
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
