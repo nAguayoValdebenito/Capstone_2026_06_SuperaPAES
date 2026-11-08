@@ -23,6 +23,7 @@ abstract final class HistorialModelo {
     return EvaluacionDelHistorial(
       id: leerId(json['id']),
       tipoNombre: (json['tipo'] as Map<String, dynamic>)['nombre'] as String,
+      codigoPrueba: prueba['codigo'] as String?,
       prueba: nombreDePrueba(
         prueba['codigo'] as String,
         prueba['nombre'] as String,

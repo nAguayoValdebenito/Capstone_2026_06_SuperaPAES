@@ -10,6 +10,7 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
+import 'package:supera_paes/presentacion/resultado/momento_resultado.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
 import 'apoyo/app_de_prueba.dart';
@@ -301,7 +302,13 @@ void main() {
       await abrirResultado(tester);
 
       expect(find.text('Diagnóstico · Entregado'), findsOne);
-      expect(find.text('60 %'), findsOne);
+      expect(
+        find.descendant(
+          of: find.byType(MomentoResultado),
+          matching: find.text('60 %'),
+        ),
+        findsOne,
+      );
       expect(find.text('A reforzar'), findsOne);
       expect(find.text('2 de 5 · 40 %'), findsOne);
       await tester.scrollUntilVisible(

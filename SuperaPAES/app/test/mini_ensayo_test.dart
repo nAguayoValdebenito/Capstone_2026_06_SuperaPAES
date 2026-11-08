@@ -12,6 +12,7 @@ import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/presentacion/comunes/rutas_navegacion.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/evaluaciones/tarjetas_evaluaciones.dart';
+import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
@@ -483,6 +484,24 @@ void main() {
       expect(rutaActual(contenedor), Rutas.verTodas);
       expect(find.text('Respondidas 1'), findsOne);
       expect(find.text('Sin responder 2'), findsOne);
+      final respondida = find.bySemanticsLabel('Pregunta 1, respondida');
+      final pendiente = find.bySemanticsLabel('Pregunta 3, sin responder');
+      expect(tester.getSize(respondida), const Size(48, 48));
+      expect(tester.getSize(pendiente), const Size(48, 48));
+      expect(
+        find.descendant(
+          of: respondida,
+          matching: find.byIcon(Icons.check_rounded),
+        ),
+        findsOne,
+      );
+      expect(
+        find.descendant(
+          of: pendiente,
+          matching: find.byIcon(Icons.remove_rounded),
+        ),
+        findsOne,
+      );
       expect(
         find.text(
           'Si entregas ahora, las 2 sin responder cuentan como incorrectas '
@@ -555,6 +574,22 @@ void main() {
 
       expect(rutaActual(contenedor), Rutas.verTodas);
       expect(find.text('Respondidas 1'), findsOne);
+    });
+
+    testWidgets('la hoja no se cierra al tocar fuera ni permite arrastrarla', (
+      tester,
+    ) async {
+      await abrirInicio(tester);
+      final hoja = find.byType(HojaRetomarEvaluacion);
+      expect(hoja, findsOne);
+      final ruta =
+          ModalRoute.of(tester.element(hoja))! as ModalBottomSheetRoute;
+      expect(ruta.isDismissible, isFalse);
+      expect(ruta.enableDrag, isFalse);
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(hoja, findsOne);
+      expect(find.text('Continuar'), findsWidgets);
     });
   });
 

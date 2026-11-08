@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/historial.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
@@ -9,6 +8,8 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/comunes/movimiento.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/inicio/evaluacion_sin_terminar.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/progreso/tarjetas_progreso.dart';
@@ -34,6 +35,17 @@ class PantallaHistorial extends ConsumerWidget {
       hijos: [
         const EnlaceVolver(texto: 'Volver', destino: Rutas.progreso),
         const Encabezado(titulo: 'Historial'),
+        SelectorSegmentado<String?>(
+          key: const ValueKey('grupo-historial'),
+          conMovimiento: true,
+          opciones: const [
+            (null, 'Todo'),
+            ('practicas', 'Prácticas'),
+            ('evaluaciones', 'Evaluaciones'),
+          ],
+          seleccionado: filtros.grupo,
+          onChanged: ref.read(filtrosHistorialProvider.notifier).elegirGrupo,
+        ),
         const _Filtros(),
         const EvaluacionSinTerminar(),
         ...switch (historial) {
@@ -166,10 +178,29 @@ class _TarjetaEvaluacion extends ConsumerWidget {
     const nota = TemaSuperaPaes.pequenoFuerte;
     return Tarjeta(
       child: InkWell(
-        onTap: () => abrirResultado(context, ref, evaluacion.id),
+        onTap: () => abrirResultado(
+          context,
+          ref,
+          evaluacion.id,
+          desdeHistorial: true,
+          codigoPrueba: evaluacion.codigoPrueba,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: HeroMode(
+                enabled: !reducirMovimiento(context),
+                child: Hero(
+                  tag: 'sello-evaluacion-${evaluacion.id}',
+                  child: SelloPrueba(
+                    Prueba.deCodigo(evaluacion.codigoPrueba ?? ''),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,

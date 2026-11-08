@@ -35,6 +35,7 @@ export interface FiltroHistorial {
   estudianteId: string;
   pruebaId?: number | undefined;
   tipo?: string | undefined;
+  grupo?: 'practicas' | 'evaluaciones' | undefined;
   pagina: number;
   porPagina: number;
 }
@@ -46,7 +47,10 @@ const DESDE = `FROM app.evaluacion e
  LEFT JOIN app.resultado_evaluacion r ON r.evaluacion_id=e.id
  ${JOINS_ALCANCE}
  WHERE e.estudiante_id=$1 AND e.cerrada_en IS NOT NULL
-   AND ($2::int IS NULL OR e.prueba_id=$2) AND ($3::text IS NULL OR t.codigo=$3)`;
+   AND ($2::int IS NULL OR e.prueba_id=$2) AND ($3::text IS NULL OR t.codigo=$3)
+   AND ($4::text IS NULL
+     OR ($4='practicas' AND t.codigo IN ('practica', 'repaso'))
+     OR ($4='evaluaciones' AND t.codigo IN ('diagnostico', 'mini_ensayo', 'ensayo')))`;
 
 const PAGINA = `SELECT e.id::text AS id,
   jsonb_build_object('codigo', t.codigo, 'nombre', t.nombre) AS tipo,
@@ -58,7 +62,7 @@ const PAGINA = `SELECT e.id::text AS id,
   r.recalculado_en AS "recalculadoEn", count(*) OVER ()::int AS total
  ${DESDE}
  ORDER BY e.cerrada_en DESC, e.id DESC
- LIMIT $4 OFFSET $5`;
+ LIMIT $5 OFFSET $6`;
 
 const CONTEO = `SELECT count(*)::int AS total ${DESDE}`;
 
@@ -68,13 +72,14 @@ export function crearHistorialRepositorio(bd: Ejecutor) {
       estudianteId,
       pruebaId,
       tipo,
+      grupo,
       pagina,
       porPagina,
     }: FiltroHistorial): Promise<Pagina<FilaHistorial>> {
       return paginaConTotal<FilaHistorial & Record<string, unknown>>(
         bd,
         [PAGINA, CONTEO],
-        [estudianteId, pruebaId ?? null, tipo ?? null],
+        [estudianteId, pruebaId ?? null, tipo ?? null, grupo ?? null],
         [porPagina, (pagina - 1) * porPagina],
       );
     },

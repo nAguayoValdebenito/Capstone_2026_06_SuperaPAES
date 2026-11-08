@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
-import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/evaluaciones/tarjetas_evaluaciones.dart';
 import 'package:supera_paes/presentacion/inicio/evaluacion_sin_terminar.dart';
@@ -32,6 +34,14 @@ class PantallaEvaluaciones extends ConsumerWidget {
       ),
       null => null,
     };
+    final ensayoDisponible =
+        pruebaId != null &&
+        ref.watch(disponibilidadEnsayoProvider(pruebaId)).value?.disponible ==
+            true;
+    final miniDisponible =
+        pruebaId != null &&
+        ref.watch(disponibilidadMiniProvider(pruebaId)).value?.disponible ==
+            true;
     return PantallaFormulario(
       separacion: 14,
       alActualizar: () async {
@@ -49,26 +59,46 @@ class PantallaEvaluaciones extends ConsumerWidget {
           bajada: 'Con tiempo, como la PAES real. No usan tu cupo.',
         ),
         if (error != null)
-          Aviso(
-            tono: TonoAviso.error,
-            texto: error is ErrorApi
-                ? error.mensaje
-                : 'No se pudieron cargar tus pruebas.',
+          ErrorConReintento(
+            error: error,
+            mensaje: 'No se pudieron cargar tus pruebas.',
+            alReintentar: () {
+              ref
+                ..invalidate(perfilProvider)
+                ..invalidate(opcionesPerfilProvider);
+            },
           )
         else if (datos case (final guardado?, final opciones?)) ...[
           _ChipsPrueba(perfil: guardado, nombres: opciones, elegida: pruebaId),
           const EvaluacionSinTerminar(),
           if (pruebaId != null) ...[
-            TarjetaDiagnostico(pruebaId: pruebaId),
-            TarjetaMiniEnsayo(pruebaId: pruebaId),
-            TarjetaEnsayoCompleto(pruebaId: pruebaId),
+            TarjetaDiagnostico(
+              pruebaId: pruebaId,
+              principal: !ensayoDisponible && !miniDisponible,
+            ),
+            TarjetaMiniEnsayo(
+              pruebaId: pruebaId,
+              principal: !ensayoDisponible && miniDisponible,
+            ),
+            TarjetaEnsayoCompleto(
+              pruebaId: pruebaId,
+              principal: ensayoDisponible,
+            ),
           ] else
             const Aviso(
               tono: TonoAviso.info,
               texto: 'Elige tus pruebas en tu perfil para rendir evaluaciones.',
             ),
         ] else
-          const Center(child: CircularProgressIndicator()),
+          const GrupoEsqueleto(
+            child: Column(
+              children: [
+                EsqueletoTarjeta(),
+                SizedBox(height: 16),
+                EsqueletoTarjeta(),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -101,8 +131,8 @@ class _ChipsPrueba extends ConsumerWidget {
           perfil,
           nombres,
         ))
-          ChipSeleccion(
-            texto: nombres.prueba(id)?.nombreCorto ?? '',
+          ChipPrueba(
+            prueba: Prueba.deCodigo(nombres.prueba(id)?.codigo ?? ''),
             seleccionado: id == elegida,
             onTap: () =>
                 ref.read(pruebaDeEvaluacionesProvider.notifier).prueba = id,

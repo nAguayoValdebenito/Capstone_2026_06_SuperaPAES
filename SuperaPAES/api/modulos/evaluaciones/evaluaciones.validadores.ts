@@ -43,6 +43,7 @@ export const esquemaInicioRepaso = z.strictObject({
 export const esquemaHistorial = z.strictObject({
   pruebaId: idConsulta(32_767).optional(),
   tipo: codigoConsulta.optional(),
+  grupo: z.enum(['practicas', 'evaluaciones']).optional(),
   pagina: numeroDePagina(1, 100_000),
   porPagina: numeroDePagina(20, 50),
 });

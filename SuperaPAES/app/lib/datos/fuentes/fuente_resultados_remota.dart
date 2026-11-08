@@ -30,6 +30,7 @@ class FuenteResultadosRemota {
       consulta: {
         'pruebaId': ?filtros.pruebaId,
         'tipo': ?filtros.tipo,
+        'grupo': ?filtros.grupo,
         'pagina': filtros.pagina,
       },
       sinData: 'No recibimos tu historial. Inténtalo de nuevo.',

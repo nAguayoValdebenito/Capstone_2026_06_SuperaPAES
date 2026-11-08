@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -102,6 +101,7 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
           ),
         ),
         ...cuerpoDePregunta(
+          conMovimiento: true,
           texto: pregunta.texto,
           enunciado: pregunta.enunciado,
           alternativas: pregunta.alternativas,

@@ -608,6 +608,61 @@ resumen, letra 2,0, movimiento reducido y su activación durante una animación.
 Las capturas de revisión se generan desde widgets con repositorios de prueba;
 no representan una validación manual en dispositivo.
 
+## Evaluaciones con tiempo (F5)
+
+La rama `feat/evaluaciones-reloj` actualiza A25–A34 y conserva los contratos
+existentes de inicio, respuesta, entrega, resultado y revisión.
+
+- A25 usa `ChipPrueba`, sellos con `Cambiante`, esqueleto y `EstadoError` con
+  reintento. Solo la evaluación principal disponible tiene botón lleno: ensayo
+  completo si está disponible, luego mini-ensayo y, en su defecto, diagnóstico.
+  Los demás accesos conservan botones de contorno. Las etiquetas y el acceso
+  siguen la disponibilidad entregada por el servidor.
+- A27 conserva la fecha `venceEn` del servidor y la referencia de segundos
+  restantes al iniciar o retomar. El reloj inyectado mide el transcurso; la fecha
+  del teléfono no sustituye el vencimiento. El servidor sigue cerrando y
+  corrigiendo la evaluación (RN-21/RN-06).
+- `RelojEvaluacion` muestra fondo neutro, tinta invertida `logoOscuro` al quedar
+  cinco minutos y `errorSuave` en el último minuto. El fondo cambia en 300 ms y
+  la barra de tiempo mide 3 dp. No parpadea ni usa ámbar. Los avisos se anuncian
+  una sola vez por evaluación con `SemanticsService.sendAnnouncement` y se
+  muestran durante tres segundos a todo el ancho de la cabecera. Con movimiento
+  reducido, los colores y las barras aparecen en su estado final.
+- A28 usa casillas uniformes de al menos 48 dp, que crecen con la letra. Cada
+  una muestra el número y un ícono ✓/–, además del color y la descripción para
+  lectores de pantalla. A29 conserva las acciones explícitas y no se descarta al
+  tocar fuera ni arrastrar la hoja; su cuenta regresiva usa el reloj inyectado.
+- Los resultados cuentan el porcentaje o puntaje con cifras tabulares y punto
+  de miles. `MomentoResultado` dibuja el trazo; los ejes usan `FilaEje` con avance
+  escalonado. La frase compara solo ejes con respuestas, sin inventar mejoras
+  históricas. El diagnóstico conserva las marcas de refuerzo del servidor.
+  Se mantienen año y proceso de la tabla, diagnóstico y ensayo sin conversión.
+  El aviso es «Es una estimación, no un resultado oficial.» (RN-23).
+- A33 parte con una lista de preguntas: ícono, etiqueta y eje. Al tocar una fila
+  abre su corrección; se puede volver a la lista o avanzar entre preguntas.
+- A34 añade Todo/Prácticas/Evaluaciones con segmento animado, conserva los filtros
+  por prueba y tipo, y mantiene la paginación. El parámetro opcional `grupo` se
+  aplica en el repositorio **antes** del conteo y paginado: prácticas incluye
+  práctica y repaso; evaluaciones incluye diagnóstico, mini-ensayo y ensayo.
+  No cambia el esquema. Cada fila lleva sello; su Hero hacia el detalle se activa
+  con el `extra` de un `push` desde Historial, sin animarlo con `go` ni con
+  movimiento reducido. El detalle compartido usa la dirección interna
+  `/evaluaciones/historial/resultado` en el navegador de Progreso, conservando
+  `/evaluaciones/resultado`. El sello de destino existe desde el primer cuadro,
+  incluso durante la carga. El vacío conserva el trazo.
+
+Textos nuevos **por aprobar**: los dos avisos temporales del reloj;
+«Tu mejor eje fue {eje}. {eje} es lo que más te conviene reforzar.»;
+«Tu resultado en {eje}.»; «Tu resultado fue parejo en todos los ejes.»;
+«Volver a la lista» y los nombres Todo/Prácticas/Evaluaciones. El aviso de
+estimación sigue el texto solicitado en F5.
+
+Las pruebas cubren las tres fases con reloj inyectado y una fecha de teléfono
+distinta de la del servidor, anuncios únicos al cambiar de pantalla, aviso de
+tres segundos, entrega al vencer, movimiento reducido, letra 2,0, estados
+gratis/suscrito, cuadrícula accesible, filtros, Hero con push y resultados con o
+sin tabla. Las capturas de widgets no sustituyen una comprobación en dispositivo.
+
 ## Navegación persistente (F1)
 
 `enrutador.dart` mantiene un navegador independiente por pestaña. La fuente de pantallas sigue

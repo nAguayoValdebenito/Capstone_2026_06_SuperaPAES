@@ -19,6 +19,7 @@ const Map<String, String> pestanaPorRuta = {
   Rutas.resultado: Rutas.evaluaciones,
   Rutas.revision: Rutas.evaluaciones,
   Rutas.historial: Rutas.progreso,
+  Rutas.resultadoHistorial: Rutas.progreso,
   Rutas.miSuscripcion: Rutas.perfil,
   Rutas.planes: Rutas.perfil,
   Rutas.invitaciones: Rutas.perfil,

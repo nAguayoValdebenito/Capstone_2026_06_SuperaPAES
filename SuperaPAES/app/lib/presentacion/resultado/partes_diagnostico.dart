@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/ejes.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 /// Lo propio del resultado del diagnóstico (A31; HU-36 esc. 4, CU-10a,
@@ -125,11 +126,16 @@ class _TarjetaReforzar extends StatelessWidget {
         children: [
           for (final (i, grupo) in grupos.indexed) ...[
             if (i > 0) const SizedBox(height: 12),
-            FilaDato(
-              etiqueta: grupo.nombre,
-              valor:
-                  '${grupo.correctas} de ${grupo.preguntas} · '
-                  '${grupo.porcentaje.round()} %',
+            FilaEje(
+              mostrarNivel: false,
+              nombre: grupo.nombre,
+              valor: grupo.porcentaje / 100,
+              indice: i,
+            ),
+            Text(
+              '${grupo.correctas} de ${grupo.preguntas} · '
+              '${grupo.porcentaje.round()} %',
+              style: TemaSuperaPaes.pequeno,
             ),
             if (grupo.aReforzar) ...[
               const SizedBox(height: 4),

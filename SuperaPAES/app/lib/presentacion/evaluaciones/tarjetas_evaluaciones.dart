@@ -6,27 +6,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
-import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
-import 'package:supera_paes/presentacion/comunes/estados.dart'
-    show registrarErrorInesperado;
+import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart';
 import 'package:supera_paes/presentacion/comunes/navegar.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
 
 /// Diagnóstico de A25 (HU-36): una vez por año escolar, solo con lo que ya
 /// vio. «Rendir diagnóstico» lo ofrece en A16.
 class TarjetaDiagnostico extends ConsumerWidget {
-  const TarjetaDiagnostico({required this.pruebaId, super.key});
+  const TarjetaDiagnostico({
+    required this.pruebaId,
+    this.principal = false,
+    super.key,
+  });
 
   final int pruebaId;
+  final bool principal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final consulta = ref.watch(disponibilidadDiagnosticoProvider(pruebaId));
     return TarjetaEvaluacion(
+      pruebaId: pruebaId,
       titulo: 'Diagnóstico',
       etiqueta: switch (consulta.value?.disponible) {
         true => const Etiqueta(texto: 'Disponible'),
@@ -44,7 +52,8 @@ class TarjetaDiagnostico extends ConsumerWidget {
               'Una vez por año escolar. Marca lo que tu práctica va a '
               'reforzar.',
             ),
-            FilledButton(
+            AccionEvaluacion(
+              principal: principal,
               onPressed: () {
                 ref.read(ofertaDiagnosticoProvider.notifier).ofrecer(value);
                 unawaited(context.push(Rutas.ofrecerDiagnostico));
@@ -73,15 +82,21 @@ class TarjetaDiagnostico extends ConsumerWidget {
 /// Mini-ensayo de A25 (HU-40, RF-A14): un tercio de la prueba, gratis una
 /// vez al mes por prueba o sin límite con el plan (RN-04 y RN-05).
 class TarjetaMiniEnsayo extends ConsumerWidget {
-  const TarjetaMiniEnsayo({required this.pruebaId, super.key});
+  const TarjetaMiniEnsayo({
+    required this.pruebaId,
+    this.principal = false,
+    super.key,
+  });
 
   final int pruebaId;
+  final bool principal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final consulta = ref.watch(disponibilidadMiniProvider(pruebaId));
     final mini = consulta.value;
     return TarjetaEvaluacion(
+      pruebaId: pruebaId,
       titulo: 'Mini-ensayo',
       etiqueta: switch (mini) {
         null => null,
@@ -99,7 +114,8 @@ class TarjetaMiniEnsayo extends ConsumerWidget {
             'tercio de la prueba oficial',
           ),
           if (value.disponible)
-            FilledButton(
+            AccionEvaluacion(
+              principal: principal,
               onPressed: () {
                 // A26 muestra el mini-ensayo de esta prueba.
                 ref.read(pruebaDeEvaluacionesProvider.notifier).prueba =
@@ -135,14 +151,20 @@ class TarjetaMiniEnsayo extends ConsumerWidget {
 /// Ensayo completo de A25 (HU-42, RF-A19): en formato oficial, solo con el
 /// plan Todas las pruebas (RN-04). En Ciencias pide el electivo.
 class TarjetaEnsayoCompleto extends ConsumerWidget {
-  const TarjetaEnsayoCompleto({required this.pruebaId, super.key});
+  const TarjetaEnsayoCompleto({
+    required this.pruebaId,
+    this.principal = false,
+    super.key,
+  });
 
   final int pruebaId;
+  final bool principal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final consulta = ref.watch(disponibilidadEnsayoProvider(pruebaId));
     return TarjetaEvaluacion(
+      pruebaId: pruebaId,
       titulo: 'Ensayo completo',
       etiqueta: switch (consulta.value) {
         DisponibilidadEnsayo(faltaElPlan: false) => const Etiqueta(
@@ -158,7 +180,8 @@ class TarjetaEnsayoCompleto extends ConsumerWidget {
             'de 100 a 1.000',
           ),
           if (value.disponible)
-            FilledButton(
+            AccionEvaluacion(
+              principal: principal,
               onPressed: () {
                 ref.read(pruebaDeEvaluacionesProvider.notifier).prueba =
                     pruebaId;
@@ -216,24 +239,45 @@ String proximoMes(DateTime hoy) {
 /// Tarjeta de un tipo de evaluación: su nombre con la etiqueta de la
 /// disponibilidad a la derecha (baja de línea con letra grande) y debajo
 /// el detalle y la acción.
-class TarjetaEvaluacion extends StatelessWidget {
+class TarjetaEvaluacion extends ConsumerWidget {
   const TarjetaEvaluacion({
     required this.titulo,
     required this.hijos,
     super.key,
     this.etiqueta,
+    this.pruebaId,
   });
 
+  final int? pruebaId;
   final String titulo;
   final Widget? etiqueta;
   final List<Widget> hijos;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (pruebaId != null) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Cambiante(
+                clave: pruebaId!,
+                child: SelloPrueba(
+                  Prueba.deCodigo(
+                    ref
+                            .watch(opcionesPerfilProvider)
+                            .value
+                            ?.prueba(pruebaId!)
+                            ?.codigo ??
+                        '',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -270,43 +314,43 @@ class _Detalle extends StatelessWidget {
 
 class _Cargando extends StatelessWidget {
   const _Cargando();
-
   @override
-  Widget build(BuildContext context) => const Align(
-    alignment: Alignment.centerLeft,
-    child: SizedBox.square(
-      dimension: 20,
-      child: CircularProgressIndicator(strokeWidth: 2),
+  Widget build(BuildContext context) => const GrupoEsqueleto(
+    child: Column(
+      children: [
+        Bloque(ancho: 180),
+        SizedBox(height: 12),
+        Bloque(ancho: double.infinity, alto: 52),
+      ],
     ),
   );
 }
 
-/// El mensaje de la API (como «Elige tu electivo...») y «Reintentar».
 class _NoCargo extends StatelessWidget {
   const _NoCargo({required this.error, required this.alReintentar});
-
   final Object error;
   final VoidCallback alReintentar;
-
   @override
-  Widget build(BuildContext context) {
-    registrarErrorInesperado(error);
-    final texto = switch (error) {
-      ErrorApi(:final problemas) when problemas.isNotEmpty =>
-        problemas.first.mensaje,
-      final ErrorApi api => api.mensaje,
-      _ => 'No se pudo cargar.',
-    };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Detalle(texto),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: alReintentar,
-          child: const Text('Reintentar'),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => ErrorConReintento(
+    error: error,
+    mensaje: 'No se pudo cargar.',
+    alReintentar: alReintentar,
+  );
+}
+
+/// A25 mantiene una sola accion llena, elegida por disponibilidad del servidor.
+class AccionEvaluacion extends StatelessWidget {
+  const AccionEvaluacion({
+    required this.principal,
+    required this.onPressed,
+    required this.child,
+    super.key,
+  });
+  final bool principal;
+  final VoidCallback? onPressed;
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => principal
+      ? FilledButton(onPressed: onPressed, child: child)
+      : OutlinedButton(onPressed: onPressed, child: child);
 }

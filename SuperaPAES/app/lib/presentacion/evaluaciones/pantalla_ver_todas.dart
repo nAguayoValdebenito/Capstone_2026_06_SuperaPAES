@@ -122,6 +122,9 @@ class _Casilla extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final respondida = pregunta.respondida;
+    final lado =
+        MediaQuery.textScalerOf(context).scale(TemaSuperaPaes.espacio24) +
+        TemaSuperaPaes.espacio24;
     final radio = BorderRadius.circular(TemaSuperaPaes.radioBotonChico);
     return Semantics(
       button: true,
@@ -139,22 +142,32 @@ class _Casilla extends StatelessWidget {
           borderRadius: radio,
           onTap: onTap,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              minWidth: TemaSuperaPaes.botonRedondo,
-              minHeight: TemaSuperaPaes.botonRedondo,
-            ),
+            constraints: BoxConstraints.tightFor(width: lado, height: lado),
             child: Center(
               widthFactor: 1,
               heightFactor: 1,
               child: Padding(
                 padding: const EdgeInsets.all(6),
-                child: Text(
-                  '$numero',
-                  style: TemaSuperaPaes.etiqueta.copyWith(
-                    color: respondida
-                        ? TemaSuperaPaes.superficie
-                        : TemaSuperaPaes.texto,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$numero',
+                      style: TemaSuperaPaes.etiqueta.copyWith(
+                        color: respondida
+                            ? TemaSuperaPaes.superficie
+                            : TemaSuperaPaes.texto,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      respondida ? Icons.check_rounded : Icons.remove_rounded,
+                      size: 16,
+                      color: respondida
+                          ? TemaSuperaPaes.superficie
+                          : TemaSuperaPaes.textoSecundario,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -178,7 +191,7 @@ class _Leyenda extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          respondida ? Icons.square_rounded : Icons.crop_square_rounded,
+          respondida ? Icons.check_rounded : Icons.remove_rounded,
           size: 16,
           color: respondida
               ? TemaSuperaPaes.primario

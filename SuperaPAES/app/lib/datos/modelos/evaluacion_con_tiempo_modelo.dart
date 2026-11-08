@@ -53,6 +53,8 @@ abstract final class EvaluacionConTiempoModelo {
     pruebaId: leerId(json['pruebaId']),
     preguntas: preguntas(json['preguntas']),
     segundosRestantes: (json['duracionMin'] as int) * 60,
+    duracionSegundos: (json['duracionMin'] as int) * 60,
+    venceEnServidor: DateTime.tryParse(json['venceEn'] as String? ?? ''),
   );
 
   /// Las preguntas del inicio y de GET /evaluaciones/abierta, en orden.

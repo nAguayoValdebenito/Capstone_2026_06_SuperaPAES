@@ -118,6 +118,34 @@ describe.skipIf(!urlBase)('historial con PostgreSQL (HU-62.1)', () => {
     expect(despues.body.meta.total).toBe(3);
   });
 
+  it('filtra los grupos antes de paginar y contar', async () => {
+    await base.publicar(5, { prueba: 'M1', dificultad: 'media' });
+    const { id, token } = await base.sesion('grupos@ejemplo.cl');
+    const practica = await practicar(token);
+    const repaso = await repasoCerrado(id);
+    const diagnostico = await base.crearEvaluacionAbierta('diagnostico', id, base.pruebaId);
+    await entorno.bd.query("SELECT app.cerrar_evaluacion($1, 'entregada')", [diagnostico]);
+
+    const primera = await historial(token, { grupo: 'practicas', porPagina: 1 });
+    const segunda = await historial(token, { grupo: 'practicas', porPagina: 1, pagina: 2 });
+    const evaluaciones = await historial(token, { grupo: 'evaluaciones' });
+
+    expect(primera.status).toBe(200);
+    expect((primera.body.data as { id: number }[]).map((fila) => fila.id)).toEqual([
+      Number(repaso),
+    ]);
+    expect(primera.body.meta.total).toBe(2);
+    expect((segunda.body.data as { id: number }[]).map((fila) => fila.id)).toEqual([
+      Number(practica),
+    ]);
+    expect(segunda.body.meta.total).toBe(2);
+    expect((evaluaciones.body.data as { id: number }[]).map((fila) => fila.id)).toEqual([
+      Number(diagnostico),
+    ]);
+    expect(evaluaciones.body.meta.total).toBe(1);
+    expect((await historial(token, { grupo: 'otro' })).status).toBe(400);
+  });
+
   it('indica el resultado recalculado por una anulación (CU-30 2.b)', async () => {
     await base.publicar(5, { prueba: 'M1', dificultad: 'media' });
     const { token } = await base.sesion('recalcula@ejemplo.cl');

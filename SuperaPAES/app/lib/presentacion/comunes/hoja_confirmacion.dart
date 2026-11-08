@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 
@@ -10,14 +9,20 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 /// completo, barra inferior incluida (`useRootNavigator`), y devuelve lo que
 /// la hoja entregue al cerrarse; `null` si se cierra sin elegir. El fondo, las
 /// esquinas y el asa salen de `bottomSheetTheme`.
-Future<T?> mostrarHoja<T>(BuildContext context, Widget hoja) =>
-    showModalBottomSheet<T>(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      barrierColor: TemaSuperaPaes.texto.withValues(alpha: 0.5),
-      builder: (contexto) => hoja,
-    );
+Future<T?> mostrarHoja<T>(
+  BuildContext context,
+  Widget hoja, {
+  bool cerrarPorFuera = true,
+  bool permitirArrastre = true,
+}) => showModalBottomSheet<T>(
+  context: context,
+  useRootNavigator: true,
+  isDismissible: cerrarPorFuera,
+  enableDrag: permitirArrastre,
+  isScrollControlled: true,
+  barrierColor: TemaSuperaPaes.texto.withValues(alpha: 0.5),
+  builder: (contexto) => hoja,
+);
 
 /// Como [mostrarHoja]: `true` si el estudiante confirma; cerrarla o
 /// «cancelar» es `false`.

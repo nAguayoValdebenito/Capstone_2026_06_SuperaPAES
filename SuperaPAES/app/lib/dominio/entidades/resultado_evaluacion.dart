@@ -66,6 +66,7 @@ class ResultadoEvaluacion {
     this.tablaConversion,
     this.recalculado = false,
     this.pruebaId,
+    this.codigoPrueba,
     this.ejesOmitidos = const [],
   });
 
@@ -82,6 +83,7 @@ class ResultadoEvaluacion {
 
   /// Para practicar lo que marcó el diagnóstico (A31).
   final int? pruebaId;
+  final String? codigoPrueba;
 
   /// `entregada`, `tiempo_agotado` o `abandonada`.
   final String estado;
