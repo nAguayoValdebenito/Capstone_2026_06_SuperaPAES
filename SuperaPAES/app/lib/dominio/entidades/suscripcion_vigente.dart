@@ -22,6 +22,9 @@ class SuscripcionVigente {
     this.periodoFin,
     this.renuevaAutomaticamente = true,
     this.gestionUrl,
+    this.alcance,
+    this.pruebasIncluidas = const [],
+    this.coberturaVigente = false,
   });
 
   /// `false` si está activa.
@@ -42,6 +45,13 @@ class SuscripcionVigente {
 
   /// Dónde se gestiona en la tienda (HU-45.2); sin ella, la lista general.
   final String? gestionUrl;
+  final String? alcance;
+  final List<int> pruebasIncluidas;
+  final bool coberturaVigente;
+
+  bool cubre(int pruebaId) =>
+      coberturaVigente &&
+      (alcance == 'todas' || pruebasIncluidas.contains(pruebaId));
 }
 
 /// La versión vigente que el estudiante aceptó de los términos o de la

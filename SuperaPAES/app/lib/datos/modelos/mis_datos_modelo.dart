@@ -4,6 +4,7 @@ import 'package:supera_paes/dominio/entidades/archivo_mis_datos.dart';
 import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/ids.dart';
 
 /// Arma el archivo de /api/v1/app/privacidad/mis-datos
 /// (docs/contratos/HU-07.md), con el JSON tal como lo respondió el servidor,
@@ -66,6 +67,12 @@ abstract final class MisDatosModelo {
     return SuscripcionVigente(
       enMora: datos['estado'] == 'en_mora',
       plan: datos['plan'] as String,
+      alcance: datos['alcance'] as String?,
+      pruebasIncluidas: [
+        for (final id in datos['pruebasIncluidas'] as List<Object?>? ?? [])
+          leerId(id),
+      ],
+      coberturaVigente: datos['coberturaVigente'] as bool? ?? false,
       periodicidad: datos['periodicidad'] as String,
       tienda: switch (datos['tienda']) {
         'google_play' => Tienda.googlePlay,

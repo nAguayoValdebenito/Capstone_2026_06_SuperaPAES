@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/animados.dart';
@@ -19,6 +21,55 @@ Future<void> montar(WidgetTester tester, Widget hijo) => tester.pumpWidget(
 );
 
 void main() {
+  testWidgets(
+    'el segmento de práctica mantiene palabras enteras con letra 2,0',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      // Se comprueba el ajuste con la fuente empaquetada de la app.
+      await tester.runAsync(() async {
+        final fuente = FontLoader('Figtree');
+        for (final peso in [400, 600, 700, 800]) {
+          fuente.addFont(rootBundle.load('assets/fuentes/figtree-$peso.ttf'));
+        }
+        await fuente.load();
+      });
+      var elegido = 0;
+      await montar(
+        tester,
+        StatefulBuilder(
+          builder: (context, cambiar) => SelectorSegmentado<int>(
+            conMovimiento: true,
+            opciones: const [
+              (0, 'Mezcla'),
+              (1, 'Fácil'),
+              (2, 'Media'),
+              (3, 'Difícil'),
+            ],
+            seleccionado: elegido,
+            onChanged: (valor) => cambiar(() => elegido = valor),
+          ),
+        ),
+      );
+      for (final texto in ['Mezcla', 'Fácil', 'Media', 'Difícil']) {
+        final render = tester.renderObject<RenderParagraph>(find.text(texto));
+        expect(
+          render.getBoxesForSelection(
+            TextSelection(baseOffset: 0, extentOffset: texto.length),
+          ),
+          hasLength(1),
+        );
+      }
+      await tester.tap(find.text('Difícil'));
+      await tester.pumpAndSettle();
+      expect(elegido, 3);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('ChipTexto selecciona una vez y expone su estado semántico', (
     tester,
   ) async {

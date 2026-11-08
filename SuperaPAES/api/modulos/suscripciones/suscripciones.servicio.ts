@@ -179,7 +179,10 @@ export function crearSuscripcionesServicio(
     permiteEnsayoCompleto: (estudianteId, tx) =>
       repositorio.permiteEnsayoCompleto(estudianteId, dependencias.reloj(), tx),
     vigenteDe: async (estudianteId) =>
-      conGestion(await repositorio.vigenteDe(estudianteId), dependencias.paqueteGooglePlay),
+      conGestion(
+        await repositorio.vigenteDe(estudianteId, dependencias.reloj()),
+        dependencias.paqueteGooglePlay,
+      ),
     cerrarCanceladasVencidas: () =>
       cerrarCanceladas(dependencias, crearCierreRepositorio(dependencias.bd), comprasRepositorio),
     avisarRenovaciones: crearAvisoRenovacion(dependencias),

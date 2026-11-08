@@ -595,38 +595,95 @@ class SelectorSegmentado<T> extends StatelessWidget {
     required this.seleccionado,
     required this.onChanged,
     super.key,
+    this.conMovimiento = false,
   });
 
   /// Cada opción con su valor y su texto.
   final List<(T, String)> opciones;
   final T seleccionado;
   final ValueChanged<T> onChanged;
+  final bool conMovimiento;
 
   @override
   Widget build(BuildContext context) {
     // Cada segmento responde en todo el alto de la barra (48), también en
     // el relleno de 4 que rodea a la opción activa.
+    final columnas =
+        conMovimiento &&
+            opciones.length > 2 &&
+            MediaQuery.textScalerOf(context).scale(1) >= 1.3
+        ? 2
+        : opciones.isEmpty
+        ? 1
+        : opciones.length;
+    final filas = (opciones.length + columnas - 1) ~/ columnas;
+    final indice = opciones.indexWhere((o) => o.$1 == seleccionado);
+    final elegido = indice < 0 ? 0 : indice;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: TemaSuperaPaes.neutroSuave,
         borderRadius: BorderRadius.circular(TemaSuperaPaes.radioCampo),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          for (final (i, (valor, texto)) in opciones.indexed) ...[
-            if (i > 0) const SizedBox(width: 4),
-            Expanded(
-              child: ZonaTactil(
-                onTap: () => onChanged(valor),
-                child: _Segmento(
-                  texto: texto,
-                  activo: valor == seleccionado,
-                  onTap: () => onChanged(valor),
+          if (conMovimiento && opciones.isNotEmpty)
+            Positioned.fill(
+              child: AnimatedAlign(
+                duration: duracion(context, TemaSuperaPaes.movimientoNormal),
+                curve: TemaSuperaPaes.curvaEntrada,
+                alignment: AlignmentDirectional(
+                  columnas < 2
+                      ? 0
+                      : -1 + 2 * (elegido % columnas) / (columnas - 1),
+                  filas < 2 ? 0 : -1 + 2 * (elegido ~/ columnas) / (filas - 1),
+                ),
+                child: FractionallySizedBox(
+                  widthFactor: 1 / columnas,
+                  heightFactor: 1 / filas,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: TemaSuperaPaes.superficie,
+                      borderRadius: BorderRadius.circular(
+                        TemaSuperaPaes.radioSegmento,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ],
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var fila = 0; fila < filas; fila++)
+                Row(
+                  children: [
+                    for (var col = 0; col < columnas; col++) ...[
+                      if (col > 0) const SizedBox(width: 4),
+                      Expanded(
+                        child: fila * columnas + col >= opciones.length
+                            ? const SizedBox.shrink()
+                            : ZonaTactil(
+                                onTap: () => onChanged(
+                                  opciones[fila * columnas + col].$1,
+                                ),
+                                child: _Segmento(
+                                  fondoActivo: !conMovimiento,
+                                  texto: opciones[fila * columnas + col].$2,
+                                  activo:
+                                      opciones[fila * columnas + col].$1 ==
+                                      seleccionado,
+                                  onTap: () => onChanged(
+                                    opciones[fila * columnas + col].$1,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ],
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -638,11 +695,13 @@ class _Segmento extends StatelessWidget {
     required this.texto,
     required this.activo,
     required this.onTap,
+    this.fondoActivo = true,
   });
 
   final String texto;
   final bool activo;
   final VoidCallback onTap;
+  final bool fondoActivo;
 
   @override
   Widget build(BuildContext context) {
@@ -652,7 +711,9 @@ class _Segmento extends StatelessWidget {
       selected: activo,
       inMutuallyExclusiveGroup: true,
       child: Material(
-        color: activo ? TemaSuperaPaes.superficie : Colors.transparent,
+        color: activo && fondoActivo
+            ? TemaSuperaPaes.superficie
+            : Colors.transparent,
         borderRadius: radio,
         child: InkWell(
           borderRadius: radio,

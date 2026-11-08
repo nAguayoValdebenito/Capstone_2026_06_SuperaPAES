@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
-import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/planes/estado_planes.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
 /// El perfil, sus opciones (nombres de las pruebas) y las opciones de
 /// práctica de su curso.
 typedef DatosDePractica = ({
+  EstadoUsuario estado,
   PerfilEstudiante perfil,
   OpcionesPerfil nombres,
   OpcionesPractica opciones,
@@ -28,34 +32,62 @@ class ConDatosPractica extends ConsumerWidget {
     final perfil = ref.watch(perfilProvider);
     final nombres = ref.watch(opcionesPerfilProvider);
     final opciones = ref.watch(opcionesPracticaProvider);
-    final error = perfil.error ?? nombres.error ?? opciones.error;
+    final estado = ref.watch(estadoUsuarioProvider);
+    final error =
+        perfil.error ?? nombres.error ?? opciones.error ?? estado.error;
     if (error != null) {
       return PantallaFormulario(
         hijos: [
-          Aviso(
-            tono: TonoAviso.error,
-            texto: error is ErrorApi
-                ? error.mensaje
-                : 'No se pudieron cargar las opciones de práctica.',
-          ),
-          OutlinedButton(
-            onPressed: () => ref
+          EstadoError(
+            error: error,
+            mensaje: 'No se pudieron cargar las opciones de práctica.',
+            alReintentar: () => ref
+              ..invalidate(perfilProvider)
+              ..invalidate(cupoDeHoyProvider)
+              ..invalidate(suscripcionActualProvider)
               ..invalidate(opcionesPerfilProvider)
               ..invalidate(opcionesPracticaProvider),
-            child: const Text('Reintentar'),
           ),
+          const EsqueletoPractica(quieto: true),
         ],
       );
     }
-    if ((perfil.value, nombres.value, opciones.value) case (
+    if ((perfil.value, nombres.value, opciones.value, estado.value) case (
       final perfil?,
       final nombres?,
       final opciones?,
+      final estado?,
     )) {
-      return builder((perfil: perfil, nombres: nombres, opciones: opciones));
+      return builder((
+        perfil: perfil,
+        nombres: nombres,
+        opciones: opciones,
+        estado: estado,
+      ));
     }
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const PantallaFormulario(hijos: [EsqueletoPractica()]);
   }
+}
+
+class EsqueletoPractica extends StatelessWidget {
+  const EsqueletoPractica({super.key, this.quieto = false});
+  final bool quieto;
+  @override
+  Widget build(BuildContext context) => GrupoEsqueleto(
+    quieto: quieto,
+    child: const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Bloque(ancho: 220, alto: 28),
+        SizedBox(height: TemaSuperaPaes.espacio16),
+        EsqueletoTarjeta(),
+        SizedBox(height: TemaSuperaPaes.espacio16),
+        EsqueletoTarjeta(lineas: 3),
+        SizedBox(height: TemaSuperaPaes.espacio16),
+        Bloque(alto: TemaSuperaPaes.altoBoton),
+      ],
+    ),
+  );
 }
 
 /// La prueba del borrador si es del perfil; si no, la prueba a reforzar o la

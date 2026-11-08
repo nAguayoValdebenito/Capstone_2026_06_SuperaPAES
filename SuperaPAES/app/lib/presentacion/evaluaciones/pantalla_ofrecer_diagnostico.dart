@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/disponibilidad_practica.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
+import 'package:supera_paes/presentacion/comunes/trazo.dart';
 import 'package:supera_paes/presentacion/evaluaciones/condiciones_evaluacion.dart';
 import 'package:supera_paes/presentacion/evaluaciones/empezar_con_tiempo.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
@@ -77,6 +79,17 @@ class _PantallaOfrecerDiagnosticoState
         else
           // Se llega desde Evaluaciones o desde Inicio, y vuelve allí.
           const EnlaceVolver(texto: 'Volver', destino: Rutas.evaluaciones),
+        Tarjeta(
+          color: Prueba.deCodigo(prueba?.codigo ?? '').fondo,
+          child: Wrap(
+            spacing: TemaSuperaPaes.espacio24,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SelloPrueba(Prueba.deCodigo(prueba?.codigo ?? ''), tamano: 64),
+              const Trazo(),
+            ],
+          ),
+        ),
         Encabezado(
           titulo: desdePractica
               ? 'Antes de practicar $nombre'
@@ -93,6 +106,7 @@ class _PantallaOfrecerDiagnosticoState
             const DatoResumen(valor: '0', texto: 'de tu cupo'),
           ],
         ),
+        DisponibilidadPractica(pruebaId: diagnostico.pruebaId),
         Text(
           diagnostico.ejes > 0
               ? 'Solo de ejes que ya viste. Se rinde una vez por año escolar.'

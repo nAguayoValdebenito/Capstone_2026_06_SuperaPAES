@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/disponibilidad_practica.dart';
 import 'package:supera_paes/presentacion/practicar/con_datos_practica.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/progreso/estado_progreso.dart';
 
 /// Elegir un eje, un contenido o una habilidad de la prueba (A14; HU-30
 /// esc. 1, RN-24). Los contenidos van por eje, con buscador, y solo los que
@@ -60,6 +61,7 @@ class _PantallaElegirAlcanceState extends ConsumerState<PantallaElegirAlcance> {
           destino: Rutas.practicar,
         ),
         Encabezado(titulo: '${_titulos[tipo]} de ${nombre ?? 'tu prueba'}'),
+        if (pruebaId != null) DisponibilidadPractica(pruebaId: pruebaId),
         if (tipo == TipoAlcance.contenido)
           TextField(
             controller: _buscar,
@@ -152,12 +154,28 @@ class _PantallaElegirAlcanceState extends ConsumerState<PantallaElegirAlcance> {
           ),
         for (final opcion in opciones)
           OpcionRadio(
+            conMovimiento: true,
             texto: opcion.nombre,
+            detalle: _detalleProgreso(prueba.id, tipo, opcion.id),
             seleccionada: actual?.tipo == tipo && actual?.id == opcion.id,
             onTap: () => _elegir(prueba.id, tipo, opcion),
           ),
       ],
     ];
+  }
+
+  String? _detalleProgreso(int prueba, TipoAlcance tipo, int id) {
+    final progreso = ref.watch(progresoProvider).value?.prueba(prueba);
+    final grupos = tipo == TipoAlcance.eje
+        ? progreso?.ejes
+        : tipo == TipoAlcance.habilidad
+        ? progreso?.habilidades
+        : null;
+    final grupo = grupos?.where((g) => g.id == id).firstOrNull;
+    if (grupo == null) return null;
+    if (grupo.respondidas == 0) return 'Aún sin respuestas';
+    return '${grupo.aciertoPonderado.toStringAsFixed(0)} % de acierto'
+        '${grupo.aReforzar ? ' · Conviene reforzar' : ''}';
   }
 
   void _elegir(int pruebaId, TipoAlcance tipo, OpcionConNombre opcion) {

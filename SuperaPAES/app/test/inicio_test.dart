@@ -131,6 +131,11 @@ void main() {
       final contenedor = crearContenedor(sesion: sesionDeEjemplo);
       await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
 
+      await tester.scrollUntilVisible(
+        find.text('Ciencias · Biología'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       final titulos = tester
           .widgetList<Text>(
             find.descendant(

@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:supera_paes/dominio/entidades/cupo_de_hoy.dart';
-import 'package:supera_paes/nucleo/errores.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
-import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/cuenta_regresiva_cupo.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/planes/estado_planes.dart';
 
-/// «Hola, Camila» y la racha de días practicando (A12; HU-35 esc. 2). La
-/// racha aparece cuando llega el cupo, que la trae.
 class SaludoInicio extends ConsumerWidget {
   const SaludoInicio({required this.nombre, super.key});
-
-  /// Nombre completo del estudiante; se saluda con el primero.
   final String nombre;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final racha = ref.watch(cupoDeHoyProvider).value?.racha;
-    final primerNombre = nombre.trim().split(RegExp(r'\s+')).first;
-    // Wrap: con letra grande, la racha baja a otra línea (RNF-12).
+    final racha = ref.watch(estadoUsuarioProvider).value?.cupo.racha;
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
       crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 8,
+      spacing: TemaSuperaPaes.espacio12,
+      runSpacing: TemaSuperaPaes.espacio8,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,198 +36,160 @@ class SaludoInicio extends ConsumerWidget {
             ),
             Semantics(
               header: true,
-              child: Text(primerNombre, style: TemaSuperaPaes.h1),
+              child: Text(
+                nombre.trim().split(RegExp(r'\s+')).first,
+                style: TemaSuperaPaes.h1,
+              ),
             ),
           ],
         ),
-        if (racha != null) _Racha(dias: racha),
+        if (racha != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const MarcaRacha(),
+              const SizedBox(width: TemaSuperaPaes.espacio8),
+              Flexible(
+                child: Text(
+                  textoDeRacha(racha),
+                  style: TemaSuperaPaes.pequenoFuerte,
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }
 }
 
-/// La racha en palabras amables: sin días, invita a empezarla (plan de mejora
-/// visual del 02/11).
 String textoDeRacha(int dias) => switch (dias) {
   0 => 'Empieza tu racha hoy',
   1 => '1 día seguido',
   _ => '$dias días seguidos',
 };
 
-class _Racha extends StatelessWidget {
-  const _Racha({required this.dias});
-
-  final int dias;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: TemaSuperaPaes.avisoSuave,
-        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioTarjeta),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.local_fire_department_outlined,
-            size: 16,
-            color: TemaSuperaPaes.aviso,
-          ),
-          const SizedBox(width: 6),
-          // Flexible: con letra muy grande el texto se parte en vez de
-          // desbordarse.
-          Flexible(
-            child: Text(
-              textoDeRacha(dias),
-              style: TemaSuperaPaes.pequenoFuerte.copyWith(
-                color: TemaSuperaPaes.avisoTexto,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// «Tus preguntas de hoy» (A12; HU-35 esc. 1, RN-01, RN-02): las disponibles,
-/// las usadas con su barra, el reinicio y las preguntas extra. Es compacta:
-/// lo primero en Inicio es qué hacer hoy, no el número del cupo.
 class TarjetaCupo extends ConsumerWidget {
   const TarjetaCupo({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cupo = ref.watch(cupoDeHoyProvider);
+    final estado = ref.watch(estadoUsuarioProvider);
+    if (estado.hasError) {
+      return EstadoError(
+        error: estado.error!,
+        mensaje: 'No se pudo cargar tu cupo de hoy.',
+        alReintentar: () => ref
+          ..invalidate(cupoDeHoyProvider)
+          ..invalidate(suscripcionActualProvider),
+      );
+    }
+    final usuario = estado.value;
+    if (usuario == null) return const EsqueletoTarjeta();
+    final secundario = TemaSuperaPaes.pequeno.copyWith(
+      color: TemaSuperaPaes.textoSecundario,
+    );
+    final nombres = ref.watch(opcionesPerfilProvider).value;
     return Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Tus preguntas de hoy',
-            style: TemaSuperaPaes.etiqueta.copyWith(
-              color: TemaSuperaPaes.textoSecundario,
+          if (usuario.todasIncluidas) ...[
+            const Text('Practicas sin límite', style: TemaSuperaPaes.h2),
+            const SizedBox(height: TemaSuperaPaes.espacio8),
+            Text(
+              'Plan Todas las pruebas, '
+              '${usuario.enMora ? 'con pago pendiente' : 'activo'}.',
+              style: secundario,
             ),
-          ),
-          const SizedBox(height: TemaSuperaPaes.espacio4),
-          switch (cupo) {
-            AsyncData(value: final CupoDeHoy datos) => _DatosCupo(cupo: datos),
-            AsyncError(:final error) => _ErrorCupo(error: error),
-            _ => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
+            const SizedBox(height: TemaSuperaPaes.espacio12),
+            Wrap(
+              spacing: TemaSuperaPaes.espacio8,
+              children: [
+                for (final p in Prueba.values) SelloPrueba(p, tamano: 24),
+              ],
             ),
-          },
-        ],
-      ),
-    );
-  }
-}
-
-class _DatosCupo extends StatelessWidget {
-  const _DatosCupo({required this.cupo});
-
-  final CupoDeHoy cupo;
-
-  @override
-  Widget build(BuildContext context) {
-    final secundario = TemaSuperaPaes.pequeno.copyWith(
-      color: TemaSuperaPaes.textoSecundario,
-    );
-    final usado = cupo.maximo == 0 ? 0.0 : cupo.usadas / cupo.maximo;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Wrap(
-          spacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.end,
-          children: [
-            Text('${cupo.restantes}', style: TemaSuperaPaes.numero),
-            Padding(
-              // Alinea la bajada con la base del número.
-              padding: const EdgeInsets.only(bottom: 3),
-              child: Text(
-                'disponibles · ${cupo.usadas} de ${cupo.maximo} usadas',
-                style: secundario,
+          ] else ...[
+            Text(
+              'Tus preguntas de hoy',
+              style: TemaSuperaPaes.etiqueta.copyWith(
+                color: TemaSuperaPaes.textoSecundario,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: TemaSuperaPaes.espacio8),
-        // Las usadas ya se leen en el texto de arriba.
-        ExcludeSemantics(child: _Barra(usado: usado.clamp(0, 1))),
-        const SizedBox(height: TemaSuperaPaes.espacio8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
+            const SizedBox(height: TemaSuperaPaes.espacio4),
+            Wrap(
+              spacing: TemaSuperaPaes.espacio8,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                ContadorAnimado(
+                  valor: usuario.cupoRestante,
+                  estilo: TemaSuperaPaes.numero,
+                ),
+                Text(
+                  'disponibles · ${usuario.cupo.usadas} de '
+                  '${usuario.cupo.maximo} usadas',
+                  style: secundario,
+                ),
+              ],
+            ),
+            const SizedBox(height: TemaSuperaPaes.espacio8),
+            BarraAnimada(
+              valor: usuario.cupo.maximo <= 0
+                  ? 0
+                  : usuario.cupoRestante / usuario.cupo.maximo,
+              etiquetaSemantica:
+                  '${usuario.cupoRestante} de ${usuario.cupo.maximo} '
+                  'disponibles',
+            ),
+            const SizedBox(height: TemaSuperaPaes.espacio8),
             Text('Se reinicia a las 00:00 (hora de Chile)', style: secundario),
-            if (cupo.saldoExtra > 0)
-              Etiqueta(texto: 'Extra: ${cupo.saldoExtra}'),
+            if (usuario.bonos > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: TemaSuperaPaes.espacio8),
+                child: Text(
+                  'Extra: ${usuario.bonos}',
+                  style: TemaSuperaPaes.cuerpoFuerte,
+                ),
+              ),
+            if (usuario.suscripcion?.coberturaVigente == true) ...[
+              const SizedBox(height: TemaSuperaPaes.espacio8),
+              Text(
+                'El cupo se usa solo en las demás pruebas.',
+                style: secundario,
+              ),
+              for (final id in usuario.suscripcion!.pruebasIncluidas)
+                Text(
+                  '${nombres?.prueba(id)?.nombreCorto ?? 'Prueba'} '
+                  'incluida en tu plan · sin límite',
+                  style: secundario,
+                ),
+            ],
+            if (usuario.cupo.agotado) ...[
+              const SizedBox(height: TemaSuperaPaes.espacio12),
+              const Text(
+                'Por hoy completaste tu cupo',
+                style: TemaSuperaPaes.h2,
+              ),
+              CuentaRegresivaCupo(reiniciaEn: usuario.cupo.reiniciaEn),
+              TextButton(
+                onPressed: () => context.push(Rutas.cupoAgotado),
+                child: const Text('Ver cómo seguir hoy'),
+              ),
+            ],
           ],
-        ),
-      ],
-    );
-  }
-}
-
-/// Barra de las preguntas usadas: fondo `neutroSuave` y avance `primario`.
-class _Barra extends StatelessWidget {
-  const _Barra({required this.usado});
-
-  /// Fracción usada, de 0 a 1.
-  final double usado;
-
-  @override
-  Widget build(BuildContext context) {
-    final radio = BorderRadius.circular(TemaSuperaPaes.altoBarra / 2);
-    return Container(
-      height: TemaSuperaPaes.altoBarra,
-      alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-        color: TemaSuperaPaes.neutroSuave,
-        borderRadius: radio,
+          if (usuario.enMora) ...[
+            const SizedBox(height: TemaSuperaPaes.espacio12),
+            const Aviso(
+              tono: TonoAviso.info,
+              texto:
+                  'No pudimos cobrar la renovación. Mantienes tu plan '
+                  'mientras la tienda reintenta.',
+            ),
+            TextButton(
+              onPressed: () => context.push(Rutas.miSuscripcion),
+              child: const Text('Ver mi suscripción'),
+            ),
+          ],
+        ],
       ),
-      child: FractionallySizedBox(
-        widthFactor: usado,
-        heightFactor: 1,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: TemaSuperaPaes.primario,
-            borderRadius: radio,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorCupo extends ConsumerWidget {
-  const _ErrorCupo({required this.error});
-
-  final Object error;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Aviso(
-          tono: TonoAviso.error,
-          texto: error is ErrorApi
-              ? (error as ErrorApi).mensaje
-              : 'No se pudo cargar tu cupo de hoy.',
-        ),
-        const SizedBox(height: 10),
-        BotonChico(
-          texto: 'Reintentar',
-          onPressed: () => ref.invalidate(cupoDeHoyProvider),
-        ),
-      ],
     );
   }
 }

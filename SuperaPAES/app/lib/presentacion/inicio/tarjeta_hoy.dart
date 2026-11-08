@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
-import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart';
 import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/comunes/trazo.dart';
@@ -33,7 +32,7 @@ class TarjetaHoy extends ConsumerWidget {
     if (haySinTerminar(ref.watch(evaluacionAbiertaProvider).value)) {
       return const EvaluacionSinTerminar();
     }
-    final perfil = ref.watch(perfilProvider);
+    final perfil = ref.watch(estadoUsuarioProvider).whenData((e) => e?.perfil);
     final opciones = ref.watch(opcionesPerfilProvider);
     // «Tus pruebas» ya muestra el error del perfil.
     if (perfil.hasError || opciones.hasError) return const SizedBox.shrink();
@@ -96,7 +95,7 @@ class _HoyDiagnostico extends ConsumerWidget {
       detalle:
           '${diagnostico.cantidad} preguntas, no usa tu cupo. Con él sabremos '
           'qué $medida reforzar primero.',
-      simbolo: SelloPrueba(Prueba.deCodigo(codigo)),
+      simbolo: SelloPrueba(Prueba.deCodigo(codigo), sobreMarca: true),
       onPressed: () {
         ref.read(ofertaDiagnosticoProvider.notifier).ofrecer(diagnostico);
         unawaited(context.push(Rutas.ofrecerDiagnostico));
@@ -121,7 +120,7 @@ class _HoyReforzar extends ConsumerWidget {
     return _Hoy(
       titulo: 'Hoy: refuerza $nombre.',
       detalle: 'Tu práctica parte por lo que más necesitas.',
-      simbolo: SelloPrueba(Prueba.deCodigo(codigo)),
+      simbolo: SelloPrueba(Prueba.deCodigo(codigo), sobreMarca: true),
       onPressed: () {
         ref.read(borradorPracticaProvider.notifier).elegirPrueba(pruebaId);
         context.go(Rutas.practicar);
@@ -130,8 +129,7 @@ class _HoyReforzar extends ConsumerWidget {
   }
 }
 
-/// La tarjeta: en azul suave, con el título, su detalle, el sello o el trazo
-/// a la derecha y «Empezar» a lo ancho.
+/// «Hoy» es el único bloque de Inicio con degradado y botón blanco.
 class _Hoy extends StatelessWidget {
   const _Hoy({
     required this.titulo,
@@ -147,39 +145,81 @@ class _Hoy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tarjeta(
-      color: TemaSuperaPaes.primarioSuave,
-      borde: TemaSuperaPaes.primarioSuave,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: TemaSuperaPaes.degradadoHoy,
+        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioGrande),
+        boxShadow: TemaSuperaPaes.sombraMarca,
+      ),
+      child: Stack(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
+          if (MediaQuery.textScalerOf(context).scale(1) < 1.3)
+            Positioned(
+              right: TemaSuperaPaes.espacio16,
+              bottom: TemaSuperaPaes.espacio16,
+              child: Trazo(
+                ancho: TemaSuperaPaes.trazoFondoHoy,
+                color: TemaSuperaPaes.superficie.withValues(alpha: 0.18),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(TemaSuperaPaes.espacio16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Semantics(
-                      header: true,
-                      child: Text(titulo, style: TemaSuperaPaes.h2),
-                    ),
-                    const SizedBox(height: TemaSuperaPaes.espacio4),
-                    Text(
-                      detalle,
-                      style: TemaSuperaPaes.pequeno.copyWith(
-                        color: TemaSuperaPaes.textoSecundario,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Semantics(
+                            header: true,
+                            child: Text(
+                              titulo,
+                              style: TemaSuperaPaes.h2.copyWith(
+                                color: TemaSuperaPaes.superficie,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: TemaSuperaPaes.espacio4),
+                          Text(
+                            detalle,
+                            style: TemaSuperaPaes.pequeno.copyWith(
+                              color: TemaSuperaPaes.sobreMarcaSuave,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(width: TemaSuperaPaes.espacio12),
+                    simbolo,
                   ],
                 ),
-              ),
-              const SizedBox(width: TemaSuperaPaes.espacio12),
-              simbolo,
-            ],
+                const SizedBox(height: TemaSuperaPaes.espacio12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, TemaSuperaPaes.altoBoton),
+                      backgroundColor: TemaSuperaPaes.superficie,
+                      foregroundColor: TemaSuperaPaes.primario,
+                    ),
+                    onPressed: onPressed,
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(child: Text('Empezar')),
+                        SizedBox(width: TemaSuperaPaes.espacio8),
+                        Icon(Icons.arrow_forward_rounded),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: TemaSuperaPaes.espacio12),
-          FilledButton(onPressed: onPressed, child: const Text('Empezar')),
         ],
       ),
     );

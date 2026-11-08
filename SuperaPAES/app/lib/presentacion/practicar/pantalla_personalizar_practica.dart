@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
-import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/comunes/disponibilidad_practica.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/inicio/pruebas_inicio.dart';
 import 'package:supera_paes/presentacion/practicar/con_datos_practica.dart';
 import 'package:supera_paes/presentacion/practicar/empezar_practica.dart';
@@ -37,6 +39,18 @@ class _PantallaPersonalizarPracticaState
     final borrador = ref.watch(borradorPracticaProvider);
     final pruebaId = pruebaElegida(borrador, datos.perfil);
     final prueba = pruebaId == null ? null : datos.opciones.prueba(pruebaId);
+    final nombrePrueba =
+        datos.nombres.prueba(pruebaId ?? 0)?.nombreCorto ?? 'tu prueba';
+    final dificultad =
+        datos.opciones.dificultades
+            .where((d) => d.id == borrador.dificultadId)
+            .firstOrNull
+            ?.nombre ??
+        'Mezcla';
+    final cantidad = pruebaId == null
+        ? 0
+        : datos.estado.cantidadPara(pruebaId, borrador.cantidad);
+    final puede = pruebaId != null && datos.estado.puedePracticar(pruebaId);
     // El alcance del borrador es de su prueba; con otra, toda la prueba.
     final alcance = borrador.pruebaId == pruebaId
         ? borrador.alcance
@@ -44,8 +58,17 @@ class _PantallaPersonalizarPracticaState
     return PantallaFormulario(
       separacion: 12,
       hijos: [
-        const EnlaceVolver(texto: 'Inicio', destino: Rutas.inicio),
         const Encabezado(titulo: 'Personaliza tu práctica'),
+        Cambiante(
+          clave:
+              '$pruebaId-${alcance.tipo}-${alcance.id}-'
+              '${borrador.dificultadId}-$cantidad',
+          child: Text(
+            '$cantidad preguntas de $nombrePrueba · '
+            '${alcance.nombre ?? 'Toda la prueba'} · $dificultad',
+            style: TemaSuperaPaes.cuerpoFuerte,
+          ),
+        ),
         _Seccion(
           titulo: 'Prueba',
           child: _ChipsPrueba(datos: datos, pruebaId: pruebaId),
@@ -64,7 +87,13 @@ class _PantallaPersonalizarPracticaState
         ),
         _Seccion(
           titulo: 'Cantidad de preguntas',
-          child: _Cantidad(cantidad: borrador.cantidad),
+          child: pruebaId == null
+              ? const SizedBox.shrink()
+              : _Cantidad(
+                  cantidad: cantidad,
+                  pruebaId: pruebaId,
+                  estado: datos.estado,
+                ),
         ),
       ],
       pie: PieConError(
@@ -72,17 +101,19 @@ class _PantallaPersonalizarPracticaState
         boton: FilledButton(
           onPressed: pruebaId == null || empezando
               ? null
+              : !puede
+              ? () => context.push(Rutas.cupoAgotado)
               : () => empezar(
                   DatosPractica(
                     pruebaId: pruebaId,
                     alcance: alcance,
                     dificultadId: borrador.dificultadId,
-                    cantidad: borrador.cantidad,
+                    cantidad: cantidad,
                   ),
                 ),
           child: empezando
               ? const CargandoEnBoton()
-              : const Text('Empezar práctica'),
+              : Text(puede ? 'Empezar práctica' : 'Ver cómo seguir'),
         ),
       ),
     );
@@ -119,18 +150,14 @@ class _ChipsPrueba extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reforzar = datos.perfil.pruebaReforzarId;
     return GrupoChips(
       chips: [
         for (final (:id, titulo: _, reforzar: _) in pruebasDeInicio(
           datos.perfil,
           datos.nombres,
         ))
-          ChipSeleccion(
-            texto: [
-              datos.nombres.prueba(id)?.nombreCorto ?? '',
-              if (id == reforzar) 'reforzar',
-            ].join(' · '),
+          ChipPrueba(
+            prueba: Prueba.deCodigo(datos.nombres.prueba(id)?.codigo ?? ''),
             seleccionado: id == pruebaId,
             onTap: () =>
                 ref.read(borradorPracticaProvider.notifier).elegirPrueba(id),
@@ -164,6 +191,7 @@ class _QuePracticar extends ConsumerWidget {
         for (final (i, (tipo, texto)) in opciones.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
           OpcionRadio(
+            conMovimiento: true,
             texto: texto,
             seleccionada: alcance.tipo == tipo,
             detalle: alcance.tipo == tipo ? alcance.nombre : null,
@@ -200,6 +228,7 @@ class _Dificultad extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SelectorSegmentado<int?>(
+          conMovimiento: true,
           opciones: [
             (null, 'Mezcla'),
             for (final dificultad in dificultades)
@@ -235,14 +264,20 @@ class _Dificultad extends ConsumerWidget {
 
 /// De 5 a 20 preguntas, sugiere 10 (HU-30 esc. 3), con las que quedan hoy.
 class _Cantidad extends ConsumerWidget {
-  const _Cantidad({required this.cantidad});
+  const _Cantidad({
+    required this.cantidad,
+    required this.pruebaId,
+    required this.estado,
+  });
 
   final int cantidad;
+  final int pruebaId;
+  final EstadoUsuario estado;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final borrador = ref.read(borradorPracticaProvider.notifier);
-    final cupo = ref.watch(cupoDeHoyProvider).value;
+    final maximo = estado.maximoCantidad(pruebaId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -252,7 +287,7 @@ class _Cantidad extends ConsumerWidget {
               icono: Icons.remove,
               tooltip: 'Menos preguntas',
               onPressed: cantidad > BorradorPractica.cantidadMinima
-                  ? () => borrador.cambiarCantidad(-1)
+                  ? () => borrador.fijarCantidad(cantidad - 1)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -260,10 +295,17 @@ class _Cantidad extends ConsumerWidget {
             Flexible(
               child: Column(
                 children: [
-                  Text('$cantidad', style: TemaSuperaPaes.numero),
                   Text(
-                    'de ${BorradorPractica.cantidadMinima} a '
-                    '${BorradorPractica.cantidadMaxima}',
+                    '$cantidad',
+                    style: TemaSuperaPaes.numero.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  Text(
+                    maximo < BorradorPractica.cantidadMinima
+                        ? 'Mínimo ${BorradorPractica.cantidadMinima} '
+                              'para empezar'
+                        : 'de ${BorradorPractica.cantidadMinima} a $maximo',
                     textAlign: TextAlign.center,
                     style: TemaSuperaPaes.pequeno.copyWith(
                       color: TemaSuperaPaes.textoSecundario,
@@ -276,25 +318,19 @@ class _Cantidad extends ConsumerWidget {
             _BotonRedondo(
               icono: Icons.add,
               tooltip: 'Más preguntas',
-              onPressed: cantidad < BorradorPractica.cantidadMaxima
-                  ? () => borrador.cambiarCantidad(1)
+              onPressed: cantidad < maximo && estado.puedePracticar(pruebaId)
+                  ? () => borrador.fijarCantidad(cantidad + 1)
                   : null,
             ),
           ],
         ),
-        if (cupo != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            cupo.saldoExtra > 0
-                ? 'Hoy te quedan ${cupo.restantes + cupo.saldoExtra} '
-                      'preguntas: ${cupo.restantes} del cupo diario y '
-                      '${cupo.saldoExtra} extra.'
-                : 'Hoy te quedan ${cupo.restantes} preguntas del cupo diario.',
-            style: TemaSuperaPaes.pequeno.copyWith(
-              color: TemaSuperaPaes.textoSecundario,
-            ),
+        const SizedBox(height: TemaSuperaPaes.espacio8),
+        DisponibilidadPractica(pruebaId: pruebaId),
+        if (!estado.puedePracticar(pruebaId))
+          const Text(
+            'No alcanza el mínimo para una práctica. Puedes repasar, '
+            'rendir un diagnóstico o elegir una prueba incluida.',
           ),
-        ],
       ],
     );
   }

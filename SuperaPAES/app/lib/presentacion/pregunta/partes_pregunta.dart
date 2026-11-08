@@ -6,7 +6,7 @@ import 'package:supera_paes/dominio/entidades/practica.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
-import 'package:supera_paes/presentacion/inicio/estado_inicio.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 
@@ -19,7 +19,8 @@ class CabeceraPractica extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // El repaso no usa cupo (RN-04): no se muestra lo que queda hoy.
     final esRepaso = ref.watch(practicaProvider).esRepaso;
-    final cupo = esRepaso ? null : ref.watch(cupoDeHoyProvider).value;
+    final cupo = esRepaso ? null : ref.watch(estadoUsuarioProvider).value;
+    final prueba = ref.watch(practicaProvider).enCurso?.pruebaId;
     // Wrap: con letra grande, las preguntas que quedan bajan a otra línea.
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
@@ -36,7 +37,7 @@ class CabeceraPractica extends ConsumerWidget {
           icon: const Icon(Icons.close, size: 20),
           label: const Text('Terminar'),
         ),
-        if (cupo != null)
+        if (cupo != null && prueba != null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -46,9 +47,15 @@ class CabeceraPractica extends ConsumerWidget {
             child: Text.rich(
               TextSpan(
                 children: [
-                  const TextSpan(text: 'Hoy te quedan '),
                   TextSpan(
-                    text: '${cupo.restantes + cupo.saldoExtra}',
+                    text: cupo.cubre(prueba)
+                        ? 'Incluida en tu plan · '
+                        : 'Hoy te quedan ',
+                  ),
+                  TextSpan(
+                    text: cupo.cubre(prueba)
+                        ? 'sin límite'
+                        : '${cupo.disponibles(prueba)}',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ],

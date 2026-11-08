@@ -27,6 +27,10 @@ export interface SuscripcionVigente {
   renuevaAutomaticamente: boolean;
   /** Dónde se gestiona y se cancela en la tienda (HU-45.2). */
   gestionUrl: string;
+  /** Cobertura para la app (F3), calculada con las mismas reglas de RN-04 y A-03. */
+  alcance?: 'una_prueba' | 'todas';
+  pruebasIncluidas?: number[];
+  coberturaVigente?: boolean;
 }
 
 /** La vigente como sale de la base: la dirección de la tienda se arma con su producto. */
@@ -65,13 +69,22 @@ const PLANES = `
    WHERE pl.activo
    ORDER BY a.id, p.meses`;
 
+// La fecha se recibe del reloj del servicio; la app no decide la vigencia.
+const AL_DIA = (ahora: string) =>
+  `(e.codigo = 'en_mora' OR s.periodo_fin IS NULL
+    OR s.periodo_fin >= ${ahora}::timestamptz - ${MARGEN_FIN_PERIODO})`;
+
 // Solo activa o en mora: una pendiente todavía no se cobra (RN-34). El índice ux_suscripcion_vigente
 // deja una sola vigente por estudiante. No mira el fin del período: dice si la tienda puede seguir
 // cobrando, aunque el aviso que cerraría la suscripción no haya llegado.
 const VIGENTE = `
   SELECT e.codigo AS estado, a.nombre AS plan, p.codigo AS periodicidad, c.codigo AS tienda,
          s.periodo_fin AS "periodoFin", s.cancelada_en IS NULL AS "renuevaAutomaticamente",
-         pt.id_producto AS "idProducto"
+         pt.id_producto AS "idProducto", a.codigo AS alcance,
+         ${AL_DIA('$2')} AS "coberturaVigente",
+         COALESCE((SELECT array_agg(sp.prueba_id ORDER BY sp.prueba_id)
+                     FROM app.suscripcion_prueba sp WHERE sp.suscripcion_id = s.id),
+                  ARRAY[]::smallint[]) AS "pruebasIncluidas"
     FROM app.suscripcion s
     JOIN contenido.estado_suscripcion e ON e.id = s.estado_suscripcion_id
     JOIN contenido.plan pl ON pl.id = s.plan_id
@@ -85,9 +98,6 @@ const VIGENTE = `
 // A-03: una activa da acceso hasta el fin del período pagado, más el margen para esperar el aviso de la
 // tienda; si no llega, deja de dar acceso aunque siga activa. En mora no se mira: el período ya terminó y
 // la tienda reintenta el cobro (RN-26). `ahora` es el número del parámetro con el reloj de la API.
-const AL_DIA = (ahora: string) =>
-  `(e.codigo = 'en_mora' OR s.periodo_fin IS NULL
-    OR s.periodo_fin >= ${ahora}::timestamptz - ${MARGEN_FIN_PERIODO})`;
 
 // RN-04: solo activa o en mora dan acceso (RN-26). Todas las pruebas cubre cualquier prueba; Una prueba,
 // la elegida en app.suscripcion_prueba.
@@ -112,8 +122,12 @@ export function crearSuscripcionesRepositorio(bd: Ejecutor) {
       return rows;
     },
 
-    async vigenteDe(estudianteId: string, tx: Ejecutor = bd): Promise<FilaVigente | null> {
-      const { rows } = await tx.query<FilaVigente>(VIGENTE, [estudianteId]);
+    async vigenteDe(
+      estudianteId: string,
+      ahora: Date,
+      tx: Ejecutor = bd,
+    ): Promise<FilaVigente | null> {
+      const { rows } = await tx.query<FilaVigente>(VIGENTE, [estudianteId, ahora]);
       return rows[0] ?? null;
     },
 

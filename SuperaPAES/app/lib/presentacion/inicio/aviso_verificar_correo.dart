@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
-import 'package:supera_paes/presentacion/comunes/componentes.dart';
 
 /// Aviso de Inicio mientras el correo no esté verificado (HU-05.2), como en
 /// el boceto A12: sin verificar, el cupo es de 10 preguntas diarias (RN-01).
@@ -36,8 +35,13 @@ class AvisoVerificarCorreo extends StatelessWidget {
         ),
       ],
     );
-    final boton = BotonChico(
-      texto: 'Verificar',
+    final boton = FilledButton.tonal(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, TemaSuperaPaes.altoBotonChico),
+        backgroundColor: TemaSuperaPaes.primarioSuave,
+        foregroundColor: TemaSuperaPaes.primarioOscuro,
+      ),
+      child: const Text('Verificar'),
       onPressed: () => context.push(Rutas.verificarCorreo),
     );
     final apilar =
@@ -45,7 +49,8 @@ class AvisoVerificarCorreo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: TemaSuperaPaes.primarioSuave,
+        color: TemaSuperaPaes.superficie,
+        border: Border.all(color: TemaSuperaPaes.borde),
         borderRadius: BorderRadius.circular(TemaSuperaPaes.radioCampo),
       ),
       child: apilar

@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
-import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
 import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/evaluaciones/estado_evaluaciones.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
@@ -54,11 +54,17 @@ List<PruebaDeInicio> pruebasDeInicio(
 /// este año escolar, lo ofrece (A16, HU-36). Repasar errores llega con la
 /// HU-39.
 class PruebasInicio extends ConsumerWidget {
-  const PruebasInicio({super.key});
+  const PruebasInicio({
+    super.key,
+    this.animarEntrada = false,
+    this.visible = true,
+  });
+  final bool animarEntrada;
+  final bool visible;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final perfil = ref.watch(perfilProvider);
+    final perfil = ref.watch(estadoUsuarioProvider).whenData((e) => e?.perfil);
     final opciones = ref.watch(opcionesPerfilProvider);
     final error = perfil.error ?? opciones.error;
     return Column(
@@ -79,25 +85,37 @@ class PruebasInicio extends ConsumerWidget {
         else if (perfil.value case final guardado? when opciones.hasValue)
           _GrillaPruebas(
             tarjetas: [
-              for (final prueba in pruebasDeInicio(
+              for (final (indice, prueba) in pruebasDeInicio(
                 guardado,
                 opciones.requireValue,
-              ))
-                _TarjetaPrueba(
-                  prueba: prueba,
-                  codigo: opciones.requireValue.prueba(prueba.id)?.codigo ?? '',
-                  diagnostico: switch (ref
-                      .watch(disponibilidadDiagnosticoProvider(prueba.id))
-                      .value) {
-                    final DisponibilidadDiagnostico d when d.disponible => d,
-                    _ => null,
-                  },
-                  onTap: () {
-                    ref
-                        .read(borradorPracticaProvider.notifier)
-                        .elegirPrueba(prueba.id);
-                    context.go(Rutas.practicar);
-                  },
+              ).indexed)
+                AparecerEscalonado(
+                  key: ValueKey('${prueba.id}-$visible'),
+                  indice: indice,
+                  activo: animarEntrada,
+                  child: _TarjetaPrueba(
+                    prueba: prueba,
+                    codigo:
+                        opciones.requireValue.prueba(prueba.id)?.codigo ?? '',
+                    incluida:
+                        ref
+                            .watch(estadoUsuarioProvider)
+                            .value
+                            ?.cubre(prueba.id) ??
+                        false,
+                    diagnostico: switch (ref
+                        .watch(disponibilidadDiagnosticoProvider(prueba.id))
+                        .value) {
+                      final DisponibilidadDiagnostico d when d.disponible => d,
+                      _ => null,
+                    },
+                    onTap: () {
+                      ref
+                          .read(borradorPracticaProvider.notifier)
+                          .elegirPrueba(prueba.id);
+                      context.go(Rutas.practicar);
+                    },
+                  ),
                 ),
             ],
           )
@@ -164,6 +182,7 @@ class _TarjetaPrueba extends ConsumerWidget {
     required this.codigo,
     required this.onTap,
     this.diagnostico,
+    this.incluida = false,
   });
 
   final PruebaDeInicio prueba;
@@ -171,6 +190,7 @@ class _TarjetaPrueba extends ConsumerWidget {
   /// Código de la prueba (`CL`, `M1`...), para su sello.
   final String codigo;
   final VoidCallback onTap;
+  final bool incluida;
 
   /// El diagnóstico pendiente de la prueba; `null` si ya lo rindió.
   final DisponibilidadDiagnostico? diagnostico;
@@ -213,6 +233,11 @@ class _TarjetaPrueba extends ConsumerWidget {
                   codigo: codigo,
                   pendiente: diagnostico != null,
                 ),
+                if (incluida)
+                  const Text(
+                    'Incluida en tu plan',
+                    style: TemaSuperaPaes.pequenoFuerte,
+                  ),
                 if (prueba.reforzar) ...[
                   const SizedBox(height: TemaSuperaPaes.espacio8),
                   BotonChico(texto: 'Reforzar', onPressed: onTap),
@@ -267,10 +292,7 @@ class _DatosPrueba extends StatelessWidget {
         Text(prueba.titulo, style: TemaSuperaPaes.cuerpoFuerte),
         if (prueba.reforzar) ...[
           const SizedBox(height: TemaSuperaPaes.espacio4),
-          const Etiqueta(
-            texto: 'Tu prueba a reforzar',
-            tono: TonoEtiqueta.aviso,
-          ),
+          const Destacado(texto: 'Tu prueba a reforzar'),
         ],
         if (pendiente) ...[
           const SizedBox(height: TemaSuperaPaes.espacio4),

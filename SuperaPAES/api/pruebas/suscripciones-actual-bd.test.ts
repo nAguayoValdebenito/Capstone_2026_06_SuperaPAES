@@ -45,6 +45,9 @@ describe.skipIf(!urlBase)('suscripción actual con PostgreSQL (HU-45.2)', () => 
     expect((await consultar(token)).body.data).toEqual({
       estado: 'activa',
       plan: 'Todas las pruebas',
+      alcance: 'todas',
+      pruebasIncluidas: [],
+      coberturaVigente: true,
       periodicidad: 'anual',
       tienda: 'google_play',
       periodoFin: FIN.toISOString(),
@@ -99,11 +102,14 @@ describe.skipIf(!urlBase)('suscripción actual con PostgreSQL (HU-45.2)', () => 
 
     expect((await consultar(beto.token)).body.data).toBeNull();
     expect(Object.keys(deAna.body.data as object).sort()).toEqual([
+      'alcance',
+      'coberturaVigente',
       'estado',
       'gestionUrl',
       'periodicidad',
       'periodoFin',
       'plan',
+      'pruebasIncluidas',
       'renuevaAutomaticamente',
       'tienda',
     ]);
@@ -111,5 +117,37 @@ describe.skipIf(!urlBase)('suscripción actual con PostgreSQL (HU-45.2)', () => 
 
   it('sin sesión responde 401', async () => {
     expect((await request(entorno.app).get(RUTA)).status).toBe(401);
+  });
+
+  it('F3: entrega la prueba incluida sin extender la cobertura a otras', async () => {
+    const { id, token } = await base.sesion('incluida@ejemplo.cl');
+    await insertarSuscripcion(entorno.bd, {
+      estudianteId: id,
+      plan: 'Una prueba anual',
+      estado: 'en_mora',
+      pruebas: [base.pruebaId],
+      periodoFin: new Date('2020-01-01'),
+    });
+    expect((await consultar(token)).body.data).toMatchObject({
+      alcance: 'una_prueba',
+      pruebasIncluidas: [base.pruebaId],
+      coberturaVigente: true,
+      estado: 'en_mora',
+    });
+  });
+
+  it('F3: informa una activa antigua sin conceder cobertura', async () => {
+    const { id, token } = await base.sesion('antigua@ejemplo.cl');
+    await insertarSuscripcion(entorno.bd, {
+      estudianteId: id,
+      plan: 'Todas las pruebas anual',
+      estado: 'activa',
+      periodoFin: new Date('2020-01-01'),
+    });
+    expect((await consultar(token)).body.data).toMatchObject({
+      alcance: 'todas',
+      pruebasIncluidas: [],
+      coberturaVigente: false,
+    });
   });
 });
