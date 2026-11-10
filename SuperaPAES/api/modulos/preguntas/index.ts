@@ -4,6 +4,7 @@
 export { crearRutasAppPreguntas } from './preguntas.rutas.app.js';
 export { crearRutasAdminPreguntas } from './preguntas.rutas.admin.js';
 export { crearPreguntasServicio, type PreguntasServicio } from './preguntas.servicio.js';
+export { prepararBanco } from './preguntas.preparacion.servicio.js';
 export type {
   EjemploDePregunta,
   PreguntaDeLote,
