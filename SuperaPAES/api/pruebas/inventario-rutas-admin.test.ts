@@ -109,6 +109,7 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
       'GET /cuentas/estudiantes': ['admin'],
       'POST /cuentas/estudiantes/:id/confirmar-correo': ['admin'],
       'GET /temario/areas': ['admin'],
+      'GET /temario/': ['admin'],
       'GET /preguntas/': ['admin'],
       'GET /preguntas/filtros': ['admin'],
       'GET /preguntas/textos': ['admin'],

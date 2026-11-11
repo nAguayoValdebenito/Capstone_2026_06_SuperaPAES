@@ -4,6 +4,7 @@
 import { ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { crearTemarioGeneracionRepositorio } from './temario.generacion.repositorio.js';
+import { consultarTemario, type ConsultaTemario } from './temario.consulta.servicio.js';
 import {
   type Area,
   type AreaCarreraPerfil,
@@ -153,6 +154,8 @@ export interface ContenidoParaGenerar {
 }
 
 export interface TemarioServicio {
+  /** C07 / HU-10: consulta de lo cargado con área, curso, descriptores y criterios. */
+  consultarTemario(): Promise<ConsultaTemario>;
   /** HU-16.2: el contenido con su eje, su prueba y las habilidades de la prueba; null si no existe. */
   contenidoParaGenerar(contenidoId: number): Promise<ContenidoParaGenerar | null>;
   /** HU-16.2 y RN-09: la mezcla objetivo de dificultad en porcentaje (fácil, media y difícil). */
@@ -208,7 +211,8 @@ function mezclaDe(dificultades: readonly { codigo: string; mezcla: number }[]) {
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
   const repositorio = dependencias.repositorio ?? crearTemarioRepositorio(dependencias.bd);
   const generacion = crearTemarioGeneracionRepositorio(dependencias.bd);
-  return {
+  const servicio: TemarioServicio = {
+    consultarTemario: () => consultarTemario(servicio, dependencias.bd),
     contenidoParaGenerar: async (contenidoId) => {
       const fila = await generacion.contenido(contenidoId);
       if (fila === null) return null;
@@ -252,4 +256,5 @@ export function crearTemarioServicio(dependencias: DependenciasTemarioServicio):
       };
     },
   };
+  return servicio;
 }
