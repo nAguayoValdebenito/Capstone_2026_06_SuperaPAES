@@ -3,7 +3,8 @@ import {
   type ContenidoConsultaFila,
   crearTemarioConsultaRepositorio,
 } from './temario.consulta.repositorio.js';
-import type { Area, ContenidoTemario, PruebaTemario, TemarioServicio } from './temario.servicio.js';
+import type { Area } from './temario.repositorio.js';
+import type { ContenidoTemario, PruebaTemario } from './temario.tipos.js';
 
 export interface ContenidoConsulta extends ContenidoTemario {
   area: Area;
@@ -22,6 +23,11 @@ export interface ConsultaTemario {
   pruebas: PruebaConsulta[];
 }
 
+interface FuenteTemario {
+  listarAreas(): Promise<Area[]>;
+  listarTemario(): Promise<PruebaTemario[]>;
+}
+
 function completarContenido(c: ContenidoTemario, detalles: Map<number, ContenidoConsultaFila>) {
   const detalle = detalles.get(c.id);
   if (!detalle) throw new Error('Faltan los datos de un contenido del temario.');
@@ -36,7 +42,7 @@ function completarContenido(c: ContenidoTemario, detalles: Map<number, Contenido
 
 /** HU-10 esc. 3 / CP-07: permite contrastar lo cargado sin ofrecer la edición de HU-14. */
 export async function consultarTemario(
-  servicio: Pick<TemarioServicio, 'listarAreas' | 'listarTemario'>,
+  servicio: FuenteTemario,
   bd: Ejecutor,
 ): Promise<ConsultaTemario> {
   const repositorio = crearTemarioConsultaRepositorio(bd);

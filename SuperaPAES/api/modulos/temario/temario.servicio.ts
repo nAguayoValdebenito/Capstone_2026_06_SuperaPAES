@@ -5,6 +5,7 @@ import { ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { crearTemarioGeneracionRepositorio } from './temario.generacion.repositorio.js';
 import { consultarTemario, type ConsultaTemario } from './temario.consulta.servicio.js';
+import type { EjeTemario, PruebaTemario } from './temario.tipos.js';
 import {
   type Area,
   type AreaCarreraPerfil,
@@ -21,6 +22,7 @@ import {
 } from './temario.repositorio.js';
 
 export type { Area } from './temario.repositorio.js';
+export type { PruebaTemario } from './temario.tipos.js';
 
 /** Lo que muestran las pantallas del perfil (A08 a A10, HU-29): cursos, pruebas y áreas de carrera. */
 export interface OpcionesPerfil {
@@ -33,40 +35,6 @@ export interface OpcionesPerfil {
 export interface OpcionesPractica {
   dificultades: DificultadPractica[];
   pruebas: PruebaPractica[];
-}
-
-/** Contenido o habilidad del temario: un id y su nombre. */
-export interface ContenidoTemario {
-  id: number;
-  nombre: string;
-}
-
-export interface EjeTemario {
-  id: number;
-  nombre: string;
-  contenidos: ContenidoTemario[];
-}
-
-/** Tipo de pregunta que admite una prueba (selección múltiple, suficiencia de datos). */
-export interface TipoPreguntaTemario {
-  codigo: string;
-  nombre: string;
-}
-
-/**
- * Prueba con sus ejes (y los contenidos de cada eje), sus habilidades y los tipos de pregunta que
- * admite, en el orden del temario. opcionesMin, opcionesMax y requiereTexto son las reglas de RN-08.
- */
-export interface PruebaTemario {
-  id: number;
-  codigo: string;
-  nombre: string;
-  opcionesMin: number;
-  opcionesMax: number;
-  requiereTexto: boolean;
-  ejes: EjeTemario[];
-  habilidades: ContenidoTemario[];
-  tiposPregunta: TipoPreguntaTemario[];
 }
 
 /** La prueba de la fila, todavía sin ejes, habilidades ni tipos de pregunta. */
