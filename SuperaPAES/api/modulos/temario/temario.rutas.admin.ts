@@ -12,6 +12,7 @@ export function crearRutasAdminTemario(servicio: TemarioServicio): Router {
   const router = Router();
   const controlador = crearTemarioControlador(servicio);
 
+  router.get('/', exigirRol('admin'), controlador.consultarTemario);
   router.get('/areas', exigirRol('admin'), controlador.listarAreas);
   return router;
 }

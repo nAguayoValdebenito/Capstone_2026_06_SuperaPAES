@@ -104,6 +104,7 @@ export function cuerpoIngreso(cambios: Record<string, unknown> = {}): Record<str
 /** Temario sin base para las pruebas de preguntas: entrega `temario` y nada de la app. */
 export function temarioEnMemoria(temario: PruebaTemario[]): TemarioServicio {
   return {
+    consultarTemario: sinBase,
     contenidoParaGenerar: () => Promise.resolve(null),
     mezclaDeDificultad: () => Promise.resolve({ facil: 30, media: 45, dificil: 25 }),
     listarAreas: () => Promise.resolve([]),
