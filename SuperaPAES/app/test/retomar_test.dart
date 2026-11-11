@@ -13,6 +13,7 @@ import 'package:supera_paes/presentacion/inicio/hoja_retomar_evaluacion.dart';
 import 'apoyo/adaptador_http_falso.dart';
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
+import 'apoyo/repositorio_evaluaciones_falso.dart';
 import 'apoyo/repositorio_practica_falso.dart';
 
 /// La práctica de M1 del eje Álgebra y funciones, media, con 3 de 10.
@@ -40,6 +41,20 @@ const EvaluacionAbierta _miniEnsayo = EvaluacionAbierta(
   cantidad: 22,
   respondidas: 9,
   segundosRestantes: 18 * 60 + 5,
+);
+
+/// El diagnóstico de M1 recién empezado: el que arma el repositorio falso.
+const EvaluacionAbierta _diagnosticoRecien = EvaluacionAbierta(
+  id: 78,
+  tipo: 'diagnostico',
+  tipoNombre: 'Diagnóstico',
+  pruebaId: 2,
+  prueba: 'Matemática M1',
+  alcance: Alcance.todaLaPrueba,
+  dificultadId: null,
+  cantidad: 15,
+  respondidas: 0,
+  segundosRestantes: 30 * 60,
 );
 
 Future<(RepositorioPracticaFalso, ProviderContainer)> _abrirInicio(
@@ -277,6 +292,35 @@ void main() {
 
       expect(find.text('Tienes un mini-ensayo sin terminar'), findsOne);
       expect(rutaActual(contenedor), Rutas.practicar);
+    });
+
+    testWidgets('al empezar una desde otra pestaña, Inicio no la ofrece '
+        'encima de su primera pregunta', (tester) async {
+      final practica = RepositorioPracticaFalso();
+      final contenedor = crearContenedor(
+        sesion: sesionDeEjemplo,
+        evaluaciones: RepositorioEvaluacionesFalso()
+          ..diagnosticoDisponible = true,
+        practica: practica,
+      );
+      await iniciarApp(tester, contenedor, ruta: Rutas.inicio);
+      await ir(tester, contenedor, Rutas.evaluaciones);
+      // Al empezarlo, la API ya lo cuenta como abierto; Inicio sigue montado
+      // detrás de Evaluaciones y relee la evaluación abierta.
+      practica.consultaAbierta = const ConsultaEvaluacionAbierta(
+        abierta: _diagnosticoRecien,
+      );
+
+      await tocar(tester, find.text('Rendir diagnóstico'));
+      await tester.tap(find.text('Rendir diagnóstico').last);
+      await tester.pumpAndSettle();
+
+      expect(rutaActual(contenedor), Rutas.preguntaConReloj);
+      // Tampoco escondida debajo: según cuánto tarde la API, quedaba arriba.
+      expect(
+        find.text('Tienes un diagnóstico sin terminar', skipOffstage: false),
+        findsNothing,
+      );
     });
 
     testWidgets('si ya no estaba abierta, muestra el mensaje', (tester) async {
