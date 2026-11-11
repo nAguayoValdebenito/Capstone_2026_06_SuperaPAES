@@ -27,7 +27,14 @@ export function PaginaEvaluaciones() {
       </p>
       <SegunCarga carga={temario} cargando="Cargando las pruebas…">
         {({ pruebas }) => {
-          const pruebaId = elegida ?? pruebas[0]?.id ?? 0;
+          if (pruebas.length === 0) {
+            return (
+              <p role="status" className="pagina__aviso">
+                No hay pruebas disponibles para configurar evaluaciones.
+              </p>
+            );
+          }
+          const pruebaId = pruebas.find(({ id }) => id === elegida)?.id ?? pruebas[0]!.id;
           const opciones = pruebas.map(({ id, nombre }) => ({ valor: id, texto: nombre }));
           return (
             <>
