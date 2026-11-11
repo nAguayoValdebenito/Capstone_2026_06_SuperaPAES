@@ -96,10 +96,19 @@ class _PantallaInicioState extends ConsumerState<PantallaInicio> {
     if (_hojaAbierta || !mounted || abierta == null || !abierta.conTiempo) {
       return;
     }
+    if (!_inicioALaVista) return;
     if (ref.read(hojaRetomarProvider).ofrecida == abierta.id) return;
     _hojaAbierta = true;
     await ofrecerRetomar(context, ref, abierta);
     _hojaAbierta = false;
+  }
+
+  /// Solo quien está viendo Inicio recibe A29. Inicio sigue montado detrás de
+  /// las otras pestañas (F1) y de la pregunta, así que sin esto la hoja
+  /// tapaba la evaluación que el estudiante acababa de empezar.
+  bool get _inicioALaVista {
+    final enrutador = GoRouter.maybeOf(context);
+    return enrutador == null || enrutador.state.matchedLocation == Rutas.inicio;
   }
 
   /// Deslizar hacia abajo relee el cupo y el perfil. Si falla, la tarjeta
