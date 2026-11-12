@@ -14,6 +14,8 @@ import {
   esquemaEditarUsuarioInterno,
   esquemaIdUsuarioInterno,
   esquemaPanel,
+  esquemaClaveConfiguracion,
+  esquemaCambioConfiguracion,
 } from './administracion.validadores.js';
 
 export function crearRutasAdminAdministracion(servicio: AdministracionServicio): Router {
@@ -23,6 +25,14 @@ export function crearRutasAdminAdministracion(servicio: AdministracionServicio):
 
   // Panel (C01, HU-48, CU-25).
   router.get('/panel', soloAdmin, validar({ consulta: esquemaPanel }), controlador.obtenerPanel);
+  // HU-51.1: configuracion de reglas (C12), exclusiva del administrador.
+  router.get('/configuracion', exigirRol('admin'), controlador.listarConfiguracion);
+  router.patch(
+    '/configuracion/:clave',
+    exigirRol('admin'),
+    validar({ parametros: esquemaClaveConfiguracion, cuerpo: esquemaCambioConfiguracion }),
+    controlador.cambiarConfiguracion,
+  );
   // Usuarios internos (C10, HU-04, CU-23).
   const conId = validar({ parametros: esquemaIdUsuarioInterno });
   router.get('/usuarios-internos', soloAdmin, controlador.listarUsuariosInternos);

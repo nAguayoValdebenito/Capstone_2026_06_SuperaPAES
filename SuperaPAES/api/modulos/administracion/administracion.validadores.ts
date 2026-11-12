@@ -50,5 +50,17 @@ export const esquemaIdUsuarioInterno = z.strictObject({
   id: idDeRuta,
 });
 
+/** HU-51.1: fecha de la version que vio el administrador antes de editar. */
+export const esquemaClaveConfiguracion = z.strictObject({
+  clave: z.string().regex(/^[a-z][a-z0-9_]{0,49}$/, 'La clave no es valida.'),
+});
+
+export const esquemaCambioConfiguracion = z.strictObject({
+  valor: z.unknown().refine((valor) => valor !== undefined, 'Indica un valor.'),
+  actualizadoEn: z.iso.datetime({ offset: true }),
+});
+
+export type DatosCambioConfiguracion = z.output<typeof esquemaCambioConfiguracion>;
+
 export type DatosCrearUsuarioInterno = z.output<typeof esquemaCrearUsuarioInterno>;
 export type DatosEditarUsuarioInterno = z.output<typeof esquemaEditarUsuarioInterno>;

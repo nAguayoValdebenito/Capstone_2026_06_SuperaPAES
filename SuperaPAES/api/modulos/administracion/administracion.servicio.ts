@@ -4,6 +4,12 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import { crearPanelRepositorio } from './administracion.panel.repositorio.js';
 import { crearPanel, type PanelAdministracion } from './administracion.panel.servicio.js';
+import type { ConfiguracionRepositorio } from './administracion.configuracion.repositorio.js';
+import {
+  crearConfiguracionDe,
+  crearLecturaConfiguracion,
+  type ConfiguracionServicio,
+} from './administracion.configuracion.servicio.js';
 import { cifrarContrasena, validarContrasena } from '../../comun/contrasenas.js';
 import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
@@ -37,6 +43,10 @@ export interface DependenciasAdministracionServicio {
   revocarSesionesUsuarioInterno: (id: string, tx: Ejecutor) => Promise<void>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearAdministracionRepositorio(bd). */
   repositorio?: AdministracionRepositorio;
+  /** Solo para pruebas de HU-51: reemplaza las consultas de configuracion. */
+  repositorioConfiguracion?: ConfiguracionRepositorio;
+  /** Solo para pruebas de HU-51: reemplaza la escritura de auditoria. */
+  registrarCambioConfiguracion?: AdministracionRepositorio['registrarAuditoria'];
 }
 
 /**
@@ -44,7 +54,7 @@ export interface DependenciasAdministracionServicio {
  * cada creación, edición, activación y desactivación queda en contenido.auditoria, en la misma
  * transacción que el cambio (RNF-08). La auditoría nunca guarda la contraseña ni su hash.
  */
-export interface AdministracionServicio extends PanelAdministracion {
+export interface AdministracionServicio extends PanelAdministracion, ConfiguracionServicio {
   listarUsuariosInternos(): Promise<UsuarioInterno[]>;
   /** La cuenta con su rol y sus áreas, o null si no existe (para la sesión de la consola). */
   obtenerUsuarioInterno(id: string, tx?: Ejecutor): Promise<UsuarioInterno | null>;
@@ -317,8 +327,16 @@ export function crearAdministracionServicio(
     reloj: dependencias.reloj ?? (() => new Date()),
     repositorio: crearPanelRepositorio(dependencias.bd),
   });
+  const configuracion = crearConfiguracionDe(
+    dependencias.bd,
+    dependencias.unidadDeTrabajo,
+    dependencias.registrarCambioConfiguracion ??
+      ((entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx)),
+    dependencias.repositorioConfiguracion,
+  );
   return {
     ...panel,
+    ...configuracion,
     listarUsuariosInternos: () => contexto.repositorio.listarUsuariosInternos(),
     obtenerUsuarioInterno: (id, tx) => contexto.repositorio.buscarUsuarioInterno(id, false, tx),
     crearUsuarioInterno: (autorId, datos) => crearUsuario(contexto, autorId, datos),
@@ -330,26 +348,6 @@ export function crearAdministracionServicio(
     existeAuditoria: (consulta, tx) => contexto.repositorio.existeAuditoria(consulta, tx),
     documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),
     permisoPuntajesVigente: (ahora) => contexto.repositorio.permisoPuntajesVigente(ahora),
-    obtenerParametroTexto: async (clave, tx) => {
-      const valor = await contexto.repositorio.leerParametro(clave, tx);
-      if (typeof valor !== 'string' || valor.trim() === '') {
-        throw new Error('Parámetro de texto ausente o inválido.');
-      }
-      return valor;
-    },
-    obtenerParametroNumero: async (clave, tx) => {
-      const valor = await contexto.repositorio.leerParametro(clave, tx);
-      if (typeof valor !== 'number' || !Number.isFinite(valor)) {
-        throw new Error(`contenido.configuracion no tiene un número en ${clave}.`);
-      }
-      return valor;
-    },
-    obtenerParametroEntero: async (clave, tx) => {
-      const valor = await contexto.repositorio.leerParametro(clave, tx);
-      if (typeof valor !== 'number' || !Number.isInteger(valor)) {
-        throw new Error(`contenido.configuracion no tiene un entero en ${clave}.`);
-      }
-      return valor;
-    },
+    ...crearLecturaConfiguracion(contexto.repositorio),
   };
 }

@@ -8,6 +8,7 @@ import type {
   ConsultaPanel,
   DatosCrearUsuarioInterno,
   DatosEditarUsuarioInterno,
+  DatosCambioConfiguracion,
 } from './administracion.validadores.js';
 
 /** Manejador cuyo cuerpo y parámetros ya fueron validados y tipados por validar() en la ruta. */
@@ -15,6 +16,8 @@ type Validado<P, C = unknown> = RequestHandler<P, unknown, C>;
 
 export interface AdministracionControlador {
   obtenerPanel: RequestHandler;
+  listarConfiguracion: RequestHandler;
+  cambiarConfiguracion: Validado<{ clave: string }, DatosCambioConfiguracion>;
   listarUsuariosInternos: RequestHandler;
   crearUsuarioInterno: Validado<Record<string, string>, DatosCrearUsuarioInterno>;
   editarUsuarioInterno: Validado<Record<string, string>, DatosEditarUsuarioInterno>;
@@ -35,6 +38,12 @@ export function crearAdministracionControlador(
     obtenerPanel: async (_req, res) => {
       const { periodo } = res.locals.consulta as ConsultaPanel;
       responder(res, await servicio.obtenerPanel(periodo));
+    },
+    listarConfiguracion: async (_req, res) => {
+      responder(res, await servicio.listarConfiguracion());
+    },
+    cambiarConfiguracion: async (req, res) => {
+      responder(res, await servicio.cambiarConfiguracion(autorDe(req), req.params.clave, req.body));
     },
     listarUsuariosInternos: async (_req, res) => {
       responder(res, await servicio.listarUsuariosInternos());
