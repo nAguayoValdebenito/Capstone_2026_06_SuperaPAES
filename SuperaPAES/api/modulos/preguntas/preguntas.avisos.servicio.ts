@@ -14,6 +14,10 @@ import {
   type FilaAviso,
   type FilaGrupoAvisos,
 } from './preguntas.avisos.repositorio.js';
+import {
+  crearAnulacionPreguntas,
+  type AnulacionPreguntas,
+} from './preguntas.anulacion.servicio.js';
 import type { Opcion } from './preguntas.repositorio.js';
 import type { CierreAviso, FiltrosAvisos } from './preguntas.validadores.js';
 
@@ -167,7 +171,10 @@ async function cerrarAviso(
   });
 }
 
-export function crearAvisosDeError(modulo: DependenciasDelModulo): AvisosDeError {
+/** La bandeja, el cierre de avisos y la anulación (HU-50.1 y HU-50.2) comparten el repositorio. */
+export function crearAvisosDeError(
+  modulo: DependenciasDelModulo,
+): AvisosDeError & AnulacionPreguntas {
   const dependencias: DependenciasAvisos = {
     unidadDeTrabajo: modulo.unidadDeTrabajo,
     temario: modulo.temario,
@@ -175,6 +182,7 @@ export function crearAvisosDeError(modulo: DependenciasDelModulo): AvisosDeError
     repositorio: modulo.repositorioAvisos ?? crearAvisosRepositorio(modulo.bd),
   };
   return {
+    ...crearAnulacionPreguntas(dependencias),
     listarAvisos: (filtros) => listarAvisos(dependencias, filtros),
     cerrarAviso: (administradorId, id, estado) =>
       cerrarAviso(dependencias, administradorId, [id, estado]),

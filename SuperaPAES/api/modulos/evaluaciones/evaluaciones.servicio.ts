@@ -59,6 +59,10 @@ import {
   type ResultadoServicio,
 } from './evaluaciones.resultado.servicio.js';
 import { crearAbiertaRepositorio } from './evaluaciones.abierta.repositorio.js';
+import {
+  crearImpactoRepositorio,
+  type ImpactoDeAnular,
+} from './evaluaciones.impacto.repositorio.js';
 import { crearAbiertaServicio, type AbiertaServicio } from './evaluaciones.abierta.servicio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 import { crearMiniServicio, type MiniServicio } from './evaluaciones.mini.servicio.js';
@@ -93,7 +97,10 @@ export type EvaluacionesServicio = ConfiguracionEvaluaciones &
   HistorialServicio &
   ProgresoServicio &
   ExportacionEvaluaciones &
-  AbiertaServicio;
+  AbiertaServicio & {
+    /** HU-50.2 (C13): evaluaciones donde aparece una pregunta, antes de anularla. */
+    impactoDeAnular(preguntaId: string): Promise<ImpactoDeAnular>;
+  };
 
 function crearMini(dependencias: DependenciasEvaluacionesServicio) {
   return crearMiniServicio({
@@ -190,6 +197,7 @@ function crearServicioSinReintento(
       progreso,
     }),
     ...crearHistorialServicio(crearHistorialRepositorio(dependencias.bd)),
+    impactoDeAnular: (preguntaId) => crearImpactoRepositorio(dependencias.bd).contar(preguntaId),
     ...crearExportacionEvaluaciones(dependencias.bd),
     ...progreso,
     ...crearAbiertaServicio({

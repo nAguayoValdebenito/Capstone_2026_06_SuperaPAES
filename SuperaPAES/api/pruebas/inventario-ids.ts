@@ -42,6 +42,7 @@ export const INVENTARIO_IDS = [
   'POST /api/v1/admin/preguntas/importaciones → data.id',
   'GET /api/v1/admin/preguntas/avisos → data[].pregunta.id, data[].pregunta.prueba.id, data[].pregunta.contenido.id, data[].avisos[].id',
   'PATCH /api/v1/admin/preguntas/avisos/:id → data.id',
+  'POST /api/v1/admin/preguntas/:id/anulacion → data.preguntaId',
   'GET /api/v1/admin/revision/desempates → data[].id, data[].preguntaId',
   'GET /api/v1/admin/revision/desempates/:id → data.id, data.preguntaId, data.alternativas[].id',
   'POST /api/v1/admin/revision/desempates/:id → data.asignacionId, data.preguntaId',

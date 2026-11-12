@@ -1,6 +1,6 @@
-// SQL de los avisos de error que envían los estudiantes (HU-50, RF-C08, CU-26, C13): la bandeja agrupada
-// por pregunta y el cierre de un aviso como resuelto o descartado. app.reporte_pregunta es de este
-// módulo. Los estados y motivos se leen por su código (listas de opciones). La bandeja nunca entrega
+// SQL de los avisos de error que envían los estudiantes (HU-50, RF-C08, CU-26, CU-26a, C13): la bandeja
+// agrupada por pregunta, el cierre de un aviso como resuelto o descartado y la anulación de la pregunta
+// con app.anular_pregunta. app.reporte_pregunta y esa función son de este módulo. Los estados y motivos se leen por su código (listas de opciones). La bandeja nunca entrega
 // datos del estudiante. Consultas siempre parametrizadas; cada método acepta la transacción en curso.
 import type { Ejecutor } from '../../db/transaccion.js';
 import type { Opcion } from './preguntas.repositorio.js';
@@ -52,6 +52,20 @@ export interface AvisosRepositorio {
   reservarAviso(id: string, tx: Ejecutor): Promise<AvisoReservado | null>;
   /** Cierra el aviso con el estado (por su código), quién lo cerró y la fecha; devuelve el aviso. */
   cerrarAviso(id: string, [estado, usuarioId]: [string, string], tx: Ejecutor): Promise<FilaAviso>;
+  /** La etapa de la pregunta, reservada (FOR UPDATE); null si no existe. */
+  reservarPregunta(id: string, tx: Ejecutor): Promise<Opcion | null>;
+  /**
+   * Llama a app.anular_pregunta a nombre del administrador (el historial lo registra) y devuelve cuántas
+   * evaluaciones cerradas se recalcularon y la etapa en que quedó la pregunta.
+   */
+  anularPregunta(id: string, usuarioId: string, tx: Ejecutor): Promise<PreguntaAnuladaFila>;
+  /** Cierra como resueltos los avisos pendientes de la pregunta; devuelve sus ids. */
+  resolverPendientes(preguntaId: string, usuarioId: string, tx: Ejecutor): Promise<string[]>;
+}
+
+export interface PreguntaAnuladaFila {
+  recalculadas: number;
+  estado: Opcion;
 }
 
 /** Un aviso como JSON, a partir de la fila r de app.reporte_pregunta. */
@@ -107,6 +121,23 @@ const CERRAR = `
     FROM contenido.estado_reporte e
    WHERE r.id = $1 AND e.codigo = $2 AND e.es_final`;
 
+const RESERVAR_PREGUNTA = `
+  SELECT e.codigo, e.nombre
+    FROM contenido.pregunta p
+    JOIN contenido.estado_pregunta e ON e.id = p.estado_pregunta_id
+   WHERE p.id = $1
+     FOR UPDATE OF p`;
+
+const ANULAR = 'SELECT app.anular_pregunta($1) AS recalculadas';
+
+const RESOLVER_PENDIENTES = `
+  UPDATE app.reporte_pregunta r
+     SET estado_reporte_id = (SELECT id FROM contenido.estado_reporte WHERE codigo = 'resuelto'),
+         resuelto_por = $2, resuelto_en = now()
+    FROM contenido.estado_reporte e
+   WHERE e.id = r.estado_reporte_id AND NOT e.es_final AND r.pregunta_id = $1
+  RETURNING r.id::text AS id`;
+
 const OBTENER = `SELECT ${AVISO_JSON} AS aviso FROM app.reporte_pregunta r ${UNIONES_AVISO} WHERE r.id = $1`;
 
 export function crearAvisosRepositorio(bd: Ejecutor): AvisosRepositorio {
@@ -138,6 +169,25 @@ export function crearAvisosRepositorio(bd: Ejecutor): AvisosRepositorio {
       const fila = rows[0];
       if (!fila) throw new Error('El aviso cerrado no se encontró.');
       return fila.aviso;
+    },
+
+    async reservarPregunta(id, tx) {
+      const { rows } = await tx.query<Opcion>(RESERVAR_PREGUNTA, [id]);
+      return rows[0] ?? null;
+    },
+
+    async anularPregunta(id, usuarioId, tx) {
+      await tx.query("SELECT set_config('supera.usuario_id', $1, true)", [usuarioId]);
+      const { rows } = await tx.query<{ recalculadas: number }>(ANULAR, [id]);
+      // Otra sentencia: así ve la etapa en que la dejó la función.
+      const estado = (await tx.query<Opcion>(RESERVAR_PREGUNTA, [id])).rows[0];
+      if (!rows[0] || !estado) throw new Error('La pregunta no se anuló.');
+      return { recalculadas: rows[0].recalculadas, estado };
+    },
+
+    async resolverPendientes(preguntaId, usuarioId, tx) {
+      const { rows } = await tx.query<{ id: string }>(RESOLVER_PENDIENTES, [preguntaId, usuarioId]);
+      return rows.map((fila) => fila.id).sort((a, b) => Number(a) - Number(b));
     },
   };
 }

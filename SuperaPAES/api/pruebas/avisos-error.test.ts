@@ -39,6 +39,14 @@ const GRUPO: FilaGrupoAvisos = {
   avisos: [aviso('42'), aviso('41')],
 };
 
+const RETIRADA = { codigo: 'retirada', nombre: 'Retirada' };
+
+/** Pregunta 205 publicada y 206 ya retirada (por ejemplo, porque ya se anuló). */
+const ETAPAS: Record<string, { codigo: string; nombre: string }> = {
+  '205': { codigo: 'publicada', nombre: 'Publicada' },
+  '206': RETIRADA,
+};
+
 function escenario() {
   const estados: Record<string, { estado: typeof PENDIENTE; final: boolean }> = {
     '41': { estado: PENDIENTE, final: false },
@@ -58,6 +66,9 @@ function escenario() {
         }),
       ),
     ),
+    reservarPregunta: vi.fn((id: string) => Promise.resolve(ETAPAS[id] ?? null)),
+    anularPregunta: vi.fn(() => Promise.resolve({ recalculadas: 41, estado: RETIRADA })),
+    resolverPendientes: vi.fn(() => Promise.resolve(['41', '42'])),
   } satisfies AvisosRepositorio;
   return { ...escenarioEdicion(undefined, avisos), avisos };
 }
@@ -259,5 +270,65 @@ describe('quién atiende los avisos', () => {
 
     expect(respuesta.status).toBe(401);
     expect(respuesta.body).toEqual(errorConFormato('NO_AUTENTICADO'));
+  });
+});
+
+describe('anular la pregunta (HU-50 esc. 3, CU-26a, RN-22)', () => {
+  const anular = async (app: Parameters<typeof request>[0], id: string) =>
+    request(app)
+      .post(`${RUTA_PREGUNTAS}/${id}/anulacion`)
+      .set(await comoAdmin());
+
+  it('la anula, resuelve sus avisos pendientes y lo deja todo en la auditoría', async () => {
+    const { app, avisos, auditoria } = escenario();
+
+    const respuesta = await anular(app, '205');
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.data).toEqual({
+      preguntaId: 205,
+      estado: RETIRADA,
+      evaluacionesRecalculadas: 41,
+      avisosCerrados: 2,
+    });
+    expect(avisos.anularPregunta).toHaveBeenCalledWith('205', '5', expect.anything());
+    expect(avisos.resolverPendientes).toHaveBeenCalledWith('205', '5', expect.anything());
+    expect(auditoria.registrarAuditoria).toHaveBeenCalledWith(
+      {
+        usuarioId: '5',
+        accion: 'anular_pregunta',
+        entidad: 'pregunta',
+        entidadId: '205',
+        antes: { estado: 'publicada' },
+        despues: { estado: 'retirada', evaluacionesRecalculadas: 41, avisosCerrados: ['41', '42'] },
+      },
+      expect.anything(),
+    );
+  });
+
+  it('solo anula preguntas publicadas: otra vez da 409 y no recalcula (404 si no existe)', async () => {
+    const { app, avisos, auditoria } = escenario();
+
+    const yaRetirada = await anular(app, '206');
+    const inexistente = await anular(app, '999');
+
+    expect(yaRetirada.status).toBe(409);
+    expect(yaRetirada.body.error.mensaje).toBe(
+      'La pregunta está «Retirada»: solo se anulan preguntas publicadas.',
+    );
+    expect(inexistente.status).toBe(404);
+    expect(avisos.anularPregunta).not.toHaveBeenCalled();
+    expect(auditoria.registrarAuditoria).not.toHaveBeenCalled();
+  });
+
+  it('el docente no puede anular (403)', async () => {
+    const { app, avisos } = escenario();
+
+    const respuesta = await request(app)
+      .post(`${RUTA_PREGUNTAS}/205/anulacion`)
+      .set({ Authorization: `Bearer ${await tokenAdmin('docente', '21')}` });
+
+    expect(respuesta.status).toBe(403);
+    expect(avisos.reservarPregunta).not.toHaveBeenCalled();
   });
 });

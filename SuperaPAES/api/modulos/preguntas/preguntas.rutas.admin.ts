@@ -130,5 +130,7 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   router.post('/:id/publicar', exigirRol('admin'), etapa, controlador.publicarPregunta);
   router.post('/:id/retirar', exigirRol('admin'), etapa, controlador.retirarPregunta);
   router.post('/:id/borrador', exigirRol('admin'), etapa, controlador.volverABorrador);
+  // Anular una pregunta con error (C13, HU-50.2, CU-26a, RN-22): solo una publicada; irreversible.
+  router.post('/:id/anulacion', exigirRol('admin'), etapa, controlador.anularPregunta);
   return router;
 }

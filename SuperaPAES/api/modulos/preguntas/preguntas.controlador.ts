@@ -38,6 +38,7 @@ export interface PreguntasControlador {
   volverABorrador: Validado;
   listarAvisos: RequestHandler;
   cerrarAviso: Validado<{ estado: CierreAviso }>;
+  anularPregunta: Validado;
 }
 
 /**
@@ -76,10 +77,10 @@ function controladorImportacion(
   };
 }
 
-/** HU-50.1 (C13): la bandeja de avisos de error y el cierre de un aviso. */
+/** HU-50.1 y HU-50.2 (C13): la bandeja de avisos, el cierre de un aviso y la anulación. */
 function controladorAvisos(
   servicio: PreguntasServicio,
-): Pick<PreguntasControlador, 'listarAvisos' | 'cerrarAviso'> {
+): Pick<PreguntasControlador, 'listarAvisos' | 'cerrarAviso' | 'anularPregunta'> {
   return {
     listarAvisos: async (_req, res) => {
       const { grupos, paginacion } = await servicio.listarAvisos(
@@ -90,6 +91,9 @@ function controladorAvisos(
     cerrarAviso: async (req, res) => {
       const id = String(req.params.id);
       responder(res, await servicio.cerrarAviso(autorDe(req), id, req.body.estado));
+    },
+    anularPregunta: async (req, res) => {
+      responder(res, await servicio.anularPregunta(autorDe(req), String(req.params.id)));
     },
   };
 }

@@ -64,6 +64,9 @@ export const esquemaPruebaConfiguracion = z.strictObject({
 
 export const esquemaIdEstructura = z.object({ id: idDeRuta });
 
+/** Pregunta cuyo impacto se consulta antes de anularla (HU-50.2). */
+export const esquemaIdPreguntaImpacto = z.strictObject({ id: idDeRuta });
+
 const cantidadEstructura = z.number().int().min(0).max(500);
 
 /** CU-31 paso 3: los valores y cuántas preguntas lleva cada fila del reparto. */

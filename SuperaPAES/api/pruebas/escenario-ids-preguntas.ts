@@ -177,6 +177,14 @@ export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
     importarPreguntas: vi.fn(() => Promise.resolve(importacionHecha)),
     listarAvisos: vi.fn(() => Promise.resolve(paginaAvisos)),
     cerrarAviso: vi.fn(() => Promise.resolve(avisoDeError)),
+    anularPregunta: vi.fn(() =>
+      Promise.resolve({
+        preguntaId: '205',
+        estado: { codigo: 'retirada', nombre: 'Retirada' },
+        evaluacionesRecalculadas: 3,
+        avisosCerrados: 1,
+      }),
+    ),
   };
 }
 
@@ -184,6 +192,7 @@ export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
 export function cuerpoDePreguntas(ruta: string): Record<string, unknown> | undefined {
   if (/^(POST|PUT) .*\/preguntas\/textos(\/:id)?$/.test(ruta)) return cuerpoTexto;
   if (ruta.endsWith('/preguntas/importaciones')) return cuerpoImportacion;
+  if (ruta.endsWith('/preguntas/avisos/:id')) return { estado: 'resuelto' };
   if (/^(POST|PUT) .*\/preguntas\/(:id)?$/.test(ruta)) return cuerpoPregunta;
   return undefined;
 }

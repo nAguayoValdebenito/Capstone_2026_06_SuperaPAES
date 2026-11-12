@@ -8,6 +8,7 @@ import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PruebaTemario, TemarioServicio } from '../temario/index.js';
 import type { AvisosRepositorio } from './preguntas.avisos.repositorio.js';
+import type { AnulacionPreguntas } from './preguntas.anulacion.servicio.js';
 import { crearAvisosDeError, type AvisosDeError } from './preguntas.avisos.servicio.js';
 import {
   crearPreguntasEdicionRepositorio,
@@ -110,7 +111,8 @@ export interface PreguntasServicio
     ImportacionPreguntas,
     LecturasParaGenerar,
     PublicacionPreguntas,
-    AvisosDeError {
+    AvisosDeError,
+    AnulacionPreguntas {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.

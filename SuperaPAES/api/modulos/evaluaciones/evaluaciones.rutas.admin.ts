@@ -7,9 +7,11 @@ import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
 import { responder } from '../../comun/respuesta.js';
 import type { ConfiguracionEvaluaciones } from './evaluaciones.configuracion.servicio.js';
+import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import {
   esquemaEstructura,
   esquemaIdEstructura,
+  esquemaIdPreguntaImpacto,
   esquemaNuevaTabla,
   esquemaPruebaConfiguracion,
   type ConsultaPrueba,
@@ -24,7 +26,24 @@ function autorDe(req: Request<Record<string, string>, unknown, unknown>): string
   return req.usuarioInterno.id;
 }
 
-export function crearRutasAdminEvaluaciones(servicio: ConfiguracionEvaluaciones): Router {
+/** HU-50.2 (C13): cuántas evaluaciones se recalcularían al anular la pregunta. Solo cuenta. */
+function agregarRutaImpacto(
+  router: Router,
+  servicio: Pick<EvaluacionesServicio, 'impactoDeAnular'>,
+): void {
+  router.get(
+    '/preguntas/:id/impacto',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdPreguntaImpacto }),
+    async (req, res) => {
+      responder(res, await servicio.impactoDeAnular(String(req.params['id'])));
+    },
+  );
+}
+
+export function crearRutasAdminEvaluaciones(
+  servicio: ConfiguracionEvaluaciones & Pick<EvaluacionesServicio, 'impactoDeAnular'>,
+): Router {
   const router = Router();
   const listarEstructuras: RequestHandler = async (_req, res) => {
     const { pruebaId } = res.locals.consulta as ConsultaPrueba;
@@ -66,5 +85,6 @@ export function crearRutasAdminEvaluaciones(servicio: ConfiguracionEvaluaciones)
     validar({ cuerpo: esquemaNuevaTabla }),
     cargarTabla,
   );
+  agregarRutaImpacto(router, servicio);
   return router;
 }
