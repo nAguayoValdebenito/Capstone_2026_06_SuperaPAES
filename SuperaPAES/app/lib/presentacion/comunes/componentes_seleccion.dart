@@ -918,32 +918,35 @@ class FilaDato extends StatelessWidget {
     // corría a la izquierda según el largo de su etiqueta). Etiqueta y valor
     // van en la misma línea base, y las cifras tienen ancho fijo para que
     // los números de varias filas queden uno bajo el otro.
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        // Flexible: una etiqueta larga («Invitaciones premiadas este mes»)
-        // baja de línea en vez de empujar el valor fuera (RNF-12).
-        Flexible(
-          child: Text(
-            etiqueta,
-            style: TemaSuperaPaes.pequeno.copyWith(
-              color: TemaSuperaPaes.textoSecundario,
+    // La etiqueta usa lo que el valor deja libre, y el valor hasta el 60 %
+    // del ancho: «Registrados con tu código» no baja de línea por un «3», y
+    // una fecha larga sí baja en vez de empujar la etiqueta (RNF-12).
+    return LayoutBuilder(
+      builder: (context, limites) => Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Expanded(
+            child: Text(
+              etiqueta,
+              style: TemaSuperaPaes.pequeno.copyWith(
+                color: TemaSuperaPaes.textoSecundario,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            valor,
-            textAlign: TextAlign.end,
-            style: TemaSuperaPaes.pequenoFuerte.copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()],
+          const SizedBox(width: 12),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: limites.maxWidth * 0.6),
+            child: Text(
+              valor,
+              textAlign: TextAlign.end,
+              style: TemaSuperaPaes.pequenoFuerte.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

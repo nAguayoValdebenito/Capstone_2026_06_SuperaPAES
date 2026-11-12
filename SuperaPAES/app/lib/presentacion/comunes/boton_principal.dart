@@ -21,6 +21,7 @@ class BotonPrincipal extends StatelessWidget {
     this.error,
     this.intentosFallidos = 0,
     this.icono,
+    this.color = TemaSuperaPaes.primario,
   });
 
   final String texto;
@@ -29,6 +30,9 @@ class BotonPrincipal extends StatelessWidget {
   final String? error;
   final int intentosFallidos;
   final IconData? icono;
+
+  /// El rojo de error en «Borrar mi cuenta» (A42).
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +98,7 @@ class BotonPrincipal extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: estado == EstadoBoton.exito
                     ? TemaSuperaPaes.exito
-                    : TemaSuperaPaes.primario,
+                    : color,
               ),
               child: AnimatedSwitcher(
                 duration: d,

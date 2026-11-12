@@ -72,30 +72,37 @@ void main() {
   });
 
   group('Planes (A43)', () {
-    testWidgets('parte en anual, con los tres planes y sus precios', (
-      tester,
-    ) async {
+    testWidgets(
+      'sin plan parte en mensual, con los tres planes y sus precios',
+      (tester) async {
+        await _abrir(tester, Rutas.planes);
+
+        expect(find.text('Gratis'), findsOne);
+        expect(find.text('Una prueba'), findsOne);
+        expect(find.text('Todas las pruebas'), findsOne);
+        expect(find.text(r'$1.990'), findsOne);
+        expect(find.text(r'$2.990'), findsOne);
+        expect(find.text('al mes'), findsNWidgets(2));
+        expect(find.text('Recomendado'), findsOne);
+        expect(
+          find.text('Pagas mes a mes y cancelas cuando quieras.'),
+          findsOne,
+        );
+      },
+    );
+
+    testWidgets('al pasar a anual cambian los precios', (tester) async {
       await _abrir(tester, Rutas.planes);
 
-      expect(find.text('Gratis'), findsOne);
-      expect(find.text('Una prueba'), findsOne);
-      expect(find.text('Todas las pruebas'), findsOne);
-      expect(find.text(r'$15.990 /año'), findsOne);
-      expect(find.text(r'$23.990 /año'), findsOne);
+      await tocar(tester, find.text('Anual'));
+
+      expect(find.text(r'$15.990'), findsOne);
+      expect(find.text(r'$23.990'), findsOne);
+      expect(find.text(r'$1.990'), findsNothing);
       expect(
         find.text('El plan anual da 12 meses de acceso al precio de 8.'),
         findsOne,
       );
-    });
-
-    testWidgets('al pasar a mensual cambian los precios', (tester) async {
-      await _abrir(tester, Rutas.planes);
-
-      await tocar(tester, find.text('Mensual'));
-
-      expect(find.text(r'$1.990 /mes'), findsOne);
-      expect(find.text(r'$2.990 /mes'), findsOne);
-      expect(find.text(r'$15.990 /año'), findsNothing);
     });
 
     testWidgets('sin suscripción, el plan actual es Gratis', (tester) async {
@@ -106,15 +113,19 @@ void main() {
       expect(find.text('Elegir Todas las pruebas'), findsOne);
     });
 
-    testWidgets('el plan que ya tiene no se puede elegir de nuevo', (
+    testWidgets('con un plan, el otro se ofrece como cambio (A45)', (
       tester,
     ) async {
       await _abrir(tester, Rutas.planes, suscripcion: suscripcionDeEjemplo);
 
-      await tocar(tester, find.text('Mensual'));
-
       expect(find.text('Tu plan'), findsOne);
+      expect(find.text('Gratis'), findsNothing);
       expect(find.text('Elegir Todas las pruebas'), findsNothing);
+
+      await tocar(tester, find.text('Cambiar a Una prueba'));
+
+      expect(find.text('Cambiar de plan'), findsOne);
+      expect(find.text(r'$1.990 al mes'), findsOne);
     });
 
     testWidgets('elegir un plan avisa el modo de prueba, sin comprar', (
@@ -126,34 +137,42 @@ void main() {
 
       expect(find.text('Modo de prueba'), findsOne);
       expect(
-        find.textContaining('en esta versión no se realizan compras'),
-        findsOne,
+        find.textContaining('las compras no generan cobros reales'),
+        findsWidgets,
       );
-      expect(find.textContaining(r'$23.990 al año'), findsOne);
+      expect(find.textContaining('Elegiste Todas las pruebas.'), findsOne);
 
       await tocar(tester, find.text('Entendido'));
 
       expect(find.text('Modo de prueba'), findsNothing);
     });
 
-    testWidgets('Una prueba indica la prueba elegida', (tester) async {
+    testWidgets('Una prueba pregunta cuál incluye', (tester) async {
       await _abrir(tester, Rutas.planes);
 
       await tocar(tester, find.text('Elegir Una prueba'));
 
-      expect(find.textContaining('Una prueba · '), findsOne);
+      expect(find.text('¿Qué prueba incluye tu plan?'), findsOne);
+
+      await tocar(tester, find.textContaining('Elegir ').last);
+
+      expect(find.text('Modo de prueba'), findsOne);
+      expect(find.textContaining('Elegiste Una prueba ('), findsOne);
     });
 
-    testWidgets('dice que el progreso es igual y da el otro precio', (
+    testWidgets('dice que el progreso es igual y cómo se renueva', (
       tester,
     ) async {
       await _abrir(tester, Rutas.planes);
 
       expect(
-        find.textContaining('Tu progreso es el mismo con cualquier plan.'),
+        find.text('Tu progreso es el mismo con cualquier plan.'),
         findsOne,
       );
-      expect(find.textContaining(r'Mensual: Una prueba $1.990'), findsOne);
+      expect(
+        find.textContaining('La suscripción se renueva automáticamente.'),
+        findsOne,
+      );
     });
 
     testWidgets('si no carga, permite reintentar', (tester) async {
@@ -185,6 +204,7 @@ void main() {
 
       expect(find.text('Estás en el plan Gratis'), findsOne);
       expect(find.text('Ver planes'), findsOne);
+      expect(find.text('Hoy en Gratis'), findsOne);
     });
 
     testWidgets('muestra el plan, el estado, la renovación y la tienda', (
@@ -202,10 +222,35 @@ void main() {
       expect(etiqueta.tono, TonoEtiqueta.exito);
       expect(find.text(r'Mensual · $2.990'), findsOne);
       expect(find.text('Próxima renovación'), findsOne);
-      expect(find.text('20/11/2026'), findsOne);
+      expect(find.text('20 de noviembre de 2026'), findsOne);
       expect(find.text('Google Play'), findsOne);
-      expect(find.text('Modo de prueba: sin dinero real'), findsOne);
-      expect(find.text('Cambiar a anual'), findsOne);
+      expect(find.text('Modo de prueba: sin dinero real.'), findsOne);
+      expect(find.text('Cambiar de plan'), findsOne);
+    });
+
+    testWidgets('Cambiar de plan muestra el de ahora y el nuevo (A45)', (
+      tester,
+    ) async {
+      await _abrir(
+        tester,
+        Rutas.miSuscripcion,
+        suscripcion: suscripcionDeEjemplo,
+      );
+
+      await tocar(tester, find.text('Cambiar de plan'));
+
+      expect(find.text('Ahora'), findsOne);
+      expect(find.text('Nuevo'), findsOne);
+      expect(find.text(r'$2.990 al mes'), findsOne);
+      expect(find.text(r'$1.990 al mes'), findsOne);
+      expect(
+        find.textContaining('Pasas a tener una sola prueba incluida.'),
+        findsOne,
+      );
+
+      await tocar(tester, find.text('Confirmar el cambio'));
+
+      expect(find.text('Modo de prueba'), findsOne);
     });
 
     testWidgets('cancelar abre la gestión de la tienda', (tester) async {
@@ -225,7 +270,9 @@ void main() {
       expect(abiertos.single.host, 'play.google.com');
       expect(abiertos.single.queryParameters['sku'], 'todas_mensual');
       expect(
-        find.text('Si cancelas, mantienes el plan hasta el 20/11/2026.'),
+        find.text(
+          'Si cancelas, mantienes el plan hasta el 20 de noviembre de 2026.',
+        ),
         findsOne,
       );
     });
@@ -256,9 +303,10 @@ void main() {
       );
 
       expect(find.text('En mora'), findsOne);
-      expect(find.textContaining('No se pudo cobrar la renovación'), findsOne);
-      expect(find.textContaining('App Store'), findsWidgets);
-      expect(find.text('Cambiar a anual'), findsNothing);
+      expect(find.textContaining('No pudimos cobrar la renovación'), findsOne);
+      expect(find.text('Revisar el pago en App Store'), findsOne);
+      expect(find.text('Cambiar de plan'), findsNothing);
+      expect(find.text('Cancelar suscripción en App Store'), findsOne);
     });
 
     testWidgets('si canceló, dice hasta cuándo y ya no ofrece cancelar', (

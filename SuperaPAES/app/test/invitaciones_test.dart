@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/fuentes/fuente_cupo_remota.dart';
+import 'package:supera_paes/dominio/entidades/resumen_invitaciones.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 
@@ -81,23 +82,21 @@ void main() {
 
       expect(rutaActual(contenedor), Rutas.invitaciones);
       expect(find.text('Invita y gana preguntas'), findsOne);
-      expect(
-        find.text('https://consola.superapaes.cl/invitar/K7P2QX'),
-        findsOne,
-      );
-      expect(find.text('K7P2QX'), findsOne);
-      expect(find.text('3'), findsOne);
-      expect(find.text('registrados'), findsOne);
-      expect(find.text('1'), findsOne);
-      expect(find.text('verificados'), findsOne);
+      expect(find.text('consola.superapaes.cl/invitar/K7P2QX'), findsOne);
+      expect(find.text('K7  P2  QX'), findsOne);
+      expect(find.text('Cómo funciona'), findsOne);
       // Lo ganado invitando (HU-47.2).
       await tester.scrollUntilVisible(
         find.textContaining('se acumulan y no vencen'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('preguntas ganadas'), findsOne);
-      expect(find.text('Saldo de preguntas extra'), findsOne);
+      expect(find.text('Registrados con tu código'), findsOne);
+      expect(find.text('3'), findsOne);
+      expect(find.text('Con el correo verificado'), findsOne);
+      expect(find.text('1'), findsOne);
+      expect(find.text('Preguntas ganadas'), findsOne);
+      expect(find.text('5'), findsOne);
       expect(find.text('Invitaciones premiadas este mes'), findsOne);
       expect(find.text('1 de 10'), findsOne);
       expect(find.textContaining('se acumulan y no vencen'), findsOne);
@@ -133,9 +132,9 @@ void main() {
         ruta: Rutas.invitaciones,
       );
 
-      await tocar(tester, find.byTooltip('Copiar código'));
+      await tocar(tester, find.text('Copiar código'));
       expect(find.text('Código copiado.'), findsOne);
-      await tocar(tester, find.byTooltip('Copiar link'));
+      await tocar(tester, find.text('Copiar link'));
 
       expect(copiados, [
         'K7P2QX',
@@ -161,7 +160,61 @@ void main() {
 
       cupo.errorInvitaciones = null;
       await tocar(tester, find.text('Reintentar'));
-      expect(find.text('K7P2QX'), findsOne);
+      expect(find.text('K7  P2  QX'), findsOne);
+    });
+
+    Future<void> abrirCon(WidgetTester tester, ResumenInvitaciones r) async {
+      await iniciarApp(
+        tester,
+        crearContenedor(
+          sesion: sesionDeEjemplo,
+          cupo: RepositorioCupoFalso()..invitaciones = r,
+        ),
+        ruta: Rutas.invitaciones,
+      );
+      await tester.scrollUntilVisible(
+        find.textContaining('se acumulan y no vencen'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+    }
+
+    testWidgets('sin invitados, invita a empezar', (tester) async {
+      await abrirCon(
+        tester,
+        const ResumenInvitaciones(
+          codigo: 'K7P2QX',
+          link: 'https://consola.superapaes.cl/invitar/K7P2QX',
+          registrados: 0,
+          verificados: 0,
+          preguntasGanadas: 0,
+          saldoExtra: 0,
+          premiadasMes: 0,
+          topeMes: 10,
+        ),
+      );
+
+      expect(find.textContaining('Aún no invitas a nadie.'), findsOne);
+      expect(find.text('Registrados con tu código'), findsNothing);
+    });
+
+    testWidgets('en el tope del mes lo avisa (RN-03)', (tester) async {
+      await abrirCon(
+        tester,
+        const ResumenInvitaciones(
+          codigo: 'K7P2QX',
+          link: 'https://consola.superapaes.cl/invitar/K7P2QX',
+          registrados: 12,
+          verificados: 10,
+          preguntasGanadas: 50,
+          saldoExtra: 50,
+          premiadasMes: 10,
+          topeMes: 10,
+        ),
+      );
+
+      expect(find.text('10 de 10'), findsOne);
+      expect(find.textContaining('Llegaste al tope de este mes.'), findsOne);
     });
 
     testWidgets('con la letra al doble no se desborda (RNF-12)', (

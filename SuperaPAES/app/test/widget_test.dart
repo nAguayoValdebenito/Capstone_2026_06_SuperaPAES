@@ -6,6 +6,7 @@ import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/respuesta_api.dart';
 import 'package:supera_paes/presentacion/comunes/barra_inferior.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/secciones.dart';
 import 'package:supera_paes/presentacion/ingreso/pantalla_ingreso.dart';
 
@@ -13,9 +14,9 @@ import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
-  test('las 35 pantallas de la app están declaradas una sola vez', () {
-    expect(secciones, hasLength(35));
-    expect(secciones.map((s) => s.ruta).toSet(), hasLength(35));
+  test('las 36 pantallas de la app están declaradas una sola vez', () {
+    expect(secciones, hasLength(36));
+    expect(secciones.map((s) => s.ruta).toSet(), hasLength(36));
     // Barra inferior del DAS 7.4: Planes pasa a Perfil.
     expect(pestanas.map((s) => s.etiquetaPestana ?? s.titulo), [
       'Inicio',
@@ -90,7 +91,13 @@ void main() {
     expect(find.text('Estás en el plan Gratis'), findsOneWidget);
     expect(find.byType(BarraInferior), findsOneWidget);
 
-    await tocar(tester, find.text('Volver'));
+    await tocar(
+      tester,
+      find.descendant(
+        of: find.byType(EnlaceVolver),
+        matching: find.text('Perfil'),
+      ),
+    );
     expect(rutaActual(contenedor), Rutas.perfil);
   });
 

@@ -131,7 +131,7 @@ void main() {
   ) async {
     final contenedor = crearContenedor(sesion: sesionDeEjemplo);
     await iniciarApp(tester, contenedor, ruta: Rutas.perfil);
-    final contexto = tester.element(find.text('Mi perfil de estudio'));
+    final contexto = tester.element(find.text('Mi suscripción'));
     final raiz = Navigator.of(contexto, rootNavigator: true);
     expect(Navigator.of(contexto), isNot(same(raiz)));
     unawaited(
@@ -164,15 +164,15 @@ void main() {
       await iniciarApp(tester, contenedor, ruta: Rutas.perfil);
       unawaited(contenedor.read(enrutadorProvider).push<void>(Rutas.planes));
       await tester.pumpAndSettle();
-      await tocar(tester, find.text('Mensual'));
+      await tocar(tester, find.text('Anual'));
       await _pestana(tester, 0);
       expect(rutaActual(contenedor), Rutas.inicio);
       await _pestana(tester, 4);
       expect(rutaActual(contenedor), Rutas.planes);
-      expect(find.text(r'$1.990 /mes'), findsOne);
+      expect(find.text(r'$15.990'), findsOne);
       await _pestana(tester, 4);
       expect(rutaActual(contenedor), Rutas.perfil);
-      expect(find.text(r'$1.990 /mes'), findsNothing);
+      expect(find.text(r'$15.990'), findsNothing);
     });
 
     testWidgets(

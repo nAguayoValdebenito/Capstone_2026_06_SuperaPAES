@@ -4,15 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/historial.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/comunes/fechas.dart';
 import 'package:supera_paes/presentacion/comunes/movimiento.dart';
 import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/inicio/evaluacion_sin_terminar.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
-import 'package:supera_paes/presentacion/progreso/tarjetas_progreso.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
 /// Historial (A34; HU-62, RF-A24, CU-30): las evaluaciones cerradas, de la más
@@ -26,6 +27,11 @@ class PantallaHistorial extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filtros = ref.watch(filtrosHistorialProvider);
     final historial = ref.watch(historialProvider);
+    // Sin nada todavía, solo el vacío: los filtros no tienen qué filtrar.
+    final sinNada =
+        filtros.sinFiltros &&
+        historial.value?.evaluaciones.isEmpty == true &&
+        !historial.isLoading;
     return PantallaFormulario(
       separacion: 12,
       alActualizar: () async {
@@ -33,28 +39,29 @@ class PantallaHistorial extends ConsumerWidget {
         await ref.read(historialProvider.future);
       },
       hijos: [
-        const EnlaceVolver(texto: 'Volver', destino: Rutas.progreso),
+        const EnlaceVolver(texto: 'Progreso', destino: Rutas.progreso),
         const Encabezado(titulo: 'Historial'),
-        SelectorSegmentado<String?>(
-          key: const ValueKey('grupo-historial'),
-          conMovimiento: true,
-          opciones: const [
-            (null, 'Todo'),
-            ('practicas', 'Prácticas'),
-            ('evaluaciones', 'Evaluaciones'),
-          ],
-          seleccionado: filtros.grupo,
-          onChanged: ref.read(filtrosHistorialProvider.notifier).elegirGrupo,
-        ),
-        const _Filtros(),
+        if (!sinNada) ...[
+          SelectorSegmentado<String?>(
+            key: const ValueKey('grupo-historial'),
+            conMovimiento: true,
+            opciones: const [
+              (null, 'Todo'),
+              ('practicas', 'Prácticas'),
+              ('evaluaciones', 'Evaluaciones'),
+            ],
+            seleccionado: filtros.grupo,
+            onChanged: ref.read(filtrosHistorialProvider.notifier).elegirGrupo,
+          ),
+          const _Filtros(),
+        ],
         const EvaluacionSinTerminar(),
         ...switch (historial) {
           AsyncData(value: final PaginaHistorial pagina)
               when pagina.evaluaciones.isEmpty =>
             [_SinEvaluaciones(sinFiltros: filtros.sinFiltros)],
           AsyncData(value: final PaginaHistorial pagina) => [
-            for (final evaluacion in pagina.evaluaciones)
-              _TarjetaEvaluacion(evaluacion: evaluacion),
+            _ListaEvaluaciones(evaluaciones: pagina.evaluaciones),
             _Paginas(pagina: pagina),
           ],
           AsyncError(:final error) => [
@@ -64,7 +71,17 @@ class PantallaHistorial extends ConsumerWidget {
               alReintentar: () => ref.invalidate(historialProvider),
             ),
           ],
-          _ => const [EsqueletoTarjeta(), EsqueletoTarjeta()],
+          _ => const [
+            GrupoEsqueleto(
+              child: Column(
+                children: [
+                  EsqueletoTarjeta(),
+                  SizedBox(height: TemaSuperaPaes.espacio16),
+                  EsqueletoTarjeta(),
+                ],
+              ),
+            ),
+          ],
         },
       ],
     );
@@ -152,96 +169,125 @@ class _Filtro<T> extends StatelessWidget {
   }
 }
 
-class _TarjetaEvaluacion extends ConsumerWidget {
-  const _TarjetaEvaluacion({required this.evaluacion});
+/// Las evaluaciones de la página en una sola lista con borde, como en la
+/// maqueta A34: cada fila con su sello, el tipo y la prueba, el resultado y
+/// la fecha.
+class _ListaEvaluaciones extends StatelessWidget {
+  const _ListaEvaluaciones({required this.evaluaciones});
+
+  final List<EvaluacionDelHistorial> evaluaciones;
+
+  @override
+  Widget build(BuildContext context) => ListaDeFilas(
+    filas: [
+      for (final (i, evaluacion) in evaluaciones.indexed)
+        AparecerEscalonado(
+          indice: i,
+          child: _FilaEvaluacion(evaluacion: evaluacion),
+        ),
+    ],
+  );
+}
+
+class _FilaEvaluacion extends ConsumerWidget {
+  const _FilaEvaluacion({required this.evaluacion});
 
   final EvaluacionDelHistorial evaluacion;
 
-  /// «22 preguntas · 15 correctas · 68 %», con el puntaje en el ensayo.
-  String get _detalle => [
-    if (evaluacion.cantidad == 1)
-      '1 pregunta'
-    else
-      '${evaluacion.cantidad} preguntas',
-    if (evaluacion.correctas == 1)
-      '1 correcta'
-    else
-      '${evaluacion.correctas} correctas',
-    if (evaluacion.puntaje case final puntaje?)
-      '$puntaje puntos'
-    else if (evaluacion.porcentaje case final porcentaje?)
-      '${porcentaje.round()} %',
-  ].join(' · ');
+  /// «Mini-ensayo de M1»; sin código de prueba, con su nombre.
+  String get _titulo => switch (evaluacion.codigoPrueba) {
+    final codigo? =>
+      '${evaluacion.tipoNombre} de ${Prueba.deCodigo(codigo).corto}',
+    null => '${evaluacion.tipoNombre} · ${evaluacion.prueba}',
+  };
+
+  /// «68 %», o «612 pts» en el ensayo completo.
+  String? get _resultado {
+    if (evaluacion.puntaje case final puntaje?) return '$puntaje pts';
+    if (evaluacion.porcentaje case final porcentaje?) {
+      return '${porcentaje.round()} %';
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const nota = TemaSuperaPaes.pequenoFuerte;
-    return Tarjeta(
-      child: InkWell(
-        onTap: () => abrirResultado(
-          context,
-          ref,
-          evaluacion.id,
-          desdeHistorial: true,
-          codigoPrueba: evaluacion.codigoPrueba,
+    final secundario = TemaSuperaPaes.pequeno.copyWith(
+      color: TemaSuperaPaes.textoSecundario,
+    );
+    final resultado = _resultado;
+    return InkWell(
+      onTap: () => abrirResultado(
+        context,
+        ref,
+        evaluacion.id,
+        desdeHistorial: true,
+        codigoPrueba: evaluacion.codigoPrueba,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TemaSuperaPaes.espacio16,
+          vertical: TemaSuperaPaes.espacio12,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Row(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: HeroMode(
-                enabled: !reducirMovimiento(context),
-                child: Hero(
-                  tag: 'sello-evaluacion-${evaluacion.id}',
-                  child: SelloPrueba(
-                    Prueba.deCodigo(evaluacion.codigoPrueba ?? ''),
-                  ),
+            HeroMode(
+              enabled: !reducirMovimiento(context),
+              child: Hero(
+                tag: 'sello-evaluacion-${evaluacion.id}',
+                child: SelloPrueba(
+                  Prueba.deCodigo(evaluacion.codigoPrueba ?? ''),
+                  tamano: 36,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                Etiqueta(texto: evaluacion.tipoNombre),
-                Text(
-                  fechaLarga(evaluacion.cerradaEn),
-                  style: TemaSuperaPaes.pequeno.copyWith(
-                    color: TemaSuperaPaes.textoSecundario,
+            const SizedBox(width: TemaSuperaPaes.espacio12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: TemaSuperaPaes.espacio8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(_titulo, style: TemaSuperaPaes.cuerpoFuerte),
+                      if (resultado != null)
+                        Text(
+                          resultado,
+                          style: TemaSuperaPaes.tabular(
+                            TemaSuperaPaes.pequenoFuerte.copyWith(
+                              color: TemaSuperaPaes.primarioOscuro,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              [evaluacion.prueba, ?evaluacion.alcance].join(' · '),
-              style: TemaSuperaPaes.cuerpoFuerte,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _detalle,
-              style: TemaSuperaPaes.pequeno.copyWith(
-                color: TemaSuperaPaes.textoSecundario,
+                  Text(
+                    [
+                      fechaEnPalabras(evaluacion.cerradaEn),
+                      ?evaluacion.alcance,
+                    ].join(' · '),
+                    style: secundario,
+                  ),
+                  if (evaluacion.abandonada)
+                    Text(
+                      'Abandonada: se guardó lo respondido',
+                      style: secundario,
+                    ),
+                  if (evaluacion.recalculada)
+                    Text(
+                      'Recalculado: se anuló una pregunta con error',
+                      style: secundario,
+                    ),
+                ],
               ),
             ),
-            if (evaluacion.abandonada) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Abandonada: se guardó lo respondido',
-                style: nota.copyWith(color: TemaSuperaPaes.avisoTexto),
-              ),
-            ],
-            if (evaluacion.recalculada) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Recalculado: se anuló una pregunta con error',
-                style: nota.copyWith(color: TemaSuperaPaes.primarioOscuro),
-              ),
-            ],
+            const SizedBox(width: TemaSuperaPaes.espacio8),
+            const Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: TemaSuperaPaes.textoSecundario,
+            ),
           ],
         ),
       ),
@@ -301,11 +347,11 @@ class _SinEvaluaciones extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (sinFiltros) {
       return EstadoVacio(
-        titulo: 'Todavía no tienes evaluaciones',
+        titulo: 'Aún no tienes nada en tu historial',
         texto:
             'Cuando termines una práctica o una evaluación, la verás aquí con '
             'su resultado.',
-        accion: 'Ir a practicar',
+        accion: 'Empezar una práctica',
         alTocar: () => context.go(Rutas.practicar),
       );
     }

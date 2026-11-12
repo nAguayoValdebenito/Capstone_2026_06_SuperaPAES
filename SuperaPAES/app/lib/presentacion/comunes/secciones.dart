@@ -20,6 +20,7 @@ import 'package:supera_paes/presentacion/perfil/pantalla_perfil.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_areas.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_curso.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_pruebas.dart';
+import 'package:supera_paes/presentacion/planes/pantalla_cambiar_plan.dart';
 import 'package:supera_paes/presentacion/planes/pantalla_mi_suscripcion.dart';
 import 'package:supera_paes/presentacion/planes/pantalla_planes.dart';
 import 'package:supera_paes/presentacion/practicar/pantalla_elegir_alcance.dart';
@@ -238,6 +239,12 @@ const List<Seccion> secciones = [
     Rutas.miSuscripcion,
     Icons.card_membership_outlined,
     PantallaMiSuscripcion.new,
+  ),
+  Seccion(
+    'Cambiar de plan',
+    Rutas.cambiarPlan,
+    Icons.swap_horiz_rounded,
+    PantallaCambiarPlan.new,
   ),
   Seccion(
     'Planes',

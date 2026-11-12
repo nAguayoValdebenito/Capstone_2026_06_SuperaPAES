@@ -4,15 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
 
 /// La primera admisión con la PAES fue la de 2023.
 const int primeraAdmisionPaes = 2023;
 
-/// Carga de un puntaje en A41: prueba, año de admisión y puntaje de 100 a
-/// 1.000 (RN-16). Las mismas reglas las revisa el servidor; sus rechazos se
-/// muestran en el campo que corresponde.
+/// Carga de un puntaje en A41: la prueba en chips, el año de admisión y el
+/// puntaje de 100 a 1.000 (RN-16). Las mismas reglas las revisa el servidor;
+/// sus rechazos se muestran en el campo que corresponde.
 class FormularioPuntaje extends ConsumerStatefulWidget {
   const FormularioPuntaje({
     required this.pruebas,
@@ -87,19 +90,20 @@ class _FormularioPuntajeState extends ConsumerState<FormularioPuntaje> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CampoConEtiqueta(
-            etiqueta: 'Prueba',
-            child: DropdownButtonFormField<int>(
-              initialValue: _pruebaId,
-              isExpanded: true,
-              items: [
+          Semantics(
+            label: 'Prueba',
+            container: true,
+            child: Wrap(
+              spacing: TemaSuperaPaes.espacio8,
+              runSpacing: TemaSuperaPaes.espacio8,
+              children: [
                 for (final prueba in widget.pruebas)
-                  DropdownMenuItem(
-                    value: prueba.id,
-                    child: Text(prueba.nombreEnInicio),
+                  ChipPrueba(
+                    prueba: Prueba.deCodigo(prueba.codigo),
+                    seleccionado: prueba.id == _pruebaId,
+                    onTap: () => setState(() => _pruebaId = prueba.id),
                   ),
               ],
-              onChanged: (id) => setState(() => _pruebaId = id ?? _pruebaId),
             ),
           ),
           const SizedBox(height: 14),
@@ -119,7 +123,7 @@ class _FormularioPuntajeState extends ConsumerState<FormularioPuntaje> {
               const SizedBox(width: 10),
               Expanded(
                 child: CampoTexto(
-                  etiqueta: 'Puntaje (100 a 1.000)',
+                  etiqueta: 'Puntaje (de 100 a 1.000)',
                   controller: _puntaje,
                   keyboardType: TextInputType.number,
                   inputFormatters: soloNumeros,
@@ -142,11 +146,10 @@ class _FormularioPuntajeState extends ConsumerState<FormularioPuntaje> {
             ),
           ],
           const SizedBox(height: 14),
-          FilledButton(
-            onPressed: _guardando ? null : _guardar,
-            child: _guardando
-                ? const CargandoEnBoton()
-                : const Text('Guardar puntaje'),
+          BotonPrincipal(
+            texto: 'Guardar puntaje',
+            estado: _guardando ? EstadoBoton.cargando : EstadoBoton.normal,
+            onPressed: _guardar,
           ),
         ],
       ),

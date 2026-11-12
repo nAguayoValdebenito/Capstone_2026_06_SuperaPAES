@@ -114,7 +114,7 @@ void main() {
         resultados: repo,
       );
       await iniciarApp(tester, contenedor, ruta: Rutas.historial);
-      await tester.tap(find.text('Matemática M1').first);
+      await tester.tap(find.text('Mini-ensayo de M1').first);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byKey(const ValueKey('vuelo-sello-41')), findsOne);
@@ -174,7 +174,7 @@ void main() {
         resultados: repo,
       );
       await iniciarApp(tester, contenedor, ruta: Rutas.historial);
-      await tester.tap(find.text('Matemática M1').first);
+      await tester.tap(find.text('Mini-ensayo de M1').first);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byKey(const ValueKey('vuelo-sello-41')), findsNothing);
@@ -193,10 +193,10 @@ void main() {
       await _abrir(tester);
 
       expect(find.text('Historial'), findsOne);
-      expect(find.text('Mini-ensayo'), findsWidgets);
-      expect(find.text('Matemática M1'), findsWidgets);
-      expect(find.text('22 preguntas · 15 correctas · 68 %'), findsOne);
-      expect(find.text('Matemática M2 · Logaritmos'), findsOne);
+      expect(find.text('Mini-ensayo de M1'), findsOne);
+      expect(find.text('68 %'), findsOne);
+      expect(find.text('Práctica de M2'), findsOne);
+      expect(find.textContaining(' · Logaritmos'), findsOne);
     });
 
     testWidgets('marca la abandonada y la recalculada', (tester) async {
@@ -236,13 +236,14 @@ void main() {
         ),
       );
 
-      expect(find.text('65 preguntas · 40 correctas · 612 puntos'), findsOne);
+      expect(find.text('Ensayo completo · Matemática M1'), findsOne);
+      expect(find.text('612 pts'), findsOne);
     });
 
     testWidgets('tocar una evaluación abre su resultado', (tester) async {
       final repo = await _abrir(tester);
 
-      await tocar(tester, find.text('Matemática M2 · Logaritmos'));
+      await tocar(tester, find.text('Práctica de M2'));
 
       expect(repo.resultadosPedidos, [42]);
     });
@@ -252,8 +253,10 @@ void main() {
     ) async {
       await _abrir(tester, pagina: _vacia);
 
-      expect(find.text('Todavía no tienes evaluaciones'), findsOne);
-      expect(find.text('Ir a practicar'), findsOne);
+      expect(find.text('Aún no tienes nada en tu historial'), findsOne);
+      expect(find.text('Empezar una práctica'), findsOne);
+      // Sin nada que filtrar, no se muestran los filtros (A34 vacío).
+      expect(find.text('Prácticas'), findsNothing);
     });
 
     testWidgets('con filtros y sin resultados ofrece quitarlos', (
@@ -272,7 +275,7 @@ void main() {
       await tocar(tester, find.text('Ver todas'));
 
       expect(repo.consultas.last.tipo, isNull);
-      expect(find.text('Matemática M1'), findsWidgets);
+      expect(find.text('Mini-ensayo de M1'), findsWidgets);
     });
 
     testWidgets('pasa de página y vuelve', (tester) async {

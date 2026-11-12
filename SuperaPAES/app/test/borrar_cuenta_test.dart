@@ -98,8 +98,8 @@ void main() {
   });
 
   group('Borrar mi cuenta (A42)', () {
-    testWidgets('Mis datos abre A42, que explica qué se borra y pide la '
-        'casilla; «Cancelar» vuelve sin borrar (CU-14 5.a)', (tester) async {
+    testWidgets('Mis datos abre A42, que explica qué se borra; «Cancelar» '
+        'vuelve sin borrar (CU-14 5.a)', (tester) async {
       final repo = RepositorioMisDatosFalso();
       final contenedor = crearContenedor(
         sesion: sesionDeEjemplo,
@@ -110,19 +110,17 @@ void main() {
       await tocar(tester, find.text('Borrar mi cuenta'));
 
       expect(rutaActual(contenedor), Rutas.borrarCuenta);
-      expect(find.text('¿Borrar tu cuenta?'), findsOne);
-      expect(find.textContaining('quedan seudonimizadas'), findsOne);
+      expect(find.text('Borrar mi cuenta'), findsWidgets);
+      expect(
+        find.textContaining('quedarán sin datos que te identifiquen'),
+        findsOne,
+      );
       expect(find.textContaining('Tienes una suscripción'), findsNothing);
       expect(
         find.text('Entiendo que debo cancelarla en la tienda'),
         findsNothing,
       );
-      expect(_sePuedeBorrar(tester), isFalse);
-
-      await tocar(
-        tester,
-        find.text('Entiendo que perderé mi historial y mi progreso.'),
-      );
+      // Sin suscripción, «Borrar mi cuenta» es la confirmación (A42).
       expect(_sePuedeBorrar(tester), isTrue);
 
       await tester.tap(find.text('Cancelar'));
@@ -138,10 +136,6 @@ void main() {
       final contenedor = crearContenedor(misDatos: repo, almacen: almacen);
       await iniciarApp(tester, contenedor, ruta: Rutas.borrarCuenta);
 
-      await tocar(
-        tester,
-        find.text('Entiendo que perderé mi historial y mi progreso.'),
-      );
       await tester.tap(find.widgetWithText(FilledButton, 'Borrar mi cuenta'));
       await tester.pumpAndSettle();
 
@@ -162,10 +156,6 @@ void main() {
       );
       await iniciarApp(tester, contenedor, ruta: Rutas.borrarCuenta);
 
-      await tocar(
-        tester,
-        find.text('Entiendo que perderé mi historial y mi progreso.'),
-      );
       await tester.tap(find.widgetWithText(FilledButton, 'Borrar mi cuenta'));
       await tester.pumpAndSettle();
 
@@ -175,27 +165,30 @@ void main() {
       expect(_sePuedeBorrar(tester), isTrue);
     });
 
-    testWidgets('«descargar tus datos» entrega el archivo antes de borrar '
-        '(CU-14 paso 4)', (tester) async {
-      final compartidos = <ArchivoMisDatos>[];
-      await iniciarApp(
-        tester,
-        crearContenedor(
-          sesion: sesionDeEjemplo,
-          compartir: (archivo) async => compartidos.add(archivo),
-        ),
-        ruta: Rutas.borrarCuenta,
-      );
+    testWidgets(
+      '«Descargar mis datos primero» entrega el archivo antes de borrar '
+      '(CU-14 paso 4)',
+      (tester) async {
+        final compartidos = <ArchivoMisDatos>[];
+        await iniciarApp(
+          tester,
+          crearContenedor(
+            sesion: sesionDeEjemplo,
+            compartir: (archivo) async => compartidos.add(archivo),
+          ),
+          ruta: Rutas.borrarCuenta,
+        );
 
-      await tocar(tester, find.textContaining('descargar tus datos'));
+        await tocar(tester, find.text('Descargar mis datos primero'));
 
-      expect(compartidos, [archivoDePrueba]);
-    });
+        expect(compartidos, [archivoDePrueba]);
+      },
+    );
   });
 
   group('Borrar mi cuenta con una suscripción vigente (A42b)', () {
     testWidgets('avisa que la tienda sigue cobrando, abre su gestión y pide '
-        'las dos casillas (RN-34)', (tester) async {
+        'la casilla (RN-34)', (tester) async {
       final abiertos = <Uri>[];
       final repo = RepositorioMisDatosFalso(suscripcion: suscripcionDePrueba);
       await iniciarApp(
@@ -212,21 +205,18 @@ void main() {
       );
 
       expect(
-        find.textContaining(
-          '(Todas las pruebas, mensual, Google Play). Google Play seguirá '
-          'cobrando hasta que la canceles en la tienda',
+        find.text(
+          'Tienes una suscripción activa. Si borras tu cuenta, la tienda '
+          'seguirá cobrando hasta que la canceles en Google Play o en la App '
+          'Store.',
         ),
         findsOne,
       );
-      await tocar(tester, find.text('Abrir mis suscripciones en Google Play'));
+      await tocar(tester, find.text('Abrir suscripciones de la tienda'));
       expect(abiertos, [
         Uri.parse('https://play.google.com/store/account/subscriptions'),
       ]);
 
-      await tocar(
-        tester,
-        find.text('Entiendo que perderé mi historial y mi progreso.'),
-      );
       expect(_sePuedeBorrar(tester), isFalse);
       await tocar(
         tester,
@@ -255,7 +245,7 @@ void main() {
         ruta: Rutas.borrarCuenta,
       );
       await tester.scrollUntilVisible(
-        find.text('Entiendo que perderé mi historial y mi progreso.'),
+        find.text('Entiendo que debo cancelarla en la tienda'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
@@ -286,8 +276,8 @@ void main() {
         ruta: Rutas.borrarCuenta,
       );
 
-      expect(find.textContaining('(Una prueba, anual, App Store)'), findsOne);
-      await tocar(tester, find.text('Abrir mis suscripciones en App Store'));
+      expect(find.textContaining('Tienes una suscripción en mora.'), findsOne);
+      await tocar(tester, find.text('Abrir suscripciones de la tienda'));
 
       expect(abiertos, [
         Uri.parse('https://apps.apple.com/account/subscriptions'),
@@ -312,10 +302,6 @@ void main() {
       );
 
       expect(find.text('No hay conexión con el servidor.'), findsOne);
-      await tocar(
-        tester,
-        find.text('Entiendo que perderé mi historial y mi progreso.'),
-      );
       expect(_sePuedeBorrar(tester), isFalse);
 
       repo.errorEstado = null;

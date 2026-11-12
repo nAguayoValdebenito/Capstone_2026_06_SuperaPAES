@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/verificar_correo/campo_codigo.dart';
@@ -200,11 +201,10 @@ class _PantallaVerificarCorreoState
       if (_aviso case final mensaje?)
         Aviso(tono: TonoAviso.exito, texto: mensaje),
       if (_sinCodigoVigente) ...[
-        FilledButton(
-          onPressed: _ocupado ? null : _reenviar,
-          child: _reenviando
-              ? const CargandoEnBoton()
-              : const Text('Enviar un correo nuevo'),
+        BotonPrincipal(
+          texto: 'Enviar un correo nuevo',
+          estado: _reenviando ? EstadoBoton.cargando : EstadoBoton.normal,
+          onPressed: _ocupado && !_reenviando ? null : _reenviar,
         ),
         Text(
           'El correo nuevo trae otro enlace y otro código, que también '
@@ -212,11 +212,10 @@ class _PantallaVerificarCorreoState
           style: estiloAyuda,
         ),
       ] else ...[
-        FilledButton(
-          onPressed: _ocupado ? null : _verificar,
-          child: _verificando
-              ? const CargandoEnBoton()
-              : const Text('Verificar'),
+        BotonPrincipal(
+          texto: 'Verificar',
+          estado: _verificando ? EstadoBoton.cargando : EstadoBoton.normal,
+          onPressed: _ocupado && !_verificando ? null : _verificar,
         ),
         Text(
           'El enlace y el código sirven una sola vez y vencen en 24 horas. '

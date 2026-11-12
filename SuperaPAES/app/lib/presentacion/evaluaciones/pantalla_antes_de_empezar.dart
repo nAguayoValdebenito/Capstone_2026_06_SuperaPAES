@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
 import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/evaluaciones/condiciones_evaluacion.dart';
@@ -66,8 +67,12 @@ class _PantallaAntesDeEmpezarState extends ConsumerState<PantallaAntesDeEmpezar>
       ],
       pie: PieConError(
         error: errorConTiempo,
-        boton: FilledButton(
-          onPressed: mini == null || !mini.disponible || empezandoConTiempo
+        boton: BotonPrincipal(
+          texto: 'Empezar ahora',
+          estado: empezandoConTiempo
+              ? EstadoBoton.cargando
+              : EstadoBoton.normal,
+          onPressed: mini == null || !mini.disponible
               ? null
               : () => empezarConTiempo(
                   () => ref
@@ -76,9 +81,6 @@ class _PantallaAntesDeEmpezarState extends ConsumerState<PantallaAntesDeEmpezar>
                   alRechazar: () =>
                       ref.invalidate(disponibilidadMiniProvider(pruebaId)),
                 ),
-          child: empezandoConTiempo
-              ? const CargandoEnBoton()
-              : const Text('Empezar ahora'),
         ),
       ),
     );

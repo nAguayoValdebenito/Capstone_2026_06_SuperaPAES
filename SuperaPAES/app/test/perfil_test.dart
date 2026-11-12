@@ -389,8 +389,15 @@ void main() {
 
       expect(find.text('Camila Rojas'), findsOne);
       expect(find.text('Sin verificar'), findsOne);
+      await tester.scrollUntilVisible(
+        find.text('Áreas de carrera'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('3° medio (egreso 2027)'), findsOne);
-      expect(find.text('Lectora, M1, Ciencias'), findsOne);
+      for (final prueba in ['Lectora', 'M1', 'Ciencias']) {
+        expect(find.text(prueba), findsWidgets);
+      }
       expect(find.text('Biología'), findsOne);
       expect(find.text('Salud'), findsOne);
 
@@ -408,7 +415,7 @@ void main() {
 
       expect(repositorio.guardados.single.pruebas, [1, 2, 4, 5]);
       expect(rutaActual(contenedor), Rutas.perfil);
-      expect(find.text('Lectora, M1, Historia, Ciencias'), findsOne);
+      expect(find.text('Historia'), findsOne);
     });
   });
 }
