@@ -1,0 +1,36 @@
+/* C09 · Listas de opciones: solo tokens de estilos/global.css. */
+.listas-opciones .pestanas {
+  margin-top: 1.5rem;
+}
+
+.listas-opciones__numero {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.listas-opciones__tabla th:nth-child(n + 3) {
+  white-space: nowrap;
+}
+
+.listas-opciones__tabla code {
+  color: var(--texto);
+  font-size: var(--texto-sm);
+}
+
+.listas-opciones__vacia {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 0.75rem;
+  color: var(--texto-secundario);
+}
+
+.listas-opciones__rasgos {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.listas-opciones__rasgos li + li {
+  margin-top: 0.125rem;
+}
