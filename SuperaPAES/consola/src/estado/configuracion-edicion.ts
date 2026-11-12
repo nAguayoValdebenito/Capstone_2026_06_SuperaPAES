@@ -7,6 +7,20 @@ export interface ConfirmacionConfiguracion {
   valor: number;
 }
 
+export function prepararCambioConfiguracion(
+  parametro: ParametroConfiguracion,
+  texto: string,
+):
+  | { tipo: 'invalido'; mensaje: string }
+  | { tipo: 'listo'; confirmacion: ConfirmacionConfiguracion } {
+  const resultado = validarEntradaConfiguracion(parametro.clave, texto);
+  if (resultado.valor === undefined)
+    return { tipo: 'invalido', mensaje: resultado.error ?? 'Valor inválido.' };
+  if (resultado.valor === parametro.valor)
+    return { tipo: 'invalido', mensaje: 'No hay cambios por guardar.' };
+  return { tipo: 'listo', confirmacion: { parametro, valor: resultado.valor } };
+}
+
 function sinBorrador(actual: Record<string, string>, clave: string): Record<string, string> {
   const siguiente = { ...actual };
   delete siguiente[clave];
@@ -25,20 +39,13 @@ export function useEdicionConfiguracion() {
   };
   const abrirConfirmacion = (parametro: ParametroConfiguracion, boton: HTMLButtonElement) => {
     const texto = borradores[parametro.clave] ?? String(parametro.valor);
-    const resultado = validarEntradaConfiguracion(parametro.clave, texto);
-    if (resultado.valor === undefined) {
-      setErrores((actual) => ({
-        ...actual,
-        [parametro.clave]: resultado.error ?? 'Valor inválido.',
-      }));
-      return;
-    }
-    if (resultado.valor === parametro.valor) {
-      setErrores((actual) => ({ ...actual, [parametro.clave]: 'No hay cambios por guardar.' }));
+    const preparacion = prepararCambioConfiguracion(parametro, texto);
+    if (preparacion.tipo === 'invalido') {
+      setErrores((actual) => ({ ...actual, [parametro.clave]: preparacion.mensaje }));
       return;
     }
     disparador.current = boton;
-    setConfirmacion({ parametro, valor: resultado.valor });
+    setConfirmacion(preparacion.confirmacion);
   };
   const finalizar = () => {
     setConfirmacion(null);
