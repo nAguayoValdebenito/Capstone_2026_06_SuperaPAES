@@ -3,6 +3,14 @@
 import { solicitarAdmin } from '../api/cliente';
 import { consultaDeListado, paginacionDe } from './paginacion';
 import type {
+  AvisoDeError,
+  CierreAviso,
+  FiltrosAvisos,
+  PaginaDeAvisos,
+  PreguntaAnulada,
+  PreguntaConAvisos,
+} from '../tipos/avisos-error';
+import type {
   ArchivosImportacion,
   ArchivoCsv,
   CambioDeEtapa,
@@ -133,6 +141,36 @@ export async function importarPreguntas(archivos: ArchivosImportacion): Promise<
 /** HU-24 (CU-21): publica una aprobada, retira una publicada o vuelve a borrador una retirada. */
 export async function cambiarEtapa(id: number, cambio: CambioDeEtapa): Promise<PreguntaConEtapa> {
   const { data } = await solicitarAdmin<PreguntaConEtapa>(`${PREGUNTAS}/${String(id)}/${cambio}`, {
+    method: 'POST',
+  });
+  return data;
+}
+
+/** HU-50 esc. 1 (C13): una página de la bandeja, agrupada por pregunta. */
+export async function listarAvisos(
+  filtros: FiltrosAvisos,
+  pagina: number,
+  senal?: AbortSignal,
+): Promise<PaginaDeAvisos> {
+  const { data, meta } = await solicitarAdmin<PreguntaConAvisos[]>(
+    `${PREGUNTAS}/avisos${consultaDeListado(filtros, pagina)}`,
+    opciones(senal),
+  );
+  return { grupos: data, paginacion: paginacionDe(meta, pagina, data.length) };
+}
+
+/** HU-50 esc. 2: cierra un aviso como resuelto o descartado. */
+export async function cerrarAviso(id: number, estado: CierreAviso): Promise<AvisoDeError> {
+  const { data } = await solicitarAdmin<AvisoDeError>(`${PREGUNTAS}/avisos/${String(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ estado }),
+  });
+  return data;
+}
+
+/** HU-50 esc. 3 (CU-26a): anula una pregunta publicada. Irreversible. */
+export async function anularPregunta(id: number): Promise<PreguntaAnulada> {
+  const { data } = await solicitarAdmin<PreguntaAnulada>(`${PREGUNTAS}/${String(id)}/anulacion`, {
     method: 'POST',
   });
   return data;

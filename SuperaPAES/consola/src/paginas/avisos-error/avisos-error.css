@@ -1,0 +1,156 @@
+/* Avisos de error (C13): bandeja a la izquierda y detalle de la pregunta a la derecha. Solo tokens del
+   tema (estilos/global.css). */
+.avisos__contenido {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.avisos__tabla {
+  min-width: 36rem;
+}
+
+.avisos__tabla td:first-child {
+  white-space: nowrap;
+}
+
+.avisos__panel {
+  max-width: none;
+  margin-top: 0;
+}
+
+.avisos__panel h2 {
+  margin: 0;
+  font-size: var(--texto-md);
+}
+
+.avisos__lista {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.avisos__aviso {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.5rem;
+}
+
+.avisos__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.avisos__comentario {
+  margin: 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--borde);
+  overflow-wrap: anywhere;
+}
+
+.avisos__dato {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.avisos__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.avisos__peligro {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--error);
+  border-radius: 0.5rem;
+  color: var(--error);
+}
+
+.avisos__peligro p {
+  margin: 0;
+}
+
+.avisos__vacio,
+.avisos__error {
+  margin-top: 1.5rem;
+}
+
+/* Estados del aviso: forma de etiqueta y texto, no solo color. Dos clases para ganar a .etiqueta de
+   global.css, que se carga después. */
+.etiqueta.etiqueta--pendiente {
+  color: var(--aviso);
+}
+
+.etiqueta.etiqueta--resuelto {
+  color: var(--exito);
+}
+
+/* Acción irreversible: borde y texto de error sobre la superficie; relleno al pasar o enfocar. */
+.boton.boton--peligro {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.boton.boton--peligro:not(:disabled):hover,
+.boton.boton--peligro:not(:disabled):focus-visible {
+  background: var(--error);
+  color: var(--superficie);
+}
+
+.avisos__fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--texto) 45%, transparent);
+}
+
+.avisos__confirmacion {
+  width: min(32rem, 100%);
+  margin: 0;
+}
+
+.avisos__confirmacion h2 {
+  margin: 0;
+}
+
+.avisos__confirmacion p {
+  margin: 0;
+}
+
+.avisos__entendido {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+/* Pantallas táctiles: objetivos de al menos 44 px. */
+@media (pointer: coarse) {
+  .avisos .boton,
+  .avisos .boton-texto,
+  .avisos__entendido input {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 64rem) {
+  .avisos__contenido {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
