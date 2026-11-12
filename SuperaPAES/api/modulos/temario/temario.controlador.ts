@@ -7,6 +7,7 @@ import type { DatosOpcionesPractica } from './temario.validadores.js';
 
 export interface TemarioControlador {
   consultarTemario: RequestHandler;
+  consultarListasOpciones: RequestHandler;
   listarAreas: RequestHandler;
   opcionesPerfil: RequestHandler;
   opcionesPractica: RequestHandler;
@@ -16,6 +17,9 @@ export function crearTemarioControlador(servicio: TemarioServicio): TemarioContr
   return {
     consultarTemario: async (_req, res) => {
       responder(res, await servicio.consultarTemario());
+    },
+    consultarListasOpciones: async (_req, res) => {
+      responder(res, await servicio.consultarListasOpciones());
     },
     listarAreas: async (_req, res) => {
       responder(res, await servicio.listarAreas());

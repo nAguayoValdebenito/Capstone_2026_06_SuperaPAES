@@ -2,7 +2,7 @@
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
 import type { Area } from '../tipos';
-import type { ConsultaTemario } from '../tipos/temario';
+import type { ConsultaTemario, ListasOpciones } from '../tipos/temario';
 
 /** C07: lo que está cargado en la base, sin cambiar ni importar contenido. */
 export async function consultarTemario(senal?: AbortSignal): Promise<ConsultaTemario> {
@@ -16,5 +16,14 @@ export async function consultarTemario(senal?: AbortSignal): Promise<ConsultaTem
 /** Áreas de especialidad de los docentes, ordenadas por nombre. */
 export async function listarAreas(senal?: AbortSignal): Promise<Area[]> {
   const { data } = await solicitarAdmin<Area[]>('/temario/areas', senal ? { signal: senal } : {});
+  return data;
+}
+
+/** C09 (HU-64.1): listas de opciones con sus datos propios, de solo lectura. */
+export async function consultarListasOpciones(senal?: AbortSignal): Promise<ListasOpciones> {
+  const { data } = await solicitarAdmin<ListasOpciones>(
+    '/temario/listas-opciones',
+    senal ? { signal: senal } : {},
+  );
   return data;
 }

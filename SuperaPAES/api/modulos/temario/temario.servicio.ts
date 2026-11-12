@@ -5,6 +5,14 @@ import { ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import { crearTemarioGeneracionRepositorio } from './temario.generacion.repositorio.js';
 import { consultarTemario, type ConsultaTemario } from './temario.consulta.servicio.js';
+import {
+  type AreaCarreraLista,
+  crearTemarioListasRepositorio,
+  type DificultadLista,
+  type OpcionLista,
+  type TemarioListasRepositorio,
+  type TipoEvaluacionLista,
+} from './temario.listas.repositorio.js';
 import type { EjeTemario, PruebaTemario } from './temario.tipos.js';
 import {
   type Area,
@@ -35,6 +43,16 @@ export interface OpcionesPerfil {
 export interface OpcionesPractica {
   dificultades: DificultadPractica[];
   pruebas: PruebaPractica[];
+}
+
+/** C09 (HU-64.1, RF-C12): listas de opciones de solo lectura con sus datos propios. */
+export interface ListasOpciones {
+  dificultades: DificultadLista[];
+  areasCarrera: AreaCarreraLista[];
+  tiposEvaluacion: TipoEvaluacionLista[];
+  motivosAviso: OpcionLista[];
+  tiposPregunta: OpcionLista[];
+  tiposTexto: OpcionLista[];
 }
 
 /** La prueba de la fila, todavía sin ejes, habilidades ni tipos de pregunta. */
@@ -97,6 +115,8 @@ export interface DependenciasTemarioServicio {
   unidadDeTrabajo: UnidadDeTrabajo;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearTemarioRepositorio(bd). */
   repositorio?: TemarioRepositorio;
+  /** Solo para pruebas: reemplaza al repositorio de las listas de opciones (C09). */
+  repositorioListas?: TemarioListasRepositorio;
 }
 
 /** HU-16.2: lo que se sabe de un contenido para pedirle una pregunta a la IA. */
@@ -124,6 +144,12 @@ export interface ContenidoParaGenerar {
 export interface TemarioServicio {
   /** C07 / HU-10: consulta de lo cargado con área, curso, descriptores y criterios. */
   consultarTemario(): Promise<ConsultaTemario>;
+  /**
+   * C09 / HU-64.1: dificultades con su mezcla global (mínimo, objetivo y máximo), áreas de carrera,
+   * activas o no, con las pruebas y el electivo que sugiere cada una, tipos de evaluación con su
+   * comportamiento, y motivos de aviso, tipos de pregunta y tipos de texto. Solo lectura.
+   */
+  consultarListasOpciones(): Promise<ListasOpciones>;
   /** HU-16.2: el contenido con su eje, su prueba y las habilidades de la prueba; null si no existe. */
   contenidoParaGenerar(contenidoId: number): Promise<ContenidoParaGenerar | null>;
   /** HU-16.2 y RN-09: la mezcla objetivo de dificultad en porcentaje (fácil, media y difícil). */
@@ -176,11 +202,25 @@ function mezclaDe(dificultades: readonly { codigo: string; mezcla: number }[]) {
   return mezcla;
 }
 
+/** C09: una consulta tras otra, así también sirve con una sola conexión. */
+function listasOpciones({ bd, repositorioListas }: DependenciasTemarioServicio) {
+  const listas = repositorioListas ?? crearTemarioListasRepositorio(bd);
+  return async (): Promise<ListasOpciones> => ({
+    dificultades: await listas.dificultades(),
+    areasCarrera: await listas.areasCarrera(),
+    tiposEvaluacion: await listas.tiposEvaluacion(),
+    motivosAviso: await listas.opciones('motivosAviso'),
+    tiposPregunta: await listas.opciones('tiposPregunta'),
+    tiposTexto: await listas.opciones('tiposTexto'),
+  });
+}
+
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
   const repositorio = dependencias.repositorio ?? crearTemarioRepositorio(dependencias.bd);
   const generacion = crearTemarioGeneracionRepositorio(dependencias.bd);
   const servicio: TemarioServicio = {
     consultarTemario: () => consultarTemario(servicio, dependencias.bd),
+    consultarListasOpciones: listasOpciones(dependencias),
     contenidoParaGenerar: async (contenidoId) => {
       const fila = await generacion.contenido(contenidoId);
       if (fila === null) return null;

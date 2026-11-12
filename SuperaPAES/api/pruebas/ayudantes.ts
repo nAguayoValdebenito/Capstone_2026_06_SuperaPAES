@@ -105,6 +105,7 @@ export function cuerpoIngreso(cambios: Record<string, unknown> = {}): Record<str
 export function temarioEnMemoria(temario: PruebaTemario[]): TemarioServicio {
   return {
     consultarTemario: sinBase,
+    consultarListasOpciones: sinBase,
     contenidoParaGenerar: () => Promise.resolve(null),
     mezclaDeDificultad: () => Promise.resolve({ facil: 30, media: 45, dificil: 25 }),
     listarAreas: () => Promise.resolve([]),

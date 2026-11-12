@@ -1,5 +1,6 @@
 // Rutas de /api/v1/admin/temario (consola, JWT de la consola, rol admin): áreas, pruebas,
-// habilidades, ejes y contenidos del temario PAES, y las pruebas que sugiere cada área de carrera.
+// habilidades, ejes y contenidos del temario PAES, y las listas de opciones de C09 (dificultades y
+// áreas de carrera con las pruebas que sugiere cada una), de solo lectura.
 // Cada ruta declara su rol (DAS 4.3.3); el módulo no aplica un rol común.
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
 // crearTemarioControlador(servicio).
@@ -14,5 +15,6 @@ export function crearRutasAdminTemario(servicio: TemarioServicio): Router {
 
   router.get('/', exigirRol('admin'), controlador.consultarTemario);
   router.get('/areas', exigirRol('admin'), controlador.listarAreas);
+  router.get('/listas-opciones', exigirRol('admin'), controlador.consultarListasOpciones);
   return router;
 }
