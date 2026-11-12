@@ -1,5 +1,6 @@
 // Llamadas a /api/v1/admin/evaluaciones (módulo evaluaciones de la API): estructuras y tablas de conversión (C08).
 import { solicitarAdmin } from '../api/cliente';
+import type { ImpactoDeAnular } from '../tipos/avisos-error';
 import type {
   EdicionEstructura,
   Estructura,
@@ -41,4 +42,13 @@ export async function cargarTabla(datos: NuevaTabla): Promise<TablaConversion> {
     body: JSON.stringify(datos),
   });
   return data;
+}
+
+/** HU-50.2 (C13): en cuántas evaluaciones aparece la pregunta, antes de anularla. */
+export async function impactoDeAnular(
+  preguntaId: number,
+  senal?: AbortSignal,
+): Promise<ImpactoDeAnular> {
+  const ruta = `/evaluaciones/preguntas/${String(preguntaId)}/impacto`;
+  return (await solicitarAdmin<ImpactoDeAnular>(ruta, senal ? { signal: senal } : {})).data;
 }

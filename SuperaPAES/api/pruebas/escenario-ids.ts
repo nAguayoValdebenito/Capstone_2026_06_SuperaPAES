@@ -4,6 +4,7 @@ import type { Express } from 'express';
 import { expect, vi } from 'vitest';
 import { crearApp, crearServicios } from '../app.js';
 import { cuerpoDePreguntas, preguntasDePrueba } from './escenario-ids-preguntas.js';
+import { cuerpoParaAcceso } from './escenario-ids-acceso.js';
 import { cuerpoDeRevision, esDelDocente, revisionDePrueba } from './escenario-ids-revision.js';
 import { filaHistorial, trazabilidadDePrueba } from './escenario-ids-suscripciones.js';
 import {
@@ -214,19 +215,8 @@ const cuerpoDeOtrosModulos = (ruta: string) =>
 
 function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   if (ruta.endsWith('/mini-ensayos')) return { pruebaId: 2 };
-  if (ruta.endsWith('/registro'))
-    return {
-      nombre: 'Ana',
-      correo: 'ana@ejemplo.cl',
-      contrasena: 'Clave-larga-123',
-      declaraTenerCatorceAnios: true,
-      documentosAceptados: [1, 2],
-    };
-  if (ruta.endsWith('/ingreso'))
-    return {
-      correo: 'ana@ejemplo.cl',
-      contrasena: 'Clave-larga-123',
-    };
+  const cuerpoAcceso = cuerpoParaAcceso(ruta);
+  if (cuerpoAcceso) return cuerpoAcceso;
   if (ruta.endsWith('/usuarios-internos') && ruta.startsWith('POST'))
     return {
       nombre: 'Diego',
@@ -235,7 +225,8 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
       areas: [1, 2],
       contrasena: 'Clave-larga-123',
     };
-  if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
+  if (ruta.startsWith('PATCH') && ruta.endsWith('/usuarios-internos/:id'))
+    return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
   if (ruta.endsWith('/repasos')) return { pruebaId: 2 };
   if (ruta.endsWith('/respuesta')) return { alternativaId: 102 };

@@ -7,10 +7,12 @@ import type { CambioDeEtapa } from './preguntas.publicacion.servicio.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
 import type {
   ArchivosImportacion,
+  CierreAviso,
   ConsultaTextos,
   DatosImportacion,
   DatosPregunta,
   DatosTexto,
+  FiltrosAvisos,
   FiltrosBanco,
 } from './preguntas.validadores.js';
 
@@ -34,6 +36,9 @@ export interface PreguntasControlador {
   publicarPregunta: Validado;
   retirarPregunta: Validado;
   volverABorrador: Validado;
+  listarAvisos: RequestHandler;
+  cerrarAviso: Validado<{ estado: CierreAviso }>;
+  anularPregunta: Validado;
 }
 
 /**
@@ -72,9 +77,31 @@ function controladorImportacion(
   };
 }
 
+/** HU-50.1 y HU-50.2 (C13): la bandeja de avisos, el cierre de un aviso y la anulación. */
+function controladorAvisos(
+  servicio: PreguntasServicio,
+): Pick<PreguntasControlador, 'listarAvisos' | 'cerrarAviso' | 'anularPregunta'> {
+  return {
+    listarAvisos: async (_req, res) => {
+      const { grupos, paginacion } = await servicio.listarAvisos(
+        res.locals.consulta as FiltrosAvisos,
+      );
+      responder(res, grupos, { meta: paginacion });
+    },
+    cerrarAviso: async (req, res) => {
+      const id = String(req.params.id);
+      responder(res, await servicio.cerrarAviso(autorDe(req), id, req.body.estado));
+    },
+    anularPregunta: async (req, res) => {
+      responder(res, await servicio.anularPregunta(autorDe(req), String(req.params.id)));
+    },
+  };
+}
+
 export function crearPreguntasControlador(servicio: PreguntasServicio): PreguntasControlador {
   return {
     ...controladorImportacion(servicio),
+    ...controladorAvisos(servicio),
     publicarPregunta: cambiarEtapa(servicio, 'publicar'),
     retirarPregunta: cambiarEtapa(servicio, 'retirar'),
     volverABorrador: cambiarEtapa(servicio, 'borrador'),
