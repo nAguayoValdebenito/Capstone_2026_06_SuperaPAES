@@ -4,7 +4,8 @@
   border-radius: 0.5rem;
   background: var(--superficie);
 }
-.configuracion__grupo h2 {
+.configuracion .configuracion__grupo h2 {
+  margin: 0;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--borde);
 }
@@ -46,6 +47,7 @@
 .configuracion__valor input {
   width: 7rem;
   max-width: 100%;
+  min-height: 2.75rem;
   font: inherit;
   padding: 0.5rem;
   border: 1px solid var(--borde);
