@@ -44,6 +44,7 @@ abstract final class Rutas {
   // Desde Perfil
   static const String planes = '/planes';
   static const String miSuscripcion = '/mi-suscripcion';
+  static const String cambiarPlan = '/mi-suscripcion/cambiar-plan';
   static const String invitaciones = '/invitaciones';
   static const String misDatos = '/mis-datos';
   static const String puntajes = '/mis-datos/puntajes';

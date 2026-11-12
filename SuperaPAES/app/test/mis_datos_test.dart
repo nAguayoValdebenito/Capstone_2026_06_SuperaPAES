@@ -10,6 +10,7 @@ import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/mis_datos/pantalla_mis_datos.dart';
 
@@ -68,8 +69,8 @@ void main() {
             aceptadoEn: DateTime(2026, 10, 25),
           ),
         ]),
-        'Aceptaste los Términos y condiciones 1.0 el 21/10/2026 y la '
-        'Política de privacidad 1.1 el 25/10/2026.',
+        'Aceptaste los Términos y condiciones 1.0 el 21 de octubre de 2026 '
+        'y la Política de privacidad 1.1 el 25 de octubre de 2026.',
       );
     });
 
@@ -82,7 +83,7 @@ void main() {
             aceptadoEn: DateTime(2026, 3, 5),
           ),
         ]),
-        'Aceptaste la Política de privacidad 2.0 el 05/03/2026.',
+        'Aceptaste la Política de privacidad 2.0 el 5 de marzo de 2026.',
       );
     });
 
@@ -120,22 +121,20 @@ void main() {
       await tocar(tester, find.text('Mis datos y privacidad'));
 
       expect(rutaActual(contenedor), Rutas.misDatos);
-      expect(find.text('Descargar mis datos'), findsOne);
+      expect(find.byType(BotonPrincipal), findsOne);
       expect(
-        find.text(
-          'Tu cuenta, perfil, historial, respuestas, resultados y puntajes '
-          'en un archivo.',
-        ),
+        find.textContaining('Descargarás un archivo JSON con tu cuenta'),
         findsOne,
       );
-      expect(find.text('Sin permiso · opcional'), findsOne);
+      expect(find.text('Mis puntajes PAES'), findsOne);
+      expect(find.text('Permiso desactivado'), findsOne);
       expect(find.text('Borrar mi cuenta'), findsOne);
-      expect(find.text('Esta acción no se puede deshacer.'), findsOne);
+      expect(find.text('No se puede deshacer'), findsOne);
       // CU-14 paso 2: las versiones aceptadas, con su fecha.
       expect(
         find.text(
           'Aceptaste los Términos y condiciones 1.0 y la Política de '
-          'privacidad 1.0 el 21/10/2026.',
+          'privacidad 1.0 el 21 de octubre de 2026.',
         ),
         findsOne,
       );
@@ -171,19 +170,25 @@ void main() {
         ruta: Rutas.misDatos,
       );
 
-      await tester.tap(find.text('Descargar mis datos'));
+      await tester.tap(find.byType(BotonPrincipal));
       await tester.pump();
 
       expect(compartidos, [archivoDePrueba]);
-      expect(find.text('Preparando tu archivo…'), findsOne);
+      expect(
+        tester.widget<BotonPrincipal>(find.byType(BotonPrincipal)).estado,
+        EstadoBoton.cargando,
+      );
       // Con el menú abierto, otro toque no la vuelve a pedir.
-      await tester.tap(find.text('Descargar mis datos'));
+      await tester.tap(find.byType(BotonPrincipal));
       await tester.pump();
       expect(repo.descargas, 1);
 
       menu.complete();
       await tester.pumpAndSettle();
-      expect(find.text('Preparando tu archivo…'), findsNothing);
+      expect(
+        tester.widget<BotonPrincipal>(find.byType(BotonPrincipal)).estado,
+        EstadoBoton.normal,
+      );
     });
 
     testWidgets('si la descarga falla, muestra el error y se puede volver a '
@@ -204,12 +209,12 @@ void main() {
         ruta: Rutas.misDatos,
       );
 
-      await tocar(tester, find.text('Descargar mis datos'));
+      await tocar(tester, find.byType(BotonPrincipal));
       expect(find.text('No hay conexión con el servidor.'), findsOne);
       expect(compartidos, isEmpty);
 
       repo.error = null;
-      await tocar(tester, find.text('Descargar mis datos'));
+      await tocar(tester, find.byType(BotonPrincipal));
       expect(find.text('No hay conexión con el servidor.'), findsNothing);
       expect(compartidos, [archivoDePrueba]);
     });
@@ -224,7 +229,7 @@ void main() {
         ruta: Rutas.misDatos,
       );
 
-      await tocar(tester, find.text('Descargar mis datos'));
+      await tocar(tester, find.byType(BotonPrincipal));
 
       expect(
         find.text('No se pudo abrir el menú para guardar el archivo.'),

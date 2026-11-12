@@ -413,6 +413,7 @@ class Aviso extends StatelessWidget {
     super.key,
     this.destacado,
     this.textoRico,
+    this.icono,
   });
 
   final TonoAviso tono;
@@ -420,9 +421,12 @@ class Aviso extends StatelessWidget {
   final String? destacado;
   final InlineSpan? textoRico;
 
+  /// Reemplaza el ícono del tono, como el candado de A41 o el escudo de A39.
+  final IconData? icono;
+
   @override
   Widget build(BuildContext context) {
-    final (color, icono, borde) = switch (tono) {
+    final (color, iconoDelTono, borde) = switch (tono) {
       TonoAviso.info || TonoAviso.primario => (
         TemaSuperaPaes.primario,
         Icons.info_outline_rounded,
@@ -462,7 +466,7 @@ class Aviso extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              icono,
+              icono ?? iconoDelTono,
               size: MediaQuery.textScalerOf(context).scale(20),
               color: color,
             ),

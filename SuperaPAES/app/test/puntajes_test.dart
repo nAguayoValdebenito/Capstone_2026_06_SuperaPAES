@@ -4,6 +4,7 @@ import 'package:supera_paes/datos/modelos/puntajes_modelo.dart';
 import 'package:supera_paes/dominio/entidades/puntajes_paes.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 
 import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
@@ -29,7 +30,7 @@ Future<void> _abrir(WidgetTester tester, RepositorioPuntajesFalso repo) =>
 
 Future<void> _cargar(WidgetTester tester, String anio, String puntaje) async {
   await tester.enterText(campo('Año'), anio);
-  await tester.enterText(campo('Puntaje (100 a 1.000)'), puntaje);
+  await tester.enterText(campo('Puntaje (de 100 a 1.000)'), puntaje);
   await tocar(tester, find.text('Guardar puntaje'));
 }
 
@@ -41,15 +42,16 @@ void main() {
       await _abrir(tester, RepositorioPuntajesFalso());
 
       expect(find.text('Mis puntajes PAES'), findsOne);
-      expect(find.text('Permiso para usar mis puntajes'), findsOne);
+      expect(find.textContaining('Autorizo a Supera PAES'), findsOne);
       expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
       expect(
-        find.text('Para cargar tus puntajes, primero activa el permiso.'),
+        find.text(
+          'Sin el permiso no guardamos puntajes. Puedes activarlo cuando '
+          'quieras.',
+        ),
         findsOne,
       );
       expect(find.text('Guardar puntaje'), findsNothing);
-      expect(find.text('Aún no cargas puntajes.'), findsOne);
-      expect(find.text('Los puntajes son declarados por ti.'), findsOne);
     });
 
     testWidgets('activar el permiso muestra su texto y lo da al aceptarlo', (
@@ -61,7 +63,10 @@ void main() {
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
       expect(find.text('Versión 1.0'), findsOne);
-      expect(find.textContaining('Autorizo a Supera PAES a guardar'), findsOne);
+      expect(
+        find.textContaining('Autorizo a Supera PAES a guardar'),
+        findsNWidgets(2),
+      );
 
       await tester.tap(find.text('Dar el permiso'));
       await tester.pumpAndSettle();
@@ -94,13 +99,21 @@ void main() {
       );
 
       // La prueba a reforzar del perfil viene elegida.
-      expect(find.text('Matemática M1'), findsOne);
+      expect(find.text('Cargar un puntaje'), findsOne);
+      expect(
+        tester
+            .widget<ChipPrueba>(
+              find.ancestor(
+                of: find.text('M1'),
+                matching: find.byType(ChipPrueba),
+              ),
+            )
+            .seleccionado,
+        isTrue,
+      );
       await _cargar(tester, '2026', '701');
 
-      expect(find.text('Aún no cargas puntajes.'), findsNothing);
-      expect(find.text('Matemática M1'), findsNWidgets(2));
-      expect(find.text('Admisión 2026'), findsOne);
-      expect(find.text('701'), findsOne);
+      expect(find.text('M1 · admisión 2026 · 701 puntos'), findsOne);
     });
 
     for (final (caso, anio, puntaje, mensaje) in [
@@ -136,11 +149,10 @@ void main() {
     ) async {
       await _abrir(tester, RepositorioPuntajesFalso(estado: _conM1));
       await tester.scrollUntilVisible(
-        find.text('701'),
+        find.text('M1 · admisión 2026 · 701 puntos'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('701'), findsOne);
 
       await tester.scrollUntilVisible(
         find.byType(Switch),
@@ -157,8 +169,7 @@ void main() {
       await tester.tap(find.text('Retirar el permiso'));
       await tester.pumpAndSettle();
 
-      expect(find.text('701'), findsNothing);
-      expect(find.text('Aún no cargas puntajes.'), findsOne);
+      expect(find.textContaining('701 puntos'), findsNothing);
       expect(find.text('Guardar puntaje'), findsNothing);
     });
 
@@ -167,11 +178,10 @@ void main() {
 
       await tocar(
         tester,
-        find.byTooltip('Borrar el puntaje de Matemática M1, Admisión 2026'),
+        find.byTooltip('Borrar el puntaje de M1, admisión 2026'),
       );
 
-      expect(find.text('701'), findsNothing);
-      expect(find.text('Aún no cargas puntajes.'), findsOne);
+      expect(find.textContaining('701 puntos'), findsNothing);
     });
 
     testWidgets('si no carga, muestra el error y deja reintentar', (
@@ -188,7 +198,7 @@ void main() {
       repo.error = null;
       await tocar(tester, find.text('Reintentar'));
 
-      expect(find.text('Permiso para usar mis puntajes'), findsOne);
+      expect(find.byType(Switch), findsOne);
     });
   });
 
@@ -201,10 +211,10 @@ void main() {
       await iniciarApp(tester, contenedor, ruta: Rutas.misDatos);
 
       expect(find.text('Permiso activo · 1 puntaje cargado'), findsOne);
-      await tocar(tester, find.text('Puntajes PAES'));
+      await tocar(tester, find.text('Mis puntajes PAES'));
 
       expect(rutaActual(contenedor), Rutas.puntajes);
-      await tocar(tester, find.text('Mis datos'));
+      await tocar(tester, find.text('Mis datos y privacidad'));
       expect(rutaActual(contenedor), Rutas.misDatos);
     });
 
@@ -224,11 +234,10 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('Admisión 2026'), findsOne);
-      expect(find.text('701'), findsOne);
+      expect(find.text('701 puntos · Admisión 2026'), findsOne);
     });
 
-    testWidgets('sin el puntaje real, «Cargar» abre A41', (tester) async {
+    testWidgets('sin el puntaje real, la fila abre A41', (tester) async {
       final contenedor = crearContenedor(sesion: sesionDeEjemplo);
       await iniciarApp(tester, contenedor, ruta: Rutas.progreso);
 
@@ -237,7 +246,7 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tocar(tester, find.text('Cargar'));
+      await tocar(tester, find.text('Tu puntaje PAES real'));
 
       expect(rutaActual(contenedor), Rutas.puntajes);
     });

@@ -6,17 +6,20 @@ import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart';
 import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
 
 /// Borrar mi cuenta (A42 y A42b; HU-08.2, CU-14 pasos 4 a 6 y alternativos
 /// 4.a y 5.a, RF-A18), desde Mis datos: explica qué se borra y qué queda
-/// seudonimizado, ofrece descargar los datos antes y pide confirmar. Con una
-/// suscripción activa o en mora (A42b) avisa que la tienda seguirá cobrando,
-/// ofrece abrir su gestión de suscripciones y pide una casilla más (RN-34).
-/// Al borrar, la sesión se cierra y la app vuelve al ingreso.
+/// seudonimizado y ofrece descargar los datos antes; «Borrar mi cuenta»
+/// confirma. Con una suscripción activa o en mora (A42b) avisa que la tienda
+/// seguirá cobrando, ofrece abrir su gestión de suscripciones y pide marcar
+/// que debe cancelarla allá (RN-34). Al borrar, la sesión se cierra y la app
+/// vuelve al ingreso.
 class PantallaBorrarCuenta extends ConsumerStatefulWidget {
   const PantallaBorrarCuenta({super.key});
 
@@ -27,7 +30,6 @@ class PantallaBorrarCuenta extends ConsumerStatefulWidget {
 
 class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
     with DescargaDeMisDatos {
-  bool _entiendoPerdida = false;
   bool _entiendoTienda = false;
   bool _borrando = false;
 
@@ -83,7 +85,7 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
     // Sin saber si hay una suscripción vigente, no se puede avisar (RN-34).
     final revisada = estado is AsyncData<EstadoDeLaCuenta>;
     final vigente = revisada ? estado.value.suscripcionVigente : null;
-    final confirmada = _entiendoPerdida && (vigente == null || _entiendoTienda);
+    final confirmada = vigente == null || _entiendoTienda;
     return PantallaFormulario(
       separacion: 14,
       hijos: [
@@ -91,16 +93,26 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
           texto: 'Mis datos y privacidad',
           destino: Rutas.misDatos,
         ),
-        const IconoEnCirculo(
-          icono: Icons.delete_outline,
-          color: TemaSuperaPaes.error,
-        ),
         const Encabezado(
-          titulo: '¿Borrar tu cuenta?',
+          titulo: 'Borrar mi cuenta',
           bajada:
-              'Se eliminan tu nombre, correo, perfil y puntajes. Tus '
-              'evaluaciones y respuestas quedan seudonimizadas, sin tu nombre '
-              'ni tu correo, solo para estadísticas. No se puede deshacer.',
+              'Se eliminarán tu nombre y tu correo, y tus evaluaciones '
+              'quedarán sin datos que te identifiquen. Esta acción no se '
+              'puede deshacer. Antes, puedes descargar tus datos.',
+        ),
+        OutlinedButton.icon(
+          onPressed: descargando ? null : descargar,
+          icon: descargando
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download_rounded, size: 20),
+          label: Text(
+            descargando
+                ? 'Preparando tu archivo…'
+                : 'Descargar mis datos primero',
+          ),
         ),
         ...switch (estado) {
           AsyncData() => [if (vigente != null) ..._suscripcion(vigente)],
@@ -111,56 +123,23 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
               alReintentar: () => ref.invalidate(estadoDeLaCuentaProvider),
             ),
           ],
-          _ => const [Center(child: CircularProgressIndicator())],
+          _ => const [GrupoEsqueleto(child: EsqueletoTarjeta())],
         },
-        Semantics(
-          button: true,
-          child: GestureDetector(
-            onTap: descargar,
-            child: Aviso(
-              tono: TonoAviso.info,
-              textoRico: descargando
-                  ? const TextSpan(text: 'Preparando tu archivo…')
-                  : const TextSpan(
-                      children: [
-                        TextSpan(text: 'Antes de borrar, puedes '),
-                        TextSpan(
-                          text: 'descargar tus datos',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        TextSpan(text: '.'),
-                      ],
-                    ),
-            ),
-          ),
-        ),
-        if (vigente != null)
-          _Casilla(
-            texto: 'Entiendo que debo cancelarla en la tienda',
-            marcada: _entiendoTienda,
-            onChanged: (valor) => setState(() => _entiendoTienda = valor),
-          ),
-        _Casilla(
-          texto: 'Entiendo que perderé mi historial y mi progreso.',
-          marcada: _entiendoPerdida,
-          onChanged: (valor) => setState(() => _entiendoPerdida = valor),
-        ),
       ],
       pie: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PieConError(
+          BotonPrincipal(
+            texto: 'Borrar mi cuenta',
+            color: TemaSuperaPaes.error,
+            estado: _borrando
+                ? EstadoBoton.cargando
+                : error == null
+                ? EstadoBoton.normal
+                : EstadoBoton.error,
             error: error,
-            boton: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: TemaSuperaPaes.error,
-              ),
-              onPressed: revisada && confirmada && !_borrando ? _borrar : null,
-              child: _borrando
-                  ? const CargandoEnBoton()
-                  : const Text('Borrar mi cuenta'),
-            ),
+            onPressed: revisada && confirmada ? _borrar : null,
           ),
           const SizedBox(height: 12),
           OutlinedButton(
@@ -176,31 +155,31 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
     );
   }
 
-  /// A42b: el aviso de la tienda y el botón para cancelarla allá (RN-34).
+  /// A42b: el aviso de la tienda, el botón para cancelarla allá y la casilla
+  /// que confirma que lo entendió (RN-34).
   List<Widget> _suscripcion(SuscripcionVigente datos) {
-    final tienda = datos.tienda.nombre;
     return [
       Aviso(
-        tono: TonoAviso.aviso,
-        textoRico: TextSpan(
-          children: [
-            const TextSpan(text: 'Tienes una suscripción '),
-            TextSpan(
-              text: datos.enMora ? 'en mora' : 'activa',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            TextSpan(
-              text:
-                  ' (${datos.plan}, ${datos.periodicidad}, $tienda). $tienda '
-                  'seguirá cobrando hasta que la canceles en la tienda: la '
-                  'app no puede cancelarla.',
-            ),
-          ],
-        ),
+        tono: TonoAviso.neutro,
+        icono: Icons.credit_card_rounded,
+        texto:
+            'Tienes una suscripción ${datos.enMora ? 'en mora' : 'activa'}. '
+            'Si borras tu cuenta, la tienda seguirá cobrando hasta que la '
+            'canceles en Google Play o en la App Store.',
       ),
-      OutlinedButton(
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: TemaSuperaPaes.primario,
+          textStyle: TemaSuperaPaes.pequenoFuerte,
+        ),
         onPressed: () => _abrirTienda(datos.tienda),
-        child: Text('Abrir mis suscripciones en $tienda'),
+        icon: const Icon(Icons.open_in_new_rounded, size: 18),
+        label: const Text('Abrir suscripciones de la tienda'),
+      ),
+      _Casilla(
+        texto: 'Entiendo que debo cancelarla en la tienda',
+        marcada: _entiendoTienda,
+        onChanged: (valor) => setState(() => _entiendoTienda = valor),
       ),
     ];
   }

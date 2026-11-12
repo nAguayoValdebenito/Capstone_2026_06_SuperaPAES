@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/por_repasar.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
@@ -130,11 +131,10 @@ class _PantallaRepasoState extends ConsumerState<PantallaRepaso>
       ],
       pie: PieConError(
         error: errorEmpezar,
-        boton: FilledButton(
-          onPressed: empezando ? null : () => empezarRepaso(prueba),
-          child: empezando
-              ? const CargandoEnBoton()
-              : Text(_textoBoton(prueba)),
+        boton: BotonPrincipal(
+          texto: _textoBoton(prueba),
+          estado: empezando ? EstadoBoton.cargando : EstadoBoton.normal,
+          onPressed: () => empezarRepaso(prueba),
         ),
       ),
     );

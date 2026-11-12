@@ -458,9 +458,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(rutaActual(contenedor), Rutas.terminos);
-      expect(find.text('Términos y privacidad'), findsOne);
-      expect(find.text('Versión 1.0 · vigente desde 19/10/2026'), findsOne);
-      expect(find.text('1. Quiénes somos'), findsOne);
+      expect(find.text('Términos y condiciones'), findsOne);
+      expect(
+        find.text('Versión 1.0. Vigente desde el 19 de octubre de 2026.'),
+        findsOne,
+      );
+      expect(find.text('Quiénes somos'), findsOne);
+      // La primera sección viene abierta.
+      expect(find.text('Supera PAES es un servicio.'), findsOne);
     });
   });
 }

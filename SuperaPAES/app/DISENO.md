@@ -51,7 +51,7 @@ diseño es el del prototipo v3 (DAS 7.2 y 7.5) y ya está en el código:
 | `neutroSuave`                                        | `#EEF1F6`                                                      | Botón desactivado y aviso neutro                                                                                                                                                                                                  |
 | `exito` / `exitoSuave` / `exitoTexto`                | `#15803D` / `#E7F6EC` / `#14532D`                              | Aviso de éxito                                                                                                                                                                                                                    |
 | `error` / `errorSuave` / `errorTexto`                | `#B91C1C` / `#FDECEC` / `#7F1D1D`                              | Errores y aviso de error                                                                                                                                                                                                          |
-| `aviso` / `avisoSuave` / `avisoBorde` / `avisoTexto` | `#B45309` / `#FFF4E5` / `#F5C77E` / `#7C2D12`                  | **En retiro.** El ámbar ya no es de la identidad: las pantallas que aún lo usan (reloj de A27, cupo de A12, Progreso, Historial) lo cambian por `Destacado` o por la paleta en sus fases (F3 a F6); el token sigue hasta entonces |
+| `aviso` / `avisoSuave` / `avisoBorde` / `avisoTexto` | `#B45309` / `#FFF4E5` / `#F5C77E` / `#7C2D12`                  | **En retiro.** El ámbar ya no es de la identidad: desde F6 ninguna pantalla lo usa (se cambió por `Destacado` o por la paleta); el token queda solo en el tema                                                                    |
 | `logoOscuro` / `logoCeleste`                         | `#0B2653` / `#009CD2`                                          | El logo, el trazo, la racha y el texto de `Destacado`                                                                                                                                                                             |
 | `sobreMarcaSuave`                                    | `#FFFFFF` al 86 %                                              | Texto de apoyo sobre el degradado de «Hoy» (5,2:1 sobre `primario`)                                                                                                                                                               |
 | `neutroFuerte`                                       | `#475569`                                                      | Ícono de la corrección sin acierto (6,7:1 sobre `neutroSuave`)                                                                                                                                                                    |
@@ -663,6 +663,88 @@ tres segundos, entrega al vencer, movimiento reducido, letra 2,0, estados
 gratis/suscrito, cuadrícula accesible, filtros, Hero con push y resultados con o
 sin tabla. Las capturas de widgets no sustituyen una comprobación en dispositivo.
 
+## Progreso, perfil y planes (F6)
+
+- A35 y A36: `Encabezado('Progreso')` y `ChipPrueba` por prueba del perfil.
+  `TarjetaAcierto` lleva el sello, el porcentaje con `ContadorAnimado` y el
+  acierto por dificultad en `BarraAnimada` («—» sin respuestas; con letra
+  grande, el nombre y la cifra van sobre la barra). Los ejes (en Lectora, las
+  habilidades) usan `FilaEje` con `nivelDeGrupo`: «Reforzar» solo con la marca
+  del servidor (RN-14). «Semana a semana» dibuja hasta seis barras que crecen
+  escalonadas; la última va en `primario` y dice «Subiste N puntos desde la
+  semana del dd/mm.» solo si subió (no se escribe una bajada). Abajo,
+  `ListaDeFilas` con Historial y «Tu puntaje PAES real». Sin respuestas, A36 es
+  un `EstadoVacio` con «Practicar {prueba}». Ya no hay barras ámbar.
+- A34: una sola `ListaDeFilas` con una fila por evaluación (sello con Hero,
+  «Mini-ensayo de M1», el resultado en `primarioOscuro` y la fecha en palabras).
+  «Abandonada» y «Recalculado» van en gris, sin ámbar. Sin nada todavía, solo el
+  vacío «Aún no tienes nada en tu historial», sin segmento ni filtros.
+- A37: la cuenta con su inicial, «Sin verificar» como `Etiqueta` de tono aviso
+  (`Destacado`) y la tarjeta para verificar; accesos a Mi suscripción, Invitar y
+  Mis datos; «Legal» con la versión vigente de cada documento; el perfil de
+  estudio con sellos de 28 dp.
+- A44 y A46: la tarjeta del plan con sello (o el ícono del plan «Todas las
+  pruebas»), periodicidad y precio, «Activa» o «En mora», la renovación y la
+  tienda en `FilaDato`, y «Modo de prueba: sin dinero real.». En mora, el aviso
+  y «Revisar el pago en {tienda}» reemplazan a «Cambiar de plan». Sin plan,
+  `EstadoVacio` y «Hoy en Gratis». Las fechas van en palabras (`fechaConAnio`).
+- A45 (nueva, `/mi-suscripcion/cambiar-plan`, de Perfil): «Ahora» y «Nuevo»
+  (borde `primario` de 2 dp), qué cambia y el pie con «Confirmar el cambio» y
+  «Mantener mi plan». El plan nuevo llega como `extra` desde Planes; sin él, es
+  el otro alcance con la misma periodicidad.
+- A43: abre en la periodicidad del plan actual (Gratis: mensual), con la línea
+  de ícono de cada periodicidad. «Todas las pruebas» va primero, con
+  «Recomendado» y botón lleno; «Una prueba» muestra los sellos del perfil y
+  pregunta en una hoja cuál prueba incluye. Gratis solo aparece si es el plan
+  actual. Con un plan, el otro dice «Cambiar a …» y abre A45.
+- Sin cuentas de tiendas no hay compra (decidido el 04/11):
+  `avisarModoDePrueba` muestra la hoja «Modo de prueba» al elegir un plan y al
+  confirmar un cambio.
+- Repaso, Verificar correo y los dos «Antes de empezar» pasan a
+  `BotonPrincipal`; `CargandoEnBoton` queda solo en «Reenviar correo» (botón de
+  texto) y en las pantallas que no son de F6 ni F7.
+
+## Invitar, legal y privacidad (F7)
+
+- A38: el código en pares («K7  P2  QX», `display` en `primarioOscuro`; el
+  lector lo deletrea), «Copiar código», «Copiar link» y el link sin
+  `https://`; «Cómo funciona» en tres pasos con ícono; «Lo que llevas» con
+  `FilaDato` y la barra de las premiadas del mes. Sin invitados, un vacío con
+  el trazo en gris; en el tope del mes, un aviso. «Compartir invitación» va
+  fijo en el pie. El saldo de preguntas extra ya no se muestra (no está en la
+  maqueta).
+- A02 y A02b: el título es el nombre del documento y la bajada su versión y
+  vigencia en palabras. Cada sección «## N. Título» del Markdown es una fila que
+  se abre y se cierra (la primera, abierta), y al final «¿Dudas? Escríbenos a
+  superapaes@gmail.com.». Con sesión se vuelve a Perfil; sin ella, a donde se
+  abrió.
+- A39: el aviso de los términos aceptados (con escudo), la tarjeta «Descargar
+  mis datos» con `BotonPrincipal`, «Mis puntajes PAES» y, bajo «Si ya no
+  quieres usar Supera PAES», «Borrar mi cuenta». «Solicitudes sobre mis datos»
+  (A40) no se agrega: la API de la app aún no tiene sus rutas (HU-09).
+- A41: el permiso es el texto completo junto al interruptor (se siguen pidiendo
+  las hojas para darlo y retirarlo). Sin permiso, un aviso con candado y nada
+  más. Con permiso, «Cargar un puntaje» con `ChipPrueba`, año, puntaje y
+  `BotonPrincipal`, y los puntajes como «M1 · admisión 2026 · 742 puntos». El
+  año sigue porque la API lo exige, aunque la maqueta no lo muestra.
+- A42 y A42b: «Descargar mis datos primero» con borde, el aviso de la tienda
+  (con tarjeta) y «Abrir suscripciones de la tienda», y la casilla «Entiendo que
+  debo cancelarla en la tienda». Como en la maqueta, sin suscripción no hay
+  casilla: «Borrar mi cuenta» (`BotonPrincipal` en rojo) confirma.
+- Componentes: `Aviso` acepta `icono`; `BotonPrincipal` acepta `color`;
+  `FilaDato` deja a la etiqueta todo lo que el valor no usa (el valor llega
+  hasta el 60 % del ancho); las fechas en español pasan a
+  `comunes/fechas.dart`.
+
+Textos nuevos **por aprobar**: «Versión de prueba: las compras no generan
+cobros reales. Elegiste {plan}.» en la hoja del modo de prueba (une dos textos
+de la maqueta); «Elegir {prueba}» en la hoja de la prueba; en A45 sin plan,
+«Elige un plan para tener más preguntas y evaluaciones.»; en A45 con el mismo
+alcance, solo «El cambio rige en cuanto la tienda lo confirma; …»; «Tienes una
+suscripción en mora.» en A42b; «Opcionales, con tu permiso» en A39 mientras
+cargan los puntajes; «Introducción» si un documento tiene texto antes de su
+primera sección.
+
 ## Navegación persistente (F1)
 
 `enrutador.dart` mantiene un navegador independiente por pestaña. La fuente de pantallas sigue
@@ -763,6 +845,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A24      | Repasar errores                              | `34:1123`  | `repaso/pantalla_repaso.dart`. Sin el filtro «Todas» del boceto: cada repaso es de una prueba. La tarjeta de Inicio, `TarjetaRepaso` en `inicio/evaluacion_sin_terminar.dart`; las preguntas, las de la práctica                                                                                                                                                                                |
 | A43      | Planes                                       | `36:1705`  | `planes/pantalla_planes.dart`. Elegir un plan avisa el modo de prueba: no hay compra                                                                                                                                                                                                                                                                                                            |
 | A44      | Mi suscripción                               | `36:1799`  | `planes/pantalla_mi_suscripcion.dart`, con A46 (en mora) en la misma pantalla                                                                                                                                                                                                                                                                                                                   |
+| A45      | Cambiar de plan                              | por anotar | `planes/pantalla_cambiar_plan.dart` (F6). Confirmar avisa el modo de prueba: no hay compra                                                                                                                                                                                                                                                                                                      |
 | A34      | Historial                                    | `35:1443`  | `resultado/pantalla_historial.dart`, con filtros, marcas y páginas; se abre desde Progreso y desde el resultado                                                                                                                                                                                                                                                                                 |
 | A25      | Evaluaciones                                 | por anotar | `evaluaciones/pantalla_evaluaciones.dart` y `tarjetas_evaluaciones.dart`                                                                                                                                                                                                                                                                                                                        |
 | A26      | Antes de empezar                             | por anotar | `evaluaciones/pantalla_antes_de_empezar.dart`; la del ensayo completo, sin boceto propio, en `pantalla_antes_del_ensayo.dart` (las condiciones comunes en `condiciones_evaluacion.dart`)                                                                                                                                                                                                        |
@@ -774,7 +857,7 @@ una pantalla, agrega `?node-id=` con el nodo (cambiando `:` por `-`), por ejempl
 | A32      | Resultado de ensayo completo                 | por anotar | `resultado/pantalla_resultado.dart` (el puntaje con el año y el proceso de la tabla)                                                                                                                                                                                                                                                                                                            |
 | A32b     | Ensayo sin tabla de conversión               | por anotar | `resultado/pantalla_resultado.dart`                                                                                                                                                                                                                                                                                                                                                             |
 | A33      | Revisión pregunta por pregunta               | por anotar | `resultado/pantalla_revision.dart` (alternativas y explicación de `correccion/partes_correccion.dart`)                                                                                                                                                                                                                                                                                          |
-| A35      | Progreso                                     | `35:1532`  | `progreso/` (sin «Historial», que llega con HU-62)                                                                                                                                                                                                                                                                                                                                              |
+| A35      | Progreso                                     | `35:1532`  | `progreso/` (F6: con «Historial» y el puntaje PAES real al final)                                                                                                                                                                                                                                                                                                                               |
 | A36      | Progreso de una prueba sin respuestas        | `35:1664`  | `progreso/pantalla_progreso.dart`                                                                                                                                                                                                                                                                                                                                                               |
 | A37      | Perfil                                       | `35:1721`  | `perfil/` (ya sigue el boceto)                                                                                                                                                                                                                                                                                                                                                                  |
 | A38      | Invitar                                      | por anotar | `invitaciones/` (link, código, compartir, registrados, verificados y preguntas ganadas, y el saldo y el tope del mes con `FilaDato`)                                                                                                                                                                                                                                                            |

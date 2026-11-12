@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supera_paes/dominio/entidades/plan.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
@@ -10,15 +11,18 @@ import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart';
+import 'package:supera_paes/presentacion/comunes/fechas.dart';
 import 'package:supera_paes/presentacion/comunes/navegar.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/planes/estado_planes.dart';
-import 'package:supera_paes/presentacion/progreso/tarjetas_progreso.dart';
 
-/// Mi suscripción (A44, y A46 en mora; HU-43 esc. 3, HU-45, CU-12 1.a y 4.b):
-/// plan, estado, periodicidad, renovación y tienda. Cancelar abre la gestión
-/// de la tienda, que es la única que puede hacerlo (RN-05). Cambiar de plan
-/// lleva a los planes. En el plan Gratis, invita a verlos.
+/// Mi suscripción (A44, y A46 con el pago pendiente; HU-43 esc. 3, HU-45,
+/// CU-12 1.a y 4.b): plan, estado, periodicidad, renovación y tienda.
+/// Cancelar abre la gestión de la tienda, que es la única que puede hacerlo
+/// (RN-05). «Cambiar de plan» abre A45. En el plan Gratis, invita a ver los
+/// planes y resume lo que incluye.
 class PantallaMiSuscripcion extends ConsumerWidget {
   const PantallaMiSuscripcion({super.key});
 
@@ -32,7 +36,7 @@ class PantallaMiSuscripcion extends ConsumerWidget {
       AsyncData() => const _PlanGratis(),
       AsyncError(:final error) => PantallaFormulario(
         hijos: [
-          const EnlaceVolver(texto: 'Volver', destino: Rutas.perfil),
+          const EnlaceVolver(texto: 'Perfil', destino: Rutas.perfil),
           ErrorConReintento(
             error: error,
             mensaje: 'No pudimos cargar tu suscripción.',
@@ -41,7 +45,11 @@ class PantallaMiSuscripcion extends ConsumerWidget {
         ],
       ),
       _ => const PantallaFormulario(
-        hijos: [SizedBox(height: 32), EsqueletoTarjeta(lineas: 4)],
+        hijos: [
+          EnlaceVolver(texto: 'Perfil', destino: Rutas.perfil),
+          Encabezado(titulo: 'Mi suscripción'),
+          EsqueletoTarjeta(lineas: 4),
+        ],
       ),
     };
   }
@@ -54,8 +62,8 @@ class _PlanGratis extends StatelessWidget {
   Widget build(BuildContext context) {
     return PantallaFormulario(
       hijos: [
-        const EnlaceVolver(texto: 'Volver', destino: Rutas.perfil),
-        const SizedBox(height: 32),
+        const EnlaceVolver(texto: 'Perfil', destino: Rutas.perfil),
+        const SizedBox(height: TemaSuperaPaes.espacio16),
         EstadoVacio(
           titulo: 'Estás en el plan Gratis',
           texto:
@@ -64,10 +72,69 @@ class _PlanGratis extends StatelessWidget {
           accion: 'Ver planes',
           alTocar: () => abrirPlanes(context),
         ),
+        const Tarjeta(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Hoy en Gratis', style: TemaSuperaPaes.h2),
+              Beneficio('10 preguntas al día, 20 con el correo verificado'),
+              Beneficio('1 mini-ensayo al mes por prueba'),
+              Beneficio('Repaso de tus 10 falladas más recientes'),
+            ],
+          ),
+        ),
       ],
     );
   }
 }
+
+/// «✓ Ensayos completos con puntaje estimado» (A43 y A44).
+class Beneficio extends StatelessWidget {
+  const Beneficio(this.texto, {super.key});
+
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: TemaSuperaPaes.espacio8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ExcludeSemantics(
+            child: Icon(
+              Icons.check_rounded,
+              size: 18,
+              color: TemaSuperaPaes.exito,
+            ),
+          ),
+          const SizedBox(width: TemaSuperaPaes.espacio8),
+          Expanded(child: Text(texto, style: TemaSuperaPaes.pequeno)),
+        ],
+      ),
+    );
+  }
+}
+
+/// «Una prueba · M1» o «Todas las pruebas», con el nombre corto de la prueba
+/// incluida cuando se conoce.
+String nombreDelPlan(SuscripcionVigente suscripcion, String? prueba) =>
+    suscripcion.alcance == 'una_prueba' && prueba != null
+    ? '${suscripcion.plan} · $prueba'
+    : suscripcion.plan;
+
+/// El plan que se ofrece con el mismo alcance y periodicidad que la
+/// suscripción, para mostrar su precio.
+PlanOfrecido? planDe(
+  SuscripcionVigente suscripcion,
+  List<PlanOfrecido>? planes,
+) => planes
+    ?.where(
+      (plan) =>
+          plan.alcanceNombre == suscripcion.plan &&
+          plan.periodicidad == suscripcion.periodicidad,
+    )
+    .firstOrNull;
 
 class _Detalle extends ConsumerStatefulWidget {
   const _Detalle({required this.suscripcion});
@@ -81,7 +148,7 @@ class _Detalle extends ConsumerStatefulWidget {
 class _DetalleState extends ConsumerState<_Detalle> {
   String? _error;
 
-  /// Solo la tienda puede cancelar (CU-12 1.a).
+  /// Solo la tienda puede cancelar o corregir el pago (CU-12 1.a).
   Future<void> _abrirTienda() async {
     final suscripcion = widget.suscripcion;
     bool abierta;
@@ -101,149 +168,166 @@ class _DetalleState extends ConsumerState<_Detalle> {
     }
   }
 
-  /// «Mensual · $2.990»: el precio llega con los planes.
-  String _periodicidad(List<PlanOfrecido>? planes) {
-    final suscripcion = widget.suscripcion;
-    final nombre = suscripcion.periodicidad == 'anual' ? 'Anual' : 'Mensual';
-    final plan = planes
-        ?.where(
-          (plan) =>
-              plan.alcanceNombre == suscripcion.plan &&
-              plan.periodicidad == suscripcion.periodicidad,
-        )
-        .firstOrNull;
-    return plan == null ? nombre : '$nombre · ${plan.precio}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final suscripcion = widget.suscripcion;
     final tienda = suscripcion.tienda.nombre;
     final fin = suscripcion.periodoFin;
-    final planes = ref.watch(planesProvider).value;
     final secundario = TemaSuperaPaes.pequeno.copyWith(
       color: TemaSuperaPaes.textoSecundario,
     );
+    final renueva = suscripcion.renuevaAutomaticamente;
     return PantallaFormulario(
-      separacion: 14,
+      separacion: 16,
       hijos: [
-        const EnlaceVolver(texto: 'Volver', destino: Rutas.perfil),
+        const EnlaceVolver(texto: 'Perfil', destino: Rutas.perfil),
         const Encabezado(titulo: 'Mi suscripción'),
         if (suscripcion.enMora)
           Aviso(
             tono: TonoAviso.aviso,
             texto:
-                'No se pudo cobrar la renovación. Mantienes tu plan mientras '
+                'No pudimos cobrar la renovación. Mantienes tu plan mientras '
                 'la tienda reintenta. Revisa tu medio de pago en $tienda.',
           ),
-        Tarjeta(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  Text(suscripcion.plan, style: TemaSuperaPaes.h2),
-                  Etiqueta(
-                    texto: suscripcion.enMora ? 'En mora' : 'Activa',
-                    tono: suscripcion.enMora
-                        ? TonoEtiqueta.aviso
-                        : TonoEtiqueta.exito,
-                  ),
-                ],
-              ),
-              _Dato('Periodicidad', _periodicidad(planes)),
-              if (fin != null)
-                _Dato(
-                  suscripcion.renuevaAutomaticamente
-                      ? 'Próxima renovación'
-                      : 'Termina el',
-                  fechaLarga(fin),
-                ),
-              _Dato('Pagas con', tienda),
-              const SizedBox(height: 8),
-              Text('Modo de prueba: sin dinero real', style: secundario),
-            ],
+        _TarjetaPlan(suscripcion: suscripcion),
+        if (suscripcion.enMora)
+          FilledButton(
+            onPressed: _abrirTienda,
+            child: Text('Revisar el pago en $tienda'),
+          )
+        else
+          OutlinedButton(
+            onPressed: () => unawaited(context.push(Rutas.cambiarPlan)),
+            child: const Text('Cambiar de plan'),
+          ),
+        Text(
+          'Los cambios rigen en cuanto la tienda los confirma. Te avisamos por '
+          'correo 7 días antes de renovar un plan anual.',
+          style: secundario,
+        ),
+        if (_error case final mensaje?)
+          Aviso(tono: TonoAviso.error, texto: mensaje),
+        TextButton(
+          onPressed: _abrirTienda,
+          child: Text(
+            renueva ? 'Cancelar suscripción en $tienda' : 'Ver en $tienda',
+            textAlign: TextAlign.center,
           ),
         ),
-        if (!suscripcion.enMora)
-          ListaDeFilas(
-            filas: [
-              if (suscripcion.periodicidad == 'mensual')
-                FilaNavegacion(
-                  texto: 'Cambiar a anual',
-                  onTap: () => abrirPlanes(context),
-                ),
-              FilaNavegacion(
-                texto: 'Cambiar de plan',
-                onTap: () => abrirPlanes(context),
-              ),
-            ],
-          ),
-        if (!suscripcion.enMora)
+        if (fin != null && renueva)
           Text(
-            'Los cambios rigen en cuanto la tienda los confirma. La tienda '
-            'cobra o abona la diferencia del período.',
+            'Si cancelas, mantienes el plan hasta el ${fechaConAnio(fin)}.',
             style: secundario,
+            textAlign: TextAlign.center,
           ),
       ],
-      pie: PieConError(
-        error: _error,
-        boton: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            OutlinedButton(
-              onPressed: _abrirTienda,
-              child: Text(
-                suscripcion.renuevaAutomaticamente
-                    ? 'Cancelar suscripción en $tienda'
-                    : 'Ver en $tienda',
+    );
+  }
+}
+
+/// El plan con su sello, periodicidad y precio, el estado y los datos de la
+/// renovación y del pago.
+class _TarjetaPlan extends ConsumerWidget {
+  const _TarjetaPlan({required this.suscripcion});
+
+  final SuscripcionVigente suscripcion;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final opciones = ref.watch(opcionesPerfilProvider).value;
+    final incluida = suscripcion.pruebasIncluidas.firstOrNull;
+    final datosPrueba = incluida == null ? null : opciones?.prueba(incluida);
+    final plan = planDe(suscripcion, ref.watch(planesProvider).value);
+    final periodicidad = suscripcion.periodicidad == 'anual'
+        ? 'Anual'
+        : 'Mensual';
+    final fin = suscripcion.periodoFin;
+    return Tarjeta(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              if (suscripcion.alcance == 'una_prueba' && datosPrueba != null)
+                SelloPrueba(Prueba.deCodigo(datosPrueba.codigo))
+              else
+                const _SelloTodas(),
+              const SizedBox(width: TemaSuperaPaes.espacio12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nombreDelPlan(suscripcion, datosPrueba?.nombreCorto),
+                      style: TemaSuperaPaes.h2,
+                    ),
+                    Text(
+                      plan == null
+                          ? periodicidad
+                          : '$periodicidad · ${plan.precio}',
+                      style: TemaSuperaPaes.pequeno.copyWith(
+                        color: TemaSuperaPaes.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (fin != null && suscripcion.renuevaAutomaticamente) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Si cancelas, mantienes el plan hasta el ${fechaLarga(fin)}.',
-                style: secundario,
-                textAlign: TextAlign.center,
+              const SizedBox(width: TemaSuperaPaes.espacio8),
+              Etiqueta(
+                texto: suscripcion.enMora ? 'En mora' : 'Activa',
+                tono: suscripcion.enMora
+                    ? TonoEtiqueta.aviso
+                    : TonoEtiqueta.exito,
+                icono: suscripcion.enMora ? null : Icons.check_rounded,
               ),
             ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: TemaSuperaPaes.espacio12),
+            child: Divider(height: 1),
+          ),
+          if (fin != null) ...[
+            FilaDato(
+              etiqueta: suscripcion.enMora
+                  ? 'Se reintenta el cobro'
+                  : suscripcion.renuevaAutomaticamente
+                  ? 'Próxima renovación'
+                  : 'Termina el',
+              valor: fechaConAnio(fin),
+            ),
+            const SizedBox(height: TemaSuperaPaes.espacio12),
           ],
-        ),
+          FilaDato(etiqueta: 'Pagas con', valor: suscripcion.tienda.nombre),
+          const SizedBox(height: TemaSuperaPaes.espacio12),
+          const Aviso(
+            tono: TonoAviso.neutro,
+            texto: 'Modo de prueba: sin dinero real.',
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Texto gris a la izquierda y su valor a la derecha. Baja de línea con letra
-/// grande (RNF-12).
-class _Dato extends StatelessWidget {
-  const _Dato(this.nombre, this.valor);
-
-  final String nombre;
-  final String valor;
+/// El plan «Todas las pruebas» no tiene una prueba propia: su sello es el
+/// ícono del plan sobre el fondo de la marca.
+class _SelloTodas extends StatelessWidget {
+  const _SelloTodas();
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        spacing: 8,
-        children: [
-          Text(
-            nombre,
-            style: TemaSuperaPaes.pequeno.copyWith(
-              color: TemaSuperaPaes.textoSecundario,
-            ),
-          ),
-          Text(valor, style: TemaSuperaPaes.pequenoFuerte),
-        ],
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: TemaSuperaPaes.primarioSuave,
+        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioChico),
       ),
-    );
-  }
+      child: const Icon(
+        Icons.workspace_premium_rounded,
+        size: 24,
+        color: TemaSuperaPaes.primario,
+      ),
+    ),
+  );
 }

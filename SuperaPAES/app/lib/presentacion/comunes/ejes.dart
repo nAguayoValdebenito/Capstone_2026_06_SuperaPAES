@@ -40,6 +40,7 @@ class FilaEje extends StatelessWidget {
     required this.indice,
     super.key,
     this.mostrarNivel = true,
+    this.nivel,
   });
 
   final String nombre;
@@ -53,9 +54,13 @@ class FilaEje extends StatelessWidget {
   /// El resultado usa las marcas del servidor, sin recalcular RN-14.
   final bool mostrarNivel;
 
+  /// El nivel que ya decidió el servidor (Progreso: «Reforzar» exige además
+  /// 5 respuestas); sin él, sale de [nivelDeEje].
+  final ({String texto, IconData icono, TonoEtiqueta tono})? nivel;
+
   @override
   Widget build(BuildContext context) {
-    final nivel = nivelDeEje(valor);
+    final nivel = this.nivel ?? nivelDeEje(valor);
     final retraso =
         duracion(context, TemaSuperaPaes.pasoEscalonado) *
         (indice.clamp(0, TemaSuperaPaes.topeEscalonado - 1) + 2);

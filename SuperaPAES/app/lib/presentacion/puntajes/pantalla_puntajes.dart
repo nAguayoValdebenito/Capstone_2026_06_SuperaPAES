@@ -8,16 +8,18 @@ import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
+import 'package:supera_paes/presentacion/comunes/estados.dart';
 import 'package:supera_paes/presentacion/comunes/hoja_confirmacion.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/progreso/tarjetas_progreso.dart';
 import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
 import 'package:supera_paes/presentacion/puntajes/formulario_puntaje.dart';
 import 'package:supera_paes/presentacion/puntajes/hojas_permiso.dart';
 
 /// A41 · Mis puntajes PAES (HU-41.2, RF-A17, RN-16, CU-14a): el permiso
-/// opcional para usar los puntajes, la carga de prueba, año y puntaje, y los
-/// puntajes cargados. Sin el permiso no se carga nada; al retirarlo, los
-/// puntajes se borran.
+/// opcional para usar los puntajes y, con él, la carga de prueba, año y
+/// puntaje, y los puntajes cargados. Sin el permiso no se carga nada; al
+/// retirarlo, los puntajes se borran.
 class PantallaPuntajes extends ConsumerWidget {
   const PantallaPuntajes({super.key});
 
@@ -29,12 +31,15 @@ class PantallaPuntajes extends ConsumerWidget {
     return PantallaFormulario(
       separacion: 14,
       hijos: [
-        const EnlaceVolver(texto: 'Mis datos', destino: Rutas.misDatos),
+        const EnlaceVolver(
+          texto: 'Mis datos y privacidad',
+          destino: Rutas.misDatos,
+        ),
         const Encabezado(
           titulo: 'Mis puntajes PAES',
           bajada:
-              'Si ya rendiste la PAES, carga tu puntaje real para compararlo '
-              'con tus ensayos.',
+              'Opcional. Sirve para mejorar las métricas de todos, sin '
+              'identificarte.',
         ),
         ...switch ((puntajes, nombres)) {
           (AsyncError(:final error), _) => [
@@ -46,22 +51,27 @@ class PantallaPuntajes extends ConsumerWidget {
           ],
           (AsyncData(value: final PuntajesPaes datos), final nombres?) => [
             _TarjetaPermiso(datos: datos),
-            if (datos.permiso.otorgado)
+            if (datos.permiso.otorgado) ...[
+              const TituloSeccion('Cargar un puntaje'),
               FormularioPuntaje(
                 pruebas: nombres.pruebas,
                 pruebaInicial:
                     perfil?.pruebaReforzarId ??
                     perfil?.pruebas.firstOrNull ??
                     nombres.pruebas.first.id,
-              )
-            else
-              const Aviso(
-                tono: TonoAviso.info,
-                texto: 'Para cargar tus puntajes, primero activa el permiso.',
               ),
-            _PuntajesCargados(puntajes: datos.puntajes, nombres: nombres),
+              if (datos.puntajes.isNotEmpty)
+                _PuntajesCargados(puntajes: datos.puntajes, nombres: nombres),
+            ] else
+              const Aviso(
+                tono: TonoAviso.neutro,
+                icono: Icons.lock_rounded,
+                texto:
+                    'Sin el permiso no guardamos puntajes. Puedes activarlo '
+                    'cuando quieras.',
+              ),
           ],
-          _ => [const Center(child: CircularProgressIndicator())],
+          _ => const [GrupoEsqueleto(child: EsqueletoTarjeta(lineas: 4))],
         },
       ],
     );
@@ -117,24 +127,15 @@ class _TarjetaPermisoState extends ConsumerState<_TarjetaPermiso> {
         children: [
           MergeSemantics(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Permiso para usar mis puntajes',
-                        style: TemaSuperaPaes.cuerpoFuerte,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Se usan solo en métricas agregadas. Puedes retirarlo '
-                        'cuando quieras; al retirarlo, borramos tus puntajes.',
-                        style: TemaSuperaPaes.pequeno.copyWith(
-                          color: TemaSuperaPaes.textoSecundario,
-                        ),
-                      ),
-                    ],
+                const Expanded(
+                  child: Text(
+                    'Autorizo a Supera PAES a guardar los puntajes PAES que '
+                    'declaro y a usarlos solo en métricas agregadas que no me '
+                    'identifican. Puedo retirar este permiso en Mis datos y '
+                    'mis puntajes se eliminarán.',
+                    style: TemaSuperaPaes.pequeno,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -155,47 +156,28 @@ class _TarjetaPermisoState extends ConsumerState<_TarjetaPermiso> {
   }
 }
 
-/// «Puntajes cargados»: prueba, año y puntaje, cada uno con «Borrar».
-class _PuntajesCargados extends ConsumerWidget {
+/// Los puntajes cargados en una tarjeta: «M1 · admisión 2026 · 742
+/// puntos», cada uno con su botón para borrarlo.
+class _PuntajesCargados extends StatelessWidget {
   const _PuntajesCargados({required this.puntajes, required this.nombres});
 
   final List<PuntajePaes> puntajes;
   final OpcionesPerfil nombres;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final secundario = TemaSuperaPaes.pequeno.copyWith(
-      color: TemaSuperaPaes.textoSecundario,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Semantics(
-          header: true,
-          child: const Text('Puntajes cargados', style: TemaSuperaPaes.h2),
-        ),
-        const SizedBox(height: 10),
-        if (puntajes.isEmpty)
-          const Text('Aún no cargas puntajes.', style: TemaSuperaPaes.pequeno)
-        else
-          Tarjeta(
-            child: Column(
-              children: [
-                for (final (i, puntaje) in puntajes.indexed) ...[
-                  if (i > 0) const Divider(height: 16),
-                  _FilaPuntaje(
-                    puntaje: puntaje,
-                    nombre:
-                        nombres.prueba(puntaje.pruebaId)?.nombreEnInicio ??
-                        'Prueba',
-                  ),
-                ],
-              ],
+  Widget build(BuildContext context) {
+    return Tarjeta(
+      child: Column(
+        children: [
+          for (final (i, puntaje) in puntajes.indexed) ...[
+            if (i > 0) const Divider(height: 16),
+            _FilaPuntaje(
+              puntaje: puntaje,
+              nombre: nombres.prueba(puntaje.pruebaId)?.nombreCorto ?? 'Prueba',
             ),
-          ),
-        const SizedBox(height: 14),
-        Text('Los puntajes son declarados por ti.', style: secundario),
-      ],
+          ],
+        ],
+      ),
     );
   }
 }
@@ -220,27 +202,30 @@ class _FilaPuntaje extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final admision = 'Admisión ${puntaje.anioAdmision}';
+    final admision = 'admisión ${puntaje.anioAdmision}';
     return Row(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(nombre, style: TemaSuperaPaes.cuerpoFuerte),
-              Text(
-                admision,
-                style: TemaSuperaPaes.pequeno.copyWith(
-                  color: TemaSuperaPaes.textoSecundario,
-                ),
-              ),
-            ],
+        const ExcludeSemantics(
+          child: Icon(
+            Icons.check_circle_rounded,
+            size: 20,
+            color: TemaSuperaPaes.exito,
           ),
         ),
-        Text('${puntaje.puntaje}', style: TemaSuperaPaes.h2),
+        const SizedBox(width: TemaSuperaPaes.espacio8),
+        Expanded(
+          child: Text(
+            '$nombre · $admision · ${puntaje.puntaje} puntos',
+            style: TemaSuperaPaes.tabular(TemaSuperaPaes.pequeno),
+          ),
+        ),
         IconButton(
           tooltip: 'Borrar el puntaje de $nombre, $admision',
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(
+            Icons.delete_outline_rounded,
+            size: 20,
+            color: TemaSuperaPaes.textoSecundario,
+          ),
           onPressed: () => _borrar(context, ref),
         ),
       ],

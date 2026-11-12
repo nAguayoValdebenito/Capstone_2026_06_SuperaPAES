@@ -59,15 +59,12 @@ void main() {
       expect(find.text('Por eje'), findsOne);
       expect(find.text('Números'), findsOne);
       expect(find.text('Geometría'), findsOne);
-      expect(find.text('A reforzar'), findsOne);
+      expect(find.text('Reforzar'), findsOne);
 
-      await verHasta(tester, find.text('S6'));
+      await verHasta(tester, find.text('19/10'));
       expect(find.text('Semana a semana'), findsOne);
       // El lector de pantalla lee cada barra como una sola frase.
-      expect(
-        tester.getSemantics(find.text('S6')),
-        isSemantics(label: 'Semana del 19/10: 68 %'),
-      );
+      expect(find.bySemanticsLabel('Semana del 19/10: 68 %'), findsOne);
 
       await verHasta(tester, find.text('742'));
       expect(find.text('Ensayos completos'), findsOne);
@@ -88,7 +85,7 @@ void main() {
       expect(find.text('Acierto en Lectora'), findsOne);
       expect(find.text('Por habilidad'), findsOne);
       expect(find.text('Interpretar'), findsOne);
-      expect(find.text('A reforzar'), findsOne);
+      expect(find.text('Reforzar'), findsOne);
       expect(find.text('Eje de Lectora'), findsNothing);
       // Sin respuestas fáciles ni difíciles.
       expect(find.text('—'), findsNWidgets(2));
