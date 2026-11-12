@@ -1,6 +1,6 @@
 # Plan HU-50 · Avisos de error (C13)
 
-Estado: **etapa 1, solo plan. No hay código.** Esperando el visto bueno sobre las decisiones de la sección 9.
+Estado: **plan aprobado el 12/11/2026.** Nicolas delegó las decisiones de la sección 9 y se tomaron las recomendadas (D1 opción a, D2 a D7 como se proponen). Etapa 2 (HU-50.1) construida el 12/11/2026: bandeja y cierre de avisos, con pruebas sin base y con PostgreSQL. Etapa 3 (HU-50.2) construida el mismo día: anulación y conteo del impacto. Por decisión de Nicolas, desde la etapa 3 se trabaja en la rama `feat/hu-51-configuracion`, que comparte con HU-51. Etapa 4 (HU-50.3) construida el mismo día: pantalla C13 con bandeja, filtros, cierre y confirmación fuerte. Etapa 5 (cierre) hecha el mismo día. **HU-50 terminada en código; falta registrarla en el 04 y en el Sprint Backlog.**
 Rama: `feat/hu-50-avisos-error` (desde `origin/main` en `ce6556d`). Fecha: 12/11/2026.
 
 ## 1. Verificación de alcance
@@ -103,7 +103,7 @@ Todas con `exigirRol('admin')`, respuesta `{ data, error, meta }` y errores del 
 
 `PATCH /api/v1/admin/preguntas/avisos/:id` con `{ "estado": "resuelto" | "descartado" }`
 
-- En una transacción: bloquea el aviso, lo pasa al estado pedido con `resuelto_por` = administrador y `resuelto_en` = `reloj.ahora()`, y registra `atender_reporte` (`entidad: 'reporte_pregunta'`, antes `{ estado: 'pendiente' }`, después `{ estado, resueltoPor }`).
+- En una transacción: bloquea el aviso, lo pasa al estado pedido con `resuelto_por` = administrador y `resuelto_en` = `now()` de la base (como las demás fechas del módulo), y registra `atender_reporte` (`entidad: 'reporte_pregunta'`, antes `{ estado: 'pendiente' }`, después `{ estado, resueltoPor }`).
 - Devuelve el aviso actualizado.
 - Errores: 404 aviso inexistente; 409 `CONFLICTO` si ya está resuelto o descartado; 400 si el estado no es final.
 - **Cierra solo ese aviso.** El DAS no dice si cerrar un aviso cierra los demás de la misma pregunta (RF-C08 y HU-50 esc. 2 hablan de «cerrarlos», y CU-26 no tiene ficha). Es una decisión (sección 9). La recomendación es cerrar de a uno, porque dos avisos de la misma pregunta pueden merecer cierres distintos (uno con razón, otro sin ella).
