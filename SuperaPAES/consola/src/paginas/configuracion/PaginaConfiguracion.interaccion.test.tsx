@@ -223,7 +223,8 @@ describe('Configuración C12 con interacción real (HU-51.2)', () => {
     expect(document.activeElement?.textContent).toBe('Cancelar');
     await tecla('Escape');
     expect(dialogo()).toBeNull();
-    expect(document.activeElement).toBe(revisar);
+    // El foco vuelve en el siguiente cuadro de animación (requestAnimationFrame), no al instante.
+    await vi.waitFor(() => expect(document.activeElement).toBe(revisar));
     expect(llamadas).toHaveLength(1);
   });
 });
