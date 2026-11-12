@@ -1,6 +1,6 @@
 # Plan HU-64 · Listas de opciones (C09)
 
-Estado: **solo plan, sin código**. Rama: `feat/hu-64-listas-opciones` (desde `origin/main` 2412532, con el rediseño de consola).
+Estado: **opción A construida el 12/11/2026 (HU-64.1, solo lectura), por decisión delegada del usuario; falta registrarla en 04 y 05.** Rama: `feat/hu-64-listas-opciones` (desde `origin/main` 2412532, con el rediseño de consola).
 Fecha: 12/11/2026.
 
 ## 1. Verificación de alcance
