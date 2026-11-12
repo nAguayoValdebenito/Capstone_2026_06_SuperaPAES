@@ -94,6 +94,13 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
   'POST /api/v1/admin/preguntas/textos': ['data.id'],
   'PUT /api/v1/admin/preguntas/textos/:id': ['data.id'],
   'POST /api/v1/admin/preguntas/importaciones': ['data.id'],
+  'GET /api/v1/admin/preguntas/avisos': [
+    'data[].pregunta.id',
+    'data[].pregunta.prueba.id',
+    'data[].pregunta.contenido.id',
+    'data[].avisos[].id',
+  ],
+  'PATCH /api/v1/admin/preguntas/avisos/:id': ['data.id'],
   'GET /api/v1/admin/revision/desempates': ['data[].id', 'data[].preguntaId'],
   'GET /api/v1/admin/revision/desempates/:id': [
     'data.id',

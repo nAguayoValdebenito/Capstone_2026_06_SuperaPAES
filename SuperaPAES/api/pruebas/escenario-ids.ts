@@ -235,6 +235,7 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
       areas: [1, 2],
       contrasena: 'Clave-larga-123',
     };
+  if (ruta.endsWith('/avisos/:id')) return { estado: 'resuelto' };
   if (ruta.startsWith('PATCH')) return { nombre: 'Diego Nuevo' };
   if (ruta.endsWith('/practicas')) return { pruebaId: 2, cantidad: 5 };
   if (ruta.endsWith('/repasos')) return { pruebaId: 2 };

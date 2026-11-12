@@ -113,6 +113,36 @@ const cuerpoTexto = {
   contenido: 'Había una vez un faro.',
 };
 
+/** Un aviso de error (HU-50.1) y la bandeja con su pregunta. */
+const avisoDeError = {
+  id: '41',
+  version: 2,
+  motivo: { codigo: 'respuesta', nombre: 'La respuesta correcta está mal' },
+  comentario: 'Creo que la correcta es la C.',
+  estado: { codigo: 'resuelto', nombre: 'Resuelto' },
+  creadoEn: '2026-10-20T13:00:00.000Z',
+  resueltoEn: '2026-10-21T13:00:00.000Z',
+  resueltoPor: 'Ana Admin',
+};
+
+const paginaAvisos = {
+  grupos: [
+    {
+      pregunta: {
+        id: '205',
+        versionActual: 3,
+        estado: { codigo: 'publicada', nombre: 'Publicada' },
+        prueba: { id: 2, codigo: 'M1', nombre: 'Competencia Matemática 1' },
+        contenido: { id: 110, nombre: 'Ecuaciones' },
+        resumen: '¿Cuánto vale x?',
+      },
+      pendientes: 1,
+      avisos: [avisoDeError],
+    },
+  ],
+  paginacion: { pagina: 1, porPagina: 20, total: 1 },
+};
+
 /** Servicio de preguntas con las rutas de la consola respondiendo datos fijos. */
 export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
   return {
@@ -145,6 +175,8 @@ export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
     crearTexto: vi.fn(() => Promise.resolve(textoParaEditar)),
     editarTexto: vi.fn(() => Promise.resolve(textoParaEditar)),
     importarPreguntas: vi.fn(() => Promise.resolve(importacionHecha)),
+    listarAvisos: vi.fn(() => Promise.resolve(paginaAvisos)),
+    cerrarAviso: vi.fn(() => Promise.resolve(avisoDeError)),
   };
 }
 

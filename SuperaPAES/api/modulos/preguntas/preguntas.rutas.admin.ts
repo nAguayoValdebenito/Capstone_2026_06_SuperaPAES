@@ -10,8 +10,11 @@ import { crearPreguntasControlador, type PreguntasControlador } from './pregunta
 import type { PreguntasServicio } from './preguntas.servicio.js';
 import {
   esquemaArchivosImportacion,
+  esquemaCierreAviso,
   esquemaConsultaTextos,
+  esquemaFiltrosAvisos,
   esquemaFiltrosBanco,
+  esquemaIdAviso,
   esquemaIdPregunta,
   esquemaIdTexto,
   esquemaImportacion,
@@ -48,6 +51,25 @@ function agregarRutasTextos(router: Router, controlador: PreguntasControlador): 
   );
 }
 
+/**
+ * Avisos de error de los estudiantes (C13, HU-50.1, RF-C08, CU-26): la bandeja, agrupada por pregunta,
+ * y el cierre de un aviso como resuelto o descartado. Van antes de /:id, como los textos.
+ */
+function agregarRutasAvisos(router: Router, controlador: PreguntasControlador): void {
+  router.get(
+    '/avisos',
+    exigirRol('admin'),
+    validar({ consulta: esquemaFiltrosAvisos }),
+    controlador.listarAvisos,
+  );
+  router.patch(
+    '/avisos/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdAviso, cuerpo: esquemaCierreAviso }),
+    controlador.cerrarAviso,
+  );
+}
+
 export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   const router = Router();
   const controlador = crearPreguntasControlador(servicio);
@@ -62,6 +84,7 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   router.get('/filtros', exigirRol('admin'), controlador.filtrosDelBanco);
 
   agregarRutasTextos(router, controlador);
+  agregarRutasAvisos(router, controlador);
 
   // CU-16 paso 1: descarga de las plantillas CSV (HU-13.3), solo para administradores.
   router.get('/importaciones/plantillas', exigirRol('admin'), controlador.plantillasImportacion);

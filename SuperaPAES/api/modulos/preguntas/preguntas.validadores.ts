@@ -172,6 +172,29 @@ export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
 
 export const esquemaIdTexto = z.strictObject({ id: idDeRuta });
 
+export const esquemaIdAviso = z.strictObject({ id: idDeRuta });
+
+/** Estados de un aviso (contenido.estado_reporte); «todos» no filtra. */
+export const ESTADOS_AVISO = ['pendiente', 'resuelto', 'descartado', 'todos'] as const;
+
+/**
+ * Bandeja de avisos de error (C13, HU-50 esc. 1): por defecto los pendientes; el motivo va por el código
+ * de contenido.motivo_reporte. Se pagina por pregunta.
+ */
+export const esquemaFiltrosAvisos = z.strictObject({
+  estado: z
+    .enum(ESTADOS_AVISO, 'El estado debe ser pendiente, resuelto, descartado o todos.')
+    .default('pendiente'),
+  motivo: codigoConsulta.optional(),
+  pagina: numeroDePagina(1, 100_000),
+  porPagina: numeroDePagina(POR_PAGINA_BANCO, MAXIMO_POR_PAGINA_BANCO),
+});
+
+/** HU-50 esc. 2: un aviso se cierra como resuelto o descartado. */
+export const esquemaCierreAviso = z.strictObject({
+  estado: z.enum(['resuelto', 'descartado'], 'El aviso se cierra como resuelto o descartado.'),
+});
+
 export type DatosPregunta = z.output<typeof esquemaPregunta>;
 export type DatosTexto = z.output<typeof esquemaTexto>;
 export type ConsultaTextos = z.output<typeof esquemaConsultaTextos>;
@@ -179,3 +202,5 @@ export type AlternativaPregunta = DatosPregunta['alternativas'][number];
 export type ArchivosImportacion = z.output<typeof esquemaArchivosImportacion>;
 export type DatosImportacion = z.output<typeof esquemaImportacion>;
 export type ArchivoCsv = ArchivosImportacion['preguntas'];
+export type FiltrosAvisos = z.output<typeof esquemaFiltrosAvisos>;
+export type CierreAviso = z.output<typeof esquemaCierreAviso>['estado'];

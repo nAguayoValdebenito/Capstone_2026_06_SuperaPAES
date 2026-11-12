@@ -7,6 +7,8 @@ import type { Paginacion } from '../../comun/respuesta.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PruebaTemario, TemarioServicio } from '../temario/index.js';
+import type { AvisosRepositorio } from './preguntas.avisos.repositorio.js';
+import { crearAvisosDeError, type AvisosDeError } from './preguntas.avisos.servicio.js';
 import {
   crearPreguntasEdicionRepositorio,
   type PreguntasEdicionRepositorio,
@@ -61,6 +63,8 @@ export interface DependenciasPreguntasServicio {
   repositorioImportacion?: PreguntasImportacionRepositorio;
   /** Solo para pruebas: reemplaza al de crearPublicacionRepositorio(). */
   repositorioPublicacion?: PublicacionRepositorio;
+  /** Solo para pruebas: reemplaza al de crearAvisosRepositorio(bd). */
+  repositorioAvisos?: AvisosRepositorio;
 }
 
 /** Lo que la consola hace con los textos de lectura (HU-12.2); lo demás es para crear preguntas. */
@@ -105,7 +109,8 @@ export interface PreguntasServicio
     TextosDeLaConsola,
     ImportacionPreguntas,
     LecturasParaGenerar,
-    PublicacionPreguntas {
+    PublicacionPreguntas,
+    AvisosDeError {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.
@@ -324,6 +329,7 @@ export function crearPreguntasServicio(
     ...edicion,
     ...importacion,
     ...publicacion,
+    ...crearAvisosDeError(dependencias),
     enunciadosDelContenido: (contenidoId, tx) => generacion.enunciadosDelContenido(contenidoId, tx),
     ejemplosAprobados: (contenidoId, limite) => generacion.ejemplosAprobados(contenidoId, limite),
     guardarPropuestaDeIa: (propuesta, tx) => generacion.guardarPropuesta(propuesta, tx),
