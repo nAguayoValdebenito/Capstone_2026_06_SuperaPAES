@@ -19,13 +19,17 @@ export async function prepararBaseDeRevision(
 ): Promise<{ base: BaseTemporal; servicios: Servicios }> {
   const base = await crearBaseTemporal(nombre);
   await ejecutarSemillas(base.bd, path.join(import.meta.dirname, '../db/semillas'));
-  const servicios = crearServicios(
+  return { base, servicios: serviciosSobre(base.bd) };
+}
+
+/** Los servicios reales sobre una conexión; otra conexión permite probar dos peticiones a la vez. */
+export function serviciosSobre(bd: pg.Client): Servicios {
+  return crearServicios(
     crearDependenciasDePrueba({
-      bd: base.bd,
-      unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(base.bd, trabajo) },
+      bd,
+      unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(bd, trabajo) },
     }),
   );
-  return { base, servicios };
 }
 
 /** Crea una cuenta interna con el rol y las áreas indicadas (por nombre); devuelve su id. */

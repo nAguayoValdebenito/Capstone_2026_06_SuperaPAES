@@ -83,7 +83,7 @@ export interface BandejaRepositorio {
 }
 
 /** Asignaciones con su papel (r.codigo, que cada consulta filtra) y su estado. */
-const ASIGNACIONES = `
+export const ASIGNACIONES = `
     FROM contenido.asignacion_revision a
     JOIN contenido.rol_revision r ON r.id = a.rol_revision_id
     JOIN contenido.estado_asignacion e ON e.id = a.estado_asignacion_id`;
@@ -103,7 +103,11 @@ const LISTAR_PENDIENTES = `
    WHERE a.docente_id = $1 AND r.codigo = $2 AND e.codigo = 'pendiente'
    ORDER BY a.vence_en, a.id`;
 
-const OBTENER_PENDIENTE = `
+/**
+ * La pregunta de la asignación tal como se envió a revisión (FilaRevisionAbierta): columnas y tablas.
+ * También la usa la clasificación de dificultad (D03, revision.clasificacion.repositorio.ts).
+ */
+export const PREGUNTA_ABIERTA = `
   SELECT a.id::text AS id, a.pregunta_id::text AS "preguntaId", a.ronda, a.vence_en AS "venceEn",
          json_build_object('codigo', pr.codigo, 'nombre', pr.nombre) AS prueba,
          ej.nombre AS eje, c.nombre AS contenido, h.nombre AS habilidad,
@@ -114,7 +118,9 @@ const OBTENER_PENDIENTE = `
   ${DEL_DOCENTE}
     JOIN contenido.eje_tematico ej ON ej.id = v.eje_id
     JOIN contenido.habilidad h ON h.id = v.habilidad_id
-    LEFT JOIN contenido.texto_estimulo t ON t.id = (v.copia ->> 'texto_estimulo_id')::bigint
+    LEFT JOIN contenido.texto_estimulo t ON t.id = (v.copia ->> 'texto_estimulo_id')::bigint`;
+
+const OBTENER_PENDIENTE = `${PREGUNTA_ABIERTA}
    WHERE a.id = $1 AND a.docente_id = $2 AND r.codigo = $3 AND e.codigo = 'pendiente'`;
 
 const RESERVAR_ASIGNACION = `
