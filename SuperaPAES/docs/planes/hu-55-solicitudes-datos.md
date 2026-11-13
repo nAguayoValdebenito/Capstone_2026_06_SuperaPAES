@@ -1,6 +1,6 @@
 # Plan HU-55 + HU-09 · Solicitudes de datos (C14 y servidor de la app)
 
-Estado al 13/11/2026: **plan y decisiones D1 a D9 aprobados por Nicolas; HU-09.1 y HU-55.1 confirmadas; HU-55.2 (pantalla C14) implementada y revisada a 1440 y 390 px, sin commit**. Sigue el cierre (etapa 5). Rama `feat/hu-55-solicitudes-datos`, creada desde `origin/main` en `f8f7672` (ya incluye HU-50 y HU-51). Este plan no modifica el esquema, las migraciones, las semillas ni los documentos oficiales. Prompt: `C14_Solicitudes_de_datos_HU-55_v2.md`.
+Estado al 13/11/2026: **terminado en la rama, sin push. Plan y decisiones D1 a D9 aprobados por Nicolas; HU-09.1, HU-55.1 y HU-55.2 implementadas, verificadas y confirmadas (`da58b8b`, `3911cc9`, `df99e08`, `93ec14d`)**. Falta registrar HU-09 y HU-55 en la documentación oficial (sección 10). Rama `feat/hu-55-solicitudes-datos`, creada desde `origin/main` en `f8f7672` (ya incluye HU-50 y HU-51). Este plan no modifica el esquema, las migraciones, las semillas ni los documentos oficiales. Prompt: `C14_Solicitudes_de_datos_HU-55_v2.md`.
 
 Fuentes leídas: DAS 1.21, 02 Épicas e Historias v1.8, 03 Historias de Usuario v1.8, 04 Product Backlog y Sprint Backlogs 4 a 9 (copias de `referencia_oficial` de la biblioteca del proyecto; no existe `docs/referencia_oficial/` en el equipo), C2 v1.13, la política de privacidad 1.0 (semilla `003_documentos_legales.sql`, texto de DOC-06), `001_esquema_inicial.sql`, el módulo `privacidad`, el borrado de cuenta de `cuentas` y la consola (`paginas/solicitudes-datos`, C13 como referencia). Boceto `C14_solicitudes_datos.png` solo como referencia visual.
 
@@ -122,3 +122,35 @@ El DAS no pide avisar por correo: RF-A21, RF-C10, A40, C14 y HU-09 esc. 2 solo d
 ## 9. Documentación pendiente para el equipo
 
 Registrar HU-09 y HU-55 en el 04 y en el Sprint Backlog vigente con HU-09.1, HU-55.1 y HU-55.2, responsables y horas; escribir la ficha CU-33 en el DAS; agregar los casos de prueba al C2; actualizar RNF-09 y la política (§8, cambio menor según RN-30) cuando las solicitudes lleguen por la app; decidir D1; y recordar que la pantalla A40 de la app (Flutter) sigue pendiente.
+
+## 10. Cierre (13/11/2026)
+
+- Diff contra `origin/main`: 38 archivos, todos del plan (módulo `privacidad`, consola C14, pruebas,
+  `docs/arquitectura.md`, este plan, la descripción del PR y sus capturas). Sin cambios en el esquema,
+  las migraciones ni las semillas. Fuera de lo previsto: `privacidadDe()` en `app.ts` (para no pasar las
+  50 líneas de `crearServicios`), dos ignorados de `knip.json` que ya no hacían falta y los ayudantes
+  de pruebas jsdom en `consola/src/pruebas/interaccion.ts`, que ahora comparten C12 y C14.
+- Las pruebas de navegación no tienen una lista de páginas «En construcción»: no hubo nada que quitar.
+- `origin/main` avanzó (imágenes de las preguntas y rediseño F6 y F7 de la app); la rama se une sin
+  conflictos (`git merge-tree`).
+- Verificación final: lint, build, Knip, Madge y secretlint sin hallazgos; jscpd 14 repeticiones (12 en
+  `main`; las 2 nuevas son trozos cortos parecidos a C13). API 1.163 pruebas aprobadas y 852 omitidas sin
+  base; consola 423 aprobadas. Con PostgreSQL (`supera_paes_test`): las 9 pruebas nuevas y las de borrado
+  y descarga de la cuenta aprobadas.
+
+Documentación pendiente para el equipo (no se editaron los documentos oficiales):
+
+1. 04 Product Backlog: pasar HU-09 y HU-55 de «Pendiente» al sprint en que se registren.
+2. Sprint Backlog vigente: HU-09.1 (servidor de la app, 6 h estimadas), HU-55.1 (servidor de la consola,
+   8 h) y HU-55.2 (pantalla C14, 10 h), con responsables y horas reales.
+3. C2: casos de prueba de HU-09 (enviar con plazo del parámetro, tipo inexistente, ver solo las propias)
+   y de HU-55 (orden por fecha límite, vencida, responder con auditoría, respuesta obligatoria, 409 si ya
+   se atendió, cuenta eliminada, permisos), con las pruebas automáticas como evidencia.
+4. DAS: escribir la ficha CU-33; marcar RF-A21, RF-C10, CU-14 3.b y C14 como implementados; actualizar
+   RNF-09, que dice que las solicitudes llegan por correo mientras HU-09 y HU-55 estén pendientes.
+5. Política de privacidad (DOC-06): §8 debe mencionar las solicitudes desde la app (cambio menor, RN-30)
+   y §3 promete correos con las respuestas, que no se envían (D1). Decidir y alinear el DAS o la política.
+6. Registrar en la documentación las decisiones D2 a D9 (detalle opcional y 2.000 caracteres, sin límite
+   de envíos, auditoría sin el texto, nombre y correo del estudiante, orden de las atendidas, cuentas
+   eliminadas, «vence pronto» con 7 días y panel lateral).
+7. La pantalla A40 de la app (Flutter) sigue pendiente: el servidor de HU-09.1 ya está listo para ella.

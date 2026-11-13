@@ -105,9 +105,19 @@ hasta integrar el rediseño. jscpd marca dos repeticiones cortas con C13 (el blo
 la página, 13 líneas, y el fondo del diálogo en CSS, 11 líneas); unirlas exige tocar C13 y conviene
 hacerlo con el rediseño.
 
+## Verificación
+
+Lint, build, Knip, Madge y secretlint sin hallazgos; jscpd con 14 repeticiones (12 en `main`). API: 1.163
+pruebas aprobadas y 852 omitidas sin base; consola: 423 aprobadas. Con PostgreSQL: las 9 pruebas nuevas
+y las de borrado y descarga de la cuenta aprobadas. Sin cambios en el esquema, las migraciones ni las
+semillas. La rama se une sin conflictos con `main`.
+
 ## Pendiente para el equipo
 
-- Registrar HU-09 y HU-55 en el 04 y en el Sprint Backlog, y sus casos de prueba en el C2.
+- Registrar HU-09 y HU-55 en el 04 y en el Sprint Backlog (HU-09.1, HU-55.1 y HU-55.2), y sus casos de
+  prueba en el C2.
 - Escribir la ficha CU-33 en el DAS; actualizar RNF-09 y la política de privacidad (§8, cambio menor
-  según RN-30) ahora que las solicitudes llegan por la app; decidir D1 (correo).
+  según RN-30) ahora que las solicitudes llegan por la app; decidir D1 (correo con la respuesta, que
+  promete la §3 de la política).
+- Registrar las decisiones D2 a D9 del plan.
 - Construir la pantalla A40 en la app.
