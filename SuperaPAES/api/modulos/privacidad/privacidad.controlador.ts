@@ -4,15 +4,21 @@ import type { Request, RequestHandler } from 'express';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { PrivacidadServicio } from './privacidad.servicio.js';
+import type { DatosNuevaSolicitud } from './privacidad.validadores.js';
+
+type ConCuerpo<C> = RequestHandler<Record<string, string>, unknown, C>;
 
 export interface PrivacidadControlador {
   exportarDatos: RequestHandler;
   borrarCuenta: RequestHandler;
   estadoDeLaCuenta: RequestHandler;
+  tiposDerecho: RequestHandler;
+  crearSolicitud: ConCuerpo<DatosNuevaSolicitud>;
+  misSolicitudes: RequestHandler;
 }
 
 /** Estudiante de la sesión de la app. Lo deja la autenticación de /app. */
-function estudianteDe(req: Request): string {
+function estudianteDe(req: Pick<Request, 'estudiante'>): string {
   if (!req.estudiante) throw new ErrorNoAutenticado();
   return req.estudiante.id;
 }
@@ -29,6 +35,17 @@ export function crearPrivacidadControlador(servicio: PrivacidadServicio): Privac
     },
     estadoDeLaCuenta: async (req, res) => {
       responder(res, await servicio.estadoDeLaCuenta(estudianteDe(req)));
+    },
+    tiposDerecho: async (_req, res) => {
+      responder(res, await servicio.tiposDerecho());
+    },
+    crearSolicitud: async (req, res) => {
+      responder(res, await servicio.crearSolicitud(estudianteDe(req), req.body), { estado: 201 });
+    },
+    misSolicitudes: async (req, res) => {
+      // Pueden traer datos personales en el detalle o la respuesta.
+      res.set('Cache-Control', 'no-store');
+      responder(res, await servicio.solicitudesDe(estudianteDe(req)));
     },
   };
 }

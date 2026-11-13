@@ -198,6 +198,21 @@ resueltos y la auditoría guarda cuántas se recalcularon y qué avisos se cerra
 pregunta publicada: anular otra vez responde 409 y no vuelve a recalcular. Los ítems de una evaluación
 abierta quedan anulados pero se siguen mostrando hasta cerrarla; al cerrarla no cuentan.
 
+HU-09.1 agrega en `privacidad` las solicitudes sobre los datos personales desde la app (RF-A21,
+CU-14 3.b, pantalla A40, pendiente en Flutter). `privacidad` es dueño de `app.solicitud_derecho` y
+lee las listas `contenido.tipo_derecho` y `contenido.estado_solicitud` por su código.
+
+| Método y ruta                                  | Rol        | Operación                                                                 |
+| ---------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
+| `GET /api/v1/app/privacidad/tipos-derecho`     | estudiante | Los seis derechos de la Ley 21.719 con su código, nombre y explicación    |
+| `POST /api/v1/app/privacidad/solicitudes`      | estudiante | Crea una solicitud pendiente `{ tipo, detalle? }`; 201                    |
+| `GET /api/v1/app/privacidad/solicitudes`       | estudiante | Las solicitudes propias, la más reciente primero, con estado y respuesta  |
+
+La fecha límite (`vence_en`) es la hora de recepción más `plazo_derechos_dias` días corridos, leído
+por el servicio de `administracion`; se fija al recibirla, así un cambio del parámetro solo rige para
+las nuevas. El detalle es opcional (hasta 2.000 caracteres) y un tipo inexistente responde 400. El DAS
+no limita cuántas solicitudes ni de qué tipo. La app no ve quién atendió la solicitud.
+
 HU-52.1 y HU-52.2 agregan estas rutas del módulo `suscripciones` para la pantalla C11:
 
 | Método y ruta                                 | Rol   | Operación                                       |

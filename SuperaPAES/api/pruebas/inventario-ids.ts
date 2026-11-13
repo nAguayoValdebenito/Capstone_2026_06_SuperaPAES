@@ -61,6 +61,8 @@ export const INVENTARIO_IDS = [
   'GET /api/v1/app/evaluaciones/:id/resultado → data.id, data.prueba.id, data.ejes[].id, data.habilidades[].id',
   'GET /api/v1/app/evaluaciones/:id/revision → data.id, data.preguntas[].preguntaId, data.preguntas[].eje.id, data.preguntas[].alternativaElegidaId, data.preguntas[].alternativaCorrectaId, data.preguntas[].alternativas[].id',
   'GET /api/v1/app/evaluaciones/abierta → data.abierta.preguntas[].id, data.abierta.preguntas[].alternativaElegidaId, data.abierta.preguntas[].alternativas[].id, data.abierta.id, data.abierta.prueba.id, data.abierta.alcance.id, data.abierta.dificultad.id, data.cerrada.id',
+  'POST /api/v1/app/privacidad/solicitudes → data.id',
+  'GET /api/v1/app/privacidad/solicitudes → data[].id',
   'GET /api/v1/app/privacidad/mis-datos → data.cuenta.id, data.perfil.pruebas[], data.perfil.electivoId, data.perfil.pruebaReforzarId, data.perfil.areasCarrera[], data.evaluaciones[].id, data.evaluaciones[].respuestas[].preguntaId, data.puntajes[].id, data.puntajes[].pruebaId',
   'GET /api/v1/app/evaluaciones/progreso → data.pruebas[].pruebaId, data.pruebas[].ejes[].id, data.pruebas[].habilidades[].id, data.pruebas[].ensayos[].id',
   'POST /api/v1/app/suscripciones/ → data.id, data.planId, data.pruebaId',

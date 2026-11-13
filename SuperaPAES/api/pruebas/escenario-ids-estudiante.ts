@@ -130,12 +130,27 @@ const datosDelEstudiante = {
  * El servicio de privacidad con la descarga de datos y el borrado de la cuenta. Solo trae los campos que el inventario de ids
  * revisa, así que no cumple todo el tipo del servicio.
  */
+/** Una solicitud de datos del estudiante (HU-09.1), con su id como texto, igual que la base. */
+const solicitudPropia = {
+  id: '31',
+  tipo: { codigo: 'acceso', nombre: 'Acceso' },
+  detalle: null,
+  estado: { codigo: 'pendiente', nombre: 'Pendiente' },
+  solicitadoEn: fecha,
+  venceEn: fecha,
+  respondidoEn: null,
+  respuesta: null,
+};
+
 export const privacidadDePrueba = {
   exportarDatos: vi.fn(() => Promise.resolve(datosDelEstudiante as never)),
   borrarCuenta: vi.fn(() => Promise.resolve({ eliminadaEn: fecha })),
   estadoDeLaCuenta: vi.fn(() =>
     Promise.resolve({ suscripcionVigente: null, documentosAceptados: [] }),
   ),
+  tiposDerecho: vi.fn(() => Promise.resolve([])),
+  crearSolicitud: vi.fn(() => Promise.resolve(solicitudPropia)),
+  solicitudesDe: vi.fn(() => Promise.resolve([solicitudPropia])),
 };
 
 /** Las rutas de los puntajes del servicio de cuentas, que responden todas lo mismo. */

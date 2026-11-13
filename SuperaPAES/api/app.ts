@@ -196,6 +196,17 @@ function crearGenerador(
   });
 }
 
+/**
+ * Privacidad: la descarga y el borrado usan cuentas, evaluaciones y suscripciones; las solicitudes de
+ * datos leen su plazo de la configuración de administracion (HU-09.1).
+ */
+function privacidadDe(
+  base: Pick<Dependencias, 'bd' | 'unidadDeTrabajo' | 'reloj'>,
+  servicios: Pick<Servicios, 'administracion' | 'cuentas' | 'evaluaciones' | 'suscripciones'>,
+): PrivacidadServicio {
+  return crearPrivacidadServicio({ ...base, ...servicios });
+}
+
 /** Crea los servicios en orden de dependencia: cada módulo recibe los servicios que usa. */
 export function crearServicios(dependencias: Dependencias): Servicios {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
@@ -238,7 +249,6 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     administracion,
     ...(dependencias.azarEvaluaciones ? { azar: dependencias.azarEvaluaciones } : {}),
   });
-  const privacidad = crearPrivacidadServicio({ ...conReloj, cuentas, evaluaciones, suscripciones });
 
   return {
     administracion,
@@ -250,7 +260,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     cupoInvitaciones,
     suscripciones,
     evaluaciones,
-    privacidad,
+    privacidad: privacidadDe(conReloj, { administracion, cuentas, evaluaciones, suscripciones }),
   };
 }
 
