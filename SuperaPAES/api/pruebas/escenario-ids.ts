@@ -233,12 +233,14 @@ function cuerpoPara(ruta: string): Record<string, unknown> | undefined {
   return cuerpoDeOtrosModulos(ruta);
 }
 
-/** Perfil del estudiante (HU-29.1), solicitudes de datos (HU-09.1) y puntajes PAES (HU-41.1). */
+/** Perfil (HU-29.1), solicitudes de datos (HU-09.1 y HU-55.1) y puntajes PAES (HU-41.1). */
 function cuerpoPerfil(ruta: string): Record<string, unknown> | undefined {
   if (ruta.startsWith('PUT') && ruta.endsWith('/perfil'))
     return { curso: '3M', pruebas: [1, 2, 5], electivoId: 4, pruebaReforzarId: 2 };
   if (ruta.endsWith('/confirmar-curso')) return { curso: '3M' };
   if (ruta === 'POST /api/v1/app/privacidad/solicitudes') return { tipo: 'acceso' };
+  if (ruta === 'PATCH /api/v1/admin/privacidad/solicitudes/:id')
+    return { estado: 'respondida', respuesta: 'Listo.' };
   return cuerpoPuntajes(ruta);
 }
 

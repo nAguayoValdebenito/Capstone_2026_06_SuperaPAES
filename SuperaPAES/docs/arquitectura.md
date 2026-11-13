@@ -213,6 +213,24 @@ por el servicio de `administracion`; se fija al recibirla, así un cambio del pa
 las nuevas. El detalle es opcional (hasta 2.000 caracteres) y un tipo inexistente responde 400. El DAS
 no limita cuántas solicitudes ni de qué tipo. La app no ve quién atendió la solicitud.
 
+HU-55.1 agrega la bandeja de solicitudes de datos de la consola (RF-C10, pantalla C14):
+
+| Método y ruta                                     | Rol   | Operación                                                                                       |
+| ------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------- |
+| `GET /api/v1/admin/privacidad/solicitudes`        | admin | Por defecto las pendientes, la fecha límite más próxima primero; filtro por estado; paginada    |
+| `GET /api/v1/admin/privacidad/solicitudes/:id`    | admin | Una solicitud con el estudiante y quién la atendió                                              |
+| `PATCH /api/v1/admin/privacidad/solicitudes/:id`  | admin | Responde o rechaza con un texto `{ estado, respuesta }`; auditoría `responder_solicitud`        |
+
+Cada solicitud trae `diasRestantes` (días de calendario de Chile hasta la fecha límite, negativo si
+venció, `null` si ya se atendió) y `vencida`, calculados por el servicio con el reloj; la lista trae
+además el total de pendientes. Del estudiante solo se entregan nombre y correo (unión de solo lectura
+a `app.estudiante`, como la trazabilidad de suscripciones); una cuenta eliminada llega con
+`cuentaEliminada: true` y sin nombre ni correo, y su solicitud se puede atender. Responder bloquea la
+fila (`FOR UPDATE`): una solicitud ya respondida o rechazada responde 409, también cuando dos
+administradores responden a la vez. Estado, texto, fecha, autor y auditoría van en una sola
+transacción; la auditoría guarda el estado, la fecha y el autor, no el texto de la respuesta. El DAS no
+pide avisar por correo: el estudiante ve la respuesta en la app (`GET /app/privacidad/solicitudes`).
+
 HU-52.1 y HU-52.2 agregan estas rutas del módulo `suscripciones` para la pantalla C11:
 
 | Método y ruta                                 | Rol   | Operación                                       |

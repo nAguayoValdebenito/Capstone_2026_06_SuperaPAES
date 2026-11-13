@@ -4,7 +4,11 @@ import type { Request, RequestHandler } from 'express';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { PrivacidadServicio } from './privacidad.servicio.js';
-import type { DatosNuevaSolicitud } from './privacidad.validadores.js';
+import type {
+  DatosAtencionSolicitud,
+  DatosNuevaSolicitud,
+  FiltrosSolicitudes,
+} from './privacidad.validadores.js';
 
 type ConCuerpo<C> = RequestHandler<Record<string, string>, unknown, C>;
 
@@ -15,6 +19,9 @@ export interface PrivacidadControlador {
   tiposDerecho: RequestHandler;
   crearSolicitud: ConCuerpo<DatosNuevaSolicitud>;
   misSolicitudes: RequestHandler;
+  listarSolicitudes: RequestHandler;
+  obtenerSolicitud: RequestHandler;
+  atenderSolicitud: ConCuerpo<DatosAtencionSolicitud>;
 }
 
 /** Estudiante de la sesión de la app. Lo deja la autenticación de /app. */
@@ -23,8 +30,38 @@ function estudianteDe(req: Pick<Request, 'estudiante'>): string {
   return req.estudiante.id;
 }
 
+/** Administrador de la sesión de la consola. Lo deja la autenticación de /admin. */
+function administradorDe(req: Pick<Request, 'usuarioInterno'>): string {
+  if (!req.usuarioInterno) throw new ErrorNoAutenticado();
+  return req.usuarioInterno.id;
+}
+
+/** HU-55.1 (C14): la bandeja, una solicitud y su respuesta o rechazo. Tienen datos personales. */
+function controladorConsola(
+  servicio: PrivacidadServicio,
+): Pick<PrivacidadControlador, 'listarSolicitudes' | 'obtenerSolicitud' | 'atenderSolicitud'> {
+  return {
+    listarSolicitudes: async (_req, res) => {
+      res.set('Cache-Control', 'no-store');
+      const { paginacion, ...bandeja } = await servicio.listarSolicitudes(
+        res.locals.consulta as FiltrosSolicitudes,
+      );
+      responder(res, bandeja, { meta: paginacion });
+    },
+    obtenerSolicitud: async (req, res) => {
+      res.set('Cache-Control', 'no-store');
+      responder(res, await servicio.obtenerSolicitud(String(req.params.id)));
+    },
+    atenderSolicitud: async (req, res) => {
+      const id = String(req.params.id);
+      responder(res, await servicio.atenderSolicitud(administradorDe(req), id, req.body));
+    },
+  };
+}
+
 export function crearPrivacidadControlador(servicio: PrivacidadServicio): PrivacidadControlador {
   return {
+    ...controladorConsola(servicio),
     exportarDatos: async (req, res) => {
       // Son datos personales: ni el navegador ni un proxy deben guardarlos.
       res.set('Cache-Control', 'no-store');

@@ -60,6 +60,12 @@ function escenario(plazo = 30) {
         fila(),
       ]),
     ),
+    // La bandeja de la consola (HU-55.1) no se usa aquí: ver solicitudes-consola.test.ts.
+    listarSolicitudes: vi.fn(() => Promise.resolve({ filas: [], total: 0 })),
+    contarPendientes: vi.fn(() => Promise.resolve(0)),
+    solicitud: vi.fn(() => Promise.resolve(null)),
+    reservarSolicitud: vi.fn(() => Promise.resolve(null)),
+    responderSolicitud: vi.fn(() => Promise.resolve()),
   } satisfies PrivacidadRepositorio;
   const administracion = {
     obtenerParametroEntero: vi.fn(() => Promise.resolve(plazo)),
