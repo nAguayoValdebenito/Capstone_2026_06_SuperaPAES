@@ -56,6 +56,7 @@ import {
   crearPreguntasServicio,
   crearRutasAdminPreguntas,
   crearRutasAppPreguntas,
+  crearRutasRecursosPreguntas,
   type PreguntasServicio,
 } from './modulos/preguntas/index.js';
 import {
@@ -287,6 +288,15 @@ function crearRouterAdmin(s: Servicios, mw: MiddlewareRutas): Router {
   return router;
 }
 
+/**
+ * Rutas sin sesión: los avisos de las tiendas (los verifica la pasarela) y las imágenes de las preguntas
+ * (imágenes de las preguntas), que <img> e Image.network piden sin token y que solo se entregan por su huella.
+ */
+function montarRutasSinSesion(app: Express, servicios: Servicios): void {
+  app.use(`${PREFIJO_API}/webhooks`, crearRutasWebhooksSuscripciones(servicios.suscripciones));
+  app.use(`${PREFIJO_API}/recursos`, crearRutasRecursosPreguntas(servicios.preguntas));
+}
+
 export function crearApp(
   dependencias: Dependencias,
   servicios: Servicios = crearServicios(dependencias),
@@ -329,7 +339,7 @@ export function crearApp(
   };
 
   app.use(`${PREFIJO_API}/salud`, crearRutasSalud(dependencias.comprobarBaseDeDatos));
-  app.use(`${PREFIJO_API}/webhooks`, crearRutasWebhooksSuscripciones(servicios.suscripciones));
+  montarRutasSinSesion(app, servicios);
   if (dependencias.claveTareas) {
     app.use(
       `${PREFIJO_API}/tareas`,

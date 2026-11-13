@@ -1,7 +1,7 @@
 // Controlador del módulo preguntas: traduce HTTP a llamadas del servicio y responde con responder().
 // Sin SQL ni adaptadores. La consulta, el cuerpo y los parámetros ya vienen validados por validar().
 import type { Request, RequestHandler } from 'express';
-import { ErrorNoAutenticado } from '../../comun/errores.js';
+import { ErrorNoAutenticado, ErrorValidacion } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { CambioDeEtapa } from './preguntas.publicacion.servicio.js';
 import type { PreguntasServicio } from './preguntas.servicio.js';
@@ -39,6 +39,8 @@ export interface PreguntasControlador {
   listarAvisos: RequestHandler;
   cerrarAviso: Validado<{ estado: CierreAviso }>;
   anularPregunta: Validado;
+  subirImagen: Validado;
+  obtenerImagen: Validado;
 }
 
 /**
@@ -98,9 +100,50 @@ function controladorAvisos(
   };
 }
 
+/** Un año: la dirección de una imagen nunca cambia de contenido, porque es su huella. */
+const CACHE_IMAGEN = 'public, max-age=31536000, immutable';
+
+/**
+ * Imágenes (HU-12.6). La subida llega como el archivo mismo (Content-Type image/png,
+ * image/jpeg o image/webp), no en JSON. La entrega es pública y se puede guardar en caché para siempre;
+ * Cross-Origin-Resource-Policy cross-origin deja que la consola, publicada en otro dominio, la muestre.
+ */
+function controladorImagenes(
+  servicio: PreguntasServicio,
+): Pick<PreguntasControlador, 'subirImagen' | 'obtenerImagen'> {
+  return {
+    subirImagen: async (req, res) => {
+      const archivo: unknown = req.body;
+      if (!Buffer.isBuffer(archivo)) {
+        const mensaje = 'Envía el archivo de la imagen como PNG, JPEG o WebP.';
+        throw new ErrorValidacion([{ lugar: 'cuerpo', ruta: 'imagen', mensaje }], mensaje);
+      }
+      responder(res, await servicio.subirImagen(autorDe(req), archivo), { estado: 201 });
+    },
+    obtenerImagen: async (req, res) => {
+      const huella = String(req.params.archivo).replace(/\.webp$/, '');
+      const etiqueta = `"${huella}"`;
+      const encabezados = {
+        'Cache-Control': CACHE_IMAGEN,
+        ETag: etiqueta,
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      };
+      if (req.headers['if-none-match'] === etiqueta) {
+        res.set(encabezados).status(304).end();
+        return;
+      }
+      // Si no existe, el 404 sale sin estos encabezados: un error no se guarda en caché.
+      const datos = await servicio.obtenerImagen(huella);
+      res.set(encabezados);
+      res.type('image/webp').send(datos);
+    },
+  };
+}
+
 export function crearPreguntasControlador(servicio: PreguntasServicio): PreguntasControlador {
   return {
     ...controladorImportacion(servicio),
+    ...controladorImagenes(servicio),
     ...controladorAvisos(servicio),
     publicarPregunta: cambiarEtapa(servicio, 'publicar'),
     retirarPregunta: cambiarEtapa(servicio, 'retirar'),

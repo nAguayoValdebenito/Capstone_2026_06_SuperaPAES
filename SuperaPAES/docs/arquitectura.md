@@ -191,6 +191,19 @@ consola pide el conteo a `evaluaciones` y la anulación a `preguntas`, porque `e
 | `POST /api/v1/admin/preguntas/:id/anulacion`           | admin | Anula una pregunta publicada; resuelve sus avisos pendientes; auditoría `anular_pregunta` |
 | `GET /api/v1/admin/evaluaciones/preguntas/:id/impacto` | admin | Evaluaciones cerradas y abiertas donde aparece la pregunta                |
 
+Imágenes de las preguntas (migración 007, HU-12.6): `preguntas` es dueño de
+`contenido.imagen`. El administrador sube un archivo con `POST /api/v1/admin/preguntas/imagenes` (rol
+admin, cuerpo `image/png`, `image/jpeg` o `image/webp`, hasta 2 MB; el límite es solo de esa ruta). El
+servidor comprueba el contenido (no la extensión; SVG no se acepta), endereza, reduce a 1.600 px de lado
+mayor, convierte a WebP sin metadatos (`sharp`, en `comun/imagenes.ts`) y guarda la imagen una sola vez por
+su huella SHA-256; devuelve `direccion` para escribir `![texto alternativo](direccion)` en el Markdown de la
+pregunta o del texto de lectura. Subir otra vez la misma imagen no guarda otra copia ni repite la
+auditoría `subir_imagen`. La entrega es pública (`GET /api/v1/recursos/imagenes/<huella>.webp`) porque
+`<img>` e `Image.network` no envían el token; la huella no se puede adivinar ni listar, y la imagen no
+tiene datos de ningún estudiante. RN-06 se cumple porque la dirección viaja dentro del texto de la
+pregunta, que la app recibe solo cuando corresponde. Una imagen no se modifica ni se borra (disparador
+`imagen_fija`).
+
 La bandeja no entrega datos del estudiante. Cerrar un aviso cierra solo ese aviso. La anulación es
 irreversible y va en una sola transacción: `app.anular_pregunta` retira la pregunta, marca sus ítems
 como anulados y recalcula las evaluaciones cerradas (`recalculado_en`), los avisos pendientes quedan
@@ -217,6 +230,7 @@ rechaza, se revierte también el plan y no se registra una auditoría de edició
 | `/api/v1/app/*`                              | App del estudiante | JWT firmado con `JWT_SECRETO_APP`, audiencia `app`             |
 | `/api/v1/admin/*`                            | Consola            | JWT firmado con `JWT_SECRETO_CONSOLA`, audiencia `admin`, rol  |
 | `/api/v1/webhooks/google-play`, `/app-store` | Tiendas            | Sin JWT: cada pasarela verifica el envío (Pub/Sub o firma JWS) |
+| `/api/v1/recursos/imagenes/<huella>.webp`    | App y consola      | Pública, solo `GET`: imagen de una pregunta por su huella SHA-256; caché de un año (`immutable`), `ETag` y `Cross-Origin-Resource-Policy: cross-origin` |
 | `/api/v1/salud`                              | Consola, monitoreo | Pública; consulta la base con límite de 3 s (200 o 503)        |
 | `/api/v1/salud/vivo`                         | Render             | Pública; no toca la base                                       |
 

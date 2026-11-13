@@ -3,13 +3,14 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import { ErrorValidacion } from '../../comun/errores.js';
 import type { ProblemaDeCampo } from '../../comun/middleware/validacion.js';
-import type { Paginacion } from '../../comun/respuesta.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
 import type { PruebaTemario, TemarioServicio } from '../temario/index.js';
 import type { AvisosRepositorio } from './preguntas.avisos.repositorio.js';
 import type { AnulacionPreguntas } from './preguntas.anulacion.servicio.js';
 import { crearAvisosDeError, type AvisosDeError } from './preguntas.avisos.servicio.js';
+import type { FiltrosDelBanco, PaginaDelBanco, PreguntaDelBanco } from './preguntas.banco.tipos.js';
+import * as imagenes from './preguntas.imagenes.servicio.js';
 import {
   crearPreguntasEdicionRepositorio,
   type PreguntasEdicionRepositorio,
@@ -46,9 +47,12 @@ import {
   type PreguntasTextosRepositorio,
 } from './preguntas.textos.repositorio.js';
 import { crearTextosDeLectura, type TextosDeLectura } from './preguntas.textos.servicio.js';
-import type { FiltrosBanco, OrigenPregunta } from './preguntas.validadores.js';
+import type { FiltrosBanco } from './preguntas.validadores.js';
 
-export interface DependenciasPreguntasServicio {
+export interface DependenciasPreguntasServicio extends Pick<
+  imagenes.DependenciasImagenes,
+  'repositorioImagenes'
+> {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
   temario: TemarioServicio;
@@ -71,39 +75,6 @@ export interface DependenciasPreguntasServicio {
 /** Lo que la consola hace con los textos de lectura (HU-12.2); lo demás es para crear preguntas. */
 type TextosDeLaConsola = Omit<TextosDeLectura, 'problemasDeTexto' | 'crearEnTransaccion'>;
 
-/** Pregunta tal como la lista el banco (C02): con su estado y sin la alternativa correcta. */
-export interface PreguntaDelBanco {
-  id: string;
-  /** Comienzo del enunciado (hasta 160 caracteres). */
-  resumen: string;
-  prueba: { id: number; codigo: string; nombre: string };
-  eje: { id: number; nombre: string };
-  contenido: { id: number; nombre: string };
-  estado: Opcion;
-  origen: OrigenPregunta;
-  dificultadSugerida: Opcion | null;
-  /** La que asignan los docentes (RN-12); el filtro de dificultad usa esta. */
-  dificultadAsignada: Opcion | null;
-  /** Un revisor dijo fácil y el otro difícil (C02: "posiblemente confusa"). */
-  posibleAmbigua: boolean;
-  /** La etapa permite editarla y enviarla a revisión (borrador u observada, RF-G09, HU-21). */
-  editable: boolean;
-  actualizadoEn: string;
-}
-
-export interface PaginaDelBanco {
-  preguntas: PreguntaDelBanco[];
-  paginacion: Paginacion;
-}
-
-/** Opciones de los filtros del banco: el temario y las listas de estados, orígenes y dificultades. */
-export interface FiltrosDelBanco {
-  pruebas: PruebaTemario[];
-  estados: Opcion[];
-  origenes: Opcion[];
-  dificultades: Opcion[];
-}
-
 export interface PreguntasServicio
   extends
     EdicionPreguntas,
@@ -112,7 +83,8 @@ export interface PreguntasServicio
     LecturasParaGenerar,
     PublicacionPreguntas,
     AvisosDeError,
-    AnulacionPreguntas {
+    AnulacionPreguntas,
+    imagenes.ImagenesDePreguntas {
   /**
    * HU-11 y RF-G01: el banco filtrado por prueba, eje, contenido, habilidad, estado, origen y
    * dificultad.
@@ -332,6 +304,7 @@ export function crearPreguntasServicio(
     ...importacion,
     ...publicacion,
     ...crearAvisosDeError(dependencias),
+    ...imagenes.crearImagenesDePreguntas(dependencias),
     enunciadosDelContenido: (contenidoId, tx) => generacion.enunciadosDelContenido(contenidoId, tx),
     ejemplosAprobados: (contenidoId, limite) => generacion.ejemplosAprobados(contenidoId, limite),
     guardarPropuestaDeIa: (propuesta, tx) => generacion.guardarPropuesta(propuesta, tx),

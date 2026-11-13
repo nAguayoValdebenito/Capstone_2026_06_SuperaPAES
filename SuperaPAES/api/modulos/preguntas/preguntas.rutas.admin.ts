@@ -3,7 +3,8 @@
 // Cada ruta declara su rol (DAS 4.3.3); el módulo no aplica un rol común.
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
 // crearPreguntasControlador(servicio).
-import { Router } from 'express';
+import express, { Router } from 'express';
+import { BYTES_MAXIMOS_IMAGEN, TIPOS_IMAGEN } from '../../comun/imagenes.js';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
 import { crearPreguntasControlador, type PreguntasControlador } from './preguntas.controlador.js';
@@ -70,6 +71,26 @@ function agregarRutasAvisos(router: Router, controlador: PreguntasControlador): 
   );
 }
 
+/**
+ * Subir una imagen para una pregunta o un texto de lectura (HU-12.6). El cuerpo es el
+ * archivo mismo; el límite de 2 MB es solo de esta ruta (el resto de la API acepta JSON de hasta 1 MB).
+ */
+function agregarRutaImagenes(router: Router, controlador: PreguntasControlador): void {
+  router.post(
+    '/imagenes',
+    exigirRol('admin'),
+    express.raw({ type: [...TIPOS_IMAGEN], limit: BYTES_MAXIMOS_IMAGEN }),
+    controlador.subirImagen,
+  );
+}
+
+/** Textos, avisos e imágenes van antes de /:id, para que sus nombres no se lean como una pregunta. */
+function agregarRutasAntesDeId(router: Router, controlador: PreguntasControlador): void {
+  agregarRutasTextos(router, controlador);
+  agregarRutasAvisos(router, controlador);
+  agregarRutaImagenes(router, controlador);
+}
+
 export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   const router = Router();
   const controlador = crearPreguntasControlador(servicio);
@@ -83,8 +104,7 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   );
   router.get('/filtros', exigirRol('admin'), controlador.filtrosDelBanco);
 
-  agregarRutasTextos(router, controlador);
-  agregarRutasAvisos(router, controlador);
+  agregarRutasAntesDeId(router, controlador);
 
   // CU-16 paso 1: descarga de las plantillas CSV (HU-13.3), solo para administradores.
   router.get('/importaciones/plantillas', exigirRol('admin'), controlador.plantillasImportacion);

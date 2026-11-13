@@ -35,7 +35,7 @@ cd Capstone_2026_06_SuperaPAES/SuperaPAES
 npm install
 createdb -U postgres supera_paes             # en Windows: "C:\Program Files\PostgreSQL\18\bin\createdb.exe"
 cp api/.env.example api/.env                 # completa DATABASE_URL y los dos JWT_SECRETO_*
-npm run migrar -w api                        # modelo 12.0: 85 tablas, 156 claves foráneas, 12 vistas y datos iniciales
+npm run migrar -w api                        # 86 tablas, 159 claves foráneas, 12 vistas y datos iniciales
 npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
 npm run semilla-demo -w api                  # opcional, solo desarrollo: 5 preguntas de ejemplo para probar la práctica
 npm run probar:bd -w api                     # 249 casos del modelo en una base temporal (necesita psql 18)
