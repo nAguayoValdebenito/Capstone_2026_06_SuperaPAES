@@ -1,6 +1,6 @@
 # Plan HU-25 · Clasificar dificultad del banco semilla (D03)
 
-Estado al 13/11/2026: **opción a aprobada por Nicolas (D1); D2 a D5 según la recomendación. HU-25.1 (servidor) terminada y verificada, sin confirmar; HU-25.2 (consola) pendiente.** Rama `feat/hu-25-clasificar-dificultad`, creada desde `origin/main` en `258001a`. Este plan no modifica el esquema, las migraciones, las semillas ni los documentos oficiales. Prompt: `D03_Clasificar_dificultad_HU-25.md`.
+Estado al 13/11/2026: **opción a aprobada por Nicolas (D1); D2 a D5 según la recomendación. HU-25.1 (servidor) confirmada; HU-25.2 (consola) terminada y verificada, sin confirmar. Falta la etapa de cierre.** Rama `feat/hu-25-clasificar-dificultad`, creada desde `origin/main` en `258001a`. Este plan no modifica el esquema, las migraciones, las semillas ni los documentos oficiales. Prompt: `D03_Clasificar_dificultad_HU-25.md`.
 
 Fuentes leídas: DAS 1.21, 03 Historias de Usuario v1.8, 04 Product Backlog, Sprint Backlogs 7 a 9, C2 v1.13 (copias de `referencia_oficial` de la biblioteca del proyecto; no existe `docs/referencia_oficial/` en el equipo), `001_esquema_inicial.sql`, los módulos `revision` y `preguntas`, y la consola (`paginas/revision`, `paginas/desempates`, `paginas/clasificar-dificultad`, `rutas/secciones.ts`). Boceto `D03_clasificar_dificultad.png` solo como referencia visual.
 

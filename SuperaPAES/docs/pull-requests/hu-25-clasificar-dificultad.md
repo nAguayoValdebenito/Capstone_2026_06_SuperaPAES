@@ -8,7 +8,7 @@ sigue RN-11 y RN-12. HU-25 sigue «Pendiente» en el 04: el equipo debe registra
 Sprint Backlog vigente, con HU-25.1 y HU-25.2. Plan y decisiones en
 `docs/planes/hu-25-clasificar-dificultad.md`.
 
-Estado: HU-25.1 (servidor) terminada. HU-25.2 (pantalla D03) pendiente.
+Estado: HU-25.1 (servidor) y HU-25.2 (pantalla D03) terminadas.
 
 ## Contrato (HU-25.1)
 
@@ -88,3 +88,32 @@ Ejemplo de `GET /api/v1/admin/revision/clasificar/siguiente` (datos ficticios):
   dos docentes a la vez reciben cada uno su asignación, no importada 404, dos clics a la vez 200 y
   409 con la pauta guardada, aprobada con la misma dificultad, fácil en D03 contra difícil en D01 va a
   desempate y queda posiblemente confusa).
+
+## Pantalla D03 (HU-25.2)
+
+- `PaginaClasificarDificultad.tsx` reemplaza `EnConstruccion`. Carga `ClasificacionDocente.tsx` al
+  abrir la sección (trae KaTeX, como D01). La lógica está en `estado/clasificar-dificultad.ts`
+  (`useClasificacionDocente`) y las llamadas en `servicios/revision.ts` (`siguienteAClasificar` y
+  `clasificarDificultad`).
+- Una pregunta por vista con `PreguntaRevisada` de D01 (ubicación, texto de lectura, alternativas con
+  la correcta y explicación), la etiqueta «Importada» y el contador «Quedan N por clasificar».
+- Tres botones grandes Fácil, Media y Difícil con los atajos 1, 2 y 3 (`aria-keyshortcuts`). La consola
+  no tenía atajos globales; se ignoran con Ctrl, Alt o Meta y mientras se escribe en un campo. Mientras
+  guarda, los botones se deshabilitan y un clic más una tecla cuentan una sola vez.
+- Al guardar: aviso con `role="status"` («Pregunta 118 guardada como Media.»), avance a la siguiente
+  que devuelve la API y foco en el primer botón. Si falla, el error con `role="alert"` y no avanza.
+- «Saltar» pide la siguiente después de la abierta. «Revisar con la pauta» abre la misma asignación en
+  Mis revisiones (`/revision?asignacion=<id>`): D01 ahora abre la asignación de la consulta si es un id
+  válido.
+- Estados: carga, error con «Reintentar» y vacío final «No quedan preguntas por clasificar.».
+- Estilos en `paginas/clasificar-dificultad/clasificar-dificultad.css`, solo con tokens; la dificultad
+  se dice con texto; 44 px en pantallas táctiles; a 390 px los botones van en una columna sin
+  desplazamiento horizontal. La consola aún no tiene tema oscuro, así que se revisó solo el claro.
+
+Capturas (datos ficticios, API simulada): `capturas/hu-25-d03-1440.png`,
+`capturas/hu-25-d03-guardada-1440.png` y `capturas/hu-25-d03-390.png`.
+
+Pruebas de la consola: 10 de interacción real en `ClasificacionDocente.test.tsx` (carga, singular,
+vacío, error con reintento, enlace a D01, clic que guarda y avanza con el foco, atajos con y sin Ctrl,
+clic y tecla a la vez, saltar y error al guardar) y 8 de reglas en `clasificar-dificultad.test.ts`
+(atajos, campos, contador y la asignación de la consulta de D01).
