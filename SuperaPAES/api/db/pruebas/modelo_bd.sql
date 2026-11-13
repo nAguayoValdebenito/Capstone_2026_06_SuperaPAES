@@ -1,4 +1,4 @@
--- Supera PAES. Escenarios de las historias de usuario ejecutados contra el modelo v12.
+-- Supera PAES. Escenarios de las historias de usuario ejecutados contra el modelo v12 y las migraciones del repositorio (con la tabla de imágenes desde la 007).
 -- Requiere, en este orden: Supera_PAES_Modelo_BD_v12.sql, la semilla del temario PAES 2027 (versión 1.1),
 -- Supera_PAES_Semilla_Evaluaciones_v11.sql y Supera_PAES_Semilla_Documentos_Legales_v11.sql.
 -- Cada caso dice qué se espera y qué pasó. Se ejecuta en una transacción que se deshace al final.
@@ -799,6 +799,45 @@ BEGIN
   PERFORM pg_temp.debe_ser('Al entregar el mini-ensayo llegan la corrección y las explicaciones', format(visible, m1), 'true');
   PERFORM pg_temp.debe_ser('La vista entrega una fila por cada pregunta del estudiante',
     format('SELECT ((SELECT COUNT(*) FROM app.v_item_evaluacion WHERE estudiante_id = %s) = (SELECT COUNT(*) FROM app.evaluacion_item i JOIN app.evaluacion e ON e.id = i.evaluacion_id WHERE e.estudiante_id = %s))::text', pg_temp.est('Gabi'), pg_temp.est('Gabi')), 'true');
+END $$;
+
+-- ---------- 24. Imágenes y gráficos (migración 007) ----------
+SELECT pg_temp.grupo('24. Imágenes y gráficos');
+CREATE FUNCTION pg_temp.imagen_sql(contenido TEXT, extra_columnas TEXT DEFAULT '', extra_valores TEXT DEFAULT '') RETURNS TEXT LANGUAGE sql AS $$
+  SELECT format('INSERT INTO contenido.imagen (huella, ancho, alto, bytes, datos, creado_por, creado_en%s) VALUES (encode(sha256(convert_to(%L, ''UTF8'')), ''hex''), 800, 600, octet_length(convert_to(%L, ''UTF8'')), convert_to(%L, ''UTF8''), pg_temp.usr(''Admin''), now()%s)',
+    extra_columnas, contenido, contenido, contenido, extra_valores) $$;
+DO $$ DECLARE imp BIGINT; lote BIGINT;
+BEGIN
+  INSERT INTO contenido.importacion (usuario_id, nombre_archivo, filas_total, filas_creadas, filas_con_error, creado_en)
+  VALUES (pg_temp.usr('Admin'), 'preguntas.csv', 1, 1, 0, now()) RETURNING id INTO imp;
+  SELECT MIN(id) INTO lote FROM contenido.lote_generacion;
+  PERFORM pg_temp.debe_ser('La acción de auditoría subir_imagen viene en los datos iniciales',
+    'SELECT COUNT(*)::text FROM contenido.accion_auditoria WHERE codigo = ''subir_imagen''', '1');
+  PERFORM pg_temp.debe_pasar('Guardar una imagen subida en la consola, sin importación ni lote', pg_temp.imagen_sql('imagen-a'));
+  PERFORM pg_temp.debe_fallar('La misma imagen (misma huella) no se guarda dos veces', pg_temp.imagen_sql('imagen-a'));
+  PERFORM pg_temp.debe_pasar('Guardar una imagen que viene de una importación', pg_temp.imagen_sql('imagen-b', ', importacion_id', format(', %s', imp)));
+  PERFORM pg_temp.debe_pasar('Guardar un gráfico de un lote de la IA con sus datos',
+    pg_temp.imagen_sql('grafico-c', ', lote_id, datos_grafico', format(', %s, %L::jsonb', lote, '{"tipo":"barras","valores":[12,30,45]}')));
+  PERFORM pg_temp.debe_fallar('Una imagen no puede venir de una importación y de un lote a la vez',
+    pg_temp.imagen_sql('imagen-d', ', importacion_id, lote_id', format(', %s, %s', imp, lote)));
+  PERFORM pg_temp.debe_fallar('Los datos de un gráfico deben ser un objeto',
+    pg_temp.imagen_sql('grafico-e', ', datos_grafico', ', ''[1,2,3]''::jsonb'));
+  PERFORM pg_temp.debe_fallar('La huella debe ser SHA-256 en hexadecimal (64 caracteres)',
+    'INSERT INTO contenido.imagen (huella, ancho, alto, bytes, datos, creado_por, creado_en) VALUES (''ABC'', 1, 1, 1, ''\x00''::bytea, pg_temp.usr(''Admin''), now())');
+  PERFORM pg_temp.debe_fallar('El tamaño declarado debe coincidir con los datos',
+    'INSERT INTO contenido.imagen (huella, ancho, alto, bytes, datos, creado_por, creado_en) VALUES (repeat(''a'', 64), 1, 1, 5, ''\x00''::bytea, pg_temp.usr(''Admin''), now())');
+  PERFORM pg_temp.debe_fallar('Una imagen de más de 3.200 píxeles de lado no se guarda',
+    'INSERT INTO contenido.imagen (huella, ancho, alto, bytes, datos, creado_por, creado_en) VALUES (repeat(''b'', 64), 3201, 10, 1, ''\x00''::bytea, pg_temp.usr(''Admin''), now())');
+  PERFORM pg_temp.debe_fallar('Una imagen sin un usuario interno que la cree no se guarda',
+    'INSERT INTO contenido.imagen (huella, ancho, alto, bytes, datos, creado_por, creado_en) VALUES (repeat(''c'', 64), 1, 1, 1, ''\x00''::bytea, -1, now())');
+  PERFORM pg_temp.debe_fallar('Una imagen guardada no se modifica',
+    format('UPDATE contenido.imagen SET ancho = 10 WHERE huella = encode(sha256(convert_to(%L, ''UTF8'')), ''hex'')', 'imagen-a'));
+  PERFORM pg_temp.debe_fallar('Una imagen guardada no se borra',
+    format('DELETE FROM contenido.imagen WHERE huella = encode(sha256(convert_to(%L, ''UTF8'')), ''hex'')', 'imagen-a'));
+  PERFORM pg_temp.debe_fallar('No se borra una importación de la que salió una imagen',
+    format('DELETE FROM contenido.importacion WHERE id = %s', imp));
+  PERFORM pg_temp.debe_ser('Quedan las tres imágenes válidas, una por cada origen',
+    'SELECT COUNT(*) FILTER (WHERE importacion_id IS NULL AND lote_id IS NULL) || ''/'' || COUNT(importacion_id) || ''/'' || COUNT(lote_id) FROM contenido.imagen', '1/1/1');
 END $$;
 
 -- ---------- Resultado ----------
