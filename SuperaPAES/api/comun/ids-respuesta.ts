@@ -183,6 +183,23 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.abierta.dificultad.id',
     'data.cerrada.id',
   ],
+  'POST /api/v1/app/privacidad/solicitudes': ['data.id'],
+  'GET /api/v1/app/privacidad/solicitudes': ['data[].id'],
+  'GET /api/v1/admin/privacidad/solicitudes': [
+    'data.solicitudes[].id',
+    'data.solicitudes[].estudiante.id',
+    'data.solicitudes[].atendidoPor.id',
+  ],
+  'GET /api/v1/admin/privacidad/solicitudes/:id': [
+    'data.id',
+    'data.estudiante.id',
+    'data.atendidoPor.id',
+  ],
+  'PATCH /api/v1/admin/privacidad/solicitudes/:id': [
+    'data.id',
+    'data.estudiante.id',
+    'data.atendidoPor.id',
+  ],
   'GET /api/v1/app/privacidad/mis-datos': [
     'data.cuenta.id',
     'data.perfil.pruebas[]',

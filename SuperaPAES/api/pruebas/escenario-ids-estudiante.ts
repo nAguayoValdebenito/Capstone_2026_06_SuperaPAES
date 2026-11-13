@@ -130,12 +130,48 @@ const datosDelEstudiante = {
  * El servicio de privacidad con la descarga de datos y el borrado de la cuenta. Solo trae los campos que el inventario de ids
  * revisa, así que no cumple todo el tipo del servicio.
  */
+/** Una solicitud de datos del estudiante (HU-09.1), con su id como texto, igual que la base. */
+const solicitudPropia = {
+  id: '31',
+  tipo: { codigo: 'acceso', nombre: 'Acceso' },
+  detalle: null,
+  estado: { codigo: 'pendiente', nombre: 'Pendiente' },
+  solicitadoEn: fecha,
+  venceEn: fecha,
+  respondidoEn: null,
+  respuesta: null,
+};
+
+/** La misma solicitud en la bandeja de la consola (HU-55.1), atendida, con el estudiante y el autor. */
+const solicitudConsola = {
+  ...solicitudPropia,
+  estado: { codigo: 'respondida', nombre: 'Respondida' },
+  respondidoEn: fecha,
+  respuesta: 'Listo.',
+  atendidoPor: { id: '7', nombre: 'Admin' },
+  estudiante: { id: '84', nombre: 'Ana', correo: 'ana@ejemplo.cl', cuentaEliminada: false },
+  diasRestantes: null,
+  vencida: false,
+};
+
 export const privacidadDePrueba = {
   exportarDatos: vi.fn(() => Promise.resolve(datosDelEstudiante as never)),
   borrarCuenta: vi.fn(() => Promise.resolve({ eliminadaEn: fecha })),
   estadoDeLaCuenta: vi.fn(() =>
     Promise.resolve({ suscripcionVigente: null, documentosAceptados: [] }),
   ),
+  tiposDerecho: vi.fn(() => Promise.resolve([])),
+  crearSolicitud: vi.fn(() => Promise.resolve(solicitudPropia)),
+  solicitudesDe: vi.fn(() => Promise.resolve([solicitudPropia])),
+  listarSolicitudes: vi.fn(() =>
+    Promise.resolve({
+      solicitudes: [solicitudConsola],
+      pendientes: 1,
+      paginacion: { pagina: 1, porPagina: 20, total: 1 },
+    }),
+  ),
+  obtenerSolicitud: vi.fn(() => Promise.resolve(solicitudConsola)),
+  atenderSolicitud: vi.fn(() => Promise.resolve(solicitudConsola)),
 };
 
 /** Las rutas de los puntajes del servicio de cuentas, que responden todas lo mismo. */

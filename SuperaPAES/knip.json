@@ -4,10 +4,10 @@
   "tags": ["-esqueleto"],
   "workspaces": {
     "api": {
-      "ignore": ["modulos/privacidad/privacidad.validadores.ts", "eslint.reglas-arquitectura.d.ts"]
+      "ignore": ["eslint.reglas-arquitectura.d.ts"]
     },
     "consola": {
-      "ignore": ["src/servicios/privacidad.ts"]
+      "ignore": []
     }
   },
   "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"]

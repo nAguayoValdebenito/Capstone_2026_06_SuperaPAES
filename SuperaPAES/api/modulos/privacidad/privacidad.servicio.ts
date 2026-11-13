@@ -3,10 +3,19 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
+import type { AdministracionServicio } from '../administracion/index.js';
 import type { CuentasServicio, DocumentoAceptado } from '../cuentas/index.js';
 import type { EvaluacionesServicio } from '../evaluaciones/index.js';
 import type { SuscripcionesServicio } from '../suscripciones/index.js';
-import type { PrivacidadRepositorio } from './privacidad.repositorio.js';
+import {
+  crearPrivacidadRepositorio,
+  type PrivacidadRepositorio,
+} from './privacidad.repositorio.js';
+import {
+  crearSolicitudesConsola,
+  type SolicitudesConsola,
+} from './privacidad.solicitudes.consola.servicio.js';
+import { crearSolicitudesApp, type SolicitudesApp } from './privacidad.solicitudes.servicio.js';
 
 export interface DependenciasPrivacidadServicio {
   bd: Ejecutor;
@@ -16,6 +25,11 @@ export interface DependenciasPrivacidadServicio {
   evaluaciones: Pick<EvaluacionesServicio, 'exportarEvaluaciones'>;
   /** Antes de borrar la cuenta, la app avisa de la suscripción vigente (HU-08.2, RN-34). */
   suscripciones: Pick<SuscripcionesServicio, 'vigenteDe'>;
+  /**
+   * El plazo de las solicitudes de datos (plazo_derechos_dias) sale de la configuración (HU-09.1) y la
+   * respuesta de la consola queda en la auditoría (HU-55.1).
+   */
+  administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'registrarAuditoria'>;
   /** Hora actual, para las reglas que dependen del tiempo. */
   reloj: Reloj;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearPrivacidadRepositorio(bd). */
@@ -41,7 +55,7 @@ export interface EstadoDeLaCuenta {
   documentosAceptados: DocumentoAceptado[];
 }
 
-export interface PrivacidadServicio {
+export interface PrivacidadServicio extends SolicitudesApp, SolicitudesConsola {
   /**
    * HU-07.1 (RF-A18, CU-14 3.a, CP-26): la cuenta, los documentos aceptados, el perfil, las
    * evaluaciones con sus respuestas y resultados, y los puntajes del estudiante de la sesión
@@ -66,7 +80,10 @@ export function crearPrivacidadServicio(
   dependencias: DependenciasPrivacidadServicio,
 ): PrivacidadServicio {
   const { cuentas, evaluaciones, suscripciones, reloj } = dependencias;
+  const repositorio = dependencias.repositorio ?? crearPrivacidadRepositorio(dependencias.bd);
   return {
+    ...crearSolicitudesApp({ repositorio, administracion: dependencias.administracion, reloj }),
+    ...crearSolicitudesConsola({ ...dependencias, repositorio }),
     exportarDatos: async (estudianteId) => {
       const generadoEn = reloj();
       const cuenta = await cuentas.exportarCuenta(estudianteId);

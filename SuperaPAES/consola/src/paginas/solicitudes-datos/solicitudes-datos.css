@@ -1,0 +1,139 @@
+/* Solicitudes de datos (C14): bandeja a la izquierda y detalle de la solicitud a la derecha. Solo tokens
+   del tema (estilos/global.css); sin ámbar ni --aviso. */
+.solicitudes__contenido {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.solicitudes__tabla {
+  min-width: 40rem;
+}
+
+.solicitudes__plazo {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+}
+
+.solicitudes__fecha {
+  white-space: nowrap;
+}
+
+.solicitudes__plazo .solicitudes__fecha {
+  font-weight: 600;
+}
+
+.solicitudes__estudiante {
+  overflow-wrap: anywhere;
+}
+
+.solicitudes__panel {
+  max-width: none;
+  margin-top: 0;
+}
+
+.solicitudes__panel h2 {
+  font-size: var(--texto-md);
+  overflow-wrap: anywhere;
+}
+
+.solicitudes__dato {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.solicitudes__cita {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--borde);
+  background: var(--fondo);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.solicitudes__formulario {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.solicitudes__formulario .campo__ayuda {
+  margin: 0;
+}
+
+.solicitudes__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.solicitudes__vacio,
+.solicitudes__error {
+  margin-top: 1.5rem;
+}
+
+/* Etiqueta de plazo: el texto dice el estado y cada caso tiene otra forma. Vencida: relleno de error;
+   vence pronto: borde; a tiempo: solo texto. */
+.plazo {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.plazo--vencida {
+  border-color: var(--error);
+  background: var(--error);
+  color: var(--superficie);
+}
+
+.plazo--pronto {
+  border-color: currentcolor;
+  color: var(--texto);
+}
+
+.plazo--a-tiempo {
+  padding-inline: 0;
+  color: var(--texto-secundario);
+}
+
+.solicitudes__fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--texto) 45%, transparent);
+}
+
+.solicitudes__confirmacion {
+  width: min(32rem, 100%);
+  margin: 0;
+}
+
+.solicitudes__confirmacion p {
+  margin: 0 0 0.5rem;
+}
+
+/* Objetivos táctiles de al menos 44 px. */
+.solicitudes .boton,
+.solicitudes .boton-texto,
+.solicitudes .pestanas__boton {
+  min-height: 44px;
+}
+
+@media (max-width: 64rem) {
+  .solicitudes__contenido {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

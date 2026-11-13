@@ -4,8 +4,10 @@
 // Cada endpoint: router.<metodo>(ruta, validar(...), controlador.<accion>), con
 // crearPrivacidadControlador(servicio).
 import { Router } from 'express';
+import { validar } from '../../comun/middleware/validacion.js';
 import { crearPrivacidadControlador } from './privacidad.controlador.js';
 import type { PrivacidadServicio } from './privacidad.servicio.js';
+import { esquemaNuevaSolicitud } from './privacidad.validadores.js';
 
 export function crearRutasAppPrivacidad(servicio: PrivacidadServicio): Router {
   const router = Router();
@@ -16,5 +18,13 @@ export function crearRutasAppPrivacidad(servicio: PrivacidadServicio): Router {
   router.get('/cuenta', controlador.estadoDeLaCuenta);
   // HU-08.1: «Borrar mi cuenta» (A42 y A42b).
   router.delete('/cuenta', controlador.borrarCuenta);
+  // HU-09.1 (RF-A21, A40): los derechos que se pueden pedir, enviar una solicitud y ver las propias.
+  router.get('/tipos-derecho', controlador.tiposDerecho);
+  router.post(
+    '/solicitudes',
+    validar({ cuerpo: esquemaNuevaSolicitud }),
+    controlador.crearSolicitud,
+  );
+  router.get('/solicitudes', controlador.misSolicitudes);
   return router;
 }
