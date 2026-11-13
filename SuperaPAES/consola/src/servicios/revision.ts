@@ -8,14 +8,17 @@ import type {
   DatosRevision,
   DesempateAbierto,
   DesempateEntregado,
+  DificultadClasificada,
   EnvioARevision,
   PreguntaARevisar,
   RevisionEntregada,
   RevisionPendiente,
+  SiguienteAClasificar,
 } from '../tipos';
 
 const MIS_REVISIONES = '/revision/mis-revisiones';
 const DESEMPATES = '/revision/desempates';
+const CLASIFICAR = '/revision/clasificar';
 
 const opciones = (senal?: AbortSignal) => (senal ? { signal: senal } : {});
 
@@ -71,6 +74,34 @@ export async function entregarRevision(
   const { data } = await solicitarAdmin<RevisionEntregada>(`${MIS_REVISIONES}/${String(id)}`, {
     method: 'POST',
     body: JSON.stringify(datos),
+  });
+  return data;
+}
+
+/**
+ * HU-25 (D03): la siguiente importada por clasificar y cuántas quedan; con `despuesDe`, la que sigue a
+ * esa asignación (saltar).
+ */
+export async function siguienteAClasificar(
+  despuesDe: number | null,
+  senal?: AbortSignal,
+): Promise<SiguienteAClasificar> {
+  const consulta = despuesDe === null ? '' : `?despuesDe=${String(despuesDe)}`;
+  const { data } = await solicitarAdmin<SiguienteAClasificar>(
+    `${CLASIFICAR}/siguiente${consulta}`,
+    opciones(senal),
+  );
+  return data;
+}
+
+/** HU-25 y CU-19a (D03): la dificultad con un clic; devuelve lo guardado y la siguiente. */
+export async function clasificarDificultad(
+  id: number,
+  dificultad: string,
+): Promise<DificultadClasificada> {
+  const { data } = await solicitarAdmin<DificultadClasificada>(`${CLASIFICAR}/${String(id)}`, {
+    method: 'POST',
+    body: JSON.stringify({ dificultad }),
   });
   return data;
 }

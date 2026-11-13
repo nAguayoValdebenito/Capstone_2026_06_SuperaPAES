@@ -33,6 +33,16 @@ export function api(...respuestas: RespuestaFalsa[]) {
   return llamadas;
 }
 
+/** Respuesta de error de la API con su estado HTTP, código y mensaje. */
+export const respuestaDeError = (
+  estado: number,
+  codigo: string,
+  mensaje: string,
+): RespuestaFalsa => ({
+  cuerpo: { data: null, error: { codigo, mensaje }, meta: null },
+  estado,
+});
+
 /** Deja correr las promesas y los efectos pendientes. */
 export async function esperar() {
   await act(async () => {

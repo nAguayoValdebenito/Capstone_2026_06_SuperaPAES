@@ -287,6 +287,24 @@ export interface PreguntaARevisar extends RevisionPendiente {
   decisiones: (Opcion & { requiereComentario: boolean })[];
 }
 
+/**
+ * La pregunta importada que clasifica el docente (D03, HU-25): como en D01, con las dificultades y sin
+ * la pauta ni las decisiones. A ciegas: sin la dificultad sugerida.
+ */
+export type PreguntaAClasificar = Omit<PreguntaARevisar, 'pauta' | 'decisiones'>;
+
+/** La siguiente por clasificar (null si no queda ninguna) y cuántas quedan. */
+export interface SiguienteAClasificar {
+  pregunta: PreguntaAClasificar | null;
+  quedan: number;
+}
+
+/** La clasificación guardada y lo que sigue. */
+export interface DificultadClasificada {
+  guardada: { asignacionId: number; preguntaId: number; dificultad: string };
+  siguiente: SiguienteAClasificar;
+}
+
 /** La revisión que entrega el docente (CU-19 pasos 3 a 5). */
 export interface DatosRevision {
   criterios: { codigo: string; cumple: boolean; observacion: string | null }[];

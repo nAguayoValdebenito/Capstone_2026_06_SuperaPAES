@@ -1,0 +1,109 @@
+/* Clasificar dificultad (D03): la pregunta como en D01 y tres botones grandes, uno por dificultad. Solo
+   tokens del tema (estilos/global.css); sin ámbar ni --aviso. La dificultad se dice con texto, nunca solo
+   con color. */
+.clasificar {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.clasificar .panel {
+  margin-top: 0;
+}
+
+/* La región del aviso existe siempre para que el lector de pantalla anuncie cada guardado. */
+.clasificar__aviso:empty {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.clasificar__contador {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-weight: 600;
+}
+
+.clasificar__botones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.clasificar__boton {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  min-height: 5rem;
+  padding: 1rem;
+  border-width: 2px;
+  border-radius: 0.5rem;
+  font-size: var(--texto-md);
+  font-weight: 600;
+}
+
+.clasificar__boton:hover:not(:disabled) {
+  border-color: var(--primario);
+  color: var(--primario);
+}
+
+.clasificar__tecla {
+  padding: 0 0.5rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.25rem;
+  color: var(--texto-secundario);
+  font-family: inherit;
+  font-size: var(--texto-sm);
+  font-weight: 400;
+}
+
+.clasificar__indicacion {
+  margin: 0;
+  color: var(--texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.clasificar__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.clasificar__acciones .boton {
+  text-decoration: none;
+}
+
+.clasificar__error {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.clasificar__vacio {
+  margin: 0;
+  padding: 2rem 1.5rem;
+  border: 1px dashed var(--borde);
+  border-radius: 0.5rem;
+  background: var(--superficie);
+  color: var(--texto-secundario);
+  text-align: center;
+}
+
+@media (max-width: 48rem) {
+  .clasificar__botones {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .clasificar__boton {
+    min-height: 3.5rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .clasificar__acciones .boton {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
