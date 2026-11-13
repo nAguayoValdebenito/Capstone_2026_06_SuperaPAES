@@ -79,7 +79,31 @@ Ejemplo de `GET /api/v1/admin/privacidad/solicitudes` (datos ficticios):
 
 ## Consola (C14)
 
-Pendiente de la etapa 4 (HU-55.2). Se completará con la pantalla y sus capturas.
+`/solicitudes-datos`, solo administrador (HU-55.2). Pestañas Pendientes (con su total), Respondidas
+y Rechazadas; tabla con fecha límite, tipo, estudiante (o «Cuenta eliminada»), fecha de recepción y
+estado, con paginación. La etiqueta de plazo siempre tiene texto y una forma distinta por caso: vencida
+(«Vencida hace 2 días», relleno de error), vence pronto (7 días o menos, «Vence en 5 días», borde) y a
+tiempo (solo texto). El detalle va en un panel lateral, como C13 (debajo de la tabla en pantallas
+angostas): qué pidió, fechas y, si está pendiente, la respuesta obligatoria con Responder y Rechazar.
+Sin texto, el error queda junto al campo (`aria-invalid`, `aria-describedby`) y no se abre la
+confirmación. La confirmación repite la acción y el texto, retiene el foco, se cierra con Escape y
+devuelve el foco al botón que la abrió. Una solicitud atendida muestra la respuesta, quién y cuándo, sin
+formulario. Estados de carga, error con Reintentar y vacío («No hay solicitudes pendientes.»).
+
+Revisión en el navegador con la API local sobre una base temporal (migraciones, semillas y datos
+ficticios; la base se borró al terminar): 1440 y 390 px sin desplazamiento horizontal de la página (la
+tabla se desplaza dentro de su región), foco visible, Tab retenido en la confirmación, Escape devuelve
+el foco, y responder guarda y registra la auditoría.
+
+![Bandeja a 1440 px](capturas/hu-55-c14-bandeja-1440.png)
+![Confirmación a 1440 px](capturas/hu-55-c14-confirmar-1440.png)
+![Respondidas a 1440 px](capturas/hu-55-c14-respondidas-1440.png)
+![Bandeja a 390 px](capturas/hu-55-c14-bandeja-390.png)
+
+Pendiente de la consola: el anillo de foco global (`--foco`) sigue en ámbar, como en toda la consola,
+hasta integrar el rediseño. jscpd marca dos repeticiones cortas con C13 (el bloque de carga y error de
+la página, 13 líneas, y el fondo del diálogo en CSS, 11 líneas); unirlas exige tocar C13 y conviene
+hacerlo con el rediseño.
 
 ## Pendiente para el equipo
 

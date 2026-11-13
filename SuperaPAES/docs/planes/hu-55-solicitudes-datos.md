@@ -1,6 +1,6 @@
 # Plan HU-55 + HU-09 · Solicitudes de datos (C14 y servidor de la app)
 
-Estado al 13/11/2026: **plan y decisiones D1 a D9 aprobados por Nicolas; HU-09.1 confirmada (`da58b8b`); HU-55.1 (servidor de la consola) implementada y verificada, sin commit**. Siguen la etapa 4 (HU-55.2, pantalla C14) y el cierre. Rama `feat/hu-55-solicitudes-datos`, creada desde `origin/main` en `f8f7672` (ya incluye HU-50 y HU-51). Este plan no modifica el esquema, las migraciones, las semillas ni los documentos oficiales. Prompt: `C14_Solicitudes_de_datos_HU-55_v2.md`.
+Estado al 13/11/2026: **plan y decisiones D1 a D9 aprobados por Nicolas; HU-09.1 y HU-55.1 confirmadas; HU-55.2 (pantalla C14) implementada y revisada a 1440 y 390 px, sin commit**. Sigue el cierre (etapa 5). Rama `feat/hu-55-solicitudes-datos`, creada desde `origin/main` en `f8f7672` (ya incluye HU-50 y HU-51). Este plan no modifica el esquema, las migraciones, las semillas ni los documentos oficiales. Prompt: `C14_Solicitudes_de_datos_HU-55_v2.md`.
 
 Fuentes leídas: DAS 1.21, 02 Épicas e Historias v1.8, 03 Historias de Usuario v1.8, 04 Product Backlog y Sprint Backlogs 4 a 9 (copias de `referencia_oficial` de la biblioteca del proyecto; no existe `docs/referencia_oficial/` en el equipo), C2 v1.13, la política de privacidad 1.0 (semilla `003_documentos_legales.sql`, texto de DOC-06), `001_esquema_inicial.sql`, el módulo `privacidad`, el borrado de cuenta de `cuentas` y la consola (`paginas/solicitudes-datos`, C13 como referencia). Boceto `C14_solicitudes_datos.png` solo como referencia visual.
 

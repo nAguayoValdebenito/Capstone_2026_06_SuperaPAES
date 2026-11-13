@@ -5,6 +5,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { configurarToken } from '../../api/cliente';
+import { api, esperar, pulsar, tecla, type RespuestaFalsa } from '../../pruebas/interaccion';
 import { tokenConsola } from '../../pruebas/sesion';
 import type { ParametroConfiguracion } from '../../tipos/configuracion';
 import { PaginaConfiguracion } from './PaginaConfiguracion';
@@ -40,40 +41,11 @@ const MODELO: ParametroConfiguracion = {
   regla: 'RF-G03',
 };
 
-type Respuesta = { cuerpo: unknown; estado?: number };
-const exito = (data: unknown): Respuesta => ({ cuerpo: { data, error: null, meta: null } });
+const exito = (data: unknown): RespuestaFalsa => ({ cuerpo: { data, error: null, meta: null } });
 const lista = (parametros: ParametroConfiguracion[]) => exito({ parametros });
 
 let raiz: Root;
 let contenedor: HTMLDivElement;
-
-/** fetch falso: entrega las respuestas en orden y guarda método, ruta y cuerpo de cada llamada. */
-function api(...respuestas: Respuesta[]) {
-  const cola = [...respuestas];
-  const llamadas: { metodo: string; ruta: string; cuerpo: unknown }[] = [];
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string, init?: RequestInit) => {
-      llamadas.push({
-        metodo: init?.method ?? 'GET',
-        ruta: url.replace(/^.*\/api\/v1/, ''),
-        cuerpo: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
-      });
-      const siguiente = cola.shift();
-      if (!siguiente) throw new Error(`Llamada no esperada a ${url}`);
-      return Promise.resolve(
-        new Response(JSON.stringify(siguiente.cuerpo), { status: siguiente.estado ?? 200 }),
-      );
-    }),
-  );
-  return llamadas;
-}
-
-async function esperar() {
-  await act(async () => {
-    for (let i = 0; i < 5; i += 1) await new Promise((listo) => setTimeout(listo, 0));
-  });
-}
 
 async function montar() {
   act(() => raiz.render(<PaginaConfiguracion />));
@@ -96,23 +68,6 @@ function escribir(clave: string, texto: string) {
     Reflect.set(HTMLInputElement.prototype, 'value', texto, entrada);
     entrada.dispatchEvent(new Event('input', { bubbles: true }));
   });
-}
-
-async function pulsar(boton: HTMLButtonElement) {
-  act(() => {
-    boton.focus();
-    boton.click();
-  });
-  await esperar();
-}
-
-async function tecla(key: string, shiftKey = false) {
-  act(() => {
-    document.activeElement!.dispatchEvent(
-      new KeyboardEvent('keydown', { key, shiftKey, bubbles: true }),
-    );
-  });
-  await esperar();
 }
 
 beforeEach(() => {
@@ -173,7 +128,7 @@ describe('Configuración C12 con interacción real (HU-51.2)', () => {
 
   it('ante CONFLICTO avisa y muestra el valor vigente que guardó otro administrador', async () => {
     const vigente = { ...CUPO, valor: 15, actualizadoEn: '2026-11-12T14:00:00.000Z' };
-    const conflicto: Respuesta = {
+    const conflicto: RespuestaFalsa = {
       estado: 409,
       cuerpo: { data: null, error: { codigo: 'CONFLICTO', mensaje: 'Cambio ajeno' }, meta: null },
     };
