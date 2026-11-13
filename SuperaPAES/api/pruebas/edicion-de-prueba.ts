@@ -9,6 +9,7 @@ import type {
 } from '../modulos/preguntas/preguntas.edicion.repositorio.js';
 import { crearPreguntasServicio } from '../modulos/preguntas/index.js';
 import type { AvisosRepositorio } from '../modulos/preguntas/preguntas.avisos.repositorio.js';
+import type { ImagenesRepositorio } from '../modulos/preguntas/preguntas.imagenes.repositorio.js';
 import type { PreguntasImportacionRepositorio } from '../modulos/preguntas/preguntas.importacion.repositorio.js';
 import type { PublicacionRepositorio } from '../modulos/preguntas/preguntas.publicacion.repositorio.js';
 import type { PreguntasRepositorio } from '../modulos/preguntas/preguntas.repositorio.js';
@@ -199,7 +200,11 @@ function importacionesEnMemoria() {
  * App con el servicio de preguntas real sobre el temario y los repositorios en memoria; `publicacion`
  * reemplaza al repositorio de publicar y retirar (HU-24) y `avisos` al de los avisos de error (HU-50).
  */
-export function escenarioEdicion(publicacion?: PublicacionRepositorio, avisos?: AvisosRepositorio) {
+export function escenarioEdicion(
+  publicacion?: PublicacionRepositorio,
+  avisos?: AvisosRepositorio,
+  imagenes?: ImagenesRepositorio,
+) {
   const { repositorio, ponerEtapa } = repositorioEnMemoria();
   const importaciones = importacionesEnMemoria();
   const textos = textosEnMemoria();
@@ -218,6 +223,7 @@ export function escenarioEdicion(publicacion?: PublicacionRepositorio, avisos?: 
     repositorioImportacion: importaciones,
     ...(publicacion && { repositorioPublicacion: publicacion }),
     ...(avisos && { repositorioAvisos: avisos }),
+    ...(imagenes && { repositorioImagenes: imagenes }),
   });
   const app = crearAppDePrueba({}, { preguntas, temario });
   return { app, repositorio, auditoria, ponerEtapa, textos, importaciones };

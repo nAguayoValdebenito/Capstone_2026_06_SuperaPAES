@@ -174,6 +174,11 @@ export const esquemaIdTexto = z.strictObject({ id: idDeRuta });
 
 export const esquemaIdAviso = z.strictObject({ id: idDeRuta });
 
+/** Archivo de una imagen en la ruta pública: su huella SHA-256 en hexadecimal y la extensión .webp. */
+export const esquemaArchivoImagen = z.strictObject({
+  archivo: z.string().regex(/^[0-9a-f]{64}\.webp$/, 'La imagen no existe.'),
+});
+
 /** Estados de un aviso (contenido.estado_reporte); «todos» no filtra. */
 export const ESTADOS_AVISO = ['pendiente', 'resuelto', 'descartado', 'todos'] as const;
 
