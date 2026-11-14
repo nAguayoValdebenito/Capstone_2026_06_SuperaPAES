@@ -3,6 +3,7 @@
 import type { Request, RequestHandler } from 'express';
 import type {
   ConsultaSeguimientoHttp,
+  DatosCalibracion,
   DatosDesempate,
   DatosRevision,
 } from './revision.validadores.js';
@@ -22,6 +23,8 @@ export interface RevisionControlador {
   obtenerDesempate: Validado;
   entregarDesempate: Validado<DatosDesempate>;
   listarSeguimiento: RequestHandler;
+  listarCalibracion: Validado;
+  decidirCalibracion: Validado<DatosCalibracion>;
 }
 
 /**
@@ -71,6 +74,27 @@ export function crearRevisionControlador(servicio: RevisionServicio): RevisionCo
       const consulta = res.locals.consulta as ConsultaSeguimientoHttp;
       const { seguimiento, paginacion } = await servicio.listarSeguimiento(consulta);
       responder(res, seguimiento, { meta: paginacion });
+    },
+    ...manejadoresCalibracion(servicio),
+  };
+}
+
+/** D04 (HU-26.1): la bandeja de calibración del docente y su decisión sobre cada pregunta. */
+function manejadoresCalibracion(
+  servicio: RevisionServicio,
+): Pick<RevisionControlador, 'listarCalibracion' | 'decidirCalibracion'> {
+  return {
+    listarCalibracion: async (req, res) => {
+      const bandeja = await servicio.listarCalibracion(usuarioDe(req));
+      responder(res, bandeja, { meta: { total: bandeja.length } });
+    },
+    decidirCalibracion: async (req, res) => {
+      const decision = await servicio.decidirCalibracion(
+        usuarioDe(req),
+        String(req.params.id),
+        req.body,
+      );
+      responder(res, decision, { estado: 201 });
     },
   };
 }

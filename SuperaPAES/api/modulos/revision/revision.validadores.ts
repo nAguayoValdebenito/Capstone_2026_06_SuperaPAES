@@ -61,3 +61,10 @@ export type DatosRevision = z.output<typeof esquemaRevision>;
 export const esquemaDesempate = esquemaRevision.omit({ criterios: true });
 
 export type DatosDesempate = z.output<typeof esquemaDesempate>;
+
+/** HU-26.1 (D04): el docente confirma que la dificultad no corresponde (false) o la descarta (true). */
+export const esquemaCalibracion = z.strictObject({
+  dificultadCorresponde: z.boolean('Indica si la dificultad corresponde.'),
+});
+
+export type DatosCalibracion = z.output<typeof esquemaCalibracion>;

@@ -91,6 +91,7 @@ export function appDeRevision(cambios: Partial<DependenciasRevisionServicio>) {
       pasarARevision: () => Promise.reject(new Error('no se usa')),
       resolverRevision: () => Promise.resolve(),
     },
+    evaluaciones: { estadisticasFueraDeRango: () => Promise.resolve([]) },
     ...cambios,
   });
   return { app: crearAppDePrueba({}, { revision }), tx };

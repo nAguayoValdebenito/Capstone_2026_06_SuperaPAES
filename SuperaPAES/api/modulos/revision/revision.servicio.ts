@@ -7,12 +7,22 @@
 // la entrega de su revisión con la pauta (HU-22) están en revision.bandeja.servicio.ts; al entregar la
 // última de la ronda se combinan las revisiones (HU-23, revision.resolucion.servicio.ts), y los
 // desempates del tercer docente (D02, CU-20) están en revision.desempate.servicio.ts. El seguimiento del
-// administrador (C06) está en revision.seguimiento.servicio.ts.
+// administrador (C06) está en revision.seguimiento.servicio.ts y la bandeja de calibración (D04, HU-26.1)
+// en revision.calibracion.servicio.ts.
 import { ErrorConflicto } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
+import type { EvaluacionesServicio } from '../evaluaciones/index.js';
 import type { PreguntasServicio } from '../preguntas/index.js';
+import {
+  type CalibracionRepositorio,
+  crearCalibracionRepositorio,
+} from './revision.calibracion.repositorio.js';
+import {
+  type CalibracionDocente,
+  crearCalibracionDocente,
+} from './revision.calibracion.servicio.js';
 import {
   type BandejaRepositorio,
   crearBandejaRepositorio,
@@ -44,6 +54,8 @@ export interface DependenciasRevisionServicio {
   reloj: Reloj;
   administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'registrarAuditoria'>;
   preguntas: Pick<PreguntasServicio, 'pasarARevision' | 'resolverRevision'>;
+  /** HU-26.1: las preguntas publicadas cuyo acierto salió de su rango (RN-15). */
+  evaluaciones: Pick<EvaluacionesServicio, 'estadisticasFueraDeRango'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearRevisionRepositorio(bd). */
   repositorio?: RevisionRepositorio;
   /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd, 'revisor'). */
@@ -54,6 +66,8 @@ export interface DependenciasRevisionServicio {
   repositorioDesempates?: BandejaRepositorio;
   /** Solo para pruebas: reemplaza al de crearDesempateRepositorio(bd). */
   repositorioRevisiones?: DesempateRepositorio;
+  /** Solo para pruebas: reemplaza al de crearCalibracionRepositorio(bd). */
+  repositorioCalibracion?: CalibracionRepositorio;
 }
 
 /** Un revisor asignado, con su fecha límite (RF-G17). */
@@ -72,7 +86,8 @@ export interface EnvioARevision {
 }
 
 /** HU-22 y HU-23: la bandeja del docente revisor (D01) y la del tercer docente (D02). */
-export interface RevisionServicio extends BandejaDocente, DesempatesDocente, Seguimiento {
+export interface RevisionServicio
+  extends BandejaDocente, DesempatesDocente, Seguimiento, CalibracionDocente {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
 }
@@ -203,10 +218,19 @@ export function crearRevisionServicio(
     repositorio: crearSeguimientoRepositorio(dependencias.bd),
     administracion: dependencias.administracion,
   });
+  const calibracion = crearCalibracionDocente({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    repositorio:
+      dependencias.repositorioCalibracion ?? crearCalibracionRepositorio(dependencias.bd),
+    evaluaciones: dependencias.evaluaciones,
+    administracion: dependencias.administracion,
+  });
   return {
     ...bandeja,
     ...desempates,
     ...seguimiento,
+    ...calibracion,
     enviarARevision: (administradorId, preguntaId) =>
       enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
   };

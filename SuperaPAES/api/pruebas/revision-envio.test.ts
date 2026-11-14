@@ -43,6 +43,7 @@ function escenario({
     reloj: () => AHORA,
     administracion,
     preguntas: { pasarARevision, resolverRevision: () => Promise.reject(new Error('no se usa')) },
+    evaluaciones: { estadisticasFueraDeRango: () => Promise.resolve([]) },
     repositorio,
   });
   const app = crearAppDePrueba({}, { revision });

@@ -2,7 +2,7 @@
 // con la pauta, desempate y clasificación de dificultad.
 // Cada ruta declara su rol (DAS 4.3.3): las del docente revisor (Mis revisiones y Desempates) solo
 // aceptan al docente y las de seguimiento (Revisiones, C06) solo al administrador. El módulo no
-// aplica un rol común. Calibración y Clasificar dificultad se agregan con HU-25 y HU-26.
+// aplica un rol común. La bandeja de calibración (D04, HU-26.1) es del docente.
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
 // crearRevisionControlador(servicio).
 import { Router } from 'express';
@@ -11,6 +11,7 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearRevisionControlador } from './revision.controlador.js';
 import type { RevisionServicio } from './revision.servicio.js';
 import {
+  esquemaCalibracion,
   esquemaConsultaSeguimiento,
   esquemaDesempate,
   esquemaIdPregunta,
@@ -50,6 +51,15 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     exigirRol('docente'),
     validar({ parametros: esquemaIdRevision, cuerpo: esquemaDesempate }),
     controlador.entregarDesempate,
+  );
+  // Docente revisor: Calibración (D04, HU-26.1, RN-15): las preguntas de su área fuera de su rango de
+  // acierto y su decisión sobre cada una.
+  router.get('/calibracion', exigirRol('docente'), controlador.listarCalibracion);
+  router.post(
+    '/calibracion/:id',
+    exigirRol('docente'),
+    validar({ parametros: esquemaIdPregunta, cuerpo: esquemaCalibracion }),
+    controlador.decidirCalibracion,
   );
   // Administrador: seguimiento de las revisiones (C06).
   router.get(

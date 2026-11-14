@@ -53,3 +53,6 @@ export const etapaDelDesempate = (decision: string): EtapaDelDesempate | undefin
 /** Grupos del seguimiento de C06. */
 export const GRUPOS_SEGUIMIENTO = ['en_curso', 'en_desempate', 'vencidas', 'terminadas'] as const;
 export type GrupoSeguimiento = (typeof GRUPOS_SEGUIMIENTO)[number];
+
+/** RN-15: una pregunta entra a la bandeja de calibración desde 30 intentos. */
+export const INTENTOS_MINIMOS_CALIBRACION = 30;
