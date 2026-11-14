@@ -27,6 +27,8 @@ export interface Seccion {
   titulo: string;
   roles: readonly RolCuentaInterna[];
   Pagina: ComponentType;
+  /** `false`: la ruta existe y se abre por su URL, pero no aparece en el menú lateral. */
+  enMenu?: boolean;
 }
 
 const deRol =
@@ -59,7 +61,11 @@ export const SECCIONES: readonly Seccion[] = [
   // Docente revisor (D01 a D04)
   docente('/revision', 'Mis revisiones', PaginaRevision),
   docente('/desempates', 'Desempates', PaginaDesempates),
-  docente('/clasificar-dificultad', 'Clasificar dificultad', PaginaClasificarDificultad),
+  // Clasificar dificultad (D03) sigue disponible por su URL, pero no aparece en el menú lateral.
+  {
+    ...docente('/clasificar-dificultad', 'Clasificar dificultad', PaginaClasificarDificultad),
+    enMenu: false,
+  },
   docente('/calibracion', 'Calibración', PaginaCalibracion),
 ];
 
@@ -72,8 +78,9 @@ export const INICIO_POR_ROL: Record<RolCuentaInterna, string> = {
   docente: '/revision',
 };
 
+/** Secciones del rol que se muestran en el menú lateral, en su orden. */
 export function seccionesDelRol(rol: RolCuentaInterna): Seccion[] {
-  return SECCIONES.filter((s) => s.roles.includes(rol));
+  return SECCIONES.filter((s) => s.roles.includes(rol) && s.enMenu !== false);
 }
 
 /** A dónde redirigir a quien abre una ruta de esos roles, o `null` si puede verla. */

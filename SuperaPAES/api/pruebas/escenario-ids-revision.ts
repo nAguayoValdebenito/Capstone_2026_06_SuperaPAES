@@ -1,4 +1,4 @@
-// Datos del escenario de ids para las rutas de revisión (HU-21, HU-22 y HU-23): un servicio de revisión
+// Datos del escenario de ids para las rutas de revisión (HU-21, HU-22, HU-23 y HU-25): un servicio de revisión
 // falso con los ids BIGINT como texto, como los entrega la base, y el cuerpo de la revisión o del
 // desempate del docente.
 import { vi } from 'vitest';
@@ -29,8 +29,8 @@ const pendiente = {
   venceEn: VENCE,
 };
 
-/** La pregunta que abre el docente (HU-22), con sus alternativas. */
-const preguntaARevisar = {
+/** La pregunta que clasifica el docente (HU-25, D03): como la de D01, sin la pauta ni las decisiones. */
+const preguntaAClasificar = {
   ...pendiente,
   eje: 'Álgebra',
   habilidad: 'Resolver problemas',
@@ -41,8 +41,14 @@ const preguntaARevisar = {
     { id: '102', letra: 'B', texto: 'Segunda', explicacion: null, esCorrecta: false },
   ],
   texto: null,
-  pauta: [{ codigo: 'contenido', descripcion: 'Contenido' }],
   dificultades: [{ codigo: 'facil', nombre: 'Fácil' }],
+};
+const siguienteAClasificar = { pregunta: preguntaAClasificar, quedan: 1 };
+
+/** La pregunta que abre el docente (HU-22), con sus alternativas. */
+const preguntaARevisar = {
+  ...preguntaAClasificar,
+  pauta: [{ codigo: 'contenido', descripcion: 'Contenido' }],
   decisiones: [{ codigo: 'aprobar', nombre: 'Aprobar', requiereComentario: false }],
 };
 
@@ -83,6 +89,13 @@ export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
         dificultad: 'facil',
       }),
     ),
+    siguienteAClasificar: vi.fn(() => Promise.resolve(siguienteAClasificar)),
+    clasificarDificultad: vi.fn(() =>
+      Promise.resolve({
+        guardada: { asignacionId: '900', preguntaId: '7', dificultad: 'facil' },
+        siguiente: siguienteAClasificar,
+      }),
+    ),
     listarDesempates: vi.fn(() => Promise.resolve([pendiente])),
     obtenerDesempate: vi.fn(() =>
       Promise.resolve({ ...preguntaARevisar, revisiones: [], posibleAmbigua: false }),
@@ -99,11 +112,13 @@ export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
   };
 }
 
-/** Las rutas del docente revisor (D01 y D02) se piden con la sesión de un docente. */
-export const esDelDocente = (ruta: string) => /\/revision\/(mis-revisiones|desempates)/.test(ruta);
+/** Las rutas del docente revisor (D01, D02 y D03) se piden con la sesión de un docente. */
+export const esDelDocente = (ruta: string) =>
+  /\/revision\/(mis-revisiones|desempates|clasificar)/.test(ruta);
 
 /** Cuerpo de la revisión o del desempate que entrega el docente, o undefined si la ruta es otra. */
 export function cuerpoDeRevision(contrato: string): Record<string, unknown> | undefined {
+  if (/^POST .*\/clasificar\/:id$/.test(contrato)) return { dificultad: 'facil' };
   if (/^POST .*\/desempates\/:id$/.test(contrato))
     return { dificultad: 'facil', decision: 'aprobar' };
   if (!/^POST .*\/mis-revisiones\/:id$/.test(contrato)) return undefined;

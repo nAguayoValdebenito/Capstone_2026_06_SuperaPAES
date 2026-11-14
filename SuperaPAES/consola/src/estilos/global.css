@@ -932,6 +932,12 @@ a.boton {
   justify-content: space-between;
 }
 
+.revision-pregunta__etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .revision-pregunta__encabezado h2 {
   font-size: var(--texto-base);
 }

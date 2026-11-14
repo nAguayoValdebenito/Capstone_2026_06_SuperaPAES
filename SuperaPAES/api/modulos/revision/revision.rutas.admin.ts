@@ -1,8 +1,10 @@
 // Rutas de /api/v1/admin/revision (consola, JWT de la consola): asignaciones a docentes, revisiones
 // con la pauta, desempate y clasificación de dificultad.
-// Cada ruta declara su rol (DAS 4.3.3): las del docente revisor (Mis revisiones y Desempates) solo
+// Cada ruta declara su rol (DAS 4.3.3): las del docente revisor (Mis revisiones, Desempates y
+// Clasificar dificultad) solo
 // aceptan al docente y las de seguimiento (Revisiones, C06) solo al administrador. El módulo no
-// aplica un rol común. La bandeja de calibración (D04, HU-26.1) es del docente.
+// aplica un rol común. Clasificar dificultad (D03, HU-25) y Calibración (D04, HU-26) son del docente;
+// las confirmadas de la calibración, del administrador.
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
 // crearRevisionControlador(servicio).
 import { Router } from 'express';
@@ -12,12 +14,33 @@ import { crearRevisionControlador, type RevisionControlador } from './revision.c
 import type { RevisionServicio } from './revision.servicio.js';
 import {
   esquemaCalibracion,
+  esquemaClasificacion,
+  esquemaConsultaClasificacion,
   esquemaConsultaSeguimiento,
   esquemaDesempate,
   esquemaIdPregunta,
   esquemaIdRevision,
   esquemaRevision,
 } from './revision.validadores.js';
+
+/**
+ * Docente revisor: Clasificar dificultad (D03, HU-25, CU-19a): la siguiente importada que tiene asignada
+ * y su clasificación con un clic, que entrega su revisión de la ronda.
+ */
+function agregarRutasClasificacion(router: Router, controlador: RevisionControlador): void {
+  router.get(
+    '/clasificar/siguiente',
+    exigirRol('docente'),
+    validar({ consulta: esquemaConsultaClasificacion }),
+    controlador.siguienteAClasificar,
+  );
+  router.post(
+    '/clasificar/:id',
+    exigirRol('docente'),
+    validar({ parametros: esquemaIdRevision, cuerpo: esquemaClasificacion }),
+    controlador.clasificarDificultad,
+  );
+}
 
 /**
  * Calibración (D04, HU-26.1, RN-15): el docente ve las preguntas de su área fuera de su rango de acierto
@@ -69,6 +92,7 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     controlador.entregarDesempate,
   );
   agregarRutasCalibracion(router, controlador);
+  agregarRutasClasificacion(router, controlador);
   // Administrador: seguimiento de las revisiones (C06).
   router.get(
     '/seguimiento',
