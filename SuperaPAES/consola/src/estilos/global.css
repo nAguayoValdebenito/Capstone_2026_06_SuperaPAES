@@ -1067,6 +1067,11 @@ a.boton {
   cursor: pointer;
 }
 
+.segmentado__opcion input:disabled + span {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .segmentado__opcion input:checked + span {
   background: var(--superficie);
   color: var(--primario);

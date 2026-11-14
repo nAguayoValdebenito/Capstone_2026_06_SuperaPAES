@@ -2,6 +2,7 @@
 // «Sí» o «No» y la observación cuando no se cumple, la dificultad que asigna el docente, su decisión y
 // el motivo al observar o rechazar (CamposDeDecision.tsx). La lógica está en src/estado.
 import { MensajeError } from '../../componentes/MensajeError';
+import { restriccionesDePauta } from '../../estado/formulario-revision';
 import type { RevisionDocente } from '../../estado/revision-docente';
 import type { CriterioPauta, PreguntaARevisar } from '../../tipos';
 import type { OpcionSelector } from '../../utilidades/opciones';
@@ -62,6 +63,7 @@ export function FormularioRevision({
   pregunta: PreguntaARevisar;
   revision: RevisionDocente;
 }) {
+  const { bloqueadas, mensaje } = restriccionesDePauta(revision.campos, pregunta.pauta);
   return (
     <form className="revision-formulario" onSubmit={revision.entregar} noValidate>
       <section className="panel panel--ancho pauta" aria-describedby="error-criterios">
@@ -73,7 +75,13 @@ export function FormularioRevision({
         </ol>
         <MensajeError id="error-criterios" texto={revision.errores.criterios} />
       </section>
-      <CamposDeDecision pregunta={pregunta} revision={revision} textos={TEXTOS} />
+      <CamposDeDecision
+        pregunta={pregunta}
+        revision={revision}
+        textos={TEXTOS}
+        decisionesBloqueadas={bloqueadas}
+        avisoPauta={bloqueadas.length > 0 ? mensaje : undefined}
+      />
     </form>
   );
 }

@@ -19,11 +19,13 @@ export function Segmentado({
   opciones,
   elegida,
   alElegir,
+  bloqueadas = [],
 }: {
   nombre: string;
   opciones: readonly OpcionSelector[];
   elegida: string | null;
   alElegir: (valor: string) => void;
+  bloqueadas?: readonly string[];
 }) {
   return (
     <div className="segmentado">
@@ -33,7 +35,8 @@ export function Segmentado({
             type="radio"
             name={nombre}
             value={valor}
-            checked={elegida === valor}
+            checked={elegida === valor && !bloqueadas.includes(valor)}
+            disabled={bloqueadas.includes(valor)}
             onChange={() => alElegir(valor)}
           />
           <span>{texto}</span>
@@ -97,10 +100,14 @@ export function CamposDeDecision({
   pregunta,
   revision,
   textos,
+  decisionesBloqueadas = [],
+  avisoPauta,
 }: {
   pregunta: Pick<PreguntaARevisar, 'dificultades' | 'decisiones'>;
   revision: FormularioDocente;
   textos: { dificultad: string; ayuda: string; boton: string };
+  decisionesBloqueadas?: readonly string[];
+  avisoPauta?: string | undefined;
 }) {
   const { campos, errores } = revision;
   return (
@@ -120,9 +127,13 @@ export function CamposDeDecision({
           opciones={deLista(pregunta.decisiones)}
           elegida={campos.decision}
           alElegir={revision.elegirDecision}
-          error={errores.decision}
+          error={errores.decision === avisoPauta ? undefined : errores.decision}
+          bloqueadas={decisionesBloqueadas}
         />
       </div>
+      <p className="campo__ayuda" role="status">
+        {avisoPauta}
+      </p>
       <Motivo revision={revision} ayuda={textos.ayuda} boton={textos.boton} />
     </section>
   );

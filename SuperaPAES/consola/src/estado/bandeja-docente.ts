@@ -30,6 +30,7 @@ export interface ApiDeBandeja<P extends RevisionPendiente> {
   validar: (campos: CamposRevision, pregunta: P) => ErroresRevision;
   entregar: (campos: CamposRevision, pregunta: P) => Promise<unknown>;
   aviso: (pregunta: P) => string;
+  confirmar?: (campos: CamposRevision, pregunta: P) => boolean;
 }
 
 /**
@@ -151,6 +152,7 @@ export function useBandejaDocente<P extends RevisionPendiente>(
     setAviso(null);
     if (!pregunta || enviando) return;
     if (Object.keys(api.validar(campos, pregunta)).length > 0) return;
+    if (api.confirmar && !api.confirmar(campos, pregunta)) return;
     setEnviando(true);
     api
       .entregar(campos, pregunta)

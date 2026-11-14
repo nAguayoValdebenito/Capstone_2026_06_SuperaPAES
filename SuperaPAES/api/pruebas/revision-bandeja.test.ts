@@ -141,6 +141,48 @@ describe('entregar la revisión (CU-19 pasos 3 a 6)', () => {
     );
   });
 
+  it.each([
+    [2, 'aprobar', 201],
+    [3, 'aprobar', 400],
+    [5, 'aprobar', 400],
+    [5, 'observar', 201],
+    [6, 'aprobar', 400],
+    [6, 'observar', 400],
+    [6, 'rechazar', 201],
+    [7, 'observar', 400],
+  ])('con %i respuestas No, %s responde %i', async (cantidadNo, decision, estado) => {
+    const { app, repositorio } = escenario();
+    const pauta = Array.from({ length: 7 }, (_, i) => ({
+      codigo: `criterio_${String.fromCharCode(97 + i)}`,
+      descripcion: 'Criterio de calidad',
+    }));
+    repositorio.listarCriterios.mockResolvedValue(pauta);
+    const respuesta = await request(app)
+      .post(`${RUTA}/900`)
+      .set(await comoDocente())
+      .send(
+        revisionCompleta({
+          criterios: pauta.map(({ codigo }, i) => ({
+            codigo,
+            cumple: i >= cantidadNo,
+            observacion: i < cantidadNo ? 'No cumple el criterio.' : null,
+          })),
+          decision,
+          comentario: 'Motivo de la decisión.',
+        }),
+      );
+
+    expect(respuesta.status).toBe(estado);
+    if (estado === 400) {
+      expect(problemas(respuesta)).toEqual([
+        cantidadNo >= 6
+          ? 'decision: Debes rechazar esta pregunta porque tiene 6 o más respuestas “No”.'
+          : 'decision: No puedes aprobar esta pregunta porque tiene 3 o más respuestas “No”.',
+      ]);
+      expect(repositorio.guardarRevision).not.toHaveBeenCalled();
+    }
+  });
+
   it('exige todos los puntos de la pauta, la observación de cada «no» y el motivo al observar o rechazar', async () => {
     const { app, repositorio } = escenario();
     const enviar = async (cuerpo: Record<string, unknown>) =>

@@ -119,6 +119,32 @@ describe('D01 · la pregunta y la pauta (HU-22 esc. 2 y 3, CP-16 paso 3)', () =>
     expect(dibujar()).not.toContain('Observación');
   });
 
+  it('actualiza las decisiones al corregir respuestas de la pauta', () => {
+    const pauta = Array.from({ length: 7 }, (_, i) => ({
+      codigo: `criterio_${String(i)}`,
+      descripcion: `Criterio ${String(i)}`,
+    }));
+    const conRespuestasNo = (cantidadNo: number) =>
+      dibujar({
+        revision: { tipo: 'lista', pregunta: { ...PREGUNTA, pauta } },
+        campos: {
+          ...camposVacios(),
+          criterios: Object.fromEntries(
+            pauta.map(({ codigo }, i) => [codigo, { cumple: i >= cantidadNo, observacion: '' }]),
+          ),
+        },
+      });
+
+    expect(conRespuestasNo(6)).toMatch(/disabled="" name="decision" value="observar"/);
+    expect(conRespuestasNo(6)).toMatch(/name="decision" value="rechazar"/);
+    expect(conRespuestasNo(6)).toContain('Debes rechazar esta pregunta');
+    expect(conRespuestasNo(5)).toMatch(/name="decision" value="observar"/);
+    expect(conRespuestasNo(5)).toMatch(/disabled="" name="decision" value="aprobar"/);
+    expect(conRespuestasNo(3)).toMatch(/disabled="" name="decision" value="aprobar"/);
+    expect(conRespuestasNo(3)).toContain('No puedes aprobar esta pregunta');
+    expect(conRespuestasNo(2)).toMatch(/name="decision" value="aprobar"/);
+  });
+
   it('pide la dificultad, la decisión y el motivo, y muestra los errores y el de la API', () => {
     const html = dibujar({
       campos: { ...camposVacios(), dificultad: 'media', decision: 'observar' },

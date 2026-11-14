@@ -159,7 +159,9 @@ function problemasDeLaPauta(datos: DatosRevision, pauta: readonly Criterio[]): P
   ) {
     return [problema('criterios', `Responde los ${String(pauta.length)} puntos de la pauta.`)];
   }
-  return pauta.flatMap((criterio) => {
+  const cantidadNo = datos.criterios.filter(({ cumple }) => !cumple).length;
+  const decisionInvalida = problemaDecisionDePauta(cantidadNo, datos.decision);
+  const observaciones = pauta.flatMap((criterio) => {
     const respuesta = respondidos.get(criterio.codigo);
     return respuesta && !respuesta.cumple && !respuesta.observacion
       ? [
@@ -170,6 +172,23 @@ function problemasDeLaPauta(datos: DatosRevision, pauta: readonly Criterio[]): P
         ]
       : [];
   });
+  return decisionInvalida ? [...observaciones, decisionInvalida] : observaciones;
+}
+
+function problemaDecisionDePauta(cantidadNo: number, decision: string): ProblemaDeCampo | null {
+  if (cantidadNo >= 6 && decision !== 'rechazar') {
+    return problema(
+      'decision',
+      'Debes rechazar esta pregunta porque tiene 6 o más respuestas “No”.',
+    );
+  }
+  if (cantidadNo >= 3 && decision === 'aprobar') {
+    return problema(
+      'decision',
+      'No puedes aprobar esta pregunta porque tiene 3 o más respuestas “No”.',
+    );
+  }
+  return null;
 }
 
 /**

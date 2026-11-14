@@ -63,6 +63,18 @@ export function validarDecision(
   return errores;
 }
 
+export function restriccionesDePauta(campos: CamposRevision, pauta: readonly CriterioPauta[]) {
+  const cantidadNo = pauta.filter(
+    ({ codigo }) => campos.criterios[codigo]?.cumple === false,
+  ).length;
+  const exigeRechazo = cantidadNo >= 6;
+  const bloqueadas = exigeRechazo ? ['aprobar', 'observar'] : cantidadNo >= 3 ? ['aprobar'] : [];
+  const mensaje = exigeRechazo
+    ? 'Debes rechazar esta pregunta porque tiene 6 o más respuestas “No”.'
+    : 'No puedes aprobar esta pregunta porque tiene 3 o más respuestas “No”.';
+  return { exigeRechazo, bloqueadas, mensaje };
+}
+
 /** Lo que falta para entregar la revisión; vacío si está completa. */
 export const validarRevision = (
   campos: CamposRevision,
@@ -70,7 +82,16 @@ export const validarRevision = (
 ): ErroresRevision => ({
   ...erroresDeLaPauta(campos, pregunta.pauta),
   ...validarDecision(campos, pregunta),
+  ...validarDecisionDePauta(campos, pregunta.pauta),
 });
+
+function validarDecisionDePauta(
+  campos: CamposRevision,
+  pauta: readonly CriterioPauta[],
+): ErroresRevision {
+  const { bloqueadas, mensaje } = restriccionesDePauta(campos, pauta);
+  return campos.decision && bloqueadas.includes(campos.decision) ? { decision: mensaje } : {};
+}
 
 /** La decisión para la API (también la del desempate, D02). Supone que validarDecision pasó. */
 export const armarDecision = (campos: CamposRevision): DatosDesempate => ({
