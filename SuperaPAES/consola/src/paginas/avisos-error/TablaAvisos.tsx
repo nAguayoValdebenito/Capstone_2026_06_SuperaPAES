@@ -1,6 +1,7 @@
 // Bandeja de C13 (HU-50 esc. 1): una fila por pregunta con su último aviso, cuántos tiene y su estado.
 // Elegir una fila (botón con el número de la pregunta) abre su detalle al lado.
 import { EncabezadoTabla } from '../../componentes/EncabezadoTabla';
+import { estiloDeSello } from '../../estado/sello-prueba';
 import type { PreguntaConAvisos } from '../../tipos/avisos-error';
 import { fechaCorta } from './formato';
 
@@ -25,21 +26,30 @@ function FilaAvisos({
   const ultimo = avisos[0];
   const estado = estadoDeLaFila(grupo);
   return (
-    <tr className={elegida ? 'fila--elegida' : undefined}>
+    <tr
+      className={elegida ? 'fila--elegida' : undefined}
+      aria-current={elegida ? 'true' : undefined}
+    >
       <td>{ultimo ? fechaCorta(ultimo.creadoEn) : ''}</td>
       <td>
         <button
           type="button"
-          className="boton-texto"
+          className="boton-texto tabla__id"
           aria-pressed={elegida}
           onClick={() => alElegir(pregunta.id)}
         >
           {`P-${String(pregunta.id)}`}
         </button>
       </td>
-      <td>{pregunta.prueba.codigo}</td>
+      <td>
+        <span className="sello" title={pregunta.prueba.nombre}>
+          <span className="sello__marca" style={estiloDeSello(pregunta.prueba.codigo)}>
+            {pregunta.prueba.codigo}
+          </span>
+        </span>
+      </td>
       <td>{ultimo?.motivo.nombre}</td>
-      <td>{avisos.length}</td>
+      <td className="tabla__numero">{avisos.length}</td>
       <td>
         <span className={`etiqueta etiqueta--${estado.codigo}`}>{estado.nombre}</span>
       </td>

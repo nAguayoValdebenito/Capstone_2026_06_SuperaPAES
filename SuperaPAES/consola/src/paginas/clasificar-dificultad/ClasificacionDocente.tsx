@@ -3,6 +3,7 @@
 // revisión del docente con esa dificultad, la aprueba y da por cumplida la pauta; para observar o
 // rechazar, «Revisar con la pauta» abre la misma asignación en Mis revisiones (D01). Se carga al abrir la
 // sección (trae KaTeX, como D01). La lógica está en estado/clasificar-dificultad.ts.
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import { Link } from 'react-router';
 import { Alerta } from '../../componentes/Alerta';
 import {
@@ -80,7 +81,7 @@ export function ContenidoClasificacion({ estado }: { estado: ClasificacionDocent
   }
   const { pregunta, quedan } = vista.datos;
   if (!pregunta) {
-    return <p className="clasificar__vacio">No quedan preguntas por clasificar.</p>;
+    return <EstadoVacio titulo="No quedan preguntas por clasificar." />;
   }
   return (
     <>

@@ -43,26 +43,27 @@ export function PaginaRevisiones() {
         }))}
         valor={grupo}
         alElegir={elegirGrupo}
-      />
-      <SegunCarga carga={carga} cargando="Cargando las revisiones…">
-        {({ seguimiento, paginacion }) => (
-          <>
-            <TablaSeguimiento preguntas={seguimiento.preguntas} />
-            {paginacion.total > 0 && (
-              <Paginacion
-                paginacion={paginacion}
-                totalPaginas={totalDePaginas(paginacion)}
-                alCambiar={irAPagina}
-              />
-            )}
-            <AvisosSinDocentes areas={seguimiento.sinDocentes} />
-            <p className="campo__ayuda">
-              El plazo es de {seguimiento.plazoDias} días desde la asignación y se ajusta en
-              Configuración.
-            </p>
-          </>
-        )}
-      </SegunCarga>
+      >
+        <SegunCarga carga={carga} cargando="Cargando las revisiones…">
+          {({ seguimiento, paginacion }) => (
+            <>
+              <TablaSeguimiento preguntas={seguimiento.preguntas} />
+              {paginacion.total > 0 && (
+                <Paginacion
+                  paginacion={paginacion}
+                  totalPaginas={totalDePaginas(paginacion)}
+                  alCambiar={irAPagina}
+                />
+              )}
+              <AvisosSinDocentes areas={seguimiento.sinDocentes} />
+              <p className="campo__ayuda">
+                El plazo es de {seguimiento.plazoDias} días desde la asignación y se ajusta en
+                Configuración.
+              </p>
+            </>
+          )}
+        </SegunCarga>
+      </Pestanas>
     </section>
   );
 }

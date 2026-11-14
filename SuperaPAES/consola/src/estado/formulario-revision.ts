@@ -72,6 +72,35 @@ export const validarRevision = (
   ...validarDecision(campos, pregunta),
 });
 
+/** Cuántos criterios de la pauta están respondidos con «No». */
+export const contarNo = (campos: CamposRevision): number =>
+  Object.values(campos.criterios).filter((respuesta) => respuesta.cumple === false).length;
+
+/** Si se puede aprobar: con más «No» que el máximo (max_no_para_aprobar) solo se puede observar o rechazar. */
+export const puedeAprobar = (campos: CamposRevision, maximo: number): boolean =>
+  contarNo(campos) <= maximo;
+
+/** Por qué no se puede aprobar, o null si se puede; el mismo criterio que aplica la API (RN-11). */
+export function motivoSinAprobar(campos: CamposRevision, maximo: number): string | null {
+  const noes = contarNo(campos);
+  if (noes <= maximo) return null;
+  const criterios = noes === 1 ? 'criterio' : 'criterios';
+  return `Tienes ${String(noes)} ${criterios} en «No» y se aprueba con ${String(maximo)} como máximo: obsérvala o recházala.`;
+}
+
+/**
+ * La revisión sin una aprobación que ya no se puede dar: si el docente había elegido «Aprobar» y después
+ * respondió más «No» de los permitidos, la decisión queda sin elegir (no se envía una que la API rechaza).
+ */
+export function sinAprobacionNoPermitida(
+  campos: CamposRevision,
+  pregunta: Pick<PreguntaARevisar, 'maximoNoParaAprobar'>,
+): CamposRevision {
+  return campos.decision === 'aprobar' && !puedeAprobar(campos, pregunta.maximoNoParaAprobar)
+    ? { ...campos, decision: null }
+    : campos;
+}
+
 /** La decisión para la API (también la del desempate, D02). Supone que validarDecision pasó. */
 export const armarDecision = (campos: CamposRevision): DatosDesempate => ({
   dificultad: campos.dificultad ?? '',

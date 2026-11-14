@@ -12,6 +12,7 @@ import { FiltrosSuscripciones } from './FiltrosSuscripciones';
 import { LineaDeTiempo } from './LineaDeTiempo';
 import { ResumenPorPlanYMes, TarjetasDelMes } from './ResumenSuscripciones';
 import { TablaSuscripciones } from './TablaSuscripciones';
+import './suscripciones.css';
 
 function Paginas({
   paginacion,

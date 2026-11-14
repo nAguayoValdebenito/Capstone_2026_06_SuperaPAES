@@ -1,14 +1,10 @@
-// Edición de una estructura de C08 (CU-31 paso 3). Muestra la suma del reparto mientras se escribe; quien valida
-// es el servidor, que explica el motivo si no cuadra (4.a).
-import { useState, type FormEvent } from 'react';
+// Edición de una estructura de C08 (CU-31 paso 3). Muestra la suma del reparto mientras se escribe y no deja
+// guardar si no cuadra; el servidor valida igual y explica el motivo (4.a). La lógica vive en
+// estado/formulario-estructura.ts.
 import { Alerta } from '../../componentes/Alerta';
+import { useFormularioEstructura } from '../../estado/formulario-estructura';
 import type { EdicionEstructura, Estructura, FilaReparto } from '../../tipos/evaluaciones';
-import {
-  camposDe,
-  edicionDe,
-  sumaDelReparto,
-  type CamposEstructura,
-} from '../../utilidades/evaluaciones';
+import type { CamposEstructura } from '../../utilidades/evaluaciones';
 
 function CampoNumero({
   etiqueta,
@@ -68,15 +64,16 @@ function CamposValores({
 function CamposReparto({
   reparto,
   cantidades,
+  suma,
   total,
   alCambiar,
 }: {
   reparto: readonly FilaReparto[];
   cantidades: Record<string, string>;
+  suma: number;
   total: number;
   alCambiar: (id: number, valor: string) => void;
 }) {
-  const suma = sumaDelReparto(Object.values(cantidades).map(Number));
   return (
     <fieldset className="evaluaciones__reparto">
       <legend>Reparto</legend>
@@ -88,7 +85,11 @@ function CamposReparto({
           alCambiar={(valor) => alCambiar(id, valor)}
         />
       ))}
-      <p className={suma === total ? 'estado__ok' : 'estado__error'} aria-live="polite">
+      <p
+        id="evaluaciones-total"
+        className={`evaluaciones__total ${suma === total ? 'estado__ok' : 'estado__error'}`}
+        aria-live="polite"
+      >
         Total: {suma} de {total}
       </p>
       <p className="campo__ayuda">
@@ -112,35 +113,33 @@ export function FormularioEstructura({
   alGuardar: (datos: EdicionEstructura) => void;
   alCancelar: () => void;
 }) {
-  const [campos, setCampos] = useState(() => camposDe(estructura));
-  const conReparto = estructura.reparto.length > 0;
-
-  const enviar = (evento: FormEvent) => {
-    evento.preventDefault();
-    alGuardar(edicionDe(estructura, campos));
-  };
-
+  const formulario = useFormularioEstructura(estructura, alGuardar);
+  const { campos, conReparto, cuadra } = formulario;
   return (
-    <form className="panel panel--ancho" onSubmit={enviar} noValidate>
+    <form
+      className="panel panel--ancho evaluaciones__formulario"
+      onSubmit={formulario.enviar}
+      noValidate
+    >
       <h2>{estructura.tipoNombre}</h2>
-      <CamposValores
-        campos={campos}
-        conReparto={conReparto}
-        alCambiar={(cambio) => setCampos({ ...campos, ...cambio })}
-      />
+      <CamposValores campos={campos} conReparto={conReparto} alCambiar={formulario.cambiar} />
       {conReparto && (
         <CamposReparto
           reparto={estructura.reparto}
           cantidades={campos.cantidades}
-          total={Number(campos.maximo)}
-          alCambiar={(id, valor) =>
-            setCampos({ ...campos, cantidades: { ...campos.cantidades, [id]: valor } })
-          }
+          suma={formulario.suma}
+          total={formulario.total}
+          alCambiar={formulario.cambiarCantidad}
         />
       )}
       {error && <Alerta texto={error} />}
       <div className="panel__acciones">
-        <button type="submit" className="boton boton--primario" disabled={guardando}>
+        <button
+          type="submit"
+          className="boton boton--primario"
+          disabled={guardando || !cuadra}
+          aria-describedby={cuadra ? undefined : 'evaluaciones-total'}
+        >
           {guardando ? 'Guardando…' : 'Guardar estructura'}
         </button>
         <button type="button" className="boton" onClick={alCancelar}>

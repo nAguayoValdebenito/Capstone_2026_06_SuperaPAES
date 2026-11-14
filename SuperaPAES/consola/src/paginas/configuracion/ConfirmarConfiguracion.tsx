@@ -23,7 +23,7 @@ function BotonesConfirmacion({
   alConfirmar: () => void;
 }) {
   return (
-    <div className="pagina__acciones">
+    <div className="dialogo__acciones">
       <button
         ref={cancelar}
         type="button"
@@ -63,7 +63,7 @@ export function ConfirmarConfiguracion({
   return (
     <div className="configuracion__fondo">
       <div
-        className="panel configuracion__confirmacion"
+        className="dialogo configuracion__confirmacion"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="configuracion-confirmar-titulo"

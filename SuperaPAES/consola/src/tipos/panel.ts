@@ -11,12 +11,18 @@ export interface RespuestasDelDia {
   total: number;
 }
 
-export interface IndicadoresPanel {
-  periodo: PeriodoPanel;
-  rango: { desde: string; hasta: string };
+/** Las cifras que se comparan con el período anterior. */
+export interface CifrasDelPeriodo {
   estudiantes: { registrados: number; activos: number };
-  preguntas: { porEstado: CantidadPanel[]; porDificultad: CantidadPanel[] };
-  respuestasPorDia: RespuestasDelDia[];
   suscripciones: { vigentes: number; nuevas: number; canceladas: number };
   ia: { revisadas: number; aprobadas: number; tasa: number | null };
+}
+
+export interface IndicadoresPanel extends CifrasDelPeriodo {
+  periodo: PeriodoPanel;
+  rango: { desde: string; hasta: string };
+  preguntas: { porEstado: CantidadPanel[]; porDificultad: CantidadPanel[] };
+  respuestasPorDia: RespuestasDelDia[];
+  /** El período de la misma duración justo antes; `registrados` y `vigentes` son los del inicio del período. */
+  anterior: CifrasDelPeriodo & { rango: { desde: string; hasta: string } };
 }

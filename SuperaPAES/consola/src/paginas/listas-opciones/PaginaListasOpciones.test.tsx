@@ -105,12 +105,16 @@ const dibujar = (cambios: Partial<Estado> = {}) => {
 beforeEach(() => vi.mocked(useListasOpciones).mockReset());
 
 describe('Listas de opciones C09 / HU-64.1', () => {
-  it('reemplaza «En construcción» por la consulta, sin controles de edición', () => {
+  it('reemplaza «En construcción» por la consulta; solo la mezcla de dificultad se edita (D1)', () => {
     const html = dibujar();
     expect(html).toContain('>Listas de opciones</h1>');
     expect(html).not.toContain('En construcción');
-    for (const texto of ['Agregar', 'Editar', 'Guardar', 'Eliminar', 'Desactivar'])
+    expect(html).toContain('Editar mezcla');
+    for (const texto of ['Agregar', 'Guardar', 'Eliminar', 'Desactivar'])
       expect(html).not.toContain(texto);
+    // Las demás listas siguen de solo lectura.
+    for (const lista of ['areasCarrera', 'tiposEvaluacion', 'motivosAviso'] as const)
+      expect(dibujar({ lista })).not.toContain('Editar');
   });
 
   it('muestra código, nombre, mínimo, objetivo y máximo de cada dificultad', () => {
@@ -169,10 +173,14 @@ describe('Listas de opciones C09 / HU-64.1', () => {
     expect(dibujar({ lista: 'tiposTexto' })).toContain('Gráfico');
   });
 
-  it('ofrece las seis listas como pestañas de botones, alcanzables con el teclado', () => {
+  // Patrón WAI-ARIA de pestañas: solo la elegida entra al recorrido con Tab y las flechas mueven entre
+  // ellas (tabindex itinerante). La lista elegida queda dentro de su tabpanel.
+  it('ofrece las seis listas como pestañas, con la elegida en el recorrido del teclado', () => {
     const html = dibujar();
-    expect(html).toContain('aria-label="Lista de opciones"');
-    expect(html).toMatch(/<button[^>]*type="button"[^>]*aria-pressed="true"[^>]*>Dificultades</);
+    expect(html).toMatch(/role="tablist" aria-label="Lista de opciones"/);
+    expect(html).toMatch(
+      /<button[^>]*role="tab"[^>]*aria-selected="true"[^>]*tabindex="0"[^>]*>Dificultades</,
+    );
     for (const texto of [
       'Áreas de carrera',
       'Tipos de evaluación',
@@ -180,8 +188,10 @@ describe('Listas de opciones C09 / HU-64.1', () => {
       'Tipos de pregunta',
       'Tipos de texto',
     ])
-      expect(html).toMatch(new RegExp(`<button[^>]*aria-pressed="false"[^>]*>${texto}<`));
-    expect(html).not.toContain('tabindex="-1"');
+      expect(html).toMatch(
+        new RegExp(`<button[^>]*aria-selected="false"[^>]*tabindex="-1"[^>]*>${texto}<`),
+      );
+    expect(html).toContain('role="tabpanel"');
   });
 
   it('avisa cuando una lista viene vacía', () => {

@@ -5,7 +5,7 @@ export const GRUPOS_CONFIGURACION = [
   },
   {
     titulo: 'Revisión docente',
-    claves: ['revisores_requeridos', 'dias_plazo_revision'],
+    claves: ['revisores_requeridos', 'dias_plazo_revision', 'max_no_para_aprobar'],
   },
   {
     titulo: 'Práctica y progreso',

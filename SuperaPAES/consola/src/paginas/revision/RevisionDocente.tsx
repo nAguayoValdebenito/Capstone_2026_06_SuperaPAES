@@ -2,6 +2,7 @@
 // con la pregunta que abrió, a ciegas, y el formulario de su revisión. Se carga al abrir la sección
 // (trae KaTeX, como C03). Con `?asignacion=` abre esa revisión (desde Clasificar dificultad, D03).
 import { useSearchParams } from 'react-router';
+import { type Firma, FIRMA_SIN_SESION, useFirma } from '../../estado/acta-docente';
 import {
   asignacionDeLaConsulta,
   type RevisionDocente,
@@ -10,17 +11,24 @@ import {
 import { BandejaDocente } from './BandejaDocente';
 import { FormularioRevision } from './FormularioRevision';
 import { PreguntaRevisada } from './PreguntaRevisada';
+import './revision.css';
 
 const TEXTOS = { bandeja: 'Bandeja de revisiones', vacia: 'No tienes revisiones pendientes.' };
 
 /** La bandeja y la revisión abierta con su estado (exportada para las pruebas). */
-export function ContenidoRevisionDocente({ revision }: { revision: RevisionDocente }) {
+export function ContenidoRevisionDocente({
+  revision,
+  firma = FIRMA_SIN_SESION,
+}: {
+  revision: RevisionDocente;
+  firma?: Firma;
+}) {
   return (
     <BandejaDocente estado={revision} textos={TEXTOS}>
       {(pregunta) => (
         <>
           <PreguntaRevisada pregunta={pregunta} />
-          <FormularioRevision pregunta={pregunta} revision={revision} />
+          <FormularioRevision pregunta={pregunta} revision={revision} firma={firma} />
         </>
       )}
     </BandejaDocente>
@@ -30,5 +38,5 @@ export function ContenidoRevisionDocente({ revision }: { revision: RevisionDocen
 export function RevisionDocentePagina() {
   const [busqueda] = useSearchParams();
   const asignacion = asignacionDeLaConsulta(busqueda.get('asignacion'));
-  return <ContenidoRevisionDocente revision={useRevisionDocente(asignacion)} />;
+  return <ContenidoRevisionDocente revision={useRevisionDocente(asignacion)} firma={useFirma()} />;
 }

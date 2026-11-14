@@ -1,14 +1,39 @@
-/* Estudiantes (C15): filtros opcionales arriba y la tabla paginada. Solo tokens del tema (estilos/global.css). */
-.estudiantes__tabla {
-  min-width: 48rem;
-  margin-top: 1.5rem;
+/* Estudiantes (C15): filtros compactos arriba y la tabla paginada con todo el listado. Solo tokens del
+   tema (estilos/global.css). */
+.estudiantes .filtros {
+  margin-top: 1.25rem;
 }
 
+.estudiantes__tabla {
+  min-width: 48rem;
+}
+
+.estudiantes__tabla th[scope='row'] {
+  background: transparent;
+  color: var(--tinta);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  white-space: normal;
+}
+
+/* El correo es un dato: va en la letra de datos y se corta en cualquier punto si no cabe. */
 .estudiantes__correo {
+  color: var(--tinta-2);
+  font-family: var(--fuente-datos);
+  font-size: var(--t-xs);
   overflow-wrap: anywhere;
 }
 
-.estudiantes__vacio,
 .estudiantes__error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
   margin-top: 1.5rem;
+}
+
+@media (max-width: 40rem) {
+  .estudiantes__tabla {
+    min-width: 0;
+  }
 }

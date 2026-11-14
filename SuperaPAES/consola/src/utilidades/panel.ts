@@ -27,3 +27,38 @@ export const cantidad = (total: number, singular: string, plural: string) =>
 
 export const textoDeBarra = ({ dia, total }: RespuestasDelDia) =>
   `${diaCorto(dia)}: ${cantidad(total, 'respuesta', 'respuestas')}`;
+
+/** Cómo cambió una cifra frente al período anterior: hacia dónde y cómo se escribe. */
+export interface Variacion {
+  direccion: 'sube' | 'baja' | 'igual';
+  /** «+18 %», «−3 %», «+4 pp» o «Sin cambio». */
+  texto: string;
+}
+
+const MENOS = '−';
+const signo = (n: number) => (n > 0 ? '+' : MENOS);
+
+/** El cambio relativo en porcentaje; null si antes era 0 y ahora no (no hay con qué compararlo). */
+export function variacionRelativa(actual: number, anterior: number): Variacion | null {
+  if (anterior === 0) return actual === 0 ? { direccion: 'igual', texto: 'Sin cambio' } : null;
+  const cambio = Math.round(((actual - anterior) / anterior) * 100);
+  if (cambio === 0) return { direccion: 'igual', texto: 'Sin cambio' };
+  return {
+    direccion: cambio > 0 ? 'sube' : 'baja',
+    texto: `${signo(cambio)}${String(Math.abs(cambio))} %`,
+  };
+}
+
+/** El cambio de una tasa en puntos porcentuales; null si falta alguna de las dos. */
+export function variacionEnPuntos(
+  actual: number | null,
+  anterior: number | null,
+): Variacion | null {
+  if (actual === null || anterior === null) return null;
+  const cambio = actual - anterior;
+  if (cambio === 0) return { direccion: 'igual', texto: 'Sin cambio' };
+  return {
+    direccion: cambio > 0 ? 'sube' : 'baja',
+    texto: `${signo(cambio)}${String(Math.abs(cambio))} pp`,
+  };
+}

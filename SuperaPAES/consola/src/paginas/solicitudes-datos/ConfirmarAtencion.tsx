@@ -28,7 +28,7 @@ function Botones({
   alCancelar: () => void;
 }) {
   return (
-    <div className="pagina__acciones">
+    <div className="dialogo__acciones">
       <button
         type="button"
         ref={cancelar}
@@ -71,7 +71,7 @@ export function ConfirmarAtencion({
   return (
     <div className="solicitudes__fondo">
       <div
-        className="panel solicitudes__confirmacion"
+        className="dialogo solicitudes__confirmacion"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="solicitud-confirmar-titulo"

@@ -3,6 +3,7 @@
 // cada sección. Arriba, el aviso al entregar. La lógica está en src/estado/bandeja-docente.ts.
 import type { ReactNode } from 'react';
 import { Alerta } from '../../componentes/Alerta';
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import type { CargaAsignacion, EstadoBandejaDocente } from '../../estado/bandeja-docente';
 import type { RevisionPendiente } from '../../tipos';
 import { codigoDePregunta, fechaLimite } from '../../utilidades/revision';
@@ -70,7 +71,7 @@ function Contenido<P extends RevisionPendiente>({ estado, textos, children }: Pr
   const { bandeja } = estado;
   if (bandeja.tipo === 'cargando') return <p aria-live="polite">Cargando tu bandeja…</p>;
   if (bandeja.tipo === 'fallida') return <Alerta texto={bandeja.mensaje} />;
-  if (bandeja.revisiones.length === 0) return <p className="pagina__aviso">{textos.vacia}</p>;
+  if (bandeja.revisiones.length === 0) return <EstadoVacio titulo={textos.vacia} />;
   return (
     <div className="revision-docente">
       <Bandeja

@@ -36,7 +36,10 @@ function Avisos({ avisos, tienda }: Pick<DetalleSuscripcion, 'avisos' | 'tienda'
       <ul className="linea-tiempo__lista">
         {avisos.map((aviso) => (
           <li key={aviso.id}>
-            {fechaDeChile(aviso.recibidoEn)} · {aviso.tipo} · {aviso.resultado.nombre}
+            {fechaDeChile(aviso.recibidoEn)} · {aviso.tipo} ·{' '}
+            <span className={`etiqueta etiqueta--${aviso.resultado.codigo}`}>
+              {aviso.resultado.nombre}
+            </span>
             {aviso.detalle && <span className="tabla__secundario">{aviso.detalle}</span>}
           </li>
         ))}

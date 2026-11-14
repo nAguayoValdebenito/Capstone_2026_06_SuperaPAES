@@ -1,5 +1,5 @@
-// C00 · Iniciar sesión en la consola (DAS 7.2). Se muestra fuera del diseño general, sin menú, con el
-// logo (DAS 7.5). Con una sesión activa lleva a la sección de entrada del rol; la sesión provisional
+// C00 · Iniciar sesión en la consola (DAS 7.2). Se muestra fuera del diseño general, sin menú, en la hoja
+// de acta con el logo y su nombre (DAS 7.5). Con una sesión activa lleva a la sección de entrada del rol; la sesión provisional
 // de desarrollo no tiene token, así que con ella el formulario sigue disponible.
 import type { FormEvent } from 'react';
 import { Navigate } from 'react-router';
@@ -8,6 +8,8 @@ import { useIngreso, type EstadoIngreso } from '../../estado/ingreso';
 import { INICIO_POR_ROL } from '../../rutas/secciones';
 import type { Credenciales } from '../../tipos';
 import { ACCESOS_DEMO, CLAVE_DEMO } from './accesos-demo';
+import { HojaActa } from './HojaActa';
+import './ingreso.css';
 
 function leerCredenciales(formulario: HTMLFormElement): Credenciales {
   const datos = new FormData(formulario);
@@ -28,19 +30,21 @@ function AccesosDemo({
 }) {
   if (ACCESOS_DEMO.length === 0) return null;
   return (
-    <section className="ingreso__demo" aria-label="Accesos de demostración">
+    <section className="ingreso__accesos" aria-label="Accesos de demostración">
       <p>Entrar a la demostración como:</p>
-      {ACCESOS_DEMO.map(({ etiqueta, correo }) => (
-        <button
-          key={correo}
-          type="button"
-          className="boton"
-          disabled={deshabilitado}
-          onClick={() => alElegir({ correo, contrasena: CLAVE_DEMO })}
-        >
-          {etiqueta}
-        </button>
-      ))}
+      <div className="ingreso__accesos-botones">
+        {ACCESOS_DEMO.map(({ etiqueta, correo }) => (
+          <button
+            key={correo}
+            type="button"
+            className="boton"
+            disabled={deshabilitado}
+            onClick={() => alElegir({ correo, contrasena: CLAVE_DEMO })}
+          >
+            {etiqueta}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
@@ -59,8 +63,11 @@ export function FormularioIngreso({
   };
 
   return (
-    <form className="ingreso__formulario" onSubmit={enviar} aria-busy={enviando}>
-      <h1>Iniciar sesión</h1>
+    <form className="ingreso__caja" onSubmit={enviar} aria-busy={enviando}>
+      <div>
+        <h1>Iniciar sesión</h1>
+        <p className="ingreso__bajada">Usa la cuenta que te creó un administrador.</p>
+      </div>
       <label className="campo">
         Correo
         <input name="correo" type="email" autoComplete="username" maxLength={150} required />
@@ -70,11 +77,11 @@ export function FormularioIngreso({
         <input name="contrasena" type="password" autoComplete="current-password" required />
       </label>
       {estado.tipo === 'fallido' && (
-        <p className="ingreso__error" role="alert">
+        <p className="campo__error" role="alert">
           {estado.mensaje}
         </p>
       )}
-      <button className="boton boton--primario" type="submit" disabled={enviando}>
+      <button className="boton boton--primario ingreso__entrar" type="submit" disabled={enviando}>
         {enviando ? 'Ingresando…' : 'Ingresar'}
       </button>
       <AccesosDemo deshabilitado={enviando} alElegir={alEnviar} />
@@ -91,15 +98,8 @@ export function PaginaIngreso() {
   }
 
   return (
-    <main className="ingreso">
-      <img
-        className="ingreso__logo"
-        src="/logo_supera_paes.png"
-        alt="Supera PAES"
-        width={991}
-        height={823}
-      />
+    <HojaActa clase="ingreso-hoja" subtitulo="Consola del equipo">
       <FormularioIngreso estado={estado} alEnviar={(credenciales) => void enviar(credenciales)} />
-    </main>
+    </HojaActa>
   );
 }

@@ -24,7 +24,7 @@ function Fila({ item, alDecidir }: { item: ItemCalibracion; alDecidir: AlDecidir
   return (
     <tr>
       <td>
-        <strong>{`P-${item.preguntaId}`}</strong> {item.enunciado}
+        <strong className="tabla__id">{`P-${item.preguntaId}`}</strong> {item.enunciado}
         <span className="tabla__secundario">{`${item.prueba} · ${item.contenido}`}</span>
         {decisiones && <span className="tabla__secundario">{decisiones}</span>}
       </td>

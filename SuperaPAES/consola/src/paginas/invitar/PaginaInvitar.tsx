@@ -2,9 +2,10 @@
 // invitación (/invitar/K7P2QX) en el teléfono o en el computador (HU-46 esc. 3, CU-11 paso 4). Muestra
 // el código para copiarlo, los pasos y los botones de las tiendas, que durante la prueba cerrada llevan
 // a su enlace de inscripción y a TestFlight. No abre la app ni deja el código escrito, y no llama a la
-// API. Sigue el sistema de diseño de la app, como A05 (estilos en invitar.css).
+// API. Va en la hoja de acta de las páginas públicas, como A05 (estilos en invitar.css).
 import { useState } from 'react';
 import { useParams } from 'react-router';
+import { HojaActa } from '../ingreso/HojaActa';
 import { codigoDeInvitacion, enlacesTiendas } from './invitacion';
 import './invitar.css';
 
@@ -88,8 +89,7 @@ export function PaginaInvitar() {
   const tiendas = enlacesTiendas(import.meta.env);
 
   return (
-    <main className="invitar">
-      <p className="invitar__marca">SUPERA PAES</p>
+    <HojaActa clase="invitar">
       <h1>Te invitaron a Supera PAES</h1>
       <p className="invitar__bajada">Practica la PAES con preguntas revisadas por docentes.</p>
       {codigo ? (
@@ -110,6 +110,6 @@ export function PaginaInvitar() {
       <p className="invitar__pie">
         Quien te invitó gana 5 preguntas extra cuando verificas tu correo.
       </p>
-    </main>
+    </HojaActa>
   );
 }

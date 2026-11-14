@@ -19,6 +19,7 @@ export function ParametroEditable({
   const id = `configuracion-${parametro.clave}`;
   const unidad = `${id}-unidad`;
   const errorId = `${id}-error`;
+  const cambiado = borrador !== undefined && borrador !== String(parametro.valor);
   return (
     <div className="configuracion__edicion">
       <label className="campo" htmlFor={id}>
@@ -27,6 +28,7 @@ export function ParametroEditable({
       <div className="configuracion__valor">
         <input
           id={id}
+          className="control"
           type="text"
           inputMode={parametro.clave === 'tope_mensual_ia_usd' ? 'decimal' : 'numeric'}
           value={borrador ?? String(parametro.valor)}
@@ -40,7 +42,7 @@ export function ParametroEditable({
       <MensajeError id={errorId} texto={error} />
       <button
         type="button"
-        className="boton"
+        className={cambiado ? 'boton boton--primario' : 'boton'}
         disabled={guardando}
         onClick={(evento) => alRevisar(parametro, evento.currentTarget)}
       >

@@ -49,7 +49,9 @@ function PorPlanYEstado({ resumen }: Propiedades) {
           ))}
         </tbody>
       </table>
-      {resumen.porPlanYEstado.length === 0 && <p>Todavía no hay suscripciones.</p>}
+      {resumen.porPlanYEstado.length === 0 && (
+        <p className="suscripciones__sin-filas">Todavía no hay suscripciones.</p>
+      )}
     </div>
   );
 }
@@ -78,7 +80,9 @@ function PagosPorMes({ resumen }: Propiedades) {
           ))}
         </tbody>
       </table>
-      {resumen.meses.length === 0 && <p>Todavía no hay pagos.</p>}
+      {resumen.meses.length === 0 && (
+        <p className="suscripciones__sin-filas">Todavía no hay pagos.</p>
+      )}
     </div>
   );
 }

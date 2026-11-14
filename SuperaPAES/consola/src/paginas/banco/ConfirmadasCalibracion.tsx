@@ -21,7 +21,9 @@ function Confirmada({
   return (
     <li className="confirmadas__item">
       <p className="confirmadas__pregunta">
-        <Link to={`/banco/${pregunta.preguntaId}`}>{`P-${pregunta.preguntaId}`}</Link>{' '}
+        <Link className="tabla__id" to={`/banco/${pregunta.preguntaId}`}>
+          {`P-${pregunta.preguntaId}`}
+        </Link>{' '}
         {pregunta.enunciado}
       </p>
       <p className="tabla__secundario">

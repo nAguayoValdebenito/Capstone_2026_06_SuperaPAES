@@ -120,7 +120,12 @@ function Avisos({ editor, pregunta }: { editor: Editor; pregunta: PreguntaParaEd
 /** Encabezado, avisos, formulario y vista previa; se exporta para las pruebas (HU-12.5). */
 export function ContenidoPregunta({ editor }: { editor: Editor }) {
   const { carga } = editor;
-  if (carga.tipo === 'cargando') return <p aria-live="polite">Cargando la pregunta…</p>;
+  if (carga.tipo === 'cargando')
+    return (
+      <p className="cargando" aria-live="polite">
+        Cargando la pregunta…
+      </p>
+    );
   if (carga.tipo === 'fallida') {
     return (
       <p className="estado__error" role="alert">

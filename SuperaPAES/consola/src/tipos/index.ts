@@ -256,6 +256,8 @@ export interface RevisionPendiente {
   ronda: number;
   prueba: { codigo: string; nombre: string };
   contenido: string;
+  /** Cuándo se asignó la revisión (ISO 8601): va en el folio del acta. */
+  asignadoEn: string;
   venceEn: string;
 }
 
@@ -285,13 +287,18 @@ export interface PreguntaARevisar extends RevisionPendiente {
   pauta: CriterioPauta[];
   dificultades: Opcion[];
   decisiones: (Opcion & { requiereComentario: boolean })[];
+  /** Cuántos criterios pueden estar en «No» para poder aprobar (RN-11); con más, solo observar o rechazar. */
+  maximoNoParaAprobar: number;
 }
 
 /**
  * La pregunta importada que clasifica el docente (D03, HU-25): como en D01, con las dificultades y sin
  * la pauta ni las decisiones. A ciegas: sin la dificultad sugerida.
  */
-export type PreguntaAClasificar = Omit<PreguntaARevisar, 'pauta' | 'decisiones'>;
+export type PreguntaAClasificar = Omit<
+  PreguntaARevisar,
+  'pauta' | 'decisiones' | 'maximoNoParaAprobar'
+>;
 
 /** La siguiente por clasificar (null si no queda ninguna) y cuántas quedan. */
 export interface SiguienteAClasificar {
@@ -329,7 +336,7 @@ export interface RevisionDelRevisor {
 }
 
 /** La pregunta en desempate con las revisiones de la ronda y si es posiblemente confusa (CU-20). */
-export interface DesempateAbierto extends Omit<PreguntaARevisar, 'pauta'> {
+export interface DesempateAbierto extends Omit<PreguntaARevisar, 'pauta' | 'maximoNoParaAprobar'> {
   revisiones: RevisionDelRevisor[];
   posibleAmbigua: boolean;
 }

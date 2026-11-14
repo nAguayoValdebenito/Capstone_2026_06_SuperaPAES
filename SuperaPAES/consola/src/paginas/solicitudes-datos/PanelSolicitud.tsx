@@ -57,27 +57,29 @@ function Formulario({
   return (
     <div className="solicitudes__formulario">
       <CampoRespuesta {...formulario} />
-      <div className="pagina__acciones">
-        <button
-          type="button"
-          ref={botonResponder}
-          className="boton boton--primario"
-          disabled={enCurso}
-          onClick={() => pedirConfirmacion('respondida')}
-        >
-          Responder
-        </button>
-        <button
-          type="button"
-          ref={botonRechazar}
-          className="boton"
-          disabled={enCurso}
-          onClick={() => pedirConfirmacion('rechazada')}
-        >
-          Rechazar
-        </button>
+      <div className="firma">
+        <p className="firma__quien">Queda registrado quién la atendió y cuándo.</p>
+        <div className="solicitudes__acciones">
+          <button
+            type="button"
+            ref={botonResponder}
+            className="boton boton--primario"
+            disabled={enCurso}
+            onClick={() => pedirConfirmacion('respondida')}
+          >
+            Responder
+          </button>
+          <button
+            type="button"
+            ref={botonRechazar}
+            className="boton"
+            disabled={enCurso}
+            onClick={() => pedirConfirmacion('rechazada')}
+          >
+            Rechazar
+          </button>
+        </div>
       </div>
-      <p className="solicitudes__dato">Queda registrado quién la atendió y cuándo.</p>
     </div>
   );
 }
@@ -87,10 +89,12 @@ function Atendida({ solicitud }: { solicitud: SolicitudDeDatos }) {
     <div className="solicitudes__formulario">
       <p className="solicitudes__cabecera">
         <strong>Respuesta</strong>
-        <span className="etiqueta">{solicitud.estado.nombre}</span>
+        <span className={`etiqueta etiqueta--${solicitud.estado.codigo}`}>
+          {solicitud.estado.nombre}
+        </span>
       </p>
       <blockquote className="solicitudes__cita">{solicitud.respuesta}</blockquote>
-      <p className="solicitudes__dato">{quienAtendio(solicitud)}</p>
+      <p className="firma firma__quien">{quienAtendio(solicitud)}</p>
     </div>
   );
 }
@@ -106,12 +110,18 @@ export function PanelSolicitud({
 } & BotonesFormulario) {
   const pendiente = solicitud.estado.codigo === 'pendiente';
   return (
-    <section className="panel solicitudes__panel" aria-labelledby="solicitud-titulo">
-      <h2 id="solicitud-titulo">{`${solicitud.tipo.nombre} · ${estudianteDe(solicitud)}`}</h2>
-      <p className="solicitudes__dato">
-        {`Recibida el ${fechaChilena(solicitud.solicitadoEn)} · fecha límite ${fechaChilena(solicitud.venceEn)}`}{' '}
+    <section className="panel acta solicitudes__panel" aria-labelledby="solicitud-titulo">
+      <p className="folio solicitudes__folio">
+        <span>
+          Recibida el <b>{fechaChilena(solicitud.solicitadoEn)}</b>
+        </span>
+        <span aria-hidden="true">·</span>
+        <span>
+          fecha límite <b>{fechaChilena(solicitud.venceEn)}</b>
+        </span>{' '}
         <EtiquetaPlazo solicitud={solicitud} />
       </p>
+      <h2 id="solicitud-titulo">{`${solicitud.tipo.nombre} · ${estudianteDe(solicitud)}`}</h2>
       {solicitud.estudiante.cuentaEliminada && pendiente && (
         <p className="solicitudes__dato">
           La cuenta fue eliminada: el estudiante no podrá ver la respuesta.

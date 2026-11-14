@@ -5,32 +5,59 @@
 
 .listas-opciones__numero {
   font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
 .listas-opciones__tabla th:nth-child(n + 3) {
   white-space: nowrap;
 }
 
-.listas-opciones__tabla code {
-  color: var(--texto);
-  font-size: var(--texto-sm);
-}
-
-.listas-opciones__vacia {
-  margin-top: 1.5rem;
-  padding: 1.5rem;
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: 0.75rem;
-  color: var(--texto-secundario);
-}
-
 .listas-opciones__rasgos {
   margin: 0;
   padding-left: 1.1rem;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
 }
 
 .listas-opciones__rasgos li + li {
   margin-top: 0.125rem;
+}
+
+/* Mezcla global de dificultad (D1): barra de ayuda y formulario de edición. */
+.mezcla__barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.mezcla__barra .campo__ayuda {
+  max-width: 46rem;
+  margin: 0;
+}
+
+.mezcla {
+  display: grid;
+  gap: 1rem;
+}
+
+.mezcla__campo {
+  max-width: 6rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mezcla__totales th,
+.mezcla__totales td {
+  background: var(--superficie-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.mezcla__problemas {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }

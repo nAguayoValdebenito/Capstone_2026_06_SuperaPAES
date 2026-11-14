@@ -127,12 +127,18 @@ async function leerCuerpo(respuesta: Response): Promise<CuerpoRespuesta<unknown>
   return cuerpo;
 }
 
+/** Se emite en `window` cuando una petición que escribe (no GET) termina bien: algo cambió. */
+export const EVENTO_DATOS_CAMBIADOS = 'consola-datos-cambiados';
+
 async function pedir<T>(
   ruta: string,
   opciones: RequestInit,
   conSesion = true,
 ): Promise<Respuesta<T>> {
   const cuerpo = await leerCuerpo(await enviar(ruta, opciones, conSesion));
+  if (conSesion && (opciones.method ?? 'GET') !== 'GET' && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(EVENTO_DATOS_CAMBIADOS));
+  }
   return { data: cuerpo.data as T, meta: cuerpo.meta };
 }
 

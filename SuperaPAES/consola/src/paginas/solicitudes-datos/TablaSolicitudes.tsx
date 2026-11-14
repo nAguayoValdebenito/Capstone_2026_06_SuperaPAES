@@ -23,7 +23,10 @@ function FilaSolicitud({
   alElegir: (id: number) => void;
 }) {
   return (
-    <tr className={elegida ? 'fila--elegida' : undefined}>
+    <tr
+      className={elegida ? 'fila--elegida' : undefined}
+      aria-current={elegida ? 'true' : undefined}
+    >
       <td>
         <div className="solicitudes__plazo">
           <span className="solicitudes__fecha">{fechaChilena(solicitud.venceEn)}</span>
@@ -43,7 +46,9 @@ function FilaSolicitud({
       <td className="solicitudes__estudiante">{estudianteDe(solicitud)}</td>
       <td className="solicitudes__fecha">{fechaChilena(solicitud.solicitadoEn)}</td>
       <td>
-        <span className="etiqueta">{solicitud.estado.nombre}</span>
+        <span className={`etiqueta etiqueta--${solicitud.estado.codigo}`}>
+          {solicitud.estado.nombre}
+        </span>
       </td>
     </tr>
   );
