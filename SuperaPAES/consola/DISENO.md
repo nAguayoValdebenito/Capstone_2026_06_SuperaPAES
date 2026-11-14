@@ -132,6 +132,7 @@ La maqueta usa datos de ejemplo; la consola manda. Se omitió lo que no tiene fu
 - **Fecha de asignación:** las revisiones y los desempates del docente traen `asignadoEn` (la columna `asignado_en` ya existía), para el folio del acta: «asignada el … · vence el …».
 
 ## Ajustes de la auditoría (14/11/2026)
+
 - `--borde-control` (bordes de campos y alternativas, contraste ≥ 3:1) y `--sobre-sello` (texto sobre los sellos de prueba); los sellos tienen variante oscura.
 - Pauta: barra fija con el enunciado, el avance y el límite de «No»; con más «No» que `max_no_para_aprobar` la opción «Aprobar» queda deshabilitada y se explica el motivo.
 - Ingreso: hoja de acta con el logo y «SuperaPAES»; sin lema.
