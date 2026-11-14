@@ -2,7 +2,8 @@
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
 import type { Credenciales, SesionIniciada } from '../tipos';
-import type { EstudianteConsola } from '../tipos/estudiantes';
+import type { EstudianteConsola, ListadoEstudiantes } from '../tipos/estudiantes';
+import { consultaDeListado, paginacionDe } from './paginacion';
 
 export async function ingresar(credenciales: Credenciales): Promise<SesionIniciada> {
   const { data } = await solicitarAdmin<SesionIniciada>('/cuentas/ingreso', {
@@ -29,16 +30,24 @@ export async function cerrar(tokenRenovacion: string): Promise<void> {
   });
 }
 
-/** C15: la búsqueda exacta por correo, sin distinguir mayúsculas. */
-export async function buscarEstudiantes(correo: string): Promise<EstudianteConsola[]> {
-  const consulta = new URLSearchParams({ correo }).toString();
-  const { data } = await solicitarAdmin<EstudianteConsola[]>(`/cuentas/estudiantes?${consulta}`);
-  return data;
+/** C15: estudiantes registrados, del más reciente al más antiguo; `buscar` filtra por nombre o correo. */
+export async function listarEstudiantes(
+  buscar: string,
+  pagina: number,
+  senal?: AbortSignal,
+): Promise<ListadoEstudiantes> {
+  const { data, meta } = await solicitarAdmin<EstudianteConsola[]>(
+    `/cuentas/estudiantes${consultaDeListado({ buscar }, pagina)}`,
+    senal ? { signal: senal } : {},
+  );
+  return { estudiantes: data, paginacion: paginacionDe(meta, pagina, data.length) };
 }
 
 /** CU-02b: confirma la cuenta cuando el correo de verificación no llega. Queda en la auditoría. */
-export async function confirmarCorreoEstudiante(id: number): Promise<EstudianteConsola> {
-  const { data } = await solicitarAdmin<EstudianteConsola>(
+export async function confirmarCorreoEstudiante(
+  id: number,
+): Promise<Pick<EstudianteConsola, 'id' | 'correoVerificado'>> {
+  const { data } = await solicitarAdmin<Pick<EstudianteConsola, 'id' | 'correoVerificado'>>(
     `/cuentas/estudiantes/${String(id)}/confirmar-correo`,
     { method: 'POST' },
   );

@@ -1,8 +1,18 @@
-// C15 · Estudiantes (HU-05 esc. 4, CU-02b): lo que entrega /admin/cuentas/estudiantes.
+// C15 · Estudiantes: lo que entrega /admin/cuentas/estudiantes (listado paginado) y su confirmación.
+import type { Paginacion } from './index';
+
 export interface EstudianteConsola {
   id: number;
   nombre: string;
   correo: string;
   correoVerificado: boolean;
-  creadoEn: string;
+  /** Tiene una suscripción vigente según la API (activa o en mora, RN-34). */
+  suscripcionActiva: boolean;
+  /** Áreas de carrera de interés de su perfil; vacío si no marcó ninguna. */
+  intereses: string[];
+}
+
+export interface ListadoEstudiantes {
+  estudiantes: EstudianteConsola[];
+  paginacion: Paginacion;
 }
