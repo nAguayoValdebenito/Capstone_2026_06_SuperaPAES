@@ -3,7 +3,8 @@
 // Cada ruta declara su rol (DAS 4.3.3): las del docente revisor (Mis revisiones, Desempates y
 // Clasificar dificultad) solo
 // aceptan al docente y las de seguimiento (Revisiones, C06) solo al administrador. El módulo no
-// aplica un rol común. Clasificar dificultad (D03) es de HU-25; Calibración se agrega con HU-26.
+// aplica un rol común. Clasificar dificultad (D03, HU-25) y Calibración (D04, HU-26) son del docente;
+// las confirmadas de la calibración, del administrador.
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
 // crearRevisionControlador(servicio).
 import { Router } from 'express';
@@ -12,6 +13,7 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearRevisionControlador, type RevisionControlador } from './revision.controlador.js';
 import type { RevisionServicio } from './revision.servicio.js';
 import {
+  esquemaCalibracion,
   esquemaClasificacion,
   esquemaConsultaClasificacion,
   esquemaConsultaSeguimiento,
@@ -37,6 +39,22 @@ function agregarRutasClasificacion(router: Router, controlador: RevisionControla
     exigirRol('docente'),
     validar({ parametros: esquemaIdRevision, cuerpo: esquemaClasificacion }),
     controlador.clasificarDificultad,
+  );
+}
+
+/**
+ * Calibración (D04, HU-26.1, RN-15): el docente ve las preguntas de su área fuera de su rango de acierto
+ * y decide sobre cada una; el administrador ve las confirmadas (C02, HU-26.2) para retirarlas y enviarlas
+ * a una nueva revisión con las rutas que ya existen.
+ */
+function agregarRutasCalibracion(router: Router, controlador: RevisionControlador): void {
+  router.get('/calibracion', exigirRol('docente'), controlador.listarCalibracion);
+  router.get('/calibracion/confirmadas', exigirRol('admin'), controlador.listarConfirmadas);
+  router.post(
+    '/calibracion/:id',
+    exigirRol('docente'),
+    validar({ parametros: esquemaIdPregunta, cuerpo: esquemaCalibracion }),
+    controlador.decidirCalibracion,
   );
 }
 
@@ -73,6 +91,7 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     validar({ parametros: esquemaIdRevision, cuerpo: esquemaDesempate }),
     controlador.entregarDesempate,
   );
+  agregarRutasCalibracion(router, controlador);
   agregarRutasClasificacion(router, controlador);
   // Administrador: seguimiento de las revisiones (C06).
   router.get(

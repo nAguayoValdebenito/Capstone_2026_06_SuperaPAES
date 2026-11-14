@@ -64,6 +64,11 @@ import {
   type ImpactoDeAnular,
 } from './evaluaciones.impacto.repositorio.js';
 import { crearAbiertaServicio, type AbiertaServicio } from './evaluaciones.abierta.servicio.js';
+import {
+  crearEstadisticasRepositorio,
+  type EstadisticaFueraDeRango,
+  type EstadisticaPregunta,
+} from './evaluaciones.estadisticas.repositorio.js';
 import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 import { crearMiniServicio, type MiniServicio } from './evaluaciones.mini.servicio.js';
 import { crearEnsayoServicio, type EnsayoServicio } from './evaluaciones.ensayo.servicio.js';
@@ -100,6 +105,12 @@ export type EvaluacionesServicio = ConfiguracionEvaluaciones &
   AbiertaServicio & {
     /** HU-50.2 (C13): evaluaciones donde aparece una pregunta, antes de anularla. */
     impactoDeAnular(preguntaId: string): Promise<ImpactoDeAnular>;
+    /** HU-53.1 (tarea periódica): recalcula las estadísticas por pregunta; cuántas cambiaron. */
+    recalcularEstadisticas(): Promise<number>;
+    /** HU-53.1: estadísticas de esas preguntas, para el banco y la bandeja de calibración. */
+    estadisticasDe(preguntaIds: string[]): Promise<EstadisticaPregunta[]>;
+    /** HU-26.1 (RN-15): publicadas con esos intentos o más y el acierto fuera de su rango. */
+    estadisticasFueraDeRango(minIntentos: number): Promise<EstadisticaFueraDeRango[]>;
   };
 
 function crearMini(dependencias: DependenciasEvaluacionesServicio) {
@@ -157,6 +168,17 @@ function crearPracticas(
   });
 }
 
+/** Lo que otros módulos consultan de una pregunta: su impacto al anularla y sus estadísticas. */
+function crearConsultasPorPregunta(bd: Ejecutor) {
+  const estadisticas = crearEstadisticasRepositorio(bd);
+  return {
+    impactoDeAnular: (preguntaId: string) => crearImpactoRepositorio(bd).contar(preguntaId),
+    recalcularEstadisticas: () => estadisticas.recalcular(),
+    estadisticasDe: (preguntaIds: string[]) => estadisticas.leer(preguntaIds),
+    estadisticasFueraDeRango: (minIntentos: number) => estadisticas.fueraDeRango(minIntentos),
+  };
+}
+
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
 ): EvaluacionesServicio {
@@ -197,7 +219,7 @@ function crearServicioSinReintento(
       progreso,
     }),
     ...crearHistorialServicio(crearHistorialRepositorio(dependencias.bd)),
-    impactoDeAnular: (preguntaId) => crearImpactoRepositorio(dependencias.bd).contar(preguntaId),
+    ...crearConsultasPorPregunta(dependencias.bd),
     ...crearExportacionEvaluaciones(dependencias.bd),
     ...progreso,
     ...crearAbiertaServicio({

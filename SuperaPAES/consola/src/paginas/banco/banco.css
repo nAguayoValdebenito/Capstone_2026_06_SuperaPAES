@@ -1,0 +1,36 @@
+/* Banco (C02): las confirmadas en calibración sobre la tabla (HU-26.2). Solo tokens del tema. */
+.panel.confirmadas {
+  max-width: none;
+  margin: 1.5rem 0 0;
+}
+
+.confirmadas h2 {
+  margin: 0;
+  font-size: var(--texto-md);
+}
+
+.confirmadas__lista {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.confirmadas__item {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--error);
+  border-radius: 0.5rem;
+}
+
+.confirmadas__item p {
+  margin: 0;
+}
+
+.confirmadas__pregunta {
+  overflow-wrap: anywhere;
+}

@@ -2,7 +2,8 @@
 // y dificultad asignada; tabla con el estado de cada pregunta; de a páginas. La lógica está en
 // src/estado/banco.ts. Desde aquí se crea una pregunta (C03) o se importa un archivo (C04, HU-13.2), que
 // vuelve con su aviso. Cada fila tiene la acción de su etapa: enviar a revisión (HU-21), publicar,
-// retirar o volver a borrador (HU-24); la publicación de varias a la vez llega con HU-53.
+// retirar o volver a borrador (HU-24); la publicación de varias a la vez llega con HU-53. Arriba van las
+// confirmadas en calibración (HU-26.2) y la tabla suma las estadísticas de cada pregunta (HU-53).
 import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
 import { useAvisoDeNavegacion } from '../../estado/aviso-de-navegacion';
@@ -12,7 +13,11 @@ import {
   useAccionesDelBanco,
 } from '../../estado/acciones-banco';
 import { type CargaBanco, totalDePaginas, useBanco } from '../../estado/banco';
+import { useConfirmadas, useEstadisticasDelBanco } from '../../estado/calibracion';
+import type { EstadisticaPregunta } from '../../tipos/calibracion';
+import { ConfirmadasCalibracion } from './ConfirmadasCalibracion';
 import { FiltrosBanco } from './FiltrosBanco';
+import './banco.css';
 import { TablaBanco } from './TablaBanco';
 
 function Alerta({ texto, codigo }: { texto: string; codigo: string }) {
@@ -28,17 +33,19 @@ export function ResultadoBanco({
   carga,
   alCambiarPagina,
   acciones,
+  estadisticas,
 }: {
   carga: CargaBanco;
   alCambiarPagina: (pagina: number) => void;
   acciones?: AccionesDelBanco;
+  estadisticas?: ReadonlyMap<string, EstadisticaPregunta>;
 }) {
   if (carga.tipo === 'cargando') return <p aria-live="polite">Cargando preguntas…</p>;
   if (carga.tipo === 'fallida') return <Alerta texto={carga.mensaje} codigo={carga.codigo} />;
   const { preguntas, paginacion } = carga.pagina;
   return (
     <>
-      <TablaBanco preguntas={preguntas} acciones={acciones} />
+      <TablaBanco preguntas={preguntas} acciones={acciones} estadisticas={estadisticas} />
       {paginacion.total > 0 && (
         <Paginacion
           paginacion={paginacion}
@@ -65,9 +72,13 @@ function AvisoDeAccion({ aviso }: { aviso: AvisoDelBanco | null }) {
 }
 
 export function PaginaBanco() {
-  const { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar } =
+  const { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar, vuelta } =
     useBanco();
   const acciones = useAccionesDelBanco(recargar, useAvisoDeNavegacion());
+  const confirmadas = useConfirmadas(vuelta);
+  const estadisticas = useEstadisticasDelBanco(
+    carga.tipo === 'lista' ? carga.pagina.preguntas.map((pregunta) => pregunta.id) : [],
+  );
 
   return (
     <section className="pagina pagina--ancha">
@@ -89,6 +100,7 @@ export function PaginaBanco() {
         </div>
       </header>
       <AvisoDeAccion aviso={acciones.aviso} />
+      <ConfirmadasCalibracion carga={confirmadas} acciones={acciones} />
       {opciones.tipo === 'lista' && (
         <FiltrosBanco
           opciones={opciones.opciones}
@@ -98,7 +110,12 @@ export function PaginaBanco() {
         />
       )}
       {opciones.tipo === 'fallida' && <Alerta texto={opciones.mensaje} codigo={opciones.codigo} />}
-      <ResultadoBanco carga={carga} alCambiarPagina={irAPagina} acciones={acciones} />
+      <ResultadoBanco
+        carga={carga}
+        alCambiarPagina={irAPagina}
+        acciones={acciones}
+        estadisticas={estadisticas}
+      />
     </section>
   );
 }

@@ -4,6 +4,7 @@ import type { Request, RequestHandler } from 'express';
 import type {
   ConsultaClasificacionHttp,
   ConsultaSeguimientoHttp,
+  DatosCalibracion,
   DatosClasificacion,
   DatosDesempate,
   DatosRevision,
@@ -26,6 +27,9 @@ export interface RevisionControlador {
   siguienteAClasificar: Validado;
   clasificarDificultad: Validado<DatosClasificacion>;
   listarSeguimiento: RequestHandler;
+  listarCalibracion: Validado;
+  decidirCalibracion: Validado<DatosCalibracion>;
+  listarConfirmadas: RequestHandler;
 }
 
 /**
@@ -97,6 +101,31 @@ export function crearRevisionControlador(servicio: RevisionServicio): RevisionCo
       const consulta = res.locals.consulta as ConsultaSeguimientoHttp;
       const { seguimiento, paginacion } = await servicio.listarSeguimiento(consulta);
       responder(res, seguimiento, { meta: paginacion });
+    },
+    ...manejadoresCalibracion(servicio),
+  };
+}
+
+/** HU-26.1 y HU-26.2: la bandeja del docente, su decisión y las confirmadas para el administrador. */
+function manejadoresCalibracion(
+  servicio: RevisionServicio,
+): Pick<RevisionControlador, 'listarCalibracion' | 'decidirCalibracion' | 'listarConfirmadas'> {
+  return {
+    listarConfirmadas: async (_req, res) => {
+      const confirmadas = await servicio.listarConfirmadas();
+      responder(res, confirmadas, { meta: { total: confirmadas.length } });
+    },
+    listarCalibracion: async (req, res) => {
+      const bandeja = await servicio.listarCalibracion(usuarioDe(req));
+      responder(res, bandeja, { meta: { total: bandeja.length } });
+    },
+    decidirCalibracion: async (req, res) => {
+      const decision = await servicio.decidirCalibracion(
+        usuarioDe(req),
+        String(req.params.id),
+        req.body,
+      );
+      responder(res, decision, { estado: 201 });
     },
   };
 }

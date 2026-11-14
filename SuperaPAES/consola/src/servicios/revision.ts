@@ -1,7 +1,12 @@
-// Llamadas a /api/v1/admin/revision (módulo revision de la API): bandeja de revisión, desempates y clasificación de dificultad.
+// Llamadas a /api/v1/admin/revision (módulo revision de la API): bandeja de revisión, desempates y calibración.
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
 import { consultaDeListado, paginacionDe } from './paginacion';
+import type {
+  ConfirmadaCalibracion,
+  DecisionCalibracion,
+  ItemCalibracion,
+} from '../tipos/calibracion';
 import type { GrupoSeguimiento, PaginaSeguimiento, VistaSeguimiento } from '../tipos/seguimiento';
 import type {
   DatosDesempate,
@@ -131,4 +136,29 @@ export async function entregarDesempate(
     body: JSON.stringify(datos),
   });
   return data;
+}
+
+const CALIBRACION = '/revision/calibracion';
+
+/** HU-26.1 (D04): las preguntas del área del docente cuyo acierto no coincide con su dificultad. */
+export async function listarCalibracion(senal?: AbortSignal): Promise<ItemCalibracion[]> {
+  return (await solicitarAdmin<ItemCalibracion[]>(CALIBRACION, opciones(senal))).data;
+}
+
+/** HU-26.1: el docente confirma que la dificultad no corresponde (false) o la descarta (true). */
+export async function decidirCalibracion(
+  preguntaId: string,
+  dificultadCorresponde: boolean,
+): Promise<DecisionCalibracion> {
+  const { data } = await solicitarAdmin<DecisionCalibracion>(`${CALIBRACION}/${preguntaId}`, {
+    method: 'POST',
+    body: JSON.stringify({ dificultadCorresponde }),
+  });
+  return data;
+}
+
+/** HU-26.2 (C02): las publicadas que algún docente confirmó, para retirarlas. */
+export async function listarConfirmadas(senal?: AbortSignal): Promise<ConfirmadaCalibracion[]> {
+  const ruta = `${CALIBRACION}/confirmadas`;
+  return (await solicitarAdmin<ConfirmadaCalibracion[]>(ruta, opciones(senal))).data;
 }

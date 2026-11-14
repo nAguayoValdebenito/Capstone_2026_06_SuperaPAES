@@ -151,5 +151,5 @@ export function useBanco() {
     [setBusqueda],
   );
 
-  return { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar };
+  return { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar, vuelta };
 }

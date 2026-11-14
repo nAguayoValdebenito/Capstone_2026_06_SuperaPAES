@@ -239,7 +239,6 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   const temario = crearTemarioServicio(base);
   const preguntas = crearPreguntasServicio({ ...base, temario, administracion });
   const generador = crearGenerador(dependencias, { administracion, preguntas, temario });
-  const revision = crearRevisionServicio({ ...conReloj, administracion, preguntas });
   const evaluaciones = crearEvaluacionesServicio({
     ...conReloj,
     cuentas,
@@ -250,6 +249,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     administracion,
     ...(dependencias.azarEvaluaciones ? { azar: dependencias.azarEvaluaciones } : {}),
   });
+  const revision = crearRevisionServicio({ ...conReloj, administracion, preguntas, evaluaciones });
 
   return {
     administracion,
@@ -299,12 +299,23 @@ function crearRouterAdmin(s: Servicios, mw: MiddlewareRutas): Router {
 }
 
 /**
- * Rutas sin sesión: los avisos de las tiendas (los verifica la pasarela) y las imágenes de las preguntas
- * (imágenes de las preguntas), que <img> e Image.network piden sin token y que solo se entregan por su huella.
+ * Rutas sin sesión: los avisos de las tiendas (los verifica la pasarela), las imágenes de las preguntas,
+ * que <img> e Image.network piden sin token y que solo se entregan por su huella, y las tareas periódicas
+ * (con su clave, solo si está configurada).
  */
-function montarRutasSinSesion(app: Express, servicios: Servicios): void {
+function montarRutasSinSesion(app: Express, servicios: Servicios, claveTareas?: string): void {
   app.use(`${PREFIJO_API}/webhooks`, crearRutasWebhooksSuscripciones(servicios.suscripciones));
   app.use(`${PREFIJO_API}/recursos`, crearRutasRecursosPreguntas(servicios.preguntas));
+  if (!claveTareas) return;
+  app.use(
+    `${PREFIJO_API}/tareas`,
+    crearRutasTareas(claveTareas, {
+      cerrarVencidas: () => servicios.evaluaciones.cerrarVencidas(),
+      cerrarCanceladasVencidas: () => servicios.suscripciones.cerrarCanceladasVencidas(),
+      avisarRenovaciones: () => servicios.suscripciones.avisarRenovaciones(),
+      recalcularEstadisticas: () => servicios.evaluaciones.recalcularEstadisticas(),
+    }),
+  );
 }
 
 export function crearApp(
@@ -349,17 +360,7 @@ export function crearApp(
   };
 
   app.use(`${PREFIJO_API}/salud`, crearRutasSalud(dependencias.comprobarBaseDeDatos));
-  montarRutasSinSesion(app, servicios);
-  if (dependencias.claveTareas) {
-    app.use(
-      `${PREFIJO_API}/tareas`,
-      crearRutasTareas(dependencias.claveTareas, {
-        cerrarVencidas: () => servicios.evaluaciones.cerrarVencidas(),
-        cerrarCanceladasVencidas: () => servicios.suscripciones.cerrarCanceladasVencidas(),
-        avisarRenovaciones: () => servicios.suscripciones.avisarRenovaciones(),
-      }),
-    );
-  }
+  montarRutasSinSesion(app, servicios, dependencias.claveTareas);
   app.use(`${PREFIJO_API}/app`, crearRouterApp(servicios, mw));
   app.use(`${PREFIJO_API}/admin`, crearRouterAdmin(servicios, mw));
 

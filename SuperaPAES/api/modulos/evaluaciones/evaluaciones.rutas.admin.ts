@@ -1,4 +1,5 @@
-// Rutas del módulo evaluaciones en la consola: /api/v1/admin/evaluaciones (C08, HU-63.1, CU-31).
+// Rutas del módulo evaluaciones en la consola: /api/v1/admin/evaluaciones (C08, HU-63.1, CU-31), más las
+// consultas por pregunta del administrador: impacto de anular (C13) y estadísticas (C02, HU-53.1).
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>).
 import { Router } from 'express';
 import type { Request, RequestHandler } from 'express';
@@ -9,11 +10,13 @@ import { responder } from '../../comun/respuesta.js';
 import type { ConfiguracionEvaluaciones } from './evaluaciones.configuracion.servicio.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import {
+  esquemaEstadisticasPreguntas,
   esquemaEstructura,
   esquemaIdEstructura,
   esquemaIdPreguntaImpacto,
   esquemaNuevaTabla,
   esquemaPruebaConfiguracion,
+  type ConsultaEstadisticas,
   type ConsultaPrueba,
   type DatosEstructura,
   type DatosTablaConversion,
@@ -26,11 +29,22 @@ function autorDe(req: Request<Record<string, string>, unknown, unknown>): string
   return req.usuarioInterno.id;
 }
 
-/** HU-50.2 (C13): cuántas evaluaciones se recalcularían al anular la pregunta. Solo cuenta. */
-function agregarRutaImpacto(
-  router: Router,
-  servicio: Pick<EvaluacionesServicio, 'impactoDeAnular'>,
-): void {
+type ConsultasPorPregunta = Pick<EvaluacionesServicio, 'impactoDeAnular' | 'estadisticasDe'>;
+
+/**
+ * HU-50.2 (C13): cuántas evaluaciones se recalcularían al anular la pregunta. Solo cuenta.
+ * HU-53.1 (C02): intentos, acierto y tiempo promedio de las preguntas de una página del banco.
+ */
+function agregarRutasPorPregunta(router: Router, servicio: ConsultasPorPregunta): void {
+  router.get(
+    '/estadisticas',
+    exigirRol('admin'),
+    validar({ consulta: esquemaEstadisticasPreguntas }),
+    async (_req, res) => {
+      const { preguntas } = res.locals.consulta as ConsultaEstadisticas;
+      responder(res, await servicio.estadisticasDe(preguntas));
+    },
+  );
   router.get(
     '/preguntas/:id/impacto',
     exigirRol('admin'),
@@ -42,7 +56,7 @@ function agregarRutaImpacto(
 }
 
 export function crearRutasAdminEvaluaciones(
-  servicio: ConfiguracionEvaluaciones & Pick<EvaluacionesServicio, 'impactoDeAnular'>,
+  servicio: ConfiguracionEvaluaciones & ConsultasPorPregunta,
 ): Router {
   const router = Router();
   const listarEstructuras: RequestHandler = async (_req, res) => {
@@ -85,6 +99,6 @@ export function crearRutasAdminEvaluaciones(
     validar({ cuerpo: esquemaNuevaTabla }),
     cargarTabla,
   );
-  agregarRutaImpacto(router, servicio);
+  agregarRutasPorPregunta(router, servicio);
   return router;
 }

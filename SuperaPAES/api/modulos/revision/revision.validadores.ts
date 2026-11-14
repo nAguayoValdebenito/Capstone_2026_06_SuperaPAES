@@ -74,3 +74,10 @@ export type ConsultaClasificacionHttp = z.output<typeof esquemaConsultaClasifica
 export const esquemaClasificacion = esquemaDesempate.pick({ dificultad: true });
 
 export type DatosClasificacion = z.output<typeof esquemaClasificacion>;
+
+/** HU-26.1 (D04): el docente confirma que la dificultad no corresponde (false) o la descarta (true). */
+export const esquemaCalibracion = z.strictObject({
+  dificultadCorresponde: z.boolean('Indica si la dificultad corresponde.'),
+});
+
+export type DatosCalibracion = z.output<typeof esquemaCalibracion>;

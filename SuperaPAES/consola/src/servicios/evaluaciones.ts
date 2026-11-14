@@ -1,6 +1,7 @@
 // Llamadas a /api/v1/admin/evaluaciones (módulo evaluaciones de la API): estructuras y tablas de conversión (C08).
 import { solicitarAdmin } from '../api/cliente';
 import type { ImpactoDeAnular } from '../tipos/avisos-error';
+import type { EstadisticaPregunta } from '../tipos/calibracion';
 import type {
   EdicionEstructura,
   Estructura,
@@ -51,4 +52,14 @@ export async function impactoDeAnular(
 ): Promise<ImpactoDeAnular> {
   const ruta = `/evaluaciones/preguntas/${String(preguntaId)}/impacto`;
   return (await solicitarAdmin<ImpactoDeAnular>(ruta, senal ? { signal: senal } : {})).data;
+}
+
+/** HU-53 (C02): intentos, acierto y tiempo promedio de las preguntas de una página del banco. */
+export async function estadisticasDePreguntas(
+  preguntaIds: readonly number[],
+  senal?: AbortSignal,
+): Promise<EstadisticaPregunta[]> {
+  if (preguntaIds.length === 0) return [];
+  const ruta = `/evaluaciones/estadisticas?preguntas=${preguntaIds.map(String).join(',')}`;
+  return (await solicitarAdmin<EstadisticaPregunta[]>(ruta, senal ? { signal: senal } : {})).data;
 }

@@ -187,6 +187,7 @@ describe.skipIf(!urlBase)('evaluación abierta y tareas periódicas con PostgreS
       suscripcionesCanceladas: 0,
       avisosRenovacion: 0,
       avisosRenovacionFallidos: 0,
+      estadisticasActualizadas: 0,
     });
     expect(await estadoDe(practica.practicaId)).toBe('abandonada');
     expect(await estadoDe(ensayo)).toBe('tiempo_agotado');
@@ -195,6 +196,7 @@ describe.skipIf(!urlBase)('evaluación abierta y tareas periódicas con PostgreS
       suscripcionesCanceladas: 0,
       avisosRenovacion: 0,
       avisosRenovacionFallidos: 0,
+      estadisticasActualizadas: 0,
     });
   });
 });

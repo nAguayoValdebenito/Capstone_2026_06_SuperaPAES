@@ -9,12 +9,22 @@
 // desempates del tercer docente (D02, CU-20) están en revision.desempate.servicio.ts. La clasificación
 // de dificultad de las importadas (D03, HU-25, CU-19a) entrega la misma revisión con un clic
 // (revision.clasificacion.servicio.ts). El seguimiento del administrador (C06) está en
-// revision.seguimiento.servicio.ts.
+// revision.seguimiento.servicio.ts y la bandeja de calibración (D04, HU-26.1) en
+// revision.calibracion.servicio.ts.
 import { ErrorConflicto } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio } from '../administracion/index.js';
+import type { EvaluacionesServicio } from '../evaluaciones/index.js';
 import type { PreguntasServicio } from '../preguntas/index.js';
+import {
+  type CalibracionRepositorio,
+  crearCalibracionRepositorio,
+} from './revision.calibracion.repositorio.js';
+import {
+  type CalibracionDocente,
+  crearCalibracionDocente,
+} from './revision.calibracion.servicio.js';
 import {
   type BandejaRepositorio,
   crearBandejaRepositorio,
@@ -54,6 +64,8 @@ export interface DependenciasRevisionServicio {
   reloj: Reloj;
   administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'registrarAuditoria'>;
   preguntas: Pick<PreguntasServicio, 'pasarARevision' | 'resolverRevision'>;
+  /** HU-26.1: las preguntas publicadas cuyo acierto salió de su rango (RN-15). */
+  evaluaciones: Pick<EvaluacionesServicio, 'estadisticasFueraDeRango' | 'estadisticasDe'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearRevisionRepositorio(bd). */
   repositorio?: RevisionRepositorio;
   /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd, 'revisor'). */
@@ -64,6 +76,8 @@ export interface DependenciasRevisionServicio {
   repositorioDesempates?: BandejaRepositorio;
   /** Solo para pruebas: reemplaza al de crearDesempateRepositorio(bd). */
   repositorioRevisiones?: DesempateRepositorio;
+  /** Solo para pruebas: reemplaza al de crearCalibracionRepositorio(bd). */
+  repositorioCalibracion?: CalibracionRepositorio;
   /** Solo para pruebas: reemplaza al de crearClasificacionRepositorio(bd). */
   repositorioClasificacion?: ClasificacionRepositorio;
 }
@@ -84,11 +98,11 @@ export interface EnvioARevision {
 }
 
 /**
- * HU-22, HU-23 y HU-25: la bandeja del docente revisor (D01), la del tercer docente (D02) y la
- * clasificación de dificultad de las importadas (D03).
+ * HU-22, HU-23, HU-25 y HU-26: la bandeja del docente revisor (D01), la del tercer docente (D02), la
+ * clasificación de dificultad de las importadas (D03) y la calibración (D04).
  */
 export interface RevisionServicio
-  extends BandejaDocente, DesempatesDocente, ClasificacionDocente, Seguimiento {
+  extends BandejaDocente, DesempatesDocente, ClasificacionDocente, Seguimiento, CalibracionDocente {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
 }
@@ -188,6 +202,32 @@ async function enviarARevision(
   });
 }
 
+/** Lo que no depende de la bandeja: desempates (D02), seguimiento (C06) y calibración (D04). */
+function partesIndependientes(dependencias: DependenciasRevisionServicio) {
+  const desempates = crearDesempatesDocente({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    repositorio:
+      dependencias.repositorioDesempates ?? crearBandejaRepositorio(dependencias.bd, 'desempate'),
+    revisiones: dependencias.repositorioRevisiones ?? crearDesempateRepositorio(dependencias.bd),
+    preguntas: dependencias.preguntas,
+  });
+  const seguimiento = crearSeguimiento({
+    reloj: dependencias.reloj,
+    repositorio: crearSeguimientoRepositorio(dependencias.bd),
+    administracion: dependencias.administracion,
+  });
+  const calibracion = crearCalibracionDocente({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    repositorio:
+      dependencias.repositorioCalibracion ?? crearCalibracionRepositorio(dependencias.bd),
+    evaluaciones: dependencias.evaluaciones,
+    administracion: dependencias.administracion,
+  });
+  return { ...desempates, ...seguimiento, ...calibracion };
+}
+
 export function crearRevisionServicio(
   dependencias: DependenciasRevisionServicio,
 ): RevisionServicio {
@@ -216,24 +256,10 @@ export function crearRevisionServicio(
       dependencias.repositorioClasificacion ?? crearClasificacionRepositorio(dependencias.bd),
     alEntregar,
   });
-  const desempates = crearDesempatesDocente({
-    unidadDeTrabajo: dependencias.unidadDeTrabajo,
-    reloj: dependencias.reloj,
-    repositorio:
-      dependencias.repositorioDesempates ?? crearBandejaRepositorio(dependencias.bd, 'desempate'),
-    revisiones: dependencias.repositorioRevisiones ?? crearDesempateRepositorio(dependencias.bd),
-    preguntas: dependencias.preguntas,
-  });
-  const seguimiento = crearSeguimiento({
-    reloj: dependencias.reloj,
-    repositorio: crearSeguimientoRepositorio(dependencias.bd),
-    administracion: dependencias.administracion,
-  });
   return {
     ...bandeja,
     ...clasificacion,
-    ...desempates,
-    ...seguimiento,
+    ...partesIndependientes(dependencias),
     enviarARevision: (administradorId, preguntaId) =>
       enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
   };
