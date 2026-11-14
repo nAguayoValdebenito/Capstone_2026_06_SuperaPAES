@@ -167,6 +167,7 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
     reloj,
     verificacionCorreo: dependencias.verificacionCorreo,
     cupoInvitaciones: crearServicios(dependencias).cupoInvitaciones,
+    estudiantesConVigente: () => Promise.resolve(new Set<string>()),
     repositorio: crearRepositorioCuentas(falso.usuarios, estudiantes, sesiones),
   });
   const app = crearApp(dependencias, { ...crearServicios(dependencias), administracion, cuentas });

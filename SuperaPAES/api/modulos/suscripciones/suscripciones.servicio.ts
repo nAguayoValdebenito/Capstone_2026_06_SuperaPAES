@@ -94,6 +94,11 @@ export interface SuscripcionesServicio
    */
   vigenteDe(estudianteId: string): Promise<SuscripcionVigente | null>;
   /**
+   * C15 · Estudiantes: de los estudiantes pedidos, los que tienen una suscripción vigente (activa o en
+   * mora, la misma regla de vigenteDe). Una consulta para toda la página del listado de la consola.
+   */
+  estudiantesConVigente(estudianteIds: readonly string[]): Promise<Set<string>>;
+  /**
    * HU-45.1 (CU-12 1.a), tarea horaria: deja cancelada cada activa que canceló la renovación y terminó
    * su período pagado hace más de un día, por si el aviso de vencimiento de la tienda no llegó. Cada
    * cierre queda en el historial con origen sistema. Devuelve cuántas cerró.
@@ -183,6 +188,8 @@ export function crearSuscripcionesServicio(
         await repositorio.vigenteDe(estudianteId, dependencias.reloj()),
         dependencias.paqueteGooglePlay,
       ),
+    estudiantesConVigente: async (estudianteIds) =>
+      new Set(await repositorio.conVigenteEntre(estudianteIds)),
     cerrarCanceladasVencidas: () =>
       cerrarCanceladas(dependencias, crearCierreRepositorio(dependencias.bd), comprasRepositorio),
     avisarRenovaciones: crearAvisoRenovacion(dependencias),

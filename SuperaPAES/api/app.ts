@@ -212,7 +212,6 @@ function privacidadDe(
 export function crearServicios(dependencias: Dependencias): Servicios {
   const base = { bd: dependencias.bd, unidadDeTrabajo: dependencias.unidadDeTrabajo };
   const conReloj = { ...base, reloj: dependencias.reloj };
-  const { correo } = dependencias.proveedores;
 
   // Al desactivar una cuenta interna, administracion cierra sus sesiones, que son de cuentas. Cuentas
   // se crea después porque usa administracion: la función solo se llama una vez creados los dos.
@@ -229,11 +228,12 @@ export function crearServicios(dependencias: Dependencias): Servicios {
   );
   const cuentas = crearCuentasServicio({
     ...conReloj,
-    correo,
+    correo: dependencias.proveedores.correo,
     administracion,
     cupoInvitaciones,
     jwt: dependencias.jwt,
     verificacionCorreo: dependencias.verificacionCorreo,
+    estudiantesConVigente: (ids) => suscripciones.estudiantesConVigente(ids),
     ...(dependencias.segundoPlano && { segundoPlano: dependencias.segundoPlano }),
   });
   const temario = crearTemarioServicio(base);

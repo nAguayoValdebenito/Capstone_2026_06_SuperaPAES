@@ -1,5 +1,6 @@
 // Esquemas zod de entrada del módulo cuentas. Se usan con validar() en las rutas.
 import { z } from 'zod';
+import { numeroDePagina } from '../../comun/consultas.js';
 import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 import { codigoInvitacion } from '../../comun/codigo-invitacion.js';
 import { cabeEnBcrypt, refinarContrasena } from '../../comun/contrasenas.js';
@@ -105,8 +106,16 @@ export const esquemaCodigoVerificacion = z.strictObject({
   codigo: z.string().regex(/^\d{6}$/, 'El código tiene 6 dígitos.'),
 });
 
-/** C15: buscar a un estudiante por su correo (consulta ?correo=). */
-export const esquemaBusquedaEstudiante = z.strictObject({ correo });
+/** Filas por página del listado de C15 y el máximo que se puede pedir. */
+export const POR_PAGINA_ESTUDIANTES = 20;
+const MAXIMO_POR_PAGINA_ESTUDIANTES = 100;
+
+/** C15: listado de estudiantes; ?buscar= filtra por parte del nombre o del correo (opcional). */
+export const esquemaConsultaEstudiantes = z.strictObject({
+  buscar: z.string().trim().max(150, 'La búsqueda puede tener hasta 150 caracteres.').optional(),
+  pagina: numeroDePagina(1, 100_000),
+  porPagina: numeroDePagina(POR_PAGINA_ESTUDIANTES, MAXIMO_POR_PAGINA_ESTUDIANTES),
+});
 
 export const esquemaIdEstudiante = z.strictObject({
   id: idDeRuta,
@@ -202,6 +211,6 @@ export type DatosRestablecer = z.output<typeof esquemaRestablecer>;
 export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
 export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
 export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
-export type DatosBusquedaEstudiante = z.output<typeof esquemaBusquedaEstudiante>;
+export type ConsultaEstudiantes = z.output<typeof esquemaConsultaEstudiantes>;
 export type DatosPerfil = z.output<typeof esquemaPerfil>;
 export type DatosCurso = z.output<typeof esquemaConfirmarCurso>;

@@ -10,7 +10,7 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearCuentasControlador } from './cuentas.controlador.js';
 import type { CuentasServicio } from './cuentas.servicio.js';
 import {
-  esquemaBusquedaEstudiante,
+  esquemaConsultaEstudiantes,
   esquemaIdEstudiante,
   esquemaIngreso,
   esquemaTokenRenovacion,
@@ -34,13 +34,14 @@ export function crearRutasAdminCuentas(servicio: CuentasServicio, mw: Middleware
   router.post('/cerrar', rutaPublica, conToken, controlador.cerrarConsola);
   // Usuario de la sesión, para que la consola arme el menú de su rol (HU-03.2).
   router.get('/yo', mw.autenticarAdmin, exigirRol('admin', 'docente'), controlador.usuarioConsola);
-  // C15 · Estudiantes (CU-02b): buscar por correo y confirmar la cuenta cuando el correo no llega.
+  // C15 · Estudiantes: listado paginado (con filtro opcional por nombre o correo) y confirmar la
+  // cuenta cuando el correo de verificación no llega (CU-02b).
   router.get(
     '/estudiantes',
     mw.autenticarAdmin,
     exigirRol('admin'),
-    validar({ consulta: esquemaBusquedaEstudiante }),
-    controlador.buscarEstudiantes,
+    validar({ consulta: esquemaConsultaEstudiantes }),
+    controlador.listarEstudiantes,
   );
   router.post(
     '/estudiantes/:id/confirmar-correo',

@@ -45,8 +45,6 @@ export interface NuevoTokenVerificacion {
 export interface VerificacionRepositorio {
   /** Bloquea al estudiante (FOR UPDATE) hasta el fin de la transacción. Una cuenta eliminada no está. */
   bloquearEstudiante(id: string, tx?: Ejecutor): Promise<EstudianteVerificable | null>;
-  /** Por correo, sin distinguir mayúsculas, sin las cuentas eliminadas. */
-  buscarEstudiantesPorCorreo(correo: string, tx?: Ejecutor): Promise<EstudianteVerificable[]>;
   tipoVerificacion(tx?: Ejecutor): Promise<TipoVerificacion>;
   /** El trigger tg_token_correo anula el correo de verificación anterior del estudiante (RN-32). */
   insertarToken(token: NuevoTokenVerificacion, tx?: Ejecutor): Promise<void>;
@@ -94,10 +92,7 @@ const ANULAR_PENDIENTE = `
    WHERE tt.id = t.tipo_token_correo_id AND tt.codigo = 'verificacion'
      AND t.estudiante_id = $1 AND t.usado_en IS NULL AND t.anulado_en IS NULL`;
 
-type Estudiantes = Pick<
-  VerificacionRepositorio,
-  'bloquearEstudiante' | 'buscarEstudiantesPorCorreo' | 'marcarCorreoVerificado'
->;
+type Estudiantes = Pick<VerificacionRepositorio, 'bloquearEstudiante' | 'marcarCorreoVerificado'>;
 
 function consultasEstudiantes(bd: Ejecutor): Estudiantes {
   return {
@@ -107,14 +102,6 @@ function consultasEstudiantes(bd: Ejecutor): Estudiantes {
         [id],
       );
       return rows[0] ?? null;
-    },
-
-    async buscarEstudiantesPorCorreo(correo, tx = bd) {
-      const { rows } = await tx.query<EstudianteVerificable>(
-        `${SELECCION_ESTUDIANTE} WHERE lower(correo) = lower($1) AND eliminado_en IS NULL ORDER BY id`,
-        [correo],
-      );
-      return rows;
     },
 
     async marcarCorreoVerificado(id, ahora, tx = bd) {

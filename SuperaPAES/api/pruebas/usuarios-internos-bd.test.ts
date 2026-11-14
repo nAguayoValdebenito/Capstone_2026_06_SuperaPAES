@@ -118,6 +118,7 @@ describe.skipIf(!urlBase)('usuarios internos con PostgreSQL', () => {
       jwt: dependencias.jwt,
       reloj: dependencias.reloj,
       verificacionCorreo: dependencias.verificacionCorreo,
+      estudiantesConVigente: () => Promise.resolve(new Set<string>()),
     });
     const sesiones = async () =>
       (

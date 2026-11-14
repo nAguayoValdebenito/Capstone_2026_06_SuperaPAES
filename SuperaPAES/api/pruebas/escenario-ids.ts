@@ -101,7 +101,12 @@ export function escenario() {
         },
       ]),
     ),
-    buscarEstudiantes: vi.fn(() => Promise.resolve([{ ...estudiante, creadoEn: fecha }])),
+    listarEstudiantes: vi.fn(() =>
+      Promise.resolve({
+        estudiantes: [{ ...estudiante, suscripcionActiva: false, intereses: [] }],
+        paginacion: { pagina: 1, porPagina: 20, total: 1 },
+      }),
+    ),
     confirmarCorreo: vi.fn(() => Promise.resolve({ ...estudiante, creadoEn: fecha })),
     obtenerPerfil: vi.fn(() => Promise.resolve(perfil)),
     guardarPerfil: vi.fn(() => Promise.resolve(perfil)),
@@ -254,7 +259,6 @@ const METODOS = {
 
 /** Consulta (?…) que exige cada ruta, por su último tramo. */
 const CONSULTAS: Record<string, Record<string, string>> = {
-  '/estudiantes': { correo: 'ana@ejemplo.cl' },
   '/opciones-practica': { curso: '3M' },
 };
 
