@@ -11,7 +11,7 @@ import type { Ejecutor, UnidadDeTrabajo } from '../db/transaccion.js';
 import { crearAdministracionServicio } from '../modulos/administracion/index.js';
 import type { CuentasRepositorio, NuevaSesion } from '../modulos/cuentas/cuentas.repositorio.js';
 import { crearCuentasServicio, type CuentasServicio } from '../modulos/cuentas/index.js';
-import { crearDependenciasDePrueba } from './ayudantes.js';
+import { crearDependenciasDePrueba, sinSuscripciones } from './ayudantes.js';
 import { crearRepositorioFalso } from './escenario-usuarios-internos.js';
 import { hashDeContrasena } from './estudiantes-de-prueba.js';
 
@@ -167,6 +167,7 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
     reloj,
     verificacionCorreo: dependencias.verificacionCorreo,
     cupoInvitaciones: crearServicios(dependencias).cupoInvitaciones,
+    suscripciones: sinSuscripciones,
     repositorio: crearRepositorioCuentas(falso.usuarios, estudiantes, sesiones),
   });
   const app = crearApp(dependencias, { ...crearServicios(dependencias), administracion, cuentas });

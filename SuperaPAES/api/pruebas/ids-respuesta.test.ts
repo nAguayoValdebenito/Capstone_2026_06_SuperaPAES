@@ -92,7 +92,7 @@ describe('ids en todas las rutas actuales que los devuelven', () => {
     expect(respuesta.body.data[0].id).toBe(1);
   });
 
-  it('cuentas de la consola: ingreso, yo, búsqueda y confirmación', async () => {
+  it('cuentas de la consola: ingreso, yo, listado de estudiantes y confirmación', async () => {
     const { app, cuentas } = escenario();
     const admin = { Authorization: `Bearer ${await tokenAdmin()}` };
     const ingreso = await request(app).post(`${PREFIJO}/admin/cuentas/ingreso`).send({
@@ -101,7 +101,7 @@ describe('ids en todas las rutas actuales que los devuelven', () => {
     });
     const yo = await request(app).get(`${PREFIJO}/admin/cuentas/yo`).set(admin);
     const busqueda = await request(app)
-      .get(`${PREFIJO}/admin/cuentas/estudiantes?correo=ana@ejemplo.cl`)
+      .get(`${PREFIJO}/admin/cuentas/estudiantes?suscripcion=activa`)
       .set(admin);
     const confirmacion = await request(app)
       .post(`${PREFIJO}/admin/cuentas/estudiantes/84/confirmar-correo`)

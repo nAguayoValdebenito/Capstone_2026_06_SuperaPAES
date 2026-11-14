@@ -7,7 +7,7 @@ import type { CuentasServicio } from './cuentas.servicio.js';
 import type {
   Credenciales,
   CredencialesApp,
-  DatosBusquedaEstudiante,
+  ConsultaEstudiantes,
   DatosCodigoVerificacion,
   DatosCurso,
   DatosEnlaceVerificacion,
@@ -27,7 +27,7 @@ type ControladorVerificacion = Pick<
   | 'verificarEnlace'
   | 'verificarCodigo'
   | 'reenviarVerificacion'
-  | 'buscarEstudiantes'
+  | 'listarEstudiantes'
   | 'confirmarCorreo'
 >;
 
@@ -55,7 +55,7 @@ export interface CuentasControlador {
   verificarEnlace: ConCuerpo<DatosEnlaceVerificacion>;
   verificarCodigo: ConCuerpo<DatosCodigoVerificacion>;
   reenviarVerificacion: RequestHandler;
-  buscarEstudiantes: RequestHandler;
+  listarEstudiantes: RequestHandler;
   confirmarCorreo: RequestHandler;
   obtenerPerfil: RequestHandler;
   estadoDeLaCuenta: RequestHandler;
@@ -155,10 +155,12 @@ function crearControladorVerificacion(servicio: CuentasServicio): ControladorVer
     reenviarVerificacion: async (req, res) => {
       responder(res, await servicio.emitirVerificacion(estudianteDe(req)));
     },
-    buscarEstudiantes: async (_req, res) => {
+    listarEstudiantes: async (_req, res) => {
       // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
-      const { correo } = res.locals.consulta as DatosBusquedaEstudiante;
-      responder(res, await servicio.buscarEstudiantes(correo));
+      const { estudiantes, paginacion } = await servicio.listarEstudiantes(
+        res.locals.consulta as ConsultaEstudiantes,
+      );
+      responder(res, estudiantes, { meta: paginacion });
     },
     confirmarCorreo: async (req, res) => {
       responder(res, await servicio.confirmarCorreo(usuarioInternoDe(req), String(req.params.id)));

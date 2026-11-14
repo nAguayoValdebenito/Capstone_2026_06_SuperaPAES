@@ -15,6 +15,12 @@ export const SECRETO_APP_DE_PRUEBA = `${SECRETO_DE_PRUEBA}-app`;
 export const CLAVE_CODIGO_DE_PRUEBA = `${SECRETO_DE_PRUEBA}-codigo-correo`;
 export const URL_CONSOLA_DE_PRUEBA = 'http://localhost:5173';
 
+/** Suscripciones para el listado de C15 cuando la prueba no las usa: nadie tiene una vigente. */
+export const sinSuscripciones = {
+  estudiantesConVigente: () => Promise.resolve(new Set<string>()),
+  idsConVigente: () => Promise.resolve<string[]>([]),
+};
+
 const sinBase = () => Promise.reject(new Error('Las pruebas de la API no usan una base real.'));
 
 export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): Dependencias {

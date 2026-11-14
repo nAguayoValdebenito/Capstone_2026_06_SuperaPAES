@@ -72,7 +72,6 @@ export interface VerificacionCorreo {
    * correo vigente, VERIFICACION_NO_VIGENTE. El intento fallido queda guardado.
    */
   verificarConCodigo(estudianteId: string, codigo: string): Promise<ResultadoVerificacion>;
-  buscarEstudiantes(correo: string): Promise<EstudianteConsola[]>;
   /** CU-02b: confirma el correo, anula el correo pendiente y audita. Ya verificado: YA_VERIFICADO. */
   confirmarCorreo(administradorId: string, estudianteId: string): Promise<EstudianteConsola>;
 }
@@ -283,7 +282,6 @@ export function crearVerificacionCorreo(
     verificarConEnlace: (tokenEnlace) => verificarEnlace(dependencias, tokenEnlace),
     verificarConCodigo: (estudianteId, codigo) =>
       verificarCodigo(dependencias, estudianteId, codigo),
-    buscarEstudiantes: (correo) => dependencias.repositorio.buscarEstudiantesPorCorreo(correo),
     confirmarCorreo: (administradorId, estudianteId) =>
       confirmar(dependencias, administradorId, estudianteId),
   };

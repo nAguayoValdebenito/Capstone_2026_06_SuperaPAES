@@ -1,6 +1,7 @@
 // Confirmación de la cuenta por el administrador contra PostgreSQL real (HU-05.1, HU-05 escenario 4,
-// CU-02b, pantalla C15): búsqueda por correo, confirmación con su fila de auditoría confirmar_cuenta,
+// CU-02b, pantalla C15): confirmación con su fila de auditoría confirmar_cuenta,
 // correo pendiente anulado, 409 YA_VERIFICADO sin auditar y permisos (docente 403, estudiante 401).
+// El listado de C15 se prueba en estudiantes-listado-bd.test.ts.
 import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { errorConFormato } from './ayudantes.js';
@@ -57,41 +58,6 @@ describe.skipIf(!urlBase)('confirmación por el administrador con PostgreSQL (CU
           WHERE aa.codigo = 'confirmar_cuenta'`,
       )
     ).rows;
-
-  it('busca por correo sin distinguir mayúsculas y entrega solo id, nombre, correo, verificado y fecha', async () => {
-    const admin = await sesionAdmin();
-    const id = await crearEstudianteDePrueba(entorno.bd, {
-      nombre: 'Eva Estudiante',
-      correo: 'eva@ejemplo.cl',
-      contrasena: 'clave-de-eva-1',
-    });
-    await crearEstudianteDePrueba(entorno.bd, {
-      correo: 'borrada@ejemplo.cl',
-      contrasena: 'clave-de-prueba-1',
-      eliminado: true,
-    });
-    const buscar = (correo: string) =>
-      request(entorno.app).get(RUTA_ESTUDIANTES).query({ correo }).set(admin.sesion);
-
-    const encontrada = await buscar('EVA@Ejemplo.cl');
-    const ninguna = await buscar('nadie@ejemplo.cl');
-    const eliminada = await buscar('borrada@ejemplo.cl');
-    const invalida = await buscar('no-es-correo');
-
-    expect(encontrada.status).toBe(200);
-    expect(encontrada.body.data).toEqual([
-      {
-        id: Number(id),
-        nombre: 'Eva Estudiante',
-        correo: 'eva@ejemplo.cl',
-        correoVerificado: false,
-        creadoEn: expect.any(String) as string,
-      },
-    ]);
-    expect(ninguna.body.data).toEqual([]);
-    expect(eliminada.body.data).toEqual([]);
-    expect(invalida.status).toBe(400);
-  });
 
   it('confirma: queda verificado, anula el correo pendiente y audita confirmar_cuenta con el antes y el después', async () => {
     const admin = await sesionAdmin();
@@ -162,10 +128,7 @@ describe.skipIf(!urlBase)('confirmación por el administrador con PostgreSQL (CU
     const eva = await estudianteConSesion(entorno);
 
     const docenteConfirma = await request(entorno.app).post(confirmarRuta(eva.id)).set(comoDocente);
-    const docenteBusca = await request(entorno.app)
-      .get(RUTA_ESTUDIANTES)
-      .query({ correo: eva.correo })
-      .set(comoDocente);
+    const docenteLista = await request(entorno.app).get(RUTA_ESTUDIANTES).set(comoDocente);
     const estudianteConfirma = await request(entorno.app)
       .post(confirmarRuta(eva.id))
       .set(eva.sesion);
@@ -173,7 +136,7 @@ describe.skipIf(!urlBase)('confirmación por el administrador con PostgreSQL (CU
 
     expect(docenteConfirma.status).toBe(403);
     expect(docenteConfirma.body).toEqual(errorConFormato('SIN_PERMISO'));
-    expect(docenteBusca.status).toBe(403);
+    expect(docenteLista.status).toBe(403);
     expect(estudianteConfirma.status).toBe(401);
     expect(estudianteConfirma.body).toEqual(errorConFormato('NO_AUTENTICADO'));
     expect(sinSesion.status).toBe(401);

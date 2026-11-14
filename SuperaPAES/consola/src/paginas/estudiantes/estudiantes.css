@@ -1,3 +1,14 @@
+/* Estudiantes (C15): filtros opcionales arriba y la tabla paginada. Solo tokens del tema (estilos/global.css). */
+.estudiantes__tabla {
+  min-width: 48rem;
+  margin-top: 1.5rem;
+}
+
 .estudiantes__correo {
-  grid-column: span 2;
+  overflow-wrap: anywhere;
+}
+
+.estudiantes__vacio,
+.estudiantes__error {
+  margin-top: 1.5rem;
 }

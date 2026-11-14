@@ -20,6 +20,7 @@ import {
   type DuenoSesion,
 } from './cuentas.repositorio.js';
 import { comprobarCredenciales, hashDeRelleno } from './cuentas.credenciales.js';
+import * as listado from './cuentas.estudiantes.servicio.js';
 import { crearCuentaEnLaApp, type CuentaEnLaApp } from './cuentas.app.servicio.js';
 import {
   crearPerfilPracticaRepositorio,
@@ -67,7 +68,8 @@ const BYTES_TOKEN_RENOVACION = 32;
 /** app.token_sesion.dispositivo es VARCHAR(100). */
 const LARGO_DISPOSITIVO = 100;
 
-export interface DependenciasCuentasServicio {
+/** Con lo que pide el listado de C15: quiénes tienen suscripción vigente (de suscripciones). */
+export interface DependenciasCuentasServicio extends listado.DependenciasListado {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
   correo: ProveedorCorreo;
@@ -129,7 +131,7 @@ export interface UsuarioConsola extends UsuarioDeSesion {
 
 /**
  * Incluye la verificación del correo, la recuperación de la contraseña, el perfil del estudiante, lo
- * que muestra el inicio de la app y los puntajes PAES declarados.
+ * que muestra el inicio de la app, los puntajes PAES declarados y el listado de estudiantes (C15).
  */
 export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfil, CuentaEnLaApp {
   /** HU-29.1, contrato mínimo para iniciar una práctica. Con bloquear, serializa inicios sobre el
@@ -191,6 +193,7 @@ export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfi
   obtenerUsuarioConsola(id: string): Promise<UsuarioConsola>;
   /** Cierra todas las sesiones abiertas de una cuenta interna (al desactivarla). */
   revocarSesionesUsuarioInterno(id: string, tx: Ejecutor): Promise<void>;
+  listarEstudiantes: listado.ListadoEstudiantes['listarEstudiantes'];
 }
 
 interface Contexto {
@@ -363,9 +366,8 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
   // Se prepara al crear el servicio para que el primer ingreso con un correo sin cuenta no tarde más.
   void hashDeRelleno();
   return {
-    obtenerPerfilPractica: (id, tx, bloquear) =>
-      perfilPractica.obtenerPerfilPractica(id, tx, bloquear),
-    estadoParaCupo: (id, tx, bloquear) => perfilPractica.estadoParaCupo(id, tx, bloquear),
+    // obtenerPerfilPractica y estadoParaCupo (HU-29.1, HU-32.1), tal como los entrega su repositorio.
+    ...perfilPractica,
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales, navegador) =>
       ingresarInterno(contexto, credenciales, navegador),
@@ -386,5 +388,6 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     ...crearVerificacionYRegistro(dependencias, contexto),
     ...crearPerfil(dependencias),
     ...crearCuentaEnLaApp(dependencias),
+    ...listado.crearListadoEstudiantes(dependencias),
   };
 }
