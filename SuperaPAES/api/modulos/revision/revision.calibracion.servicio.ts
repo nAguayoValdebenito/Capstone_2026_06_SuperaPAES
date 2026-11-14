@@ -10,6 +10,7 @@ import type { AdministracionServicio } from '../administracion/index.js';
 import type { EvaluacionesServicio } from '../evaluaciones/index.js';
 import type {
   CalibracionRepositorio,
+  ConfirmadaDeCalibracion,
   PreguntaDeCalibracion,
 } from './revision.calibracion.repositorio.js';
 import { INTENTOS_MINIMOS_CALIBRACION } from './revision.reglas.js';
@@ -29,7 +30,17 @@ export interface DecisionGuardada {
   creadoEn: string;
 }
 
+type Estadistica = Awaited<ReturnType<EvaluacionesServicio['estadisticasDe']>>[number];
+
+/** HU-26.2: una confirmada, con sus estadísticas actuales, para que el administrador decida. */
+export type ConfirmadaCalibracion = Omit<ConfirmadaDeCalibracion, 'confirmadaEn'> &
+  Pick<Estadistica, 'intentos' | 'aciertos' | 'porcentajeAcierto' | 'tiempoPromedioSeg'> & {
+    confirmadaEn: string;
+  };
+
 export interface CalibracionDocente {
+  /** HU-26.2 (administrador): las publicadas confirmadas, para retirarlas y enviarlas a revisión. */
+  listarConfirmadas(): Promise<ConfirmadaCalibracion[]>;
   listarCalibracion(docenteId: string): Promise<ItemCalibracion[]>;
   decidirCalibracion(
     docenteId: string,
@@ -42,7 +53,7 @@ export interface DependenciasCalibracion {
   unidadDeTrabajo: UnidadDeTrabajo;
   reloj: Reloj;
   repositorio: CalibracionRepositorio;
-  evaluaciones: Pick<EvaluacionesServicio, 'estadisticasFueraDeRango'>;
+  evaluaciones: Pick<EvaluacionesServicio, 'estadisticasFueraDeRango' | 'estadisticasDe'>;
   administracion: Pick<AdministracionServicio, 'registrarAuditoria'>;
 }
 
@@ -72,6 +83,7 @@ export function crearCalibracionDocente(dependencias: DependenciasCalibracion): 
   const fueraDeRango = () => evaluaciones.estadisticasFueraDeRango(INTENTOS_MINIMOS_CALIBRACION);
 
   return {
+    listarConfirmadas: () => listarConfirmadas(dependencias),
     async listarCalibracion(docenteId) {
       const estadisticas = await fueraDeRango();
       const pendientes = await repositorio.pendientesDelDocente(
@@ -136,6 +148,26 @@ async function guardar(
     },
     tx,
   );
+}
+
+async function listarConfirmadas({
+  repositorio,
+  evaluaciones,
+}: DependenciasCalibracion): Promise<ConfirmadaCalibracion[]> {
+  const confirmadas = await repositorio.confirmadas();
+  const estadisticas = await evaluaciones.estadisticasDe(confirmadas.map((c) => c.preguntaId));
+  const porId = new Map(estadisticas.map((e) => [e.preguntaId, e]));
+  return confirmadas.map((c) => {
+    const e = porId.get(c.preguntaId);
+    return {
+      ...c,
+      confirmadaEn: c.confirmadaEn.toISOString(),
+      intentos: e?.intentos ?? 0,
+      aciertos: e?.aciertos ?? 0,
+      porcentajeAcierto: e?.porcentajeAcierto ?? null,
+      tiempoPromedioSeg: e?.tiempoPromedioSeg ?? null,
+    };
+  });
 }
 
 /**

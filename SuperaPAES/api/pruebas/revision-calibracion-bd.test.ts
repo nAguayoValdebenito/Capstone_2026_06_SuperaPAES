@@ -2,7 +2,8 @@
 // Con estadísticas escritas a mano: solo aparecen las publicadas con 30 o más intentos cuyo acierto sale
 // del rango de su dificultad (los extremos cuentan dentro) y del área del docente. Confirmar y descartar
 // guardan la decisión con la versión y la dificultad del momento y la dejan en la auditoría; la pregunta
-// sale de la bandeja de ese docente, no de la de otro del área, que ve la confirmación.
+// sale de la bandeja de ese docente, no de la de otro del área, que ve la confirmación. El administrador
+// ve la confirmada (HU-26.2) hasta que la retira; después vuelve a borrador y entra a una nueva revisión.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Servicios } from '../app.js';
 import { type BaseTemporal, exigirBaseEnCi, MINUTO, urlBase } from './base-temporal.js';
@@ -133,5 +134,38 @@ describe.skipIf(!urlBase)('bandeja de calibración con PostgreSQL (HU-26.1)', ()
     );
     expect(rows).toHaveLength(1);
     expect(await ids('h2@prueba.cl')).toEqual([de('facilBaja')]);
+  });
+
+  it('HU-26.2: el administrador ve la confirmada; al retirarla deja de estarlo y vuelve a revisión con dos docentes', async () => {
+    const admin = await crearCuenta(base.bd, ['admin@prueba.cl', 'admin']);
+    const id = de('facilBaja');
+
+    const confirmadas = await servicios.revision.listarConfirmadas();
+    expect(confirmadas).toEqual([
+      expect.objectContaining({
+        preguntaId: id,
+        confirmaciones: 1,
+        intentos: 30,
+        porcentajeAcierto: 20,
+      }),
+    ]);
+
+    await servicios.preguntas.cambiarEtapa(admin, id, 'retirar');
+    expect(await servicios.revision.listarConfirmadas()).toEqual([]);
+    const publicada = await base.bd.query(
+      'SELECT 1 FROM contenido.v_preguntas_publicadas WHERE id = $1',
+      [id],
+    );
+    expect(publicada.rows).toHaveLength(0);
+
+    await servicios.preguntas.cambiarEtapa(admin, id, 'borrador');
+    const envio = await servicios.revision.enviarARevision(admin, id);
+    expect(envio.revisores).toHaveLength(2);
+    const { rows } = await base.bd.query<{ estado: string }>(
+      `SELECT e.codigo AS estado FROM contenido.pregunta p
+         JOIN contenido.estado_pregunta e ON e.id = p.estado_pregunta_id WHERE p.id = $1`,
+      [id],
+    );
+    expect(rows[0]?.estado).toBe('en_revision');
   });
 });

@@ -8,7 +8,7 @@
 import { Router } from 'express';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
-import { crearRevisionControlador } from './revision.controlador.js';
+import { crearRevisionControlador, type RevisionControlador } from './revision.controlador.js';
 import type { RevisionServicio } from './revision.servicio.js';
 import {
   esquemaCalibracion,
@@ -18,6 +18,22 @@ import {
   esquemaIdRevision,
   esquemaRevision,
 } from './revision.validadores.js';
+
+/**
+ * Calibración (D04, HU-26.1, RN-15): el docente ve las preguntas de su área fuera de su rango de acierto
+ * y decide sobre cada una; el administrador ve las confirmadas (C02, HU-26.2) para retirarlas y enviarlas
+ * a una nueva revisión con las rutas que ya existen.
+ */
+function agregarRutasCalibracion(router: Router, controlador: RevisionControlador): void {
+  router.get('/calibracion', exigirRol('docente'), controlador.listarCalibracion);
+  router.get('/calibracion/confirmadas', exigirRol('admin'), controlador.listarConfirmadas);
+  router.post(
+    '/calibracion/:id',
+    exigirRol('docente'),
+    validar({ parametros: esquemaIdPregunta, cuerpo: esquemaCalibracion }),
+    controlador.decidirCalibracion,
+  );
+}
 
 export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
   const router = Router();
@@ -52,15 +68,7 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     validar({ parametros: esquemaIdRevision, cuerpo: esquemaDesempate }),
     controlador.entregarDesempate,
   );
-  // Docente revisor: Calibración (D04, HU-26.1, RN-15): las preguntas de su área fuera de su rango de
-  // acierto y su decisión sobre cada una.
-  router.get('/calibracion', exigirRol('docente'), controlador.listarCalibracion);
-  router.post(
-    '/calibracion/:id',
-    exigirRol('docente'),
-    validar({ parametros: esquemaIdPregunta, cuerpo: esquemaCalibracion }),
-    controlador.decidirCalibracion,
-  );
+  agregarRutasCalibracion(router, controlador);
   // Administrador: seguimiento de las revisiones (C06).
   router.get(
     '/seguimiento',

@@ -25,6 +25,7 @@ export interface RevisionControlador {
   listarSeguimiento: RequestHandler;
   listarCalibracion: Validado;
   decidirCalibracion: Validado<DatosCalibracion>;
+  listarConfirmadas: RequestHandler;
 }
 
 /**
@@ -79,11 +80,15 @@ export function crearRevisionControlador(servicio: RevisionServicio): RevisionCo
   };
 }
 
-/** D04 (HU-26.1): la bandeja de calibración del docente y su decisión sobre cada pregunta. */
+/** HU-26.1 y HU-26.2: la bandeja del docente, su decisión y las confirmadas para el administrador. */
 function manejadoresCalibracion(
   servicio: RevisionServicio,
-): Pick<RevisionControlador, 'listarCalibracion' | 'decidirCalibracion'> {
+): Pick<RevisionControlador, 'listarCalibracion' | 'decidirCalibracion' | 'listarConfirmadas'> {
   return {
+    listarConfirmadas: async (_req, res) => {
+      const confirmadas = await servicio.listarConfirmadas();
+      responder(res, confirmadas, { meta: { total: confirmadas.length } });
+    },
     listarCalibracion: async (req, res) => {
       const bandeja = await servicio.listarCalibracion(usuarioDe(req));
       responder(res, bandeja, { meta: { total: bandeja.length } });

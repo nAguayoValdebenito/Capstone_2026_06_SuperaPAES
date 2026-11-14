@@ -112,3 +112,16 @@ export type DatosInicioPractica = z.infer<typeof esquemaInicioPractica>;
 export type DatosInicioRepaso = z.infer<typeof esquemaInicioRepaso>;
 export type DatosHistorial = z.infer<typeof esquemaHistorial>;
 export type DatosRespuestaPregunta = z.infer<typeof esquemaRespuesta>;
+
+/** HU-53.1 (C02): estadísticas de las preguntas de una página del banco, por sus ids separados por comas. */
+export const esquemaEstadisticasPreguntas = z.strictObject({
+  preguntas: z
+    .string()
+    .regex(
+      /^[1-9]\d{0,15}(,[1-9]\d{0,15}){0,99}$/,
+      'Indica hasta 100 identificadores separados por comas.',
+    )
+    .transform((valor) => [...new Set(valor.split(','))]),
+});
+
+export type ConsultaEstadisticas = z.output<typeof esquemaEstadisticasPreguntas>;

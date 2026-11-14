@@ -25,6 +25,13 @@ const FUERA_DE_RANGO = {
   },
 };
 
+const DIFICULTAD = {
+  codigo: 'facil',
+  nombre: 'Fácil',
+  aciertoEsperadoMin: 70,
+  aciertoEsperadoMax: 100,
+};
+
 const PREGUNTA = {
   preguntaId: '7',
   enunciado: 'Enunciado de prueba',
@@ -39,12 +46,35 @@ function escenario({ pendiente = true, yaDecidio = false, guarda = true } = {}) 
     pendientesDelDocente: vi.fn(() => Promise.resolve(pendiente ? [PREGUNTA] : [])),
     yaDecidio: vi.fn(() => Promise.resolve(yaDecidio)),
     guardarDecision: vi.fn(() => Promise.resolve(guarda)),
+    confirmadas: vi.fn(() =>
+      Promise.resolve([
+        {
+          ...PREGUNTA,
+          confirmaciones: 1,
+          dificultad: DIFICULTAD,
+          confirmadaEn: AHORA,
+        },
+      ]),
+    ),
   } satisfies CalibracionRepositorio;
   const estadisticasFueraDeRango = vi.fn(() => Promise.resolve([FUERA_DE_RANGO]));
   const registrarAuditoria = vi.fn(() => Promise.resolve());
   const { app } = appDeRevision({
     repositorioCalibracion: repositorio,
-    evaluaciones: { estadisticasFueraDeRango },
+    evaluaciones: {
+      estadisticasFueraDeRango,
+      estadisticasDe: () =>
+        Promise.resolve([
+          {
+            preguntaId: '7',
+            intentos: 41,
+            aciertos: 8,
+            porcentajeAcierto: 19.5,
+            tiempoPromedioSeg: 55,
+            actualizadoEn: AHORA,
+          },
+        ]),
+    },
     administracion: { obtenerParametroEntero: () => Promise.resolve(2), registrarAuditoria },
   });
   return { app, repositorio, estadisticasFueraDeRango, registrarAuditoria };
@@ -181,5 +211,44 @@ describe('decisión del docente (HU-26.1)', () => {
 
     expect((await decidir(app, { dificultadCorresponde: false })).status).toBe(409);
     expect(registrarAuditoria).not.toHaveBeenCalled();
+  });
+});
+
+describe('confirmadas para el administrador (HU-26.2)', () => {
+  const RUTA_CONFIRMADAS = `${RUTA}/confirmadas`;
+
+  it('lista las confirmadas con sus estadísticas actuales', async () => {
+    const { app } = escenario();
+
+    const respuesta = await request(app)
+      .get(RUTA_CONFIRMADAS)
+      .set({ Authorization: `Bearer ${await tokenAdmin('admin', '5')}` });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.data).toEqual([
+      {
+        ...PREGUNTA,
+        confirmaciones: 1,
+        dificultad: DIFICULTAD,
+        confirmadaEn: AHORA.toISOString(),
+        intentos: 41,
+        aciertos: 8,
+        porcentajeAcierto: 19.5,
+        tiempoPromedioSeg: 55,
+      },
+    ]);
+    expect(respuesta.body.meta).toEqual({ total: 1 });
+  });
+
+  it('el docente no ve las confirmadas (403)', async () => {
+    const { app } = escenario();
+
+    expect(
+      (
+        await request(app)
+          .get(RUTA_CONFIRMADAS)
+          .set(await comoDocente())
+      ).status,
+    ).toBe(403);
   });
 });

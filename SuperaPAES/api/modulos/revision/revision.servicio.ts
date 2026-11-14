@@ -55,7 +55,7 @@ export interface DependenciasRevisionServicio {
   administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'registrarAuditoria'>;
   preguntas: Pick<PreguntasServicio, 'pasarARevision' | 'resolverRevision'>;
   /** HU-26.1: las preguntas publicadas cuyo acierto salió de su rango (RN-15). */
-  evaluaciones: Pick<EvaluacionesServicio, 'estadisticasFueraDeRango'>;
+  evaluaciones: Pick<EvaluacionesServicio, 'estadisticasFueraDeRango' | 'estadisticasDe'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearRevisionRepositorio(bd). */
   repositorio?: RevisionRepositorio;
   /** Solo para pruebas: reemplaza al de crearBandejaRepositorio(bd, 'revisor'). */

@@ -34,7 +34,21 @@ export interface CandidataCalibracion {
   dificultadId: number;
 }
 
+/** Una pregunta publicada con al menos una confirmación para su versión y dificultad actuales (C02). */
+export interface ConfirmadaDeCalibracion extends PreguntaDeCalibracion {
+  dificultad: {
+    codigo: string;
+    nombre: string;
+    aciertoEsperadoMin: number;
+    aciertoEsperadoMax: number;
+  };
+  /** Fecha de la primera confirmación pendiente. */
+  confirmadaEn: Date;
+}
+
 export interface CalibracionRepositorio {
+  /** HU-26.2: las publicadas confirmadas por algún docente, en el orden en que se confirmaron. */
+  confirmadas(tx?: Ejecutor): Promise<ConfirmadaDeCalibracion[]>;
   /** De esas candidatas, las del área del docente que él todavía no decidió. */
   pendientesDelDocente(
     docenteId: string,
@@ -70,8 +84,33 @@ const SQL_PENDIENTES = `
   HAVING NOT COALESCE(bool_or(cp.docente_id = $1::bigint), false)
    ORDER BY p.id`;
 
+// Pendiente mientras la pregunta siga publicada con la misma versión y dificultad: al retirarla deja de
+// estarlo sola (plan, sección 5).
+const SQL_CONFIRMADAS = `
+  SELECT p.id::text AS "preguntaId", left(p.enunciado, 200) AS enunciado, pr.nombre AS prueba,
+         ct.nombre AS contenido,
+         json_build_object('codigo', d.codigo, 'nombre', d.nombre, 'aciertoEsperadoMin', d.acierto_esperado_min,
+                           'aciertoEsperadoMax', d.acierto_esperado_max) AS dificultad,
+         COUNT(*) FILTER (WHERE NOT cp.dificultad_corresponde)::int AS confirmaciones,
+         COUNT(*) FILTER (WHERE cp.dificultad_corresponde)::int AS descartes,
+         MIN(cp.creado_en) FILTER (WHERE NOT cp.dificultad_corresponde) AS "confirmadaEn"
+    FROM contenido.calibracion_pregunta cp
+    JOIN contenido.pregunta p
+      ON p.id = cp.pregunta_id AND p.version = cp.version_pregunta AND p.dificultad_asignada_id = cp.dificultad_id
+    JOIN contenido.estado_pregunta ep ON ep.id = p.estado_pregunta_id AND ep.codigo = 'publicada'
+    JOIN contenido.prueba pr ON pr.id = p.prueba_id
+    JOIN contenido.contenido_tematico ct ON ct.id = p.contenido_id
+    JOIN contenido.dificultad d ON d.id = p.dificultad_asignada_id
+   GROUP BY p.id, pr.nombre, ct.nombre, d.id
+  HAVING COUNT(*) FILTER (WHERE NOT cp.dificultad_corresponde) > 0
+   ORDER BY "confirmadaEn", p.id`;
+
 export function crearCalibracionRepositorio(bd: Ejecutor): CalibracionRepositorio {
   return {
+    async confirmadas(tx = bd) {
+      const { rows } = await tx.query<ConfirmadaDeCalibracion>(SQL_CONFIRMADAS);
+      return rows;
+    },
     async pendientesDelDocente(docenteId, candidatas, tx = bd) {
       if (candidatas.length === 0) return [];
       const { rows } = await tx.query<PreguntaDeCalibracion>(SQL_PENDIENTES, [
