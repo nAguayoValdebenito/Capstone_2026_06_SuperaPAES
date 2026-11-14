@@ -14,9 +14,18 @@ export interface FilaEstudianteListado {
   intereses: string[];
 }
 
+/** Código de interés que pide a quienes no marcaron ningún área de carrera. */
+export const SIN_INTERESES = 'ninguno';
+
 export interface ConsultaListadoEstudiantes {
-  /** Parte del nombre o del correo, sin distinguir mayúsculas; null lista a todos. */
-  buscar: string | null;
+  /** Solo estos estudiantes (por ejemplo, los con suscripción vigente); null no limita. */
+  soloIds: readonly string[] | null;
+  /** Sin estos estudiantes (por ejemplo, los con suscripción vigente); null no excluye. */
+  sinIds: readonly string[] | null;
+  /** Código del área de carrera de interés, o SIN_INTERESES; null no filtra. */
+  interes: string | null;
+  /** Con el correo verificado (true) o sin verificar (false); null no filtra. */
+  verificado: boolean | null;
   limite: number;
   desde: number;
 }
@@ -29,11 +38,17 @@ export interface EstudiantesListadoRepositorio {
   ): Promise<Pagina<FilaEstudianteListado>>;
 }
 
+// $3 = 'ninguno' pide a quienes no marcaron intereses; otro código, a quienes marcaron esa área.
 const FILTRO = `
    WHERE e.eliminado_en IS NULL
-     AND ($1::text IS NULL
-          OR position(lower($1) IN lower(e.nombre)) > 0
-          OR position(lower($1) IN lower(e.correo)) > 0)`;
+     AND ($1::bigint[] IS NULL OR e.id = ANY($1::bigint[]))
+     AND ($2::bigint[] IS NULL OR e.id <> ALL($2::bigint[]))
+     AND ($3::text IS NULL
+          OR ($3 = '${SIN_INTERESES}') <> EXISTS (
+               SELECT 1 FROM app.estudiante_interes_carrera i
+                 JOIN contenido.area_carrera ac ON ac.id = i.area_carrera_id
+                WHERE i.estudiante_id = e.id AND ($3 = '${SIN_INTERESES}' OR ac.codigo = $3)))
+     AND ($4::boolean IS NULL OR e.correo_verificado = $4)`;
 
 const LISTAR = `
   SELECT e.id::text AS id, e.nombre, e.correo, e.correo_verificado AS "correoVerificado",
@@ -45,13 +60,18 @@ const LISTAR = `
     FROM app.estudiante e
   ${FILTRO}
    ORDER BY e.creado_en DESC, e.id DESC
-   LIMIT $2 OFFSET $3`;
+   LIMIT $5 OFFSET $6`;
 
 const TOTAL = `SELECT count(*)::int AS total FROM app.estudiante e ${FILTRO}`;
 
 export function crearEstudiantesListadoRepositorio(bd: Ejecutor): EstudiantesListadoRepositorio {
   return {
-    listar: ({ buscar, limite, desde }, tx = bd) =>
-      paginaConTotal<FilaEstudianteListado>(tx, [LISTAR, TOTAL], [buscar], [limite, desde]),
+    listar: ({ soloIds, sinIds, interes, verificado, limite, desde }, tx = bd) =>
+      paginaConTotal<FilaEstudianteListado>(
+        tx,
+        [LISTAR, TOTAL],
+        [soloIds, sinIds, interes, verificado],
+        [limite, desde],
+      ),
   };
 }

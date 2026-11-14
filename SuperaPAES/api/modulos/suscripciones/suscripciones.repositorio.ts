@@ -115,12 +115,23 @@ const CUBRE_PRUEBA = `
                         WHERE sp.suscripcion_id = s.id AND sp.prueba_id = $2))
   ) AS cubre`;
 
-// C15: de los estudiantes pedidos, los que tienen una vigente, con la misma regla que VIGENTE (RN-34).
+// C15: de los estudiantes pedidos (o de todos, con $1 nulo), los que tienen una vigente, con la misma
+// regla que VIGENTE (RN-34).
 const CON_VIGENTE = `
   SELECT DISTINCT s.estudiante_id::text AS id
     FROM app.suscripcion s
     JOIN contenido.estado_suscripcion e ON e.id = s.estado_suscripcion_id
-   WHERE s.estudiante_id = ANY($1::bigint[]) AND e.codigo IN ('activa', 'en_mora')`;
+   WHERE ($1::bigint[] IS NULL OR s.estudiante_id = ANY($1::bigint[]))
+     AND e.codigo IN ('activa', 'en_mora')`;
+
+/** C15: de los estudiantes pedidos, los que tienen una vigente; con `null`, todos los que la tienen. */
+function consultaConVigente(bd: Ejecutor) {
+  return async (estudianteIds: readonly string[] | null, tx: Ejecutor = bd): Promise<string[]> => {
+    if (estudianteIds?.length === 0) return [];
+    const { rows } = await tx.query<{ id: string }>(CON_VIGENTE, [estudianteIds]);
+    return rows.map((fila) => fila.id);
+  };
+}
 
 export function crearSuscripcionesRepositorio(bd: Ejecutor) {
   return {
@@ -138,11 +149,7 @@ export function crearSuscripcionesRepositorio(bd: Ejecutor) {
       return rows[0] ?? null;
     },
 
-    async conVigenteEntre(estudianteIds: readonly string[], tx: Ejecutor = bd): Promise<string[]> {
-      if (estudianteIds.length === 0) return [];
-      const { rows } = await tx.query<{ id: string }>(CON_VIGENTE, [estudianteIds]);
-      return rows.map((fila) => fila.id);
-    },
+    conVigenteEntre: consultaConVigente(bd),
 
     async cubrePrueba(
       estudianteId: string,

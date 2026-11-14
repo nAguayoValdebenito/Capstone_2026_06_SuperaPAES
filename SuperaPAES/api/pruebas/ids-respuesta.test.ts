@@ -101,7 +101,7 @@ describe('ids en todas las rutas actuales que los devuelven', () => {
     });
     const yo = await request(app).get(`${PREFIJO}/admin/cuentas/yo`).set(admin);
     const busqueda = await request(app)
-      .get(`${PREFIJO}/admin/cuentas/estudiantes?buscar=ana`)
+      .get(`${PREFIJO}/admin/cuentas/estudiantes?suscripcion=activa`)
       .set(admin);
     const confirmacion = await request(app)
       .post(`${PREFIJO}/admin/cuentas/estudiantes/84/confirmar-correo`)

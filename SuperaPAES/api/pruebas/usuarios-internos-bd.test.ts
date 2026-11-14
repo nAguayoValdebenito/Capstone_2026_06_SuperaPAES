@@ -11,7 +11,7 @@ import { crearPrimerAdministrador, restablecerAdministrador } from '../db/primer
 import { ejecutarEnTransaccion } from '../db/transaccion.js';
 import { crearAdministracionServicio } from '../modulos/administracion/index.js';
 import { crearCuentasServicio } from '../modulos/cuentas/index.js';
-import { crearDependenciasDePrueba } from './ayudantes.js';
+import { crearDependenciasDePrueba, sinSuscripciones } from './ayudantes.js';
 import {
   type BaseTemporal,
   crearBaseTemporal,
@@ -118,7 +118,7 @@ describe.skipIf(!urlBase)('usuarios internos con PostgreSQL', () => {
       jwt: dependencias.jwt,
       reloj: dependencias.reloj,
       verificacionCorreo: dependencias.verificacionCorreo,
-      estudiantesConVigente: () => Promise.resolve(new Set<string>()),
+      suscripciones: sinSuscripciones,
     });
     const sesiones = async () =>
       (

@@ -98,6 +98,8 @@ export interface SuscripcionesServicio
    * mora, la misma regla de vigenteDe). Una consulta para toda la página del listado de la consola.
    */
   estudiantesConVigente(estudianteIds: readonly string[]): Promise<Set<string>>;
+  /** C15: todos los estudiantes con suscripción vigente, para filtrar el listado de la consola. */
+  idsConVigente(): Promise<string[]>;
   /**
    * HU-45.1 (CU-12 1.a), tarea horaria: deja cancelada cada activa que canceló la renovación y terminó
    * su período pagado hace más de un día, por si el aviso de vencimiento de la tienda no llegó. Cada
@@ -190,6 +192,7 @@ export function crearSuscripcionesServicio(
       ),
     estudiantesConVigente: async (estudianteIds) =>
       new Set(await repositorio.conVigenteEntre(estudianteIds)),
+    idsConVigente: () => repositorio.conVigenteEntre(null),
     cerrarCanceladasVencidas: () =>
       cerrarCanceladas(dependencias, crearCierreRepositorio(dependencias.bd), comprasRepositorio),
     avisarRenovaciones: crearAvisoRenovacion(dependencias),

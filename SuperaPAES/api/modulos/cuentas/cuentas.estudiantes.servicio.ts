@@ -1,5 +1,7 @@
 // C15 · Estudiantes: el listado de la consola, paginado desde la API. Junta los datos de la cuenta y los
 // intereses del perfil (de cuentas) con la suscripción vigente, que pregunta al servicio de suscripciones.
+// Filtros opcionales: suscripción vigente o no, un área de carrera de interés (o ninguna) y cuenta
+// verificada o no. El de suscripción usa los ids que entrega suscripciones (cada módulo lee sus tablas).
 import type { Paginacion } from '../../comun/respuesta.js';
 import type { Ejecutor } from '../../db/transaccion.js';
 import {
@@ -17,8 +19,13 @@ export interface EstudianteListado extends FilaEstudianteListado {
 
 export interface DependenciasListado {
   bd: Ejecutor;
-  /** De los estudiantes pedidos, los que tienen una suscripción vigente (servicio de suscripciones). */
-  estudiantesConVigente: (estudianteIds: readonly string[]) => Promise<Set<string>>;
+  /** Lo que el listado pregunta al servicio de suscripciones (sin importar el módulo). */
+  suscripciones: {
+    /** De los estudiantes pedidos, los que tienen una suscripción vigente. */
+    estudiantesConVigente(estudianteIds: readonly string[]): Promise<Set<string>>;
+    /** Todos los estudiantes con suscripción vigente, para filtrar por suscripción. */
+    idsConVigente(): Promise<string[]>;
+  };
   /** Solo para pruebas: reemplaza al que se crea con crearEstudiantesListadoRepositorio(bd). */
   repositorioListado?: EstudiantesListadoRepositorio;
 }
@@ -34,13 +41,19 @@ export function crearListadoEstudiantes(dependencias: DependenciasListado): List
   const repositorio =
     dependencias.repositorioListado ?? crearEstudiantesListadoRepositorio(dependencias.bd);
   return {
-    async listarEstudiantes({ buscar, pagina, porPagina }) {
+    async listarEstudiantes({ suscripcion, interes, verificado, pagina, porPagina }) {
+      const vigentes = suscripcion ? await dependencias.suscripciones.idsConVigente() : null;
       const { filas, total } = await repositorio.listar({
-        buscar: buscar || null,
+        soloIds: suscripcion === 'activa' ? vigentes : null,
+        sinIds: suscripcion === 'sin' ? vigentes : null,
+        interes: interes ?? null,
+        verificado: verificado ?? null,
         limite: porPagina,
         desde: (pagina - 1) * porPagina,
       });
-      const conVigente = await dependencias.estudiantesConVigente(filas.map((fila) => fila.id));
+      const conVigente = await dependencias.suscripciones.estudiantesConVigente(
+        filas.map((fila) => fila.id),
+      );
       return {
         estudiantes: filas.map((fila) => ({ ...fila, suscripcionActiva: conVigente.has(fila.id) })),
         paginacion: { pagina, porPagina, total },

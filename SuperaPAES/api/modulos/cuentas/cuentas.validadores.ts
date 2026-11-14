@@ -110,9 +110,20 @@ export const esquemaCodigoVerificacion = z.strictObject({
 export const POR_PAGINA_ESTUDIANTES = 20;
 const MAXIMO_POR_PAGINA_ESTUDIANTES = 100;
 
-/** C15: listado de estudiantes; ?buscar= filtra por parte del nombre o del correo (opcional). */
+/**
+ * C15: listado de estudiantes con filtros opcionales: ?suscripcion=activa|sin, ?interes= (código del área
+ * de carrera, o «ninguno») y ?verificado=si|no.
+ */
 export const esquemaConsultaEstudiantes = z.strictObject({
-  buscar: z.string().trim().max(150, 'La búsqueda puede tener hasta 150 caracteres.').optional(),
+  suscripcion: z.enum(['activa', 'sin'], 'La suscripción debe ser activa o sin.').optional(),
+  interes: z
+    .string()
+    .regex(/^[a-z_]{1,25}$/, 'El interés no es válido.')
+    .optional(),
+  verificado: z
+    .enum(['si', 'no'], 'Verificado debe ser si o no.')
+    .transform((valor) => valor === 'si')
+    .optional(),
   pagina: numeroDePagina(1, 100_000),
   porPagina: numeroDePagina(POR_PAGINA_ESTUDIANTES, MAXIMO_POR_PAGINA_ESTUDIANTES),
 });

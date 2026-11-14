@@ -233,7 +233,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     cupoInvitaciones,
     jwt: dependencias.jwt,
     verificacionCorreo: dependencias.verificacionCorreo,
-    estudiantesConVigente: (ids) => suscripciones.estudiantesConVigente(ids),
+    suscripciones,
     ...(dependencias.segundoPlano && { segundoPlano: dependencias.segundoPlano }),
   });
   const temario = crearTemarioServicio(base);

@@ -1,6 +1,7 @@
 // Listado de estudiantes de la consola (C15) contra PostgreSQL real: carga sin filtro, con y sin
 // suscripción vigente, intereses del perfil, orden por fecha de registro, paginación desde la API,
-// filtro opcional por nombre o correo, cuentas eliminadas fuera y permisos (docente 403, estudiante 401).
+// filtros opcionales por suscripción, interés y cuenta verificada, cuentas eliminadas fuera y permisos
+// (docente 403, estudiante 401).
 import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { errorConFormato } from './ayudantes.js';
@@ -158,22 +159,43 @@ describe.skipIf(!urlBase)('listado de estudiantes con PostgreSQL (C15)', () => {
     expect(despues.body.meta).toEqual({ pagina: 4, porPagina: 2, total: 5 });
   });
 
-  it('filtra por parte del nombre o del correo sin distinguir mayúsculas; vacío lista a todos', async () => {
+  it('filtra por suscripción vigente, por interés (o sin intereses) y por cuenta verificada', async () => {
     const admin = await sesionAdmin();
-    await estudiante('Ana Activa', 'ana@ejemplo.cl', '2026-11-01T10:00:00Z');
-    await estudiante('Beto Pérez', 'beto@colegio.cl', '2026-11-02T10:00:00Z');
-    const buscar = (texto: string) =>
-      request(entorno.app).get(RUTA_ESTUDIANTES).query({ buscar: texto }).set(admin);
+    const ana = await estudiante('Ana', 'ana@ejemplo.cl', '2026-11-01T10:00:00Z', ['salud']);
+    const beto = await estudiante('Beto', 'beto@ejemplo.cl', '2026-11-02T10:00:00Z', [
+      'salud',
+      'educacion',
+    ]);
+    await estudiante('Carla', 'carla@ejemplo.cl', '2026-11-03T10:00:00Z');
+    const dani = await estudiante('Dani', 'dani@ejemplo.cl', '2026-11-04T10:00:00Z');
+    await suscripcion(ana);
+    await suscripcion(dani, 'en_mora');
+    await suscripcion(beto, 'cancelada');
+    await entorno.bd.query(
+      'UPDATE app.estudiante SET correo_verificado = true WHERE id = ANY($1)',
+      [[ana, dani]],
+    );
+    const filtrar = async (consulta: Record<string, string>) =>
+      correos(await request(entorno.app).get(RUTA_ESTUDIANTES).query(consulta).set(admin));
 
-    expect(correos(await buscar('PÉREZ'))).toEqual(['beto@colegio.cl']);
-    expect(correos(await buscar('colegio'))).toEqual(['beto@colegio.cl']);
-    expect(correos(await buscar('  '))).toEqual(['beto@colegio.cl', 'ana@ejemplo.cl']);
-    const ninguno = await buscar('nadie');
-    expect(ninguno.body.data).toEqual([]);
-    expect(ninguno.body.meta.total).toBe(0);
+    expect(await filtrar({ suscripcion: 'activa' })).toEqual(['dani@ejemplo.cl', 'ana@ejemplo.cl']);
+    expect(await filtrar({ suscripcion: 'sin' })).toEqual(['carla@ejemplo.cl', 'beto@ejemplo.cl']);
+    expect(await filtrar({ interes: 'salud' })).toEqual(['beto@ejemplo.cl', 'ana@ejemplo.cl']);
+    expect(await filtrar({ interes: 'educacion' })).toEqual(['beto@ejemplo.cl']);
+    expect(await filtrar({ interes: 'ninguno' })).toEqual(['dani@ejemplo.cl', 'carla@ejemplo.cl']);
+    expect(await filtrar({ verificado: 'no' })).toEqual(['carla@ejemplo.cl', 'beto@ejemplo.cl']);
+    expect(await filtrar({ suscripcion: 'activa', interes: 'salud', verificado: 'si' })).toEqual([
+      'ana@ejemplo.cl',
+    ]);
+    const vacio = await request(entorno.app)
+      .get(RUTA_ESTUDIANTES)
+      .query({ interes: 'derecho' })
+      .set(admin);
+    expect(vacio.body.data).toEqual([]);
+    expect(vacio.body.meta.total).toBe(0);
   });
 
-  it('rechaza una página o un tamaño inválidos con 400', async () => {
+  it('rechaza una página, un tamaño o un filtro inválidos con 400', async () => {
     const admin = await sesionAdmin();
     const pedir = (consulta: Record<string, string>) =>
       request(entorno.app).get(RUTA_ESTUDIANTES).query(consulta).set(admin);
@@ -181,6 +203,9 @@ describe.skipIf(!urlBase)('listado de estudiantes con PostgreSQL (C15)', () => {
     expect((await pedir({ pagina: '0' })).status).toBe(400);
     expect((await pedir({ porPagina: '101' })).status).toBe(400);
     expect((await pedir({ correo: 'ana@ejemplo.cl' })).status).toBe(400);
+    expect((await pedir({ suscripcion: 'mora' })).status).toBe(400);
+    expect((await pedir({ verificado: 'tal-vez' })).status).toBe(400);
+    expect((await pedir({ interes: 'Salud; DROP' })).status).toBe(400);
   });
 
   it('un docente recibe 403 y un token de estudiante 401', async () => {

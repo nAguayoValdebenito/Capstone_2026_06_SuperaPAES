@@ -275,7 +275,7 @@ describe.skipIf(!urlBase)('registro del estudiante con PostgreSQL', () => {
       correo: dependencias.proveedores.correo,
       administracion: servicios.administracion,
       cupoInvitaciones: servicios.cupoInvitaciones,
-      estudiantesConVigente: (ids) => servicios.suscripciones.estudiantesConVigente(ids),
+      suscripciones: servicios.suscripciones,
       segundoPlano: (tarea) => correosPendientes.push(tarea),
       generarCodigoInvitacion: () => secuencia.shift() ?? 'CCCCCC',
     });
