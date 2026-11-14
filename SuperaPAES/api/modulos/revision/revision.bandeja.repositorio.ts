@@ -123,9 +123,21 @@ export const PREGUNTA_ABIERTA = `
 const OBTENER_PENDIENTE = `${PREGUNTA_ABIERTA}
    WHERE a.id = $1 AND a.docente_id = $2 AND r.codigo = $3 AND e.codigo = 'pendiente'`;
 
-const RESERVAR_ASIGNACION = `
-  SELECT e.codigo AS estado, a.pregunta_id::text AS "preguntaId"
-  ${ASIGNACIONES}
+/**
+ * Estado y pregunta de una asignación, para reservarla con FOR UPDATE OF a. El estado se lee con una
+ * subconsulta y no con un JOIN: si otra transacción completa la asignación mientras esta espera el
+ * bloqueo, PostgreSQL vuelve a evaluar la fila ya cambiada contra la fila de estado_asignacion que leyó
+ * antes ('pendiente'); con un JOIN la asignación dejaría de calzar y desaparecería (404 en vez de 409).
+ * También la usa la clasificación de dificultad (D03, revision.clasificacion.repositorio.ts).
+ */
+export const ASIGNACION_POR_RESERVAR = `
+  SELECT (SELECT ea.codigo FROM contenido.estado_asignacion ea WHERE ea.id = a.estado_asignacion_id)
+           AS estado,
+         a.pregunta_id::text AS "preguntaId"
+    FROM contenido.asignacion_revision a
+    JOIN contenido.rol_revision r ON r.id = a.rol_revision_id`;
+
+const RESERVAR_ASIGNACION = `${ASIGNACION_POR_RESERVAR}
    WHERE a.id = $1 AND a.docente_id = $2 AND r.codigo = $3
      FOR UPDATE OF a`;
 

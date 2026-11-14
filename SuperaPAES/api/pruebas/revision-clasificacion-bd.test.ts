@@ -5,8 +5,10 @@
 // tiene solo las importadas, a ciegas y en orden; saltar da la vuelta; cada revisor recibe su propia
 // asignación; un clic guarda la revisión con la pauta cumplida y la ronda sigue RN-11 y RN-12, también
 // con una revisión completa de D01.
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Servicios } from '../app.js';
+import { crearClasificacionRepositorio } from '../modulos/revision/revision.clasificacion.repositorio.js';
 import { esquemaRevision } from '../modulos/revision/revision.validadores.js';
 import { uno } from './banco-de-prueba.js';
 import { type BaseTemporal, exigirBaseEnCi, MINUTO, urlBase } from './base-temporal.js';
@@ -146,6 +148,46 @@ describe.skipIf(!urlBase)('clasificar dificultad con PostgreSQL (HU-25, CU-19a)'
     await expect(
       servicios.revision.clasificarDificultad(id('h1'), await asignacion('h1', 'propia'), 'media'),
     ).rejects.toMatchObject({ estadoHttp: 404 });
+  });
+
+  it('si otra transacción completa la asignación mientras espera el bloqueo, la ve completada (409, no 404)', async () => {
+    const deH1 = await asignacion('h1', 'q2');
+    const cambiarEstado = (bd: pg.Client, codigo: string) =>
+      bd.query(
+        `UPDATE contenido.asignacion_revision
+            SET estado_asignacion_id = (SELECT id FROM contenido.estado_asignacion WHERE codigo = $2),
+                completado_en = CASE WHEN $2 = 'completada' THEN now() END
+          WHERE id = $1`,
+        [deH1, codigo],
+      );
+    const otra = await base.conectarOtra();
+    await otra.query('BEGIN');
+    await cambiarEstado(otra, 'completada');
+    await base.bd.query('BEGIN');
+    const reserva = crearClasificacionRepositorio(base.bd).reservarAsignacion(
+      deH1,
+      id('h1'),
+      base.bd,
+    );
+    try {
+      // La reserva espera el bloqueo de la otra transacción antes de que esta confirme.
+      await expect
+        .poll(() =>
+          uno(
+            otra,
+            `SELECT count(*)::int AS id FROM pg_stat_activity
+              WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+          ),
+        )
+        .toBe(1);
+    } finally {
+      await otra.query('COMMIT');
+      await otra.end();
+    }
+    const reservada = await reserva.finally(() => base.bd.query('ROLLBACK'));
+
+    expect(reservada).toEqual({ estado: 'completada', preguntaId: id('q2') });
+    await cambiarEstado(base.bd, 'pendiente');
   });
 
   it('un clic guarda la revisión con la pauta cumplida y completa la asignación; dos clics a la vez, uno gana', async () => {

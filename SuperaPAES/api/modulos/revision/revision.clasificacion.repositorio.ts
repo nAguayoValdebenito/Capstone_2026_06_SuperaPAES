@@ -6,6 +6,7 @@
 // bandeja (revision.bandeja.repositorio.ts), igual que en D01.
 import type { Ejecutor } from '../../db/transaccion.js';
 import {
+  ASIGNACION_POR_RESERVAR,
   ASIGNACIONES,
   type FilaRevisionAbierta,
   PREGUNTA_ABIERTA,
@@ -52,9 +53,7 @@ const CONTAR_PENDIENTES = `
     JOIN contenido.pregunta p ON p.id = a.pregunta_id
    WHERE a.docente_id = $1 AND e.codigo = 'pendiente' AND ${DE_IMPORTADA}`;
 
-const RESERVAR_ASIGNACION = `
-  SELECT e.codigo AS estado, a.pregunta_id::text AS "preguntaId"
-  ${ASIGNACIONES}
+const RESERVAR_ASIGNACION = `${ASIGNACION_POR_RESERVAR}
     JOIN contenido.pregunta p ON p.id = a.pregunta_id
    WHERE a.id = $1 AND a.docente_id = $2 AND ${DE_IMPORTADA}
      FOR UPDATE OF a`;
