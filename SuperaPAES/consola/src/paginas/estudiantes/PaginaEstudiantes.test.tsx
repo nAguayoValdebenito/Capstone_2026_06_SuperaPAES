@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 // Estudiantes C15 con interacción real: el hook useEstudiantes, los componentes y el cliente HTTP son los
 // de verdad; solo se reemplaza fetch, que responde como la API. La tabla se carga sin escribir nada,
-// incluye estudiantes con y sin suscripción, muestra los intereses, pagina y filtra de forma opcional.
+// incluye estudiantes con y sin suscripción, muestra los intereses, pagina y filtra con selectores. Las
+// áreas de carrera del filtro Interés llegan de las listas de opciones.
 import { act } from 'react';
-import { describe, expect, it } from 'vitest';
-import { conConfirmados, textoSinEstudiantes } from '../../estado/estudiantes';
+import { describe, expect, it, vi } from 'vitest';
+import { conConfirmados, SIN_FILTROS, textoSinEstudiantes } from '../../estado/estudiantes';
 import {
-  api,
-  escribirEn,
+  api as apiDelListado,
   esperar,
   pulsar,
   respuestaDeError,
@@ -48,6 +48,35 @@ const pagina = (estudiantes: EstudianteConsola[], numero = 1, total = estudiante
     cuerpo: { data: estudiantes, error: null, meta: { pagina: numero, porPagina: 20, total } },
   }) satisfies RespuestaFalsa;
 
+const LISTAS = {
+  data: {
+    areasCarrera: [
+      { codigo: 'salud', nombre: 'Salud', activa: true, pruebas: [], electivo: null },
+      { codigo: 'educacion', nombre: 'Educación', activa: true, pruebas: [], electivo: null },
+    ],
+  },
+  error: null,
+  meta: null,
+};
+
+/**
+ * fetch falso: las listas de opciones responden siempre lo mismo y las llamadas al listado (y a la
+ * confirmación) se responden en orden y quedan guardadas.
+ */
+function api(...respuestas: RespuestaFalsa[]) {
+  const llamadas = apiDelListado(...respuestas);
+  const delListado = vi.mocked(fetch);
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string, init?: RequestInit) =>
+      url.includes('/temario/listas-opciones')
+        ? Promise.resolve(new Response(JSON.stringify(LISTAS)))
+        : delListado(url, init),
+    ),
+  );
+  return llamadas;
+}
+
 const pantalla = usarPantallaDePrueba();
 
 async function montar() {
@@ -62,7 +91,20 @@ const filas = () =>
   [...pantalla.contenedor.querySelectorAll('tbody tr')].map((fila) =>
     [...fila.querySelectorAll('th, td')].map((celda) => celda.textContent),
   );
-const buscador = () => pantalla.contenedor.querySelector<HTMLInputElement>('input[type="search"]')!;
+const selector = (etiqueta: string) =>
+  [...pantalla.contenedor.querySelectorAll('label')]
+    .find((label) => label.firstChild?.textContent === etiqueta)!
+    .querySelector('select')!;
+
+/** Elige una opción como el navegador: el setter nativo de value y el evento change. */
+async function elegir(etiqueta: string, valor: string) {
+  const lista = selector(etiqueta);
+  act(() => {
+    Reflect.set(HTMLSelectElement.prototype, 'value', valor, lista);
+    lista.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await esperar();
+}
 
 describe('listado de estudiantes (C15)', () => {
   it('se carga al entrar, sin escribir nada, con suscripción e intereses de cada estudiante', async () => {
@@ -98,34 +140,38 @@ describe('listado de estudiantes (C15)', () => {
     expect(texto()).toContain('Página 2 de 2 · 21–21 de 21');
   });
 
-  it('el buscador filtra por nombre o correo desde la página 1; al vaciarlo vuelve el listado general', async () => {
+  it('filtra con selectores desde la página 1 y «Limpiar filtros» vuelve al listado general', async () => {
     const llamadas = api(
       pagina([ANA, BETO]),
-      pagina([BETO]),
-      pagina([ANA, BETO]),
+      pagina([ANA]),
+      pagina([ANA]),
       pagina([]),
       pagina([ANA, BETO]),
     );
     await montar();
+    expect([...selector('Interés').options].map((opcion) => opcion.text)).toEqual([
+      'Todos',
+      'Salud',
+      'Educación',
+      'Sin intereses registrados',
+    ]);
+    expect(pantalla.contenedor.querySelector('input')).toBeNull();
 
-    escribirEn(buscador(), '  beto ');
-    await pulsar(boton('Buscar'));
-    expect(llamadas[1]?.ruta).toBe(`${RUTA}?buscar=beto`);
+    await elegir('Suscripción', 'activa');
+    expect(llamadas[1]?.ruta).toBe(`${RUTA}?suscripcion=activa`);
     expect(filas()).toHaveLength(1);
 
-    escribirEn(buscador(), '');
-    await esperar();
-    expect(llamadas[2]?.ruta).toBe(RUTA);
-    expect(filas()).toHaveLength(2);
+    await elegir('Interés', 'salud');
+    expect(llamadas[2]?.ruta).toBe(`${RUTA}?suscripcion=activa&interes=salud`);
 
-    escribirEn(buscador(), 'nadie');
-    await pulsar(boton('Buscar'));
-    expect(texto()).toContain(textoSinEstudiantes('nadie'));
+    await elegir('Cuenta', 'no');
+    expect(llamadas[3]?.ruta).toBe(`${RUTA}?suscripcion=activa&interes=salud&verificado=no`);
+    expect(texto()).toContain('No hay estudiantes con esos filtros.');
     expect(pantalla.contenedor.querySelector('table')).toBeNull();
 
-    await pulsar(boton('Limpiar'));
+    await pulsar(boton('Limpiar filtros'));
     expect(llamadas[4]?.ruta).toBe(RUTA);
-    expect(buscador().value).toBe('');
+    expect(selector('Suscripción').value).toBe('');
     expect(filas()).toHaveLength(2);
   });
 
@@ -133,6 +179,7 @@ describe('listado de estudiantes (C15)', () => {
     api(pagina([]));
     await montar();
 
+    expect(texto()).toContain(textoSinEstudiantes(SIN_FILTROS));
     expect(texto()).toContain('Todavía no hay estudiantes registrados.');
     expect(pantalla.contenedor.querySelector('table')).toBeNull();
   });

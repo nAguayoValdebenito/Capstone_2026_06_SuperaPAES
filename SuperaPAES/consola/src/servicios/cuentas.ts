@@ -2,7 +2,11 @@
 // Cada función usa solicitarAdmin() de ../api/cliente.
 import { solicitarAdmin } from '../api/cliente';
 import type { Credenciales, SesionIniciada } from '../tipos';
-import type { EstudianteConsola, ListadoEstudiantes } from '../tipos/estudiantes';
+import type {
+  EstudianteConsola,
+  FiltrosEstudiantes,
+  ListadoEstudiantes,
+} from '../tipos/estudiantes';
 import { consultaDeListado, paginacionDe } from './paginacion';
 
 export async function ingresar(credenciales: Credenciales): Promise<SesionIniciada> {
@@ -30,14 +34,14 @@ export async function cerrar(tokenRenovacion: string): Promise<void> {
   });
 }
 
-/** C15: estudiantes registrados, del más reciente al más antiguo; `buscar` filtra por nombre o correo. */
+/** C15: estudiantes registrados, del más reciente al más antiguo, con los filtros que tengan valor. */
 export async function listarEstudiantes(
-  buscar: string,
+  filtros: FiltrosEstudiantes,
   pagina: number,
   senal?: AbortSignal,
 ): Promise<ListadoEstudiantes> {
   const { data, meta } = await solicitarAdmin<EstudianteConsola[]>(
-    `/cuentas/estudiantes${consultaDeListado({ buscar }, pagina)}`,
+    `/cuentas/estudiantes${consultaDeListado(filtros, pagina)}`,
     senal ? { signal: senal } : {},
   );
   return { estudiantes: data, paginacion: paginacionDe(meta, pagina, data.length) };

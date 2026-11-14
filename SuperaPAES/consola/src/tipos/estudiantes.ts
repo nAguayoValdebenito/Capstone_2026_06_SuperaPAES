@@ -16,3 +16,10 @@ export interface ListadoEstudiantes {
   estudiantes: EstudianteConsola[];
   paginacion: Paginacion;
 }
+
+/** Filtros del listado; un valor vacío es «Todos». `interes` es el código del área o «ninguno». */
+export interface FiltrosEstudiantes {
+  suscripcion: '' | 'activa' | 'sin';
+  interes: string;
+  verificado: '' | 'si' | 'no';
+}

@@ -1,8 +1,4 @@
-/* Estudiantes (C15): filtro opcional arriba y la tabla paginada. Solo tokens del tema (estilos/global.css). */
-.estudiantes__buscar {
-  grid-column: span 2;
-}
-
+/* Estudiantes (C15): filtros opcionales arriba y la tabla paginada. Solo tokens del tema (estilos/global.css). */
 .estudiantes__tabla {
   min-width: 48rem;
   margin-top: 1.5rem;
