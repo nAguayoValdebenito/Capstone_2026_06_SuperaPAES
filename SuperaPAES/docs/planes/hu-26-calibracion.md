@@ -1,6 +1,6 @@
 # Plan HU-26 y HU-53 · Calibración (D04)
 
-Estado: **plan sin aprobar, detenido en la etapa 1.** HU-53 (estadísticas) se puede construir con el modelo actual. HU-26 (confirmación del docente) **no tiene dónde guardarse** sin un cambio de modelo (sección 5): se necesita la decisión de Nicolas antes de seguir.
+Estado: el 13/11/2026 Nicolas respondió «sigue» al plan. Se tomaron D1 (tarea horaria) y D2 (criterio de 3.2), que no tocan el esquema. **Etapa 2 (HU-53.1) construida el 13/11/2026**: `evaluaciones.estadisticas.repositorio.ts` recalcula `app.estadistica_pregunta` y la tarea periódica lo llama al final e informa `estadisticasActualizadas`. Hay pruebas sin base y con PostgreSQL. Ese mismo día Nicolas eligió «la a» para D3 (tabla nueva) y se siguió con las recomendadas de D4 a D7. **Etapa 0 construida**: migración `008_calibracion.sql` (tabla `contenido.calibracion_pregunta`, que no se modifica ni se borra, y las acciones `confirmar_calibracion` y `descartar_calibracion`). probar:bd suma el grupo 25 (274 de 274) y la base queda con 87 tablas y 162 claves foráneas. **Etapa 3 (HU-26.1) construida**: `GET /admin/revision/calibracion` y `POST /admin/revision/calibracion/:id`, solo para el docente. `evaluaciones` entrega las preguntas fuera de rango con `estadisticasFueraDeRango(30)`; `revision` filtra por área y por lo que el docente ya decidió. Etapas 4 a 6 pendientes.
 Rama: `feat/hu-26-calibracion` (desde `origin/main` en `258001a`). Fecha: 13/11/2026.
 
 ## 1. Verificación de alcance
