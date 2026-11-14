@@ -1,4 +1,4 @@
--- Supera PAES. Escenarios de las historias de usuario ejecutados contra el modelo v12 y las migraciones del repositorio (con la tabla de imágenes desde la 007).
+-- Supera PAES. Escenarios de las historias de usuario ejecutados contra el modelo v12 y las migraciones del repositorio (con la tabla de imágenes desde la 007 y la de calibración desde la 008).
 -- Requiere, en este orden: Supera_PAES_Modelo_BD_v12.sql, la semilla del temario PAES 2027 (versión 1.1),
 -- Supera_PAES_Semilla_Evaluaciones_v11.sql y Supera_PAES_Semilla_Documentos_Legales_v11.sql.
 -- Cada caso dice qué se espera y qué pasó. Se ejecuta en una transacción que se deshace al final.
@@ -838,6 +838,30 @@ BEGIN
     format('DELETE FROM contenido.importacion WHERE id = %s', imp));
   PERFORM pg_temp.debe_ser('Quedan las tres imágenes válidas, una por cada origen',
     'SELECT COUNT(*) FILTER (WHERE importacion_id IS NULL AND lote_id IS NULL) || ''/'' || COUNT(importacion_id) || ''/'' || COUNT(lote_id) FROM contenido.imagen', '1/1/1');
+END $$;
+
+-- ---------- 25. Calibración de la dificultad (migración 008) ----------
+SELECT pg_temp.grupo('25. Calibración de la dificultad');
+CREATE FUNCTION pg_temp.calibracion_sql(pid BIGINT, docente TEXT, corresponde BOOLEAN, intentos INT DEFAULT 30, aciertos INT DEFAULT 5) RETURNS TEXT LANGUAGE sql AS $$
+  SELECT format('INSERT INTO contenido.calibracion_pregunta (pregunta_id, version_pregunta, dificultad_id, docente_id, dificultad_corresponde, intentos, aciertos, creado_en) SELECT id, version, dificultad_asignada_id, %s, %L, %s, %s, now() FROM contenido.pregunta WHERE id = %s',
+    pg_temp.usr(docente), corresponde, intentos, aciertos, pid) $$;
+DO $$ DECLARE pid BIGINT := pg_temp.pq('Números', 'facil');
+BEGIN
+  PERFORM pg_temp.debe_ser('Las acciones confirmar_calibracion y descartar_calibracion vienen en los datos iniciales',
+    'SELECT COUNT(*)::text FROM contenido.accion_auditoria WHERE codigo IN (''confirmar_calibracion'', ''descartar_calibracion'')', '2');
+  PERFORM pg_temp.debe_pasar('Un docente confirma que la dificultad no corresponde', pg_temp.calibracion_sql(pid, 'Docente 1', false));
+  PERFORM pg_temp.debe_fallar('El mismo docente no decide dos veces la misma versión y dificultad', pg_temp.calibracion_sql(pid, 'Docente 1', true));
+  PERFORM pg_temp.debe_pasar('Otro docente del área puede descartarla', pg_temp.calibracion_sql(pid, 'Docente 2', true));
+  PERFORM pg_temp.debe_fallar('Los aciertos no superan los intentos', pg_temp.calibracion_sql(pg_temp.pq('Números', 'facil', 2), 'Docente 1', false, 30, 31));
+  PERFORM pg_temp.debe_fallar('Una decisión necesita intentos', pg_temp.calibracion_sql(pg_temp.pq('Números', 'facil', 2), 'Docente 1', false, 0, 0));
+  PERFORM pg_temp.debe_fallar('La versión debe existir en la pregunta',
+    format('INSERT INTO contenido.calibracion_pregunta (pregunta_id, version_pregunta, dificultad_id, docente_id, dificultad_corresponde, intentos, aciertos, creado_en) VALUES (%s, 99, %s, %s, false, 30, 5, now())',
+           pid, pg_temp.id('dificultad', 'facil'), pg_temp.usr('Docente 1')));
+  PERFORM pg_temp.debe_fallar('Una decisión no se modifica',
+    format('UPDATE contenido.calibracion_pregunta SET dificultad_corresponde = true WHERE pregunta_id = %s AND docente_id = %s', pid, pg_temp.usr('Docente 1')));
+  PERFORM pg_temp.debe_fallar('Una decisión no se borra', format('DELETE FROM contenido.calibracion_pregunta WHERE pregunta_id = %s', pid));
+  PERFORM pg_temp.debe_ser('Quedan una confirmación y un descarte de la pregunta',
+    format('SELECT COUNT(*) FILTER (WHERE NOT dificultad_corresponde) || ''/'' || COUNT(*) FILTER (WHERE dificultad_corresponde) FROM contenido.calibracion_pregunta WHERE pregunta_id = %s', pid), '1/1');
 END $$;
 
 -- ---------- Resultado ----------

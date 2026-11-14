@@ -29,7 +29,8 @@ describe.skipIf(!urlBase)('migración de las imágenes con PostgreSQL', () => {
     await base.cerrar();
   }, MINUTO);
 
-  it('la base queda con 86 tablas, 62 en contenido, y 159 claves foráneas', async () => {
+  // Con la migración 008 (calibración, HU-26) suma una tabla en contenido y tres claves foráneas.
+  it('la base queda con 87 tablas, 63 en contenido, y 162 claves foráneas', async () => {
     const { rows } = await base.bd.query<{ esquema: string; tablas: string }>(
       `SELECT table_schema AS esquema, COUNT(*)::text AS tablas FROM information_schema.tables
         WHERE table_schema IN ('contenido', 'app') AND table_type = 'BASE TABLE' GROUP BY table_schema`,
@@ -40,10 +41,10 @@ describe.skipIf(!urlBase)('migración de las imágenes con PostgreSQL', () => {
     );
 
     expect(Object.fromEntries(rows.map((fila) => [fila.esquema, fila.tablas]))).toEqual({
-      contenido: '62',
+      contenido: '63',
       app: '24',
     });
-    expect(claves.rows[0]?.total).toBe('159');
+    expect(claves.rows[0]?.total).toBe('162');
   });
 
   it('trae la acción de auditoría subir_imagen', async () => {
