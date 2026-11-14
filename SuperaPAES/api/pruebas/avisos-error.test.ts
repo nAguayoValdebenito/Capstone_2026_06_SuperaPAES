@@ -55,6 +55,7 @@ function escenario() {
   };
   const avisos = {
     listarAvisos: vi.fn(() => Promise.resolve({ filas: [GRUPO], total: 1 })),
+    contarPendientes: vi.fn(() => Promise.resolve(7)),
     motivosDeAviso: vi.fn(() => Promise.resolve([RESPUESTA, { codigo: 'otro', nombre: 'Otro' }])),
     reservarAviso: vi.fn((id: string) => Promise.resolve(estados[id] ?? null)),
     cerrarAviso: vi.fn((id: string, [estado]: [string, string]) =>

@@ -77,6 +77,7 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data[].eje.id',
     'data[].contenido.id',
   ],
+  'GET /api/v1/admin/preguntas/busqueda': ['data[].id'],
   'GET /api/v1/admin/preguntas/filtros': [
     'data.pruebas[].id',
     'data.pruebas[].ejes[].id',

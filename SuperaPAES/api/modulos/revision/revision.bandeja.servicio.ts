@@ -24,6 +24,8 @@ export interface RevisionPendiente {
   ronda: number;
   prueba: { codigo: string; nombre: string };
   contenido: string;
+  /** Fecha y hora en que se asignó la revisión (ISO 8601). */
+  asignadoEn: string;
   venceEn: string;
 }
 
@@ -44,6 +46,8 @@ export interface PreguntaARevisar extends RevisionPendiente {
   pauta: Criterio[];
   dificultades: OpcionRevision[];
   decisiones: Decision[];
+  /** Cuántos criterios pueden estar en «No» para poder aprobar (max_no_para_aprobar); con más, solo observar o rechazar. */
+  maximoNoParaAprobar: number;
 }
 
 /** La revisión entregada. */
@@ -66,6 +70,8 @@ export interface DependenciasBandeja {
   unidadDeTrabajo: UnidadDeTrabajo;
   reloj: Reloj;
   repositorio: BandejaRepositorio;
+  /** El parámetro max_no_para_aprobar de la configuración. */
+  maximoNoParaAprobar: () => Promise<number>;
   /** Después de guardar la revisión, en su transacción: resuelve la ronda si era la última (HU-23). */
   alEntregar: (docenteId: string, preguntaId: string, tx: Ejecutor) => Promise<void>;
 }
@@ -100,9 +106,13 @@ export function aPreguntaAbierta({
   copia,
   correctaId,
   ...fila
-}: FilaRevisionAbierta): Omit<PreguntaARevisar, 'pauta' | 'dificultades' | 'decisiones'> {
+}: FilaRevisionAbierta): Omit<
+  PreguntaARevisar,
+  'pauta' | 'dificultades' | 'decisiones' | 'maximoNoParaAprobar'
+> {
   return {
     ...fila,
+    asignadoEn: fila.asignadoEn.toISOString(),
     venceEn: fila.venceEn.toISOString(),
     enunciado: copia.enunciado,
     explicacion: copia.explicacion,
@@ -120,7 +130,11 @@ export async function listarPendientes(
   docenteId: string,
 ): Promise<RevisionPendiente[]> {
   const filas = await repositorio.listarPendientes(docenteId);
-  return filas.map((fila) => ({ ...fila, venceEn: fila.venceEn.toISOString() }));
+  return filas.map((fila) => ({
+    ...fila,
+    asignadoEn: fila.asignadoEn.toISOString(),
+    venceEn: fila.venceEn.toISOString(),
+  }));
 }
 
 /** La revisión que entrega el docente, los mensajes de 404 y 409, y lo que sigue al guardarla. */
@@ -195,6 +209,22 @@ export function problemasDeLaDecision(
   return problemas;
 }
 
+/** Con más criterios en «No» que el máximo configurado no se puede aprobar: solo observar o rechazar. */
+export function problemasDeAprobarConNo(
+  datos: Pick<DatosRevision, 'decision' | 'criterios'>,
+  maximo: number,
+): ProblemaDeCampo[] {
+  const noes = datos.criterios.filter((criterio) => !criterio.cumple).length;
+  if (datos.decision !== 'aprobar' || noes <= maximo) return [];
+  const criterios = noes === 1 ? 'criterio' : 'criterios';
+  return [
+    problema(
+      'decision',
+      `No puedes aprobar la pregunta: tiene ${String(noes)} ${criterios} en «No» y se aprueba con ${String(maximo)} como máximo. Obsérvala o recházala.`,
+    ),
+  ];
+}
+
 async function entregarRevision(
   dependencias: DependenciasBandeja,
   [docenteId, id]: [string, string],
@@ -204,6 +234,7 @@ async function entregarRevision(
   const problemas = [
     ...problemasDeLaPauta(datos, opciones.pauta),
     ...problemasDeLaDecision(datos, opciones),
+    ...problemasDeAprobarConNo(datos, await dependencias.maximoNoParaAprobar()),
   ];
   if (problemas.length > 0) throw new ErrorValidacion(problemas, problemas[0]?.mensaje);
   const { decision, dificultad, comentario, criterios } = datos;
@@ -230,7 +261,11 @@ export function crearBandejaDocente(dependencias: DependenciasBandeja): BandejaD
     async obtenerMiRevision(docenteId, id) {
       const fila = await repositorio.obtenerPendiente(id, docenteId);
       if (!fila) throw new ErrorNoEncontrado(NO_EXISTE);
-      return { ...aPreguntaAbierta(fila), ...(await opcionesDeLaPauta(repositorio)) };
+      return {
+        ...aPreguntaAbierta(fila),
+        ...(await opcionesDeLaPauta(repositorio)),
+        maximoNoParaAprobar: await dependencias.maximoNoParaAprobar(),
+      };
     },
     entregarRevision: (docenteId, id, datos) =>
       entregarRevision(dependencias, [docenteId, id], datos),

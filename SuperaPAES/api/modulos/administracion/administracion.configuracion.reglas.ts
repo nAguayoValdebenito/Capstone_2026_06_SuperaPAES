@@ -34,6 +34,11 @@ const EDITABLES: Record<string, Omit<ReglaConfiguracion, 'editable' | 'tipo'>> =
   },
   revisores_requeridos: { nombre: 'Revisores por pregunta', unidad: 'docentes', regla: 'RN-10' },
   dias_plazo_revision: { nombre: 'Plazo de revisión docente', unidad: 'días', regla: 'RF-G17' },
+  max_no_para_aprobar: {
+    nombre: 'Criterios «No» que permiten aprobar',
+    unidad: 'criterios',
+    regla: 'RN-11, RF-G07',
+  },
   repaso_sin_plan: {
     nombre: 'Repaso sin plan Todas las pruebas',
     unidad: 'preguntas',
@@ -120,6 +125,9 @@ function validarTipo(regla: ReglaConfiguracion, valor: unknown): asserts valor i
 function validarLimite(clave: string, regla: ReglaConfiguracion, valor: number): void {
   if (clave === 'umbral_eje_debil') {
     if (valor < 0 || valor > 100) valorInvalido('El porcentaje debe estar entre 0 y 100.');
+  } else if (clave === 'max_no_para_aprobar') {
+    // 0 es válido: con cualquier «No» la pregunta no se puede aprobar.
+    if (valor < 0) valorInvalido('El valor no puede ser negativo.');
   } else if (valor <= 0) valorInvalido('El valor debe ser mayor que cero.');
   if (regla.tipo === 'decimal' && !/^\d+(\.\d{1,2})?$/.test(String(valor))) {
     valorInvalido('Usa como máximo dos decimales.');

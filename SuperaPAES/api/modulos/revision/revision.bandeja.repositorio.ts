@@ -15,6 +15,8 @@ export interface FilaBandeja {
   ronda: number;
   prueba: { codigo: string; nombre: string };
   contenido: string;
+  /** Cuándo se asignó la revisión al docente (para el folio del acta). */
+  asignadoEn: Date;
   venceEn: Date;
 }
 
@@ -98,7 +100,7 @@ const DEL_DOCENTE = `${ASIGNACIONES}
 const LISTAR_PENDIENTES = `
   SELECT a.id::text AS id, a.pregunta_id::text AS "preguntaId", a.ronda,
          json_build_object('codigo', pr.codigo, 'nombre', pr.nombre) AS prueba,
-         c.nombre AS contenido, a.vence_en AS "venceEn"
+         c.nombre AS contenido, a.asignado_en AS "asignadoEn", a.vence_en AS "venceEn"
   ${DEL_DOCENTE}
    WHERE a.docente_id = $1 AND r.codigo = $2 AND e.codigo = 'pendiente'
    ORDER BY a.vence_en, a.id`;
@@ -108,7 +110,8 @@ const LISTAR_PENDIENTES = `
  * También la usa la clasificación de dificultad (D03, revision.clasificacion.repositorio.ts).
  */
 export const PREGUNTA_ABIERTA = `
-  SELECT a.id::text AS id, a.pregunta_id::text AS "preguntaId", a.ronda, a.vence_en AS "venceEn",
+  SELECT a.id::text AS id, a.pregunta_id::text AS "preguntaId", a.ronda,
+         a.asignado_en AS "asignadoEn", a.vence_en AS "venceEn",
          json_build_object('codigo', pr.codigo, 'nombre', pr.nombre) AS prueba,
          ej.nombre AS eje, c.nombre AS contenido, h.nombre AS habilidad,
          v.copia, v.alternativa_correcta_id::text AS "correctaId",

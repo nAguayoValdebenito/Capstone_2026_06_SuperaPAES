@@ -128,6 +128,8 @@ describe('listas de opciones de C09 / HU-64.1 / RF-C12', () => {
       unidadDeTrabajo: crearDependenciasDePrueba().unidadDeTrabajo,
       repositorioListas: {
         dificultades: vi.fn().mockResolvedValue(dificultades),
+        reservarDificultades: vi.fn().mockResolvedValue(dificultades),
+        actualizarMezcla: vi.fn().mockResolvedValue(undefined),
         areasCarrera: vi.fn().mockResolvedValue(areasCarrera),
         tiposEvaluacion: vi.fn().mockResolvedValue(tiposEvaluacion),
         opciones: vi
@@ -209,7 +211,7 @@ describe('GET /admin/temario/listas-opciones', () => {
     expect(e.consulta).not.toHaveBeenCalled();
   });
 
-  it('no existe una ruta para editar las listas (la edición de HU-64 sigue pendiente)', async () => {
+  it('no existe una ruta para editar las listas completas (solo la mezcla de dificultad)', async () => {
     const e = app();
     const respuesta = await request(e.app)
       .put(RUTA)

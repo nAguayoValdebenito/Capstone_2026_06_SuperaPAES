@@ -48,6 +48,8 @@ export interface AvisoReservado {
 export interface AvisosRepositorio {
   listarAvisos(consulta: ConsultaAvisos): Promise<{ filas: FilaGrupoAvisos[]; total: number }>;
   motivosDeAviso(): Promise<Opcion[]>;
+  /** Cuántos avisos siguen pendientes (no finales), de todo el banco. */
+  contarPendientes(): Promise<number>;
   /** El aviso reservado (FOR UPDATE); null si no existe. */
   reservarAviso(id: string, tx: Ejecutor): Promise<AvisoReservado | null>;
   /** Cierra el aviso con el estado (por su código), quién lo cerró y la fecha; devuelve el aviso. */
@@ -106,6 +108,12 @@ const LISTAR = `
     JOIN contenido.estado_pregunta ep ON ep.id = p.estado_pregunta_id
    ORDER BY g.ultimo DESC, p.id DESC`;
 
+const PENDIENTES = `
+  SELECT count(*)::int AS pendientes
+    FROM app.reporte_pregunta r
+    JOIN contenido.estado_reporte e ON e.id = r.estado_reporte_id
+   WHERE NOT e.es_final`;
+
 const MOTIVOS = 'SELECT codigo, nombre FROM contenido.motivo_reporte ORDER BY id';
 
 const RESERVAR = `
@@ -151,6 +159,10 @@ export function crearAvisosRepositorio(bd: Ejecutor): AvisosRepositorio {
       ]);
       const total = rows[0]?.total ?? 0;
       return { filas: rows.map(({ total: _total, ...fila }) => fila), total };
+    },
+
+    async contarPendientes() {
+      return (await bd.query<{ pendientes: number }>(PENDIENTES)).rows[0]?.pendientes ?? 0;
     },
 
     async motivosDeAviso() {

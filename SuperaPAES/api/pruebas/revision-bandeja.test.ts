@@ -48,7 +48,13 @@ describe('bandeja del docente revisor (HU-22 esc. 1)', () => {
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body.data).toEqual([
-      { ...PENDIENTE, id: 900, preguntaId: 7, venceEn: '2026-11-05T12:00:00.000Z' },
+      {
+        ...PENDIENTE,
+        id: 900,
+        preguntaId: 7,
+        asignadoEn: '2026-11-03T12:00:00.000Z',
+        venceEn: '2026-11-05T12:00:00.000Z',
+      },
     ]);
     expect(repositorio.listarPendientes).toHaveBeenCalledWith('21');
   });

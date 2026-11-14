@@ -9,6 +9,12 @@ import type { PruebaTemario, TemarioServicio } from '../temario/index.js';
 import type { AvisosRepositorio } from './preguntas.avisos.repositorio.js';
 import type { AnulacionPreguntas } from './preguntas.anulacion.servicio.js';
 import { crearAvisosDeError, type AvisosDeError } from './preguntas.avisos.servicio.js';
+import {
+  crearBusquedaPreguntas,
+  crearBusquedaRepositorio,
+  type BusquedaPreguntas,
+  type BusquedaRepositorio,
+} from './preguntas.busqueda.js';
 import type { FiltrosDelBanco, PaginaDelBanco, PreguntaDelBanco } from './preguntas.banco.tipos.js';
 import * as imagenes from './preguntas.imagenes.servicio.js';
 import {
@@ -70,6 +76,8 @@ export interface DependenciasPreguntasServicio extends Pick<
   repositorioPublicacion?: PublicacionRepositorio;
   /** Solo para pruebas: reemplaza al de crearAvisosRepositorio(bd). */
   repositorioAvisos?: AvisosRepositorio;
+  /** Solo para pruebas: reemplaza al de crearBusquedaRepositorio(bd). */
+  repositorioBusqueda?: BusquedaRepositorio;
 }
 
 /** Lo que la consola hace con los textos de lectura (HU-12.2); lo demás es para crear preguntas. */
@@ -83,6 +91,7 @@ export interface PreguntasServicio
     LecturasParaGenerar,
     PublicacionPreguntas,
     AvisosDeError,
+    BusquedaPreguntas,
     AnulacionPreguntas,
     imagenes.ImagenesDePreguntas {
   /**
@@ -304,6 +313,9 @@ export function crearPreguntasServicio(
     ...importacion,
     ...publicacion,
     ...crearAvisosDeError(dependencias),
+    ...crearBusquedaPreguntas(
+      dependencias.repositorioBusqueda ?? crearBusquedaRepositorio(dependencias.bd),
+    ),
     ...imagenes.crearImagenesDePreguntas(dependencias),
     enunciadosDelContenido: (contenidoId, tx) => generacion.enunciadosDelContenido(contenidoId, tx),
     ejemplosAprobados: (contenidoId, limite) => generacion.ejemplosAprobados(contenidoId, limite),
