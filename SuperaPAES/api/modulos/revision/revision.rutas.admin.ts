@@ -1,22 +1,44 @@
 // Rutas de /api/v1/admin/revision (consola, JWT de la consola): asignaciones a docentes, revisiones
 // con la pauta, desempate y clasificación de dificultad.
-// Cada ruta declara su rol (DAS 4.3.3): las del docente revisor (Mis revisiones y Desempates) solo
+// Cada ruta declara su rol (DAS 4.3.3): las del docente revisor (Mis revisiones, Desempates y
+// Clasificar dificultad) solo
 // aceptan al docente y las de seguimiento (Revisiones, C06) solo al administrador. El módulo no
-// aplica un rol común. Calibración y Clasificar dificultad se agregan con HU-25 y HU-26.
+// aplica un rol común. Clasificar dificultad (D03) es de HU-25; Calibración se agrega con HU-26.
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
 // crearRevisionControlador(servicio).
 import { Router } from 'express';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
-import { crearRevisionControlador } from './revision.controlador.js';
+import { crearRevisionControlador, type RevisionControlador } from './revision.controlador.js';
 import type { RevisionServicio } from './revision.servicio.js';
 import {
+  esquemaClasificacion,
+  esquemaConsultaClasificacion,
   esquemaConsultaSeguimiento,
   esquemaDesempate,
   esquemaIdPregunta,
   esquemaIdRevision,
   esquemaRevision,
 } from './revision.validadores.js';
+
+/**
+ * Docente revisor: Clasificar dificultad (D03, HU-25, CU-19a): la siguiente importada que tiene asignada
+ * y su clasificación con un clic, que entrega su revisión de la ronda.
+ */
+function agregarRutasClasificacion(router: Router, controlador: RevisionControlador): void {
+  router.get(
+    '/clasificar/siguiente',
+    exigirRol('docente'),
+    validar({ consulta: esquemaConsultaClasificacion }),
+    controlador.siguienteAClasificar,
+  );
+  router.post(
+    '/clasificar/:id',
+    exigirRol('docente'),
+    validar({ parametros: esquemaIdRevision, cuerpo: esquemaClasificacion }),
+    controlador.clasificarDificultad,
+  );
+}
 
 export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
   const router = Router();
@@ -51,6 +73,7 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     validar({ parametros: esquemaIdRevision, cuerpo: esquemaDesempate }),
     controlador.entregarDesempate,
   );
+  agregarRutasClasificacion(router, controlador);
   // Administrador: seguimiento de las revisiones (C06).
   router.get(
     '/seguimiento',

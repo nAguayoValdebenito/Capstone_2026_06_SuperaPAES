@@ -31,7 +31,8 @@ const MENU_ADMIN = [
   'Estudiantes',
   'Suscripciones',
 ];
-const MENU_DOCENTE = ['Mis revisiones', 'Desempates', 'Clasificar dificultad', 'Calibración'];
+// Clasificar dificultad (D03) no está en el menú, pero su ruta sigue abriéndose por URL.
+const MENU_DOCENTE = ['Mis revisiones', 'Desempates', 'Calibración'];
 
 function renderizar(ruta: string, sesion: UsuarioInterno | null) {
   return renderToString(
@@ -60,7 +61,7 @@ describe('consola (prueba de humo)', () => {
     const html = renderizar(seccionesDelRol(rol)[0]?.ruta ?? '/', sesiones[rol]);
     for (const seccion of SECCIONES) {
       const enlace = `href="${seccion.ruta}"`;
-      if (seccion.roles.includes(rol)) expect(html).toContain(enlace);
+      if (seccion.roles.includes(rol) && seccion.enMenu !== false) expect(html).toContain(enlace);
       else expect(html).not.toContain(enlace);
     }
   });

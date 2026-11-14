@@ -61,3 +61,16 @@ export type DatosRevision = z.output<typeof esquemaRevision>;
 export const esquemaDesempate = esquemaRevision.omit({ criterios: true });
 
 export type DatosDesempate = z.output<typeof esquemaDesempate>;
+
+/** HU-25 (D03): saltar pide la siguiente después de esa asignación. */
+export const esquemaConsultaClasificacion = z.strictObject({ despuesDe: idDeRuta.optional() });
+
+export type ConsultaClasificacionHttp = z.output<typeof esquemaConsultaClasificacion>;
+
+/**
+ * HU-25 y CU-19a (D03): solo la dificultad. La decisión (aprobar) y la pauta (cumplida) las pone el
+ * servicio; que la dificultad exista lo revisa el servicio.
+ */
+export const esquemaClasificacion = esquemaDesempate.pick({ dificultad: true });
+
+export type DatosClasificacion = z.output<typeof esquemaClasificacion>;

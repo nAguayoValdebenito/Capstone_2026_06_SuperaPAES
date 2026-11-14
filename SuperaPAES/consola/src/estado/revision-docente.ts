@@ -14,6 +14,15 @@ const MIS_REVISIONES: ApiDeBandeja<PreguntaARevisar> = {
   aviso: (pregunta) => `Revisión de la pregunta ${String(pregunta.preguntaId)} entregada.`,
 };
 
-export const useRevisionDocente = () => useBandejaDocente(MIS_REVISIONES);
+/** `asignacion` abre esa revisión al entrar (desde Clasificar dificultad, D03). */
+export const useRevisionDocente = (asignacion: number | null = null) =>
+  useBandejaDocente(MIS_REVISIONES, asignacion);
+
+/** La asignación de `?asignacion=` si es un id válido; si no, null (abre la primera). */
+export function asignacionDeLaConsulta(valor: string | null): number | null {
+  if (!valor || !/^[1-9]\d{0,15}$/.test(valor)) return null;
+  const id = Number(valor);
+  return Number.isSafeInteger(id) ? id : null;
+}
 
 export type RevisionDocente = EstadoBandejaDocente<PreguntaARevisar>;

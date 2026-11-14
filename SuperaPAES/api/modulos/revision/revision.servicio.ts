@@ -6,8 +6,10 @@
 // si no hay suficientes docentes, nada cambia y la pregunta sigue en su etapa. La bandeja del docente y
 // la entrega de su revisión con la pauta (HU-22) están en revision.bandeja.servicio.ts; al entregar la
 // última de la ronda se combinan las revisiones (HU-23, revision.resolucion.servicio.ts), y los
-// desempates del tercer docente (D02, CU-20) están en revision.desempate.servicio.ts. El seguimiento del
-// administrador (C06) está en revision.seguimiento.servicio.ts.
+// desempates del tercer docente (D02, CU-20) están en revision.desempate.servicio.ts. La clasificación
+// de dificultad de las importadas (D03, HU-25, CU-19a) entrega la misma revisión con un clic
+// (revision.clasificacion.servicio.ts). El seguimiento del administrador (C06) está en
+// revision.seguimiento.servicio.ts.
 import { ErrorConflicto } from '../../comun/errores.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
@@ -18,6 +20,14 @@ import {
   crearBandejaRepositorio,
 } from './revision.bandeja.repositorio.js';
 import { type BandejaDocente, crearBandejaDocente } from './revision.bandeja.servicio.js';
+import {
+  type ClasificacionRepositorio,
+  crearClasificacionRepositorio,
+} from './revision.clasificacion.repositorio.js';
+import {
+  type ClasificacionDocente,
+  crearClasificacionDocente,
+} from './revision.clasificacion.servicio.js';
 import {
   crearDesempateRepositorio,
   type DesempateRepositorio,
@@ -54,6 +64,8 @@ export interface DependenciasRevisionServicio {
   repositorioDesempates?: BandejaRepositorio;
   /** Solo para pruebas: reemplaza al de crearDesempateRepositorio(bd). */
   repositorioRevisiones?: DesempateRepositorio;
+  /** Solo para pruebas: reemplaza al de crearClasificacionRepositorio(bd). */
+  repositorioClasificacion?: ClasificacionRepositorio;
 }
 
 /** Un revisor asignado, con su fecha límite (RF-G17). */
@@ -71,8 +83,12 @@ export interface EnvioARevision {
   revisores: RevisorAsignado[];
 }
 
-/** HU-22 y HU-23: la bandeja del docente revisor (D01) y la del tercer docente (D02). */
-export interface RevisionServicio extends BandejaDocente, DesempatesDocente, Seguimiento {
+/**
+ * HU-22, HU-23 y HU-25: la bandeja del docente revisor (D01), la del tercer docente (D02) y la
+ * clasificación de dificultad de las importadas (D03).
+ */
+export interface RevisionServicio
+  extends BandejaDocente, DesempatesDocente, ClasificacionDocente, Seguimiento {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
 }
@@ -182,13 +198,23 @@ export function crearRevisionServicio(
     repositorio: dependencias.repositorioResolucion ?? crearResolucionRepositorio(),
     revisores: repositorio,
   };
+  const repositorioBandeja =
+    dependencias.repositorioBandeja ?? crearBandejaRepositorio(dependencias.bd, 'revisor');
+  const alEntregar = (docenteId: string, preguntaId: string, tx: Ejecutor) =>
+    resolverRonda(resolucion, [docenteId, preguntaId], tx);
   const bandeja = crearBandejaDocente({
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
     reloj: dependencias.reloj,
+    repositorio: repositorioBandeja,
+    alEntregar,
+  });
+  const clasificacion = crearClasificacionDocente({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    bandeja: repositorioBandeja,
     repositorio:
-      dependencias.repositorioBandeja ?? crearBandejaRepositorio(dependencias.bd, 'revisor'),
-    alEntregar: (docenteId, preguntaId, tx) =>
-      resolverRonda(resolucion, [docenteId, preguntaId], tx),
+      dependencias.repositorioClasificacion ?? crearClasificacionRepositorio(dependencias.bd),
+    alEntregar,
   });
   const desempates = crearDesempatesDocente({
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
@@ -205,6 +231,7 @@ export function crearRevisionServicio(
   });
   return {
     ...bandeja,
+    ...clasificacion,
     ...desempates,
     ...seguimiento,
     enviarARevision: (administradorId, preguntaId) =>

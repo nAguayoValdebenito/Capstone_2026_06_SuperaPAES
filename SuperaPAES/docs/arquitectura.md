@@ -258,6 +258,21 @@ vez y lo envía a ambas tiendas. La restricción existente `UNIQUE (canal_venta_
 evita duplicarlo en otra oferta de la misma tienda, incluso ante escrituras concurrentes. Si se
 rechaza, se revierte también el plan y no se registra una auditoría de edición exitosa.
 
+HU-25.1 agrega al módulo `revision`, con rol `docente`, la clasificación de dificultad del banco
+semilla (D03, CU-19a, RF-G12). `GET /api/v1/admin/revision/clasificar/siguiente` entrega
+`{ pregunta, quedan }`: la siguiente asignación pendiente del docente como revisor cuya pregunta es
+importada (`importacion_id`), la fecha límite más próxima primero, con la pregunta como en D01 y las
+dificultades, sin la pauta, sin la dificultad sugerida ni la revisión del otro docente (RN-12).
+Con `?despuesDe=<asignación>` sigue después de esa asignación y al final vuelve a la primera (saltar).
+`POST /api/v1/admin/revision/clasificar/:id` con `{ dificultad }` entrega la revisión de la ronda con
+esa dificultad, la decisión `aprobar` y todos los puntos de la pauta cumplidos, y devuelve
+`{ guardada, siguiente }`. Usa la misma entrega que D01: reserva la asignación (`FOR UPDATE`), guarda
+la revisión y, si es la última de la ronda, combina las revisiones en la misma transacción (RN-11).
+Las asignaciones vienen del envío a revisión (CU-18 7.a, RN-10): dos docentes nunca reciben una
+pregunta que no les toca, y los dos revisores de una pregunta la clasifican cada uno a ciegas. Una
+asignación ajena o de una pregunta no importada responde 404; una ya entregada, 409. Como en D01,
+la entrega no lleva auditoría propia: queda en `contenido.revision` y en el historial de estados.
+
 | Prefijo                                      | Quién              | Autenticación                                                  |
 | -------------------------------------------- | ------------------ | -------------------------------------------------------------- |
 | `/api/v1/app/*`                              | App del estudiante | JWT firmado con `JWT_SECRETO_APP`, audiencia `app`             |

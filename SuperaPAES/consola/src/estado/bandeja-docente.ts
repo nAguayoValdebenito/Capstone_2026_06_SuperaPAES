@@ -110,10 +110,10 @@ function useFormulario(id: number | null) {
 }
 
 /** La bandeja y la asignación abierta: la que eligió el docente o, si no eligió, la primera. */
-function useAbierta<P extends RevisionPendiente>(api: ApiDeBandeja<P>) {
+function useAbierta<P extends RevisionPendiente>(api: ApiDeBandeja<P>, inicial: number | null) {
   const [vuelta, setVuelta] = useState(0);
   const { carga: bandeja, quitar } = useBandeja(api.listar, vuelta);
-  const [elegida, setElegida] = useState<number | null>(null);
+  const [elegida, setElegida] = useState<number | null>(inicial);
   const primera = bandeja.tipo === 'lista' ? (bandeja.revisiones[0]?.id ?? null) : null;
   const abierta = elegida ?? primera;
   /** Después de entregar: la saca de la bandeja, abre la primera que quede y pide la bandeja otra vez. */
@@ -126,9 +126,15 @@ function useAbierta<P extends RevisionPendiente>(api: ApiDeBandeja<P>) {
   return { bandeja, abierta, revision, elegir: setElegida, entregada };
 }
 
-/** La bandeja del docente con la asignación abierta y su formulario. `api` debe ser una constante. */
-export function useBandejaDocente<P extends RevisionPendiente>(api: ApiDeBandeja<P>) {
-  const { bandeja, abierta, revision, elegir, entregada } = useAbierta(api);
+/**
+ * La bandeja del docente con la asignación abierta y su formulario. `api` debe ser una constante.
+ * `inicial` abre esa asignación al entrar (D03 lleva a D01 con «Revisar con la pauta»).
+ */
+export function useBandejaDocente<P extends RevisionPendiente>(
+  api: ApiDeBandeja<P>,
+  inicial: number | null = null,
+) {
+  const { bandeja, abierta, revision, elegir, entregada } = useAbierta(api, inicial);
   const formulario = useFormulario(abierta);
   const { campos, setIntentado, setErroresApi } = formulario;
   const [enviando, setEnviando] = useState(false);

@@ -2,7 +2,9 @@
 // Sin SQL ni adaptadores. Los parámetros ya vienen validados por validar().
 import type { Request, RequestHandler } from 'express';
 import type {
+  ConsultaClasificacionHttp,
   ConsultaSeguimientoHttp,
+  DatosClasificacion,
   DatosDesempate,
   DatosRevision,
 } from './revision.validadores.js';
@@ -21,6 +23,8 @@ export interface RevisionControlador {
   listarDesempates: Validado;
   obtenerDesempate: Validado;
   entregarDesempate: Validado<DatosDesempate>;
+  siguienteAClasificar: Validado;
+  clasificarDificultad: Validado<DatosClasificacion>;
   listarSeguimiento: RequestHandler;
 }
 
@@ -31,6 +35,27 @@ export interface RevisionControlador {
 function usuarioDe(req: Request<Record<string, string>, unknown, unknown>): string {
   if (!req.usuarioInterno) throw new ErrorNoAutenticado();
   return req.usuarioInterno.id;
+}
+
+/** Clasificar dificultad (D03, HU-25): la siguiente importada (o la que sigue al saltar) y el clic. */
+function controladorClasificacion(
+  servicio: RevisionServicio,
+): Pick<RevisionControlador, 'siguienteAClasificar' | 'clasificarDificultad'> {
+  return {
+    siguienteAClasificar: async (req, res) => {
+      const { despuesDe } = res.locals.consulta as ConsultaClasificacionHttp;
+      const despues = despuesDe === undefined ? null : String(despuesDe);
+      responder(res, await servicio.siguienteAClasificar(usuarioDe(req), despues));
+    },
+    clasificarDificultad: async (req, res) => {
+      const clasificada = await servicio.clasificarDificultad(
+        usuarioDe(req),
+        String(req.params.id),
+        req.body.dificultad,
+      );
+      responder(res, clasificada);
+    },
+  };
 }
 
 export function crearRevisionControlador(servicio: RevisionServicio): RevisionControlador {
@@ -67,6 +92,7 @@ export function crearRevisionControlador(servicio: RevisionServicio): RevisionCo
       );
       responder(res, entregado, { estado: 201 });
     },
+    ...controladorClasificacion(servicio),
     listarSeguimiento: async (_req, res) => {
       const consulta = res.locals.consulta as ConsultaSeguimientoHttp;
       const { seguimiento, paginacion } = await servicio.listarSeguimiento(consulta);
