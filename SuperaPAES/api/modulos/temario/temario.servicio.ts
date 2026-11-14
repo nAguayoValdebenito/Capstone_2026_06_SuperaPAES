@@ -3,12 +3,15 @@
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import { ErrorValidacion } from '../../comun/errores.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
+import type { AdministracionServicio } from '../administracion/index.js';
 import { crearTemarioGeneracionRepositorio } from './temario.generacion.repositorio.js';
 import { consultarTemario, type ConsultaTemario } from './temario.consulta.servicio.js';
+import { crearEdicionMezcla } from './temario.dificultades.servicio.js';
 import {
   type AreaCarreraLista,
   crearTemarioListasRepositorio,
   type DificultadLista,
+  type MezclaDificultad,
   type OpcionLista,
   type TemarioListasRepositorio,
   type TipoEvaluacionLista,
@@ -117,6 +120,11 @@ export interface DependenciasTemarioServicio {
   repositorio?: TemarioRepositorio;
   /** Solo para pruebas: reemplaza al repositorio de las listas de opciones (C09). */
   repositorioListas?: TemarioListasRepositorio;
+  /**
+   * Editar la mezcla de dificultad queda en la auditoría (RNF-08). Los procesos que solo leen el
+   * temario (trabajos/) lo omiten; sin él, editarMezclaDificultad falla sin cambiar nada.
+   */
+  administracion?: Pick<AdministracionServicio, 'registrarAuditoria'>;
 }
 
 /** HU-16.2: lo que se sabe de un contenido para pedirle una pregunta a la IA. */
@@ -150,6 +158,15 @@ export interface TemarioServicio {
    * comportamiento, y motivos de aviso, tipos de pregunta y tipos de texto. Solo lectura.
    */
   consultarListasOpciones(): Promise<ListasOpciones>;
+  /**
+   * C09 / RF-C12 / RN-09: cambia mínimo, objetivo y máximo de todas las dificultades existentes, por
+   * su código, y lo deja en la auditoría (editar_catalogo) en la misma transacción. Devuelve las
+   * dificultades como las entrega consultarListasOpciones. 400 VALIDACION si la mezcla no sirve.
+   */
+  editarMezclaDificultad(
+    autorId: string,
+    mezcla: readonly MezclaDificultad[],
+  ): Promise<DificultadLista[]>;
   /** HU-16.2: el contenido con su eje, su prueba y las habilidades de la prueba; null si no existe. */
   contenidoParaGenerar(contenidoId: number): Promise<ContenidoParaGenerar | null>;
   /** HU-16.2 y RN-09: la mezcla objetivo de dificultad en porcentaje (fácil, media y difícil). */
@@ -203,8 +220,7 @@ function mezclaDe(dificultades: readonly { codigo: string; mezcla: number }[]) {
 }
 
 /** C09: una consulta tras otra, así también sirve con una sola conexión. */
-function listasOpciones({ bd, repositorioListas }: DependenciasTemarioServicio) {
-  const listas = repositorioListas ?? crearTemarioListasRepositorio(bd);
+function listasOpciones(listas: TemarioListasRepositorio) {
   return async (): Promise<ListasOpciones> => ({
     dificultades: await listas.dificultades(),
     areasCarrera: await listas.areasCarrera(),
@@ -215,33 +231,45 @@ function listasOpciones({ bd, repositorioListas }: DependenciasTemarioServicio) 
   });
 }
 
+/** El contenido con su prueba, habilidades y tipos de pregunta, para el generador; null si no existe. */
+function contenidoParaGenerarDe(
+  generacion: ReturnType<typeof crearTemarioGeneracionRepositorio>,
+): TemarioServicio['contenidoParaGenerar'] {
+  return async (contenidoId) => {
+    const fila = await generacion.contenido(contenidoId);
+    if (fila === null) return null;
+    return {
+      contenidoId: fila.contenidoId,
+      nombre: fila.nombre,
+      descriptores: fila.descriptores,
+      activo: fila.activo,
+      curso: fila.curso,
+      eje: { id: fila.ejeId, nombre: fila.ejeNombre },
+      prueba: {
+        id: fila.pruebaId,
+        codigo: fila.pruebaCodigo,
+        nombre: fila.pruebaNombre,
+        opcionesMax: fila.opcionesMax,
+        requiereTexto: fila.requiereTexto,
+        habilidades: await generacion.habilidades(fila.pruebaId),
+        tiposPregunta: await generacion.tiposPregunta(fila.pruebaId),
+      },
+    };
+  };
+}
+
 export function crearTemarioServicio(dependencias: DependenciasTemarioServicio): TemarioServicio {
   const repositorio = dependencias.repositorio ?? crearTemarioRepositorio(dependencias.bd);
   const generacion = crearTemarioGeneracionRepositorio(dependencias.bd);
+  const listas = dependencias.repositorioListas ?? crearTemarioListasRepositorio(dependencias.bd);
+  const { administracion, unidadDeTrabajo } = dependencias;
   const servicio: TemarioServicio = {
     consultarTemario: () => consultarTemario(servicio, dependencias.bd),
-    consultarListasOpciones: listasOpciones(dependencias),
-    contenidoParaGenerar: async (contenidoId) => {
-      const fila = await generacion.contenido(contenidoId);
-      if (fila === null) return null;
-      return {
-        contenidoId: fila.contenidoId,
-        nombre: fila.nombre,
-        descriptores: fila.descriptores,
-        activo: fila.activo,
-        curso: fila.curso,
-        eje: { id: fila.ejeId, nombre: fila.ejeNombre },
-        prueba: {
-          id: fila.pruebaId,
-          codigo: fila.pruebaCodigo,
-          nombre: fila.pruebaNombre,
-          opcionesMax: fila.opcionesMax,
-          requiereTexto: fila.requiereTexto,
-          habilidades: await generacion.habilidades(fila.pruebaId),
-          tiposPregunta: await generacion.tiposPregunta(fila.pruebaId),
-        },
-      };
-    },
+    consultarListasOpciones: listasOpciones(listas),
+    editarMezclaDificultad: administracion
+      ? crearEdicionMezcla({ unidadDeTrabajo, listas, administracion })
+      : () => Promise.reject(new Error('El temario se creó sin auditoría: no puede editar.')),
+    contenidoParaGenerar: contenidoParaGenerarDe(generacion),
     listarAreas: () => repositorio.listarAreas(),
     alcancePracticaValido: (datos, tx) => repositorio.alcancePracticaValido(datos, tx),
     // Una consulta tras otra: así también sirve con una sola conexión.

@@ -1,3 +1,5 @@
+import { Alerta } from '../../componentes/Alerta';
+import { DialogoConfirmacion } from '../../componentes/DialogoConfirmacion';
 import { useFormularioPlan } from '../../estado/formulario-plan';
 import type { DatosPlanes, EdicionPlan, OpcionPlan, PlanAdministrable } from '../../tipos/planes';
 
@@ -40,6 +42,7 @@ function CamposProductos({ formulario }: { formulario: ReturnType<typeof useForm
     <label className="campo">
       Identificador del producto en ambas tiendas
       <input
+        className="planes__identificador"
         required
         maxLength={100}
         value={campos.productos.google_play}
@@ -53,7 +56,7 @@ function CamposProductos({ formulario }: { formulario: ReturnType<typeof useForm
         periodicidad elegidos. No puede estar asignado a otro plan en la misma tienda.
       </span>
       {campos.productos.google_play !== campos.productos.app_store && (
-        <span role="alert" className="campo__ayuda">
+        <span role="alert" className="campo__error">
           Las tiendas tienen identificadores distintos. Escribe el identificador común antes de
           guardar.
         </span>
@@ -118,11 +121,7 @@ export function FormularioPlan({ plan, opciones, guardando, alGuardar, alCancela
       aria-labelledby="editar-plan"
     >
       <h2 id="editar-plan">Editar plan: {plan.nombre}</h2>
-      {error && (
-        <p className="estado__error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <Alerta texto={error} />}
       <fieldset disabled={guardando} className="planes__campos">
         <legend>Datos del plan</legend>
         <CamposDatos formulario={formulario} opciones={opciones} />
@@ -146,6 +145,16 @@ export function FormularioPlan({ plan, opciones, guardando, alGuardar, alCancela
           </button>
         </div>
       </fieldset>
+      <DialogoConfirmacion
+        abierto={formulario.porConfirmar}
+        titulo={`¿Desactivar el plan ${plan.nombre}?`}
+        textoConfirmar="Desactivar plan"
+        peligro
+        alConfirmar={formulario.confirmar}
+        alCancelar={formulario.cancelar}
+      >
+        <p>Deja de ofrecerse a estudiantes nuevos. El cambio queda registrado en la auditoría.</p>
+      </DialogoConfirmacion>
     </form>
   );
 }

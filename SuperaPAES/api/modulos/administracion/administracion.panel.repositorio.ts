@@ -34,6 +34,26 @@ const RANGO = `
          to_char(dia, 'YYYY-MM-DD') AS hasta
     FROM hoy`;
 
+/** El período de la misma duración que termina el día antes de `desde`: con él se comparan las cifras. */
+const RANGO_ANTERIOR = `
+  SELECT to_char($1::date - ($2::date - $1::date + 1), 'YYYY-MM-DD') AS desde,
+         to_char($1::date - 1, 'YYYY-MM-DD') AS hasta`;
+
+/** Estudiantes que ya existían antes del día `desde` (y que no se habían eliminado). */
+const REGISTRADOS_ANTES_DE = `
+  SELECT count(*)::int AS total FROM app.estudiante
+   WHERE ${DIA('creado_en')} < $1::date AND (eliminado_en IS NULL OR ${DIA('eliminado_en')} >= $1::date)`;
+
+/** Suscripciones vigentes (activa o en mora) al cierre del día `hasta`, según su último cambio de estado (RN-17). */
+const VIGENTES_AL = `
+  SELECT count(*)::int AS total FROM (
+    SELECT DISTINCT ON (ev.suscripcion_id) e.codigo
+      FROM app.suscripcion_evento ev
+      JOIN contenido.estado_suscripcion e ON e.id = ev.estado_nuevo_id
+     WHERE ${DIA('ev.creado_en')} <= $1::date
+     ORDER BY ev.suscripcion_id, ev.creado_en DESC, ev.id DESC) ultimo
+   WHERE ultimo.codigo IN ('activa', 'en_mora')`;
+
 const ESTUDIANTES = `
   SELECT (SELECT count(*)::int FROM app.estudiante WHERE eliminado_en IS NULL) AS registrados,
          (SELECT count(DISTINCT ev.estudiante_id)::int
@@ -85,6 +105,13 @@ export function crearPanelRepositorio(bd: Ejecutor) {
   };
   return {
     rango: (ahora: Date, periodo: Periodo) => uno<Rango>(RANGO, [ahora, periodo]),
+    rangoAnterior: ({ desde, hasta }: Rango) => uno<Rango>(RANGO_ANTERIOR, [desde, hasta]),
+    async registradosAntesDe(desde: string): Promise<number> {
+      return (await uno<{ total: number }>(REGISTRADOS_ANTES_DE, [desde])).total;
+    },
+    async vigentesAl(dia: string): Promise<number> {
+      return (await uno<{ total: number }>(VIGENTES_AL, [dia])).total;
+    },
     estudiantes: ({ desde, hasta }: Rango) =>
       uno<{ registrados: number; activos: number }>(ESTUDIANTES, [desde, hasta]),
     suscripciones: ({ desde, hasta }: Rango) =>

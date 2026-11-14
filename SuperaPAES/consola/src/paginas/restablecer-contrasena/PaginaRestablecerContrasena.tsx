@@ -1,6 +1,6 @@
 // A05 · Nueva contraseña (DAS 7.2): página pública de la consola que abre el enlace del correo de
-// recuperación (HU-06, CU-04), pensada para verse en el teléfono. Sigue su boceto en Figma, con el
-// sistema de diseño de la app (estilos en restablecer-contrasena.css). Lee el token de
+// recuperación (HU-06, CU-04), pensada para verse en el teléfono. Va en la hoja de acta de las páginas
+// públicas (ingreso/HojaActa.tsx), con los tokens de la consola (estilos en restablecer-contrasena.css). Lee el token de
 // /restablecer-contrasena?token=… y no inicia sesión.
 import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
@@ -9,6 +9,7 @@ import {
   useRestablecerContrasena,
   type EstadoRestablecer,
 } from '../../estado/restablecer-contrasena';
+import { HojaActa } from '../ingreso/HojaActa';
 import './restablecer-contrasena.css';
 
 /** Requisitos de RN-31 que muestra el boceto bajo los campos. */
@@ -238,7 +239,7 @@ export function PaginaRestablecerContrasena() {
   const token = parametros.get('token')?.trim() ?? '';
 
   return (
-    <main className="restablecer">
+    <HojaActa clase="restablecer">
       {token ? (
         <Contenido token={token} />
       ) : (
@@ -249,6 +250,6 @@ export function PaginaRestablecerContrasena() {
           extra={MENSAJES_RESTABLECER.pedirOtro}
         />
       )}
-    </main>
+    </HojaActa>
   );
 }

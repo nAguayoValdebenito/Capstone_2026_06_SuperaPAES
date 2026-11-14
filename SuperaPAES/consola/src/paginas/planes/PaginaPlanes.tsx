@@ -1,3 +1,4 @@
+import { Alerta } from '../../componentes/Alerta';
 import { usePlanes } from '../../estado/planes';
 import { FormularioPlan } from './FormularioPlan';
 import { TablaPlanes } from './TablaPlanes';
@@ -20,6 +21,39 @@ function NotasPlanes() {
   );
 }
 
+function EstadoDeCarga({
+  carga,
+  reintentar,
+  aviso,
+}: {
+  carga: ReturnType<typeof usePlanes>['carga'];
+  reintentar: () => void;
+  aviso: string | null;
+}) {
+  return (
+    <>
+      {carga.tipo === 'cargando' && (
+        <p role="status" className="cargando">
+          Cargando planes…
+        </p>
+      )}
+      {carga.tipo === 'fallida' && (
+        <div className="planes__error">
+          <Alerta texto={carga.mensaje} />
+          <button type="button" className="boton" onClick={reintentar}>
+            Reintentar
+          </button>
+        </div>
+      )}
+      {aviso && (
+        <p className="aviso aviso--exito" role="status">
+          {aviso}
+        </p>
+      )}
+    </>
+  );
+}
+
 export function PaginaPlanes() {
   const { carga, plan, seleccionar, guardar, guardando, aviso, reintentar } = usePlanes();
   return (
@@ -28,22 +62,7 @@ export function PaginaPlanes() {
       <p className="pagina__aviso">
         Los precios deben coincidir con los configurados en cada tienda.
       </p>
-      {carga.tipo === 'cargando' && <p role="status">Cargando planes…</p>}
-      {carga.tipo === 'fallida' && (
-        <div>
-          <p className="estado__error" role="alert">
-            {carga.mensaje}
-          </p>
-          <button type="button" className="boton" onClick={reintentar}>
-            Reintentar
-          </button>
-        </div>
-      )}
-      {aviso && (
-        <p className="estado__ok" role="status">
-          {aviso}
-        </p>
-      )}
+      <EstadoDeCarga carga={carga} reintentar={reintentar} aviso={aviso} />
       {carga.tipo === 'lista' && (
         <>
           <TablaPlanes

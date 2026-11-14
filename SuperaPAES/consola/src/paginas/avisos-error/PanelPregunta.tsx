@@ -3,6 +3,7 @@
 import type { Ref } from 'react';
 import { Link } from 'react-router';
 import { avisoPendiente, sePuedeAnular } from '../../estado/avisos-error';
+import { estiloDeSello } from '../../estado/sello-prueba';
 import type { AvisoDeError, CierreAviso, PreguntaConAvisos } from '../../tipos/avisos-error';
 import { fechaCorta } from './formato';
 
@@ -93,6 +94,29 @@ function ZonaAnulacion({
   );
 }
 
+function EncabezadoPregunta({ pregunta }: { pregunta: PreguntaConAvisos['pregunta'] }) {
+  return (
+    <div className="avisos__encabezado">
+      <h2 id="avisos-pregunta">
+        <span className="folio">
+          <b>{`P-${String(pregunta.id)}`}</b>
+          <span aria-hidden="true">·</span>
+          <span>{`versión ${String(pregunta.versionActual)}`}</span>
+        </span>
+        <span className="avisos__titulo">
+          <span className="sello">
+            <span className="sello__marca" style={estiloDeSello(pregunta.prueba.codigo)}>
+              {pregunta.prueba.codigo}
+            </span>
+          </span>
+          {pregunta.contenido.nombre}
+        </span>
+      </h2>
+      <Link to={`/banco/${String(pregunta.id)}`}>Abrir pregunta</Link>
+    </div>
+  );
+}
+
 export function PanelPregunta({
   grupo,
   enCurso,
@@ -106,13 +130,8 @@ export function PanelPregunta({
 } & Acciones) {
   const { pregunta } = grupo;
   return (
-    <section className="panel avisos__panel" aria-labelledby="avisos-pregunta">
-      <div className="pagina__encabezado">
-        <h2 id="avisos-pregunta">
-          {`P-${String(pregunta.id)} · ${pregunta.prueba.codigo} · ${pregunta.contenido.nombre}`}
-        </h2>
-        <Link to={`/banco/${String(pregunta.id)}`}>Abrir pregunta</Link>
-      </div>
+    <section className="panel acta avisos__panel" aria-labelledby="avisos-pregunta">
+      <EncabezadoPregunta pregunta={pregunta} />
       <p className="avisos__dato">
         <span className={`etiqueta etiqueta--${pregunta.estado.codigo}`}>
           {pregunta.estado.nombre}

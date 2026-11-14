@@ -91,11 +91,14 @@ export function FormularioLote({
   pruebas,
   enviando,
   error,
+  mezcla,
   alPedir,
 }: {
   pruebas: readonly PruebaTemario[];
   enviando: boolean;
   error: string | null;
+  /** La mezcla de dificultad vigente (C09), si ya se consultó. */
+  mezcla?: string | null;
   alPedir: (pedido: PedidoLote) => void;
 }) {
   const [campos, setCampos] = useState(INICIO);
@@ -120,8 +123,8 @@ export function FormularioLote({
       <CamposTemario campos={campos} alCambiar={setCampos} pruebas={pruebas} />
       <CamposCantidad campos={campos} alCambiar={setCampos} pruebas={pruebas} />
       <p className="campo__ayuda">
-        Se envían los descriptores del contenido, ejemplos aprobados y la mezcla 30 % fácil, 45 %
-        media y 25 % difícil.
+        Se envían los descriptores del contenido y ejemplos aprobados
+        {mezcla ? `, y se pide la mezcla ${mezcla}.` : '.'}
       </p>
       {mensaje && <Alerta texto={mensaje} />}
       <button type="submit" className="boton boton--primario" disabled={enviando}>

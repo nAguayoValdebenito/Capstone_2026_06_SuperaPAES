@@ -23,11 +23,12 @@
 .generador__topes li {
   padding: 0.25rem 0.75rem;
   border: 1px solid var(--borde);
-  border-radius: 999px;
+  border-radius: var(--r-chico);
   background: var(--superficie);
-  color: var(--primario-oscuro);
-  font-size: var(--texto-sm);
+  color: var(--tinta);
+  font-size: var(--t-sm);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .generador__enunciado {
@@ -91,12 +92,31 @@
   width: 100%;
 }
 
-.generador .etiqueta--completado {
+/* Estados del lote: completado es visto, pendiente es punto (en curso) y fallido es cruz. */
+.etiqueta--completado {
+  --marca: var(--marca-visto);
+  background: var(--exito-suave);
   color: var(--exito);
 }
 
 .generador .etiqueta--pendiente {
-  color: var(--aviso);
+  --marca: var(--marca-punto);
+  background: var(--primario-suave);
+  color: var(--primario-texto);
+}
+
+.etiqueta--fallido {
+  --marca: var(--marca-cruz);
+  background: var(--error-suave);
+  color: var(--error);
+}
+
+.generador progress {
+  height: 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--neutro-suave);
+  accent-color: var(--primario);
 }
 
 @media (max-width: 60rem) {

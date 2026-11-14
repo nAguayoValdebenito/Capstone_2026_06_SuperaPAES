@@ -35,6 +35,27 @@ function useCarga(version: number): CargaUsuariosInternos {
   return carga;
 }
 
+/**
+ * Desactivar cierra las sesiones de la cuenta: primero se confirma en un diálogo. Activar va directo.
+ * `cambiarEstado` hace el cambio en la API.
+ */
+function useDesactivacion(cambiarEstado: (cuenta: CuentaInterna) => void) {
+  const [porDesactivar, setPorDesactivar] = useState<CuentaInterna | null>(null);
+  const alternarEstado = useCallback(
+    (cuenta: CuentaInterna) => {
+      if (cuenta.activo) setPorDesactivar(cuenta);
+      else cambiarEstado(cuenta);
+    },
+    [cambiarEstado],
+  );
+  const confirmarDesactivar = useCallback(() => {
+    if (porDesactivar) cambiarEstado(porDesactivar);
+    setPorDesactivar(null);
+  }, [porDesactivar, cambiarEstado]);
+  const cancelarDesactivar = useCallback(() => setPorDesactivar(null), []);
+  return { alternarEstado, porDesactivar, confirmarDesactivar, cancelarDesactivar };
+}
+
 export function useUsuariosInternos() {
   const [version, setVersion] = useState(0);
   const carga = useCarga(version);
@@ -42,7 +63,7 @@ export function useUsuariosInternos() {
   const [aviso, setAviso] = useState<string | null>(null);
   const recargar = useCallback(() => setVersion((v) => v + 1), []);
 
-  const alternarEstado = useCallback(
+  const cambiarEstado = useCallback(
     (cuenta: CuentaInterna) => {
       setAviso(null);
       cambiarEstadoUsuarioInterno(cuenta.id, !cuenta.activo).then(recargar, (error: unknown) =>
@@ -51,11 +72,12 @@ export function useUsuariosInternos() {
     },
     [recargar],
   );
+  const desactivacion = useDesactivacion(cambiarEstado);
 
   const alGuardar = useCallback(() => {
     setPanel(null);
     recargar();
   }, [recargar]);
 
-  return { carga, panel, abrirPanel: setPanel, alGuardar, alternarEstado, aviso };
+  return { carga, panel, abrirPanel: setPanel, alGuardar, aviso, ...desactivacion };
 }

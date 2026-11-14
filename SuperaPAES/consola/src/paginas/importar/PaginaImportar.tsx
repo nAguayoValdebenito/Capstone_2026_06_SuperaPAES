@@ -247,7 +247,11 @@ function Resultado({ importacion }: { importacion: Importacion }) {
     case 'sin_archivo':
       return null;
     case 'revisando':
-      return <p aria-live="polite">Revisando el archivo…</p>;
+      return (
+        <p className="cargando" aria-live="polite">
+          Revisando el archivo…
+        </p>
+      );
     case 'rechazada':
       return (
         <p className="aviso aviso--error" role="alert">

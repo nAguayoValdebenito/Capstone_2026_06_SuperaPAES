@@ -1,13 +1,15 @@
 // Controlador del módulo temario: traduce HTTP a llamadas del servicio y responde con responder().
 // Sin SQL ni adaptadores.
 import type { RequestHandler } from 'express';
+import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { TemarioServicio } from './temario.servicio.js';
-import type { DatosOpcionesPractica } from './temario.validadores.js';
+import type { DatosMezclaDificultad, DatosOpcionesPractica } from './temario.validadores.js';
 
 export interface TemarioControlador {
   consultarTemario: RequestHandler;
   consultarListasOpciones: RequestHandler;
+  editarMezclaDificultad: RequestHandler<Record<string, string>, unknown, DatosMezclaDificultad>;
   listarAreas: RequestHandler;
   opcionesPerfil: RequestHandler;
   opcionesPractica: RequestHandler;
@@ -20,6 +22,11 @@ export function crearTemarioControlador(servicio: TemarioServicio): TemarioContr
     },
     consultarListasOpciones: async (_req, res) => {
       responder(res, await servicio.consultarListasOpciones());
+    },
+    editarMezclaDificultad: async (req, res) => {
+      if (!req.usuarioInterno) throw new ErrorNoAutenticado();
+      const { dificultades } = req.body;
+      responder(res, await servicio.editarMezclaDificultad(req.usuarioInterno.id, dificultades));
     },
     listarAreas: async (_req, res) => {
       responder(res, await servicio.listarAreas());

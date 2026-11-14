@@ -149,6 +149,16 @@ export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
     ...base,
     listarBanco: vi.fn(() => Promise.resolve(paginaBanco)),
     filtrosDelBanco: vi.fn(() => Promise.resolve(filtrosBanco)),
+    buscarPreguntas: vi.fn(() =>
+      Promise.resolve([
+        {
+          id: '84',
+          resumen: 'Pregunta',
+          prueba: { codigo: 'M1' },
+          estado: { codigo: 'borrador', nombre: 'Borrador' },
+        },
+      ]),
+    ),
     crearPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
     obtenerPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),
     editarPregunta: vi.fn(() => Promise.resolve(preguntaParaEditar)),

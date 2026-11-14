@@ -13,6 +13,7 @@ import {
   esquemaArchivosImportacion,
   esquemaCierreAviso,
   esquemaConsultaTextos,
+  esquemaBusquedaPreguntas,
   esquemaFiltrosAvisos,
   esquemaFiltrosBanco,
   esquemaIdAviso,
@@ -63,6 +64,8 @@ function agregarRutasAvisos(router: Router, controlador: PreguntasControlador): 
     validar({ consulta: esquemaFiltrosAvisos }),
     controlador.listarAvisos,
   );
+  // Antes de /avisos/:id: «pendientes» no es un id.
+  router.get('/avisos/pendientes', exigirRol('admin'), controlador.contarAvisosPendientes);
   router.patch(
     '/avisos/:id',
     exigirRol('admin'),
@@ -86,6 +89,13 @@ function agregarRutaImagenes(router: Router, controlador: PreguntasControlador):
 
 /** Textos, avisos e imágenes van antes de /:id, para que sus nombres no se lean como una pregunta. */
 function agregarRutasAntesDeId(router: Router, controlador: PreguntasControlador): void {
+  // Búsqueda global (Ctrl K): solo lectura.
+  router.get(
+    '/busqueda',
+    exigirRol('admin'),
+    validar({ consulta: esquemaBusquedaPreguntas }),
+    controlador.buscarPreguntas,
+  );
   agregarRutasTextos(router, controlador);
   agregarRutasAvisos(router, controlador);
   agregarRutaImagenes(router, controlador);

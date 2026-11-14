@@ -8,6 +8,7 @@ import type { DependenciasRevisionServicio } from '../modulos/revision/revision.
 import { crearAppDePrueba, tokenAdmin } from './ayudantes.js';
 
 export const AHORA = new Date('2026-11-03T15:00:00.000Z');
+export const ASIGNADA = new Date('2026-11-03T12:00:00.000Z');
 export const VENCE = new Date('2026-11-05T12:00:00.000Z');
 
 export const PAUTA = [
@@ -21,6 +22,7 @@ export const PENDIENTE = {
   ronda: 1,
   prueba: { codigo: 'M1', nombre: 'Competencia Matemática 1' },
   contenido: 'Ecuaciones',
+  asignadoEn: ASIGNADA,
   venceEn: VENCE,
 };
 

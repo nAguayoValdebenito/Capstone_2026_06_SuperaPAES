@@ -34,13 +34,13 @@ function Botones({
   alCancelar: () => void;
 }) {
   return (
-    <div className="pagina__acciones">
+    <div className="dialogo__acciones">
       <button type="button" ref={cancelar} className="boton" onClick={alCancelar}>
         Cancelar
       </button>
       <button
         type="button"
-        className="boton boton--peligro"
+        className="boton boton--peligro-solido"
         disabled={!habilitado}
         onClick={alConfirmar}
       >
@@ -69,7 +69,7 @@ export function ConfirmarAnulacion({
   return (
     <div className="avisos__fondo">
       <div
-        className="panel avisos__confirmacion"
+        className="dialogo avisos__confirmacion"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="anular-titulo"
@@ -78,7 +78,7 @@ export function ConfirmarAnulacion({
       >
         <h2 id="anular-titulo">{`¿Anular la pregunta P-${String(preguntaId)}?`}</h2>
         <Explicacion impacto={impacto} />
-        <label className="avisos__entendido">
+        <label className="campo__opcion avisos__entendido">
           <input
             type="checkbox"
             checked={entendido}

@@ -3,12 +3,13 @@
 import { entregarRevision, listarMisRevisiones, obtenerMiRevision } from '../servicios/revision';
 import type { PreguntaARevisar } from '../tipos';
 import { type ApiDeBandeja, type EstadoBandejaDocente, useBandejaDocente } from './bandeja-docente';
-import { armarRevision, validarRevision } from './formulario-revision';
+import { armarRevision, sinAprobacionNoPermitida, validarRevision } from './formulario-revision';
 
 const MIS_REVISIONES: ApiDeBandeja<PreguntaARevisar> = {
   listar: listarMisRevisiones,
   obtener: obtenerMiRevision,
   validar: validarRevision,
+  ajustar: sinAprobacionNoPermitida,
   entregar: (campos, pregunta) =>
     entregarRevision(pregunta.id, armarRevision(campos, pregunta.pauta)),
   aviso: (pregunta) => `Revisión de la pregunta ${String(pregunta.preguntaId)} entregada.`,

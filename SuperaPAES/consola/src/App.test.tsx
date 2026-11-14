@@ -128,7 +128,9 @@ describe('consola (prueba de humo)', () => {
     const html = renderizar('/ingreso', null);
 
     expect(html).toContain('>Iniciar sesión</h1>');
-    expect(html).toContain('src="/logo_supera_paes.png"');
+    // El logo de la marca (DAS 7.5): la baldosa con el nombre y «Consola del equipo».
+    expect(html).toContain('Supera<span>PAES</span>');
+    expect(html).toContain('Consola del equipo');
     expect(html).toContain('type="email"');
     expect(html).toContain('type="password"');
     expect(html).not.toContain('Cerrar sesión');

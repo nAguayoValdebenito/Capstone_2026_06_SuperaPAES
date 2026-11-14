@@ -4,6 +4,7 @@
 import { vi } from 'vitest';
 import type { RevisionServicio } from '../modulos/revision/index.js';
 
+const ASIGNADA = '2026-11-03T12:00:00.000Z';
 const VENCE = '2026-11-05T12:00:00.000Z';
 
 /** Pregunta enviada a revisión (HU-21). */
@@ -26,6 +27,7 @@ const pendiente = {
   ronda: 1,
   prueba: { codigo: 'M1', nombre: 'Matemática 1' },
   contenido: 'Ecuaciones',
+  asignadoEn: ASIGNADA,
   venceEn: VENCE,
 };
 
@@ -50,6 +52,7 @@ const preguntaARevisar = {
   ...preguntaAClasificar,
   pauta: [{ codigo: 'contenido', descripcion: 'Contenido' }],
   decisiones: [{ codigo: 'aprobar', nombre: 'Aprobar', requiereComentario: false }],
+  maximoNoParaAprobar: 2,
 };
 
 /** Servicio de revisión con las rutas que devuelven ids respondiendo datos fijos. */

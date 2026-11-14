@@ -246,6 +246,8 @@ export function crearRevisionServicio(
     unidadDeTrabajo: dependencias.unidadDeTrabajo,
     reloj: dependencias.reloj,
     repositorio: repositorioBandeja,
+    maximoNoParaAprobar: () =>
+      dependencias.administracion.obtenerParametroEntero('max_no_para_aprobar'),
     alEntregar,
   });
   const clasificacion = crearClasificacionDocente({

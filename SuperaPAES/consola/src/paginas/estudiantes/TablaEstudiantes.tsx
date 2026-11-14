@@ -9,7 +9,7 @@ function Suscripcion({ activa }: { activa: boolean }) {
   return activa ? (
     <span className="etiqueta etiqueta--activa">Activa</span>
   ) : (
-    <span className="etiqueta">Sin suscripción activa</span>
+    <span className="tabla__secundario">Sin suscripción activa</span>
   );
 }
 
@@ -43,11 +43,12 @@ export function TablaEstudiantes({
               </td>
               <td>
                 {estudiante.correoVerificado ? (
-                  'Verificada'
+                  <span className="etiqueta etiqueta--vigente">Verificada</span>
                 ) : (
                   <button
                     type="button"
-                    className="boton"
+                    className="boton boton--chico"
+                    aria-busy={confirmando === estudiante.id ? true : undefined}
                     disabled={confirmando !== null}
                     onClick={() => alConfirmar(estudiante.id)}
                   >

@@ -28,6 +28,7 @@ export const INVENTARIO_IDS = [
   'POST /api/v1/admin/administracion/usuarios-internos/:id/desactivar → data.id, data.areas[]',
   'GET /api/v1/admin/temario/areas → data[].id',
   'GET /api/v1/admin/preguntas/ → data[].id, data[].prueba.id, data[].eje.id, data[].contenido.id',
+  'GET /api/v1/admin/preguntas/busqueda → data[].id',
   'GET /api/v1/admin/preguntas/filtros → data.pruebas[].id, data.pruebas[].ejes[].id, data.pruebas[].ejes[].contenidos[].id, data.pruebas[].habilidades[].id',
   'POST /api/v1/admin/preguntas/ → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.textoEstimuloId, data.alternativas[].id',
   'GET /api/v1/admin/preguntas/:id → data.id, data.pruebaId, data.ejeId, data.contenidoId, data.habilidadId, data.textoEstimuloId, data.alternativas[].id',

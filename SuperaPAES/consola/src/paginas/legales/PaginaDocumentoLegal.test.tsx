@@ -20,7 +20,8 @@ describe('páginas públicas de los textos legales (HU-34.4)', () => {
   ])('%s se abre sin sesión, con el logo y el enlace al otro texto', (ruta, otro, enlace) => {
     const html = dibujar(ruta);
 
-    expect(html).toContain('src="/logo_supera_paes.png"');
+    // El logo de la marca (la baldosa con el nombre), como en las demás páginas públicas.
+    expect(html).toContain('Supera<span>PAES</span>');
     expect(html).toContain(
       `<title>${ruta === '/terminos' ? 'Términos y condiciones' : 'Política de privacidad'} · Supera PAES</title>`,
     );

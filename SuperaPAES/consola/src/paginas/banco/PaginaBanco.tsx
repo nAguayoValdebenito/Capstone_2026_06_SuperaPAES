@@ -6,6 +6,7 @@
 // confirmadas en calibración (HU-26.2) y la tabla suma las estadísticas de cada pregunta (HU-53).
 import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
+import { DialogoConfirmacion } from '../../componentes/DialogoConfirmacion';
 import { useAvisoDeNavegacion } from '../../estado/aviso-de-navegacion';
 import {
   type AccionesDelBanco,
@@ -34,18 +35,31 @@ export function ResultadoBanco({
   alCambiarPagina,
   acciones,
   estadisticas,
+  alLimpiar,
 }: {
   carga: CargaBanco;
   alCambiarPagina: (pagina: number) => void;
   acciones?: AccionesDelBanco;
   estadisticas?: ReadonlyMap<string, EstadisticaPregunta>;
+  /** Con filtros activos, el estado vacío ofrece limpiarlos. */
+  alLimpiar?: () => void;
 }) {
-  if (carga.tipo === 'cargando') return <p aria-live="polite">Cargando preguntas…</p>;
+  if (carga.tipo === 'cargando')
+    return (
+      <p className="cargando" aria-live="polite">
+        Cargando preguntas…
+      </p>
+    );
   if (carga.tipo === 'fallida') return <Alerta texto={carga.mensaje} codigo={carga.codigo} />;
   const { preguntas, paginacion } = carga.pagina;
   return (
     <>
-      <TablaBanco preguntas={preguntas} acciones={acciones} estadisticas={estadisticas} />
+      <TablaBanco
+        preguntas={preguntas}
+        acciones={acciones}
+        estadisticas={estadisticas}
+        alLimpiar={alLimpiar}
+      />
       {paginacion.total > 0 && (
         <Paginacion
           paginacion={paginacion}
@@ -71,11 +85,32 @@ function AvisoDeAccion({ aviso }: { aviso: AvisoDelBanco | null }) {
   );
 }
 
+/** Retirar saca la pregunta de la app: se confirma antes, con su consecuencia. */
+function DialogoRetiro({ acciones }: { acciones: ReturnType<typeof useAccionesDelBanco> }) {
+  const id = acciones.porRetirar;
+  return (
+    <DialogoConfirmacion
+      abierto={id !== null}
+      titulo={`¿Retirar la pregunta ${String(id ?? '')}?`}
+      textoConfirmar="Retirar"
+      peligro
+      alConfirmar={acciones.confirmarRetiro}
+      alCancelar={acciones.cancelarRetiro}
+    >
+      <p>
+        Deja de llegar a la app desde ahora. Para publicarla otra vez tendrá que volver a borrador y
+        pasar de nuevo por revisión.
+      </p>
+    </DialogoConfirmacion>
+  );
+}
+
 export function PaginaBanco() {
   const { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar, vuelta } =
     useBanco();
   const acciones = useAccionesDelBanco(recargar, useAvisoDeNavegacion());
   const confirmadas = useConfirmadas(vuelta);
+  const hayFiltros = Object.keys(filtros).length > 0;
   const estadisticas = useEstadisticasDelBanco(
     carga.tipo === 'lista' ? carga.pagina.preguntas.map((pregunta) => pregunta.id) : [],
   );
@@ -115,7 +150,9 @@ export function PaginaBanco() {
         alCambiarPagina={irAPagina}
         acciones={acciones}
         estadisticas={estadisticas}
+        alLimpiar={hayFiltros ? limpiarFiltros : undefined}
       />
+      <DialogoRetiro acciones={acciones} />
     </section>
   );
 }

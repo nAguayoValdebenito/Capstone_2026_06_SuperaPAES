@@ -1,5 +1,7 @@
-// Consulta de C09 (HU-64.1): listas de opciones que la consola muestra, sin editarlas ni cambiar el modelo.
+// Consulta de C09 (HU-64.1): listas de opciones que la consola muestra, sin cambiar el modelo.
 // Las listas no tienen servicio propio: temario las lee porque es dueño de area_carrera_prueba.
+// Excepción (decisión del 14/11/2026, RF-C12): temario edita la mezcla global de contenido.dificultad
+// (mezcla_min, mezcla_objetivo y mezcla_max); nunca su código, nombre, orden, peso ni acierto esperado.
 import type { Ejecutor } from '../../db/transaccion.js';
 
 /** RN-09: mezcla global de una dificultad, en porcentaje. */
@@ -49,8 +51,23 @@ export interface TipoEvaluacionLista {
 /** Listas que solo tienen código, nombre y activo. Nombres fijos: nunca vienen del usuario. */
 export type ListaSimple = 'motivosAviso' | 'tiposPregunta' | 'tiposTexto';
 
+/** RN-09: la mezcla nueva de una dificultad, por su código. */
+export interface MezclaDificultad {
+  codigo: string;
+  minimo: number;
+  objetivo: number;
+  maximo: number;
+}
+
 export interface TemarioListasRepositorio {
   dificultades(tx?: Ejecutor): Promise<DificultadLista[]>;
+  /** Las dificultades reservadas (FOR UPDATE) hasta el fin de la transacción, en su orden. */
+  reservarDificultades(tx: Ejecutor): Promise<DificultadLista[]>;
+  /**
+   * Cambia la mezcla de las dificultades indicadas en una sola sentencia. La base revisa cada fila
+   * (CHECK) y, al terminar la transacción, que los objetivos sumen 100 (trigger dificultad_suma).
+   */
+  actualizarMezcla(mezcla: readonly MezclaDificultad[], tx: Ejecutor): Promise<void>;
   areasCarrera(tx?: Ejecutor): Promise<AreaCarreraLista[]>;
   tiposEvaluacion(tx?: Ejecutor): Promise<TipoEvaluacionLista[]>;
   opciones(lista: ListaSimple, tx?: Ejecutor): Promise<OpcionLista[]>;
@@ -60,6 +77,17 @@ const DIFICULTADES = `
   SELECT codigo, nombre, mezcla_min AS minimo, mezcla_objetivo AS objetivo, mezcla_max AS maximo
     FROM contenido.dificultad
    ORDER BY orden`;
+
+const RESERVAR_DIFICULTADES = `${DIFICULTADES}
+     FOR UPDATE`;
+
+// Una sola sentencia: la base revisa el CHECK de cada fila y la suma al final de la transacción.
+const ACTUALIZAR_MEZCLA = `
+  UPDATE contenido.dificultad d
+     SET mezcla_min = m.minimo, mezcla_objetivo = m.objetivo, mezcla_max = m.maximo
+    FROM unnest($1::text[], $2::smallint[], $3::smallint[], $4::smallint[])
+         AS m(codigo, minimo, objetivo, maximo)
+   WHERE d.codigo = m.codigo`;
 
 // Todas las áreas, activas o no; las pruebas sugeridas en el orden de las pruebas.
 const AREAS_CARRERA = `
@@ -101,6 +129,19 @@ export function crearTemarioListasRepositorio(bd: Ejecutor): TemarioListasReposi
     async dificultades(tx = bd) {
       const { rows } = await tx.query<DificultadLista>(DIFICULTADES);
       return rows;
+    },
+    async reservarDificultades(tx) {
+      const { rows } = await tx.query<DificultadLista>(RESERVAR_DIFICULTADES);
+      return rows;
+    },
+    async actualizarMezcla(mezcla, tx) {
+      const { rowCount } = await tx.query(ACTUALIZAR_MEZCLA, [
+        mezcla.map((m) => m.codigo),
+        mezcla.map((m) => m.minimo),
+        mezcla.map((m) => m.objetivo),
+        mezcla.map((m) => m.maximo),
+      ]);
+      if (rowCount !== mezcla.length) throw new Error('La mezcla de dificultad no se actualizó.');
     },
     async areasCarrera(tx = bd) {
       const { rows } = await tx.query<AreaCarreraLista>(AREAS_CARRERA);

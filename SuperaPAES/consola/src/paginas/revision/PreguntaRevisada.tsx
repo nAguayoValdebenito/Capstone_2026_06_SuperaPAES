@@ -7,7 +7,10 @@ import { codigoDePregunta, fechaLimite } from '../../utilidades/revision';
 import { Imagen, TextoConFormulas } from '../pregunta/TextoConFormulas';
 
 /** Lo que se muestra de la pregunta: sin la pauta ni las opciones del formulario. */
-type PreguntaMostrada = Omit<PreguntaARevisar, 'pauta' | 'dificultades' | 'decisiones'>;
+type PreguntaMostrada = Omit<
+  PreguntaARevisar,
+  'pauta' | 'dificultades' | 'decisiones' | 'maximoNoParaAprobar'
+>;
 
 /** El código y la ubicación de la pregunta, con la fecha límite y la etiqueta si la hay. */
 function Encabezado({ pregunta, etiqueta }: { pregunta: PreguntaMostrada; etiqueta?: string }) {

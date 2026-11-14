@@ -1,5 +1,6 @@
 // Tablas de C09 (HU-64.1): cada lista con su código, su nombre y sus datos propios, sin edición.
 import { EncabezadoTabla } from '../../componentes/EncabezadoTabla';
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import { comportamientoDe } from '../../estado/listas-opciones';
 import type {
   AreaCarreraLista,
@@ -12,18 +13,14 @@ const porcentaje = (valor: number) => `${valor} %`;
 
 function Estado({ activa }: { activa: boolean }) {
   return (
-    <span className={`etiqueta${activa ? ' etiqueta--activa' : ''}`}>
+    <span className={`etiqueta ${activa ? 'etiqueta--activa' : 'etiqueta--inactiva'}`}>
       {activa ? 'Activa' : 'Inactiva'}
     </span>
   );
 }
 
 function Vacia({ texto }: { texto: string }) {
-  return (
-    <p role="status" className="listas-opciones__vacia">
-      {texto}
-    </p>
-  );
+  return <EstadoVacio titulo={texto} />;
 }
 
 export function TablaDificultades({ dificultades }: { dificultades: readonly DificultadLista[] }) {
@@ -37,12 +34,12 @@ export function TablaDificultades({ dificultades }: { dificultades: readonly Dif
           {dificultades.map((d) => (
             <tr key={d.codigo}>
               <td>
-                <code>{d.codigo}</code>
+                <code className="tabla__id">{d.codigo}</code>
               </td>
               <td>{d.nombre}</td>
-              <td className="listas-opciones__numero">{porcentaje(d.minimo)}</td>
-              <td className="listas-opciones__numero">{porcentaje(d.objetivo)}</td>
-              <td className="listas-opciones__numero">{porcentaje(d.maximo)}</td>
+              <td className="tabla__numero listas-opciones__numero">{porcentaje(d.minimo)}</td>
+              <td className="tabla__numero listas-opciones__numero">{porcentaje(d.objetivo)}</td>
+              <td className="tabla__numero listas-opciones__numero">{porcentaje(d.maximo)}</td>
             </tr>
           ))}
         </tbody>
@@ -64,7 +61,7 @@ export function TablaAreasCarrera({ areas }: { areas: readonly AreaCarreraLista[
           {areas.map((a) => (
             <tr key={a.codigo}>
               <td>
-                <code>{a.codigo}</code>
+                <code className="tabla__id">{a.codigo}</code>
               </td>
               <td>{a.nombre}</td>
               <td>
@@ -95,7 +92,7 @@ export function TablaTiposEvaluacion({ tipos }: { tipos: readonly TipoEvaluacion
           {tipos.map((t) => (
             <tr key={t.codigo}>
               <td>
-                <code>{t.codigo}</code>
+                <code className="tabla__id">{t.codigo}</code>
               </td>
               <td>{t.nombre}</td>
               <td>{t.modoArmado}</td>
@@ -134,7 +131,7 @@ export function TablaOpciones({
           {opciones.map((o) => (
             <tr key={o.codigo}>
               <td>
-                <code>{o.codigo}</code>
+                <code className="tabla__id">{o.codigo}</code>
               </td>
               <td>{o.nombre}</td>
               <td>

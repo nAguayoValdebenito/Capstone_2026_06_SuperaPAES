@@ -1,6 +1,7 @@
 // Crear, editar e importar preguntas sin PostgreSQL (HU-12 y HU-13.1): un temario con M1, M2 y
 // Competencia Lectora, y repositorios en memoria que imitan lo que hace la base (borrador, alternativas
 // por letra, importaciones).
+import type { BusquedaRepositorio } from '../modulos/preguntas/preguntas.busqueda.js';
 import { vi } from 'vitest';
 import type {
   AlternativaNueva,
@@ -204,6 +205,7 @@ export function escenarioEdicion(
   publicacion?: PublicacionRepositorio,
   avisos?: AvisosRepositorio,
   imagenes?: ImagenesRepositorio,
+  extras: { repositorioBusqueda?: BusquedaRepositorio } = {},
 ) {
   const { repositorio, ponerEtapa } = repositorioEnMemoria();
   const importaciones = importacionesEnMemoria();
@@ -224,6 +226,7 @@ export function escenarioEdicion(
     ...(publicacion && { repositorioPublicacion: publicacion }),
     ...(avisos && { repositorioAvisos: avisos }),
     ...(imagenes && { repositorioImagenes: imagenes }),
+    ...extras,
   });
   const app = crearAppDePrueba({}, { preguntas, temario });
   return { app, repositorio, auditoria, ponerEtapa, textos, importaciones };

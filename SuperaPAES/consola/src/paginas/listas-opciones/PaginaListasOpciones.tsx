@@ -1,5 +1,6 @@
-// Sección Listas de opciones (C09, HU-64.1): catálogos con su código, su nombre y sus datos propios,
-// de solo lectura. La edición de HU-64 (escenarios 1 a 4) sigue pendiente.
+// Sección Listas de opciones (C09, HU-64.1): catálogos con su código, su nombre y sus datos propios, de
+// solo lectura. Lo único editable es la mezcla global de dificultad (D1, RN-09); los nombres y las demás
+// listas siguen pendientes de HU-64 (escenarios 1 a 4).
 import { Pestanas } from '../../componentes/Pestanas';
 import { SegunCarga } from '../../componentes/SegunCarga';
 import {
@@ -8,18 +9,22 @@ import {
   useListasOpciones,
 } from '../../estado/listas-opciones';
 import type { ListasOpciones } from '../../tipos/temario';
-import {
-  TablaAreasCarrera,
-  TablaDificultades,
-  TablaOpciones,
-  TablaTiposEvaluacion,
-} from './TablasListas';
+import { TablaAreasCarrera, TablaOpciones, TablaTiposEvaluacion } from './TablasListas';
+import { MezclaDificultad } from './MezclaDificultad';
 import './listas-opciones.css';
 
-function Lista({ lista, datos }: { lista: ListaOpciones; datos: ListasOpciones }) {
+function Lista({
+  lista,
+  datos,
+  alGuardar,
+}: {
+  lista: ListaOpciones;
+  datos: ListasOpciones;
+  alGuardar: () => void;
+}) {
   switch (lista) {
     case 'dificultades':
-      return <TablaDificultades dificultades={datos.dificultades} />;
+      return <MezclaDificultad dificultades={datos.dificultades} alGuardar={alGuardar} />;
     case 'areasCarrera':
       return <TablaAreasCarrera areas={datos.areasCarrera} />;
     case 'tiposEvaluacion':
@@ -57,8 +62,8 @@ export function PaginaListasOpciones() {
     <section className="pagina pagina--ancha listas-opciones">
       <h1>Listas de opciones</h1>
       <p className="pagina__aviso">
-        Opciones que el sistema elige por su código. Se cargan con los datos iniciales y aquí solo
-        se consultan.
+        Opciones que el sistema elige por su código. Se cargan con los datos iniciales y aquí se
+        consultan; solo la mezcla de dificultad se puede cambiar.
       </p>
       <SegunCarga carga={estado.carga} cargando="Cargando las listas de opciones…">
         {(datos) => (
@@ -68,8 +73,9 @@ export function PaginaListasOpciones() {
               opciones={LISTAS_OPCIONES}
               valor={estado.lista}
               alElegir={estado.elegir}
-            />
-            <Lista lista={estado.lista} datos={datos} />
+            >
+              <Lista lista={estado.lista} datos={datos} alGuardar={estado.reintentar} />
+            </Pestanas>
           </>
         )}
       </SegunCarga>

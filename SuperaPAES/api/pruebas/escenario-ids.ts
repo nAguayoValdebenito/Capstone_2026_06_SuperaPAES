@@ -260,6 +260,7 @@ const METODOS = {
 /** Consulta (?…) que exige cada ruta, por su último tramo. */
 const CONSULTAS: Record<string, Record<string, string>> = {
   '/opciones-practica': { curso: '3M' },
+  '/busqueda': { texto: 'sodio' },
 };
 
 /** Rutas de la app que exigen la sesión del estudiante. */

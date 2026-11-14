@@ -35,10 +35,10 @@ describe.skipIf(!urlBase)('configuración HU-51.1 con PostgreSQL', () => {
     await base.cerrar();
   }, MINUTO);
 
-  it('lista 23 filas y guarda valor, autor, fecha y auditoría; el consumidor lee el nuevo cupo', async () => {
+  it('lista 24 filas y guarda valor, autor, fecha y auditoría; el consumidor lee el nuevo cupo', async () => {
     const admin = servicio();
     const parametros = (await admin.listarConfiguracion()).parametros;
-    expect(parametros).toHaveLength(23);
+    expect(parametros).toHaveLength(24);
     const anterior = parametros.find((p) => p.clave === 'cupo_inicial')!;
     const nuevo = await admin.cambiarConfiguracion(autorId, anterior.clave, {
       valor: 12,

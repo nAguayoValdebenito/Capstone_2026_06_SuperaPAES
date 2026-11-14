@@ -12,6 +12,7 @@ import type {
   DatosImportacion,
   DatosPregunta,
   DatosTexto,
+  BusquedaDePreguntas,
   FiltrosAvisos,
   FiltrosBanco,
 } from './preguntas.validadores.js';
@@ -21,6 +22,7 @@ type Validado<C = unknown> = RequestHandler<Record<string, string>, unknown, C>;
 
 export interface PreguntasControlador {
   listarBanco: RequestHandler;
+  buscarPreguntas: RequestHandler;
   filtrosDelBanco: RequestHandler;
   crearPregunta: Validado<DatosPregunta>;
   obtenerPregunta: Validado;
@@ -37,6 +39,7 @@ export interface PreguntasControlador {
   retirarPregunta: Validado;
   volverABorrador: Validado;
   listarAvisos: RequestHandler;
+  contarAvisosPendientes: RequestHandler;
   cerrarAviso: Validado<{ estado: CierreAviso }>;
   anularPregunta: Validado;
   subirImagen: Validado;
@@ -82,13 +85,19 @@ function controladorImportacion(
 /** HU-50.1 y HU-50.2 (C13): la bandeja de avisos, el cierre de un aviso y la anulación. */
 function controladorAvisos(
   servicio: PreguntasServicio,
-): Pick<PreguntasControlador, 'listarAvisos' | 'cerrarAviso' | 'anularPregunta'> {
+): Pick<
+  PreguntasControlador,
+  'listarAvisos' | 'contarAvisosPendientes' | 'cerrarAviso' | 'anularPregunta'
+> {
   return {
     listarAvisos: async (_req, res) => {
       const { grupos, paginacion } = await servicio.listarAvisos(
         res.locals.consulta as FiltrosAvisos,
       );
       responder(res, grupos, { meta: paginacion });
+    },
+    contarAvisosPendientes: async (_req, res) => {
+      responder(res, { pendientes: await servicio.contarAvisosPendientes() });
     },
     cerrarAviso: async (req, res) => {
       const id = String(req.params.id);
@@ -148,6 +157,10 @@ export function crearPreguntasControlador(servicio: PreguntasServicio): Pregunta
     publicarPregunta: cambiarEtapa(servicio, 'publicar'),
     retirarPregunta: cambiarEtapa(servicio, 'retirar'),
     volverABorrador: cambiarEtapa(servicio, 'borrador'),
+    buscarPreguntas: async (_req, res) => {
+      const { texto, limite } = res.locals.consulta as BusquedaDePreguntas;
+      responder(res, await servicio.buscarPreguntas(texto, limite));
+    },
     listarBanco: async (_req, res) => {
       // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
       const filtros = res.locals.consulta as FiltrosBanco;

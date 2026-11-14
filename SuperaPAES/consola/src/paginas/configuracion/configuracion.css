@@ -1,73 +1,99 @@
+/* C12 · Configuración: solo tokens de estilos/global.css. Cada grupo es una tarjeta dividida por
+   líneas; cada fila deja el parámetro a la izquierda y su valor a la derecha. */
 .configuracion__grupo {
   margin-top: 1.5rem;
   border: 1px solid var(--borde);
-  border-radius: 0.5rem;
+  border-radius: var(--r-grande);
   background: var(--superficie);
 }
+
 .configuracion .configuracion__grupo h2 {
   margin: 0;
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1.25rem;
   border-bottom: 1px solid var(--borde);
+  font-size: var(--t-md);
+  font-weight: 700;
 }
+
 .configuracion__grupo ul {
-  list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
+  list-style: none;
 }
+
 .configuracion__fila {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(13rem, 19rem);
   gap: 1.25rem;
-  padding: 1.25rem;
+  padding: 1.125rem 1.25rem;
   border-top: 1px solid var(--borde);
 }
+
 .configuracion__fila:first-child {
   border-top: 0;
 }
+
 .configuracion__fila h3 {
   margin: 0;
+  font-size: var(--t-base);
+  font-weight: 600;
 }
+
 .configuracion__fila p {
   margin: 0.35rem 0;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
 }
-.configuracion__detalle {
-  color: var(--texto-secundario);
-  font-size: var(--texto-sm);
+
+/* Regla, fecha y autor del último cambio: datos, en su letra. */
+.configuracion .configuracion__detalle {
+  color: var(--tinta-3);
+  font-family: var(--fuente-datos);
+  font-size: var(--t-xs);
 }
+
 .configuracion__edicion {
   display: grid;
   gap: 0.5rem;
   align-content: start;
 }
+
 .configuracion__valor {
   display: flex;
-  align-items: center;
   gap: 0.5rem;
+  align-items: center;
 }
-.configuracion__valor input {
+
+.configuracion__valor .control {
   width: 7rem;
   max-width: 100%;
   min-height: 2.75rem;
-  font: inherit;
-  padding: 0.5rem;
-  border: 1px solid var(--borde);
-  border-radius: 0.375rem;
+  font-variant-numeric: tabular-nums;
 }
+
 .configuracion__valor span {
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
   overflow-wrap: anywhere;
 }
+
 .configuracion__edicion .boton {
   justify-self: start;
   min-height: 2.75rem;
 }
+
 .configuracion__lectura {
   display: grid;
-  align-content: start;
   gap: 0.25rem;
+  align-content: start;
 }
+
 .configuracion__lectura span {
-  color: var(--texto-secundario);
+  color: var(--tinta-3);
+  font-size: var(--t-xs);
 }
+
+/* Confirmación propia (alertdialog, sin <dialog>) con el aspecto del diálogo de global.css. */
 .configuracion__fondo {
   position: fixed;
   inset: 0;
@@ -75,19 +101,57 @@
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: color-mix(in srgb, var(--texto) 60%, transparent);
+  background: var(--velo);
 }
+
 .configuracion__confirmacion {
-  width: min(100%, 32rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   max-height: 90vh;
-  overflow: auto;
   margin: 0;
+  padding: 1.375rem 1.5rem 1.25rem;
+  overflow: auto;
+  animation: entrar-dialogo var(--normal) var(--curva-enfasis) both;
 }
+
+.configuracion__confirmacion strong {
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
 .configuracion__confirmacion .boton {
   min-height: 2.75rem;
 }
+
 @media (max-width: 48rem) {
   .configuracion__fila {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* Índice de grupos: saltos a cada tarjeta sin recorrer todas las filas. */
+.configuracion__indice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.configuracion__indice a {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+  text-decoration: none;
+}
+
+.configuracion__indice a:hover {
+  border-color: var(--borde-control);
+  color: var(--tinta);
+}
+
+.configuracion__grupo {
+  scroll-margin-top: 5rem;
 }

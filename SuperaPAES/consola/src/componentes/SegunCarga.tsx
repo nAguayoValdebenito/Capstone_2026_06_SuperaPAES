@@ -17,7 +17,12 @@ export function SegunCarga<T>({
   fallida?: string;
   children: (datos: T) => ReactNode;
 }) {
-  if (carga.tipo === 'cargando') return <p aria-live="polite">{cargando}</p>;
+  if (carga.tipo === 'cargando')
+    return (
+      <p className="cargando" aria-live="polite">
+        {cargando}
+      </p>
+    );
   if (carga.tipo === 'fallida') {
     return fallida ? (
       <Alerta texto={fallida} />

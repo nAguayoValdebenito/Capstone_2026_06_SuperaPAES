@@ -1,6 +1,7 @@
 // C05 · Generador con IA (HU-16.4, HU-17.3 y HU-18.3, CU-17): pedir un lote y ver cómo terminó.
 import { SegunCarga } from '../../componentes/SegunCarga';
 import { useGenerador } from '../../estado/generador';
+import { useMezclaPedida } from '../../estado/mezcla-pedida';
 import type { UsoIa } from '../../tipos/generador';
 import { textosDeUso } from '../../utilidades/generador';
 import { DetalleLote } from './DetalleLote';
@@ -23,6 +24,7 @@ export function PaginaGenerador() {
   const estado = useGenerador();
   const { temario, lotes, lote, uso, resultado } = estado;
   const { elegir, irAPagina, pedir, enviando, error } = estado;
+  const mezcla = useMezclaPedida();
   return (
     <section className="pagina pagina--ancha generador">
       <h1>Generador IA</h1>
@@ -41,6 +43,7 @@ export function PaginaGenerador() {
                 pruebas={pruebas}
                 enviando={enviando}
                 error={error}
+                mezcla={mezcla}
                 alPedir={(pedido) => void pedir(pedido)}
               />
               <DetalleLote lote={lote} resultado={resultado} pruebas={pruebas} />

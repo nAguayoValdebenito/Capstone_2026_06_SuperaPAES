@@ -1,5 +1,6 @@
 // Lista de suscripciones (C16, HU-56 esc. 2): estudiante, plan, tienda, estado y desde cuándo. El correo
 // abre la línea de tiempo; una cuenta eliminada sale como «Cuenta eliminada». Solo presenta.
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import type { SuscripcionDeLaLista } from '../../tipos/suscripciones';
 import { estudianteDe, fechaDeChile } from '../../utilidades/suscripciones';
 
@@ -12,7 +13,7 @@ interface Propiedades {
 
 export function TablaSuscripciones({ suscripciones, elegida, alVer }: Propiedades) {
   if (suscripciones.length === 0) {
-    return <p className="suscripciones__vacio">No hay suscripciones con estos filtros.</p>;
+    return <EstadoVacio titulo="No hay suscripciones con estos filtros." />;
   }
   return (
     <div className="tabla-desplazable">
@@ -31,11 +32,12 @@ export function TablaSuscripciones({ suscripciones, elegida, alVer }: Propiedade
             <tr
               key={suscripcion.id}
               className={suscripcion.id === elegida ? 'fila--elegida' : undefined}
+              aria-current={suscripcion.id === elegida ? 'true' : undefined}
             >
               <td>
                 <button
                   type="button"
-                  className="boton-texto"
+                  className="boton-texto suscripciones__correo"
                   aria-pressed={suscripcion.id === elegida}
                   onClick={() => alVer(suscripcion.id)}
                 >
@@ -49,7 +51,7 @@ export function TablaSuscripciones({ suscripciones, elegida, alVer }: Propiedade
                   {suscripcion.estado.nombre}
                 </span>
               </td>
-              <td>{fechaDeChile(suscripcion.creadoEn)}</td>
+              <td className="suscripciones__fecha">{fechaDeChile(suscripcion.creadoEn)}</td>
             </tr>
           ))}
         </tbody>

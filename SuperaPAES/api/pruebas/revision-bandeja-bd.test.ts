@@ -91,8 +91,12 @@ describe.skipIf(!urlBase)('bandeja del docente con PostgreSQL (HU-22, CP-16)', (
         preguntaId,
         ronda: 1,
         prueba: expect.objectContaining({ codigo: 'HCS' }),
+        // La fecha de asignación va en el folio del acta, y es anterior a la fecha límite.
+        asignadoEn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
       }),
     ]);
+    const [primera] = deH1;
+    expect(Date.parse(primera!.asignadoEn)).toBeLessThan(Date.parse(primera!.venceEn));
     expect(deH3).toEqual([]);
   });
 

@@ -1,6 +1,7 @@
 // El acierto de una pregunta frente al rango esperado de su dificultad (D04, RN-15): una barra con el
 // rango sombreado y una marca en el valor real, siempre con el texto al lado. La barra es decorativa: el
-// texto dice el valor, el rango y si cae bajo o sobre el rango.
+// texto dice el valor, el rango y si cae bajo o sobre el rango. El rango lleva el tono de su dificultad
+// (escala --dif-*, calibracion.css).
 import { posicionEnRango, textoDeAcierto } from '../../estado/calibracion';
 import type { DificultadConRango } from '../../tipos/calibracion';
 
@@ -20,7 +21,7 @@ export function BarraAcierto({
     <div className="calibracion__acierto">
       <span className="calibracion__barra" aria-hidden="true">
         <span
-          className="calibracion__rango"
+          className={`calibracion__rango calibracion__rango--${dificultad.codigo}`}
           style={{
             left: `${String(acotar(dificultad.aciertoEsperadoMin))}%`,
             width: `${String(acotar(dificultad.aciertoEsperadoMax - dificultad.aciertoEsperadoMin))}%`,

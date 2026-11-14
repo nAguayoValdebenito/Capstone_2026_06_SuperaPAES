@@ -195,6 +195,16 @@ export const esquemaFiltrosAvisos = z.strictObject({
   porPagina: numeroDePagina(POR_PAGINA_BANCO, MAXIMO_POR_PAGINA_BANCO),
 });
 
+/** Búsqueda global (Ctrl K): el texto o ID a buscar y cuántos resultados traer (hasta 20). */
+export const esquemaBusquedaPreguntas = z.strictObject({
+  texto: z
+    .string('Escribe qué buscar.')
+    .trim()
+    .min(1, 'Escribe qué buscar.')
+    .max(100, 'La búsqueda admite hasta 100 caracteres.'),
+  limite: z.coerce.number().int().min(1).max(20).default(8),
+});
+
 /** HU-50 esc. 2: un aviso se cierra como resuelto o descartado. */
 export const esquemaCierreAviso = z.strictObject({
   estado: z.enum(['resuelto', 'descartado'], 'El aviso se cierra como resuelto o descartado.'),
@@ -207,5 +217,6 @@ export type AlternativaPregunta = DatosPregunta['alternativas'][number];
 export type ArchivosImportacion = z.output<typeof esquemaArchivosImportacion>;
 export type DatosImportacion = z.output<typeof esquemaImportacion>;
 export type ArchivoCsv = ArchivosImportacion['preguntas'];
+export type BusquedaDePreguntas = z.output<typeof esquemaBusquedaPreguntas>;
 export type FiltrosAvisos = z.output<typeof esquemaFiltrosAvisos>;
 export type CierreAviso = z.output<typeof esquemaCierreAviso>['estado'];

@@ -2,8 +2,9 @@
 // datos personales, con las pendientes primero y la fecha límite más próxima arriba, la etiqueta de plazo
 // en texto, el filtro por estado y el detalle en un panel lateral (como C13) con la respuesta o el
 // rechazo y su confirmación. La lógica vive en estado/solicitudes-datos.ts.
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Alerta } from '../../componentes/Alerta';
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import { Paginacion } from '../../componentes/Paginacion';
 import { Pestanas } from '../../componentes/Pestanas';
 import {
@@ -29,7 +30,7 @@ function Bandeja({ estado, datos }: { estado: EstadoSolicitudesDatos; datos: Ban
   const botonResponder = useRef<HTMLButtonElement>(null);
   const botonRechazar = useRef<HTMLButtonElement>(null);
   const solicitud = solicitudElegida(datos.solicitudes, estado.elegida);
-  if (!solicitud) return <p className="solicitudes__vacio">{VACIO[estado.estado]}</p>;
+  if (!solicitud) return <EstadoVacio titulo={VACIO[estado.estado]} />;
   const { respuesta } = estado;
   const accion = respuesta.confirmacion;
   const cancelar = (abierta: AtencionSolicitud) => {
@@ -73,7 +74,13 @@ function Bandeja({ estado, datos }: { estado: EstadoSolicitudesDatos; datos: Ban
 }
 
 /** Las pestañas por estado, con el total de pendientes de la última carga. */
-function PestanasEstado({ estado }: { estado: EstadoSolicitudesDatos }) {
+function PestanasEstado({
+  estado,
+  children,
+}: {
+  estado: EstadoSolicitudesDatos;
+  children: ReactNode;
+}) {
   const pendientes = estado.carga.tipo === 'lista' ? estado.carga.datos.pendientes : 0;
   return (
     <Pestanas
@@ -81,7 +88,9 @@ function PestanasEstado({ estado }: { estado: EstadoSolicitudesDatos }) {
       opciones={pestanasDeEstado(pendientes)}
       valor={estado.estado}
       alElegir={estado.cambiarEstado}
-    />
+    >
+      {children}
+    </Pestanas>
   );
 }
 
@@ -95,25 +104,30 @@ export function VistaSolicitudes({ estado }: { estado: EstadoSolicitudesDatos })
         Derechos de la Ley 21.719 que piden los estudiantes desde la app, con su plazo legal de
         respuesta.
       </p>
-      <PestanasEstado estado={estado} />
-      {mensaje && (
-        <p
-          className={`aviso aviso--${mensaje.tipo}`}
-          role={mensaje.tipo === 'error' ? 'alert' : 'status'}
-        >
-          {mensaje.texto}
-        </p>
-      )}
-      {carga.tipo === 'cargando' && <p aria-live="polite">Cargando solicitudes…</p>}
-      {carga.tipo === 'fallida' && (
-        <div className="solicitudes__error">
-          <Alerta texto={carga.mensaje} codigo={carga.codigo} />
-          <button type="button" className="boton" onClick={estado.reintentar}>
-            Reintentar
-          </button>
-        </div>
-      )}
-      {carga.tipo === 'lista' && <Bandeja estado={estado} datos={carga.datos} />}
+      <PestanasEstado estado={estado}>
+        {mensaje && (
+          <p
+            className={`aviso aviso--${mensaje.tipo}`}
+            role={mensaje.tipo === 'error' ? 'alert' : 'status'}
+          >
+            {mensaje.texto}
+          </p>
+        )}
+        {carga.tipo === 'cargando' && (
+          <p aria-live="polite" className="cargando">
+            Cargando solicitudes…
+          </p>
+        )}
+        {carga.tipo === 'fallida' && (
+          <div className="solicitudes__error">
+            <Alerta texto={carga.mensaje} codigo={carga.codigo} />
+            <button type="button" className="boton" onClick={estado.reintentar}>
+              Reintentar
+            </button>
+          </div>
+        )}
+        {carga.tipo === 'lista' && <Bandeja estado={estado} datos={carga.datos} />}
+      </PestanasEstado>
     </section>
   );
 }

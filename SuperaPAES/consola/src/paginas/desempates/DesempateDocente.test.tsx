@@ -19,6 +19,7 @@ const PENDIENTE = {
   ronda: 1,
   prueba: { codigo: 'M1', nombre: 'Competencia Matemática 1' },
   contenido: 'Figuras geométricas',
+  asignadoEn: '2026-10-20T15:00:00.000Z',
   venceEn: '2026-10-22T15:00:00.000Z',
 };
 
@@ -137,6 +138,29 @@ describe('D02 · la pregunta y las dos revisiones (CU-20, RN-12)', () => {
     expect(dibujar({ aviso: 'Desempate de la pregunta 244 entregado.' })).toContain(
       'role="status">Desempate de la pregunta 244 entregado.',
     );
+  });
+});
+
+describe('D02 · la decisión como acta (folio y firma, como D01)', () => {
+  it('lleva el folio del desempate y la firma junto al botón', () => {
+    const html = textoDibujado(
+      <ContenidoDesempateDocente
+        desempate={{
+          bandeja: { tipo: 'lista', revisiones: [PENDIENTE] },
+          abierta: 950,
+          revision: { tipo: 'lista', pregunta: DESEMPATE },
+          ...formularioSinAcciones(),
+        }}
+        firma={{ quien: 'Ana Pérez', fecha: '14 de noviembre de 2026' }}
+      />,
+    );
+
+    expect(html).toMatch(/class="panel panel--ancho acta revision-acta revision-formulario"/);
+    expect(html).toContain(
+      '<span>Acta <b>P-0244</b></span><span>desempate de la ronda <b>1</b></span><span>asignada el <b>20-10-26</b></span><span>vence el <b>22-10-26</b></span>',
+    );
+    expect(html).toContain('Firma <b>Ana Pérez</b> · 14 de noviembre de 2026');
+    expect(html).toContain('class="aviso aviso--advertencia"');
   });
 });
 

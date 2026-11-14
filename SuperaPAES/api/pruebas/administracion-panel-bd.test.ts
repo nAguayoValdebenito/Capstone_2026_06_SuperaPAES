@@ -1,7 +1,10 @@
 // C01 contra PostgreSQL real (HU-48, CU-25, RF-C06): indicadores del período en hora de Chile, sin datos personales.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { tasaDeAprobacion } from '../modulos/administracion/administracion.panel.servicio.js';
+import {
+  tasaDeAprobacion,
+  type IndicadoresPanel,
+} from '../modulos/administracion/administracion.panel.servicio.js';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
 import { prepararGenerador } from './generador-bd.js';
 
@@ -42,6 +45,18 @@ describe.skipIf(!urlBase)('panel con PostgreSQL (C01)', () => {
     const respuesta = await ver(periodo);
 
     expect(respuesta.body.data.respuestasPorDia).toHaveLength(dias);
+  });
+
+  it('trae el período anterior: misma duración, justo antes, con lo acumulado al empezar', async () => {
+    const { rango, anterior, estudiantes } = (await ver('7d')).body.data as IndicadoresPanel;
+
+    expect(anterior.rango.hasta).not.toBe(rango.desde);
+    const dias = (r: { desde: string; hasta: string }) =>
+      (Date.parse(r.hasta) - Date.parse(r.desde)) / 86_400_000 + 1;
+    expect(dias(anterior.rango)).toBe(7);
+    expect(Date.parse(rango.desde) - Date.parse(anterior.rango.hasta)).toBe(86_400_000);
+    expect(anterior.estudiantes.registrados).toBeLessThanOrEqual(estudiantes.registrados);
+    expect(anterior.ia).toEqual({ revisadas: 0, aprobadas: 0, tasa: null });
   });
 
   it('este mes parte el día 1', async () => {

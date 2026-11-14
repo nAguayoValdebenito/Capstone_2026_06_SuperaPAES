@@ -71,7 +71,7 @@ function CamposClasificacion({
         etiqueta="Tipo de pregunta"
         valor={campos.tipoPregunta}
         opciones={deLista(prueba?.tiposPregunta ?? [])}
-        textoVacio={prueba ? null : 'Elige la prueba'}
+        textoVacio={prueba ? null : 'Elige primero la prueba'}
         deshabilitado={!prueba}
         alCambiar={(valor) => editor.cambiar({ tipoPregunta: valor })}
       >

@@ -28,6 +28,8 @@ export interface ApiDeBandeja<P extends RevisionPendiente> {
   listar: (senal: AbortSignal) => Promise<RevisionPendiente[]>;
   obtener: (id: number, senal: AbortSignal) => Promise<P>;
   validar: (campos: CamposRevision, pregunta: P) => ErroresRevision;
+  /** Ajusta los campos a lo que permite la pregunta (por ejemplo, sin una aprobación que ya no cabe). */
+  ajustar?: (campos: CamposRevision, pregunta: P) => CamposRevision;
   entregar: (campos: CamposRevision, pregunta: P) => Promise<unknown>;
   aviso: (pregunta: P) => string;
 }
@@ -136,10 +138,12 @@ export function useBandejaDocente<P extends RevisionPendiente>(
 ) {
   const { bandeja, abierta, revision, elegir, entregada } = useAbierta(api, inicial);
   const formulario = useFormulario(abierta);
-  const { campos, setIntentado, setErroresApi } = formulario;
+  const { setIntentado, setErroresApi } = formulario;
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const pregunta = revision.tipo === 'lista' ? revision.pregunta : null;
+  const campos =
+    pregunta && api.ajustar ? api.ajustar(formulario.campos, pregunta) : formulario.campos;
   const errores: ErroresRevision = {
     ...(formulario.intentado && pregunta ? api.validar(campos, pregunta) : {}),
     ...formulario.erroresApi,

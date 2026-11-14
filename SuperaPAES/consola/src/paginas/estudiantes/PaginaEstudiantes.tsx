@@ -4,6 +4,7 @@
 // verificación, el administrador confirma la cuenta (HU-05 esc. 4, CU-02b). La lógica vive en
 // estado/estudiantes.ts.
 import { Alerta } from '../../componentes/Alerta';
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import { Paginacion } from '../../componentes/Paginacion';
 import { Selector } from '../../componentes/Selector';
 import {
@@ -59,7 +60,13 @@ function Filtros({ estado }: { estado: EstadoEstudiantes }) {
 
 function Listado({ estado }: { estado: EstadoEstudiantes }) {
   const { carga } = estado;
-  if (carga.tipo === 'cargando') return <p aria-live="polite">Cargando estudiantes…</p>;
+  if (carga.tipo === 'cargando') {
+    return (
+      <p aria-live="polite" className="cargando">
+        Cargando estudiantes…
+      </p>
+    );
+  }
   if (carga.tipo === 'fallida') {
     return (
       <div className="estudiantes__error">
@@ -72,7 +79,7 @@ function Listado({ estado }: { estado: EstadoEstudiantes }) {
   }
   const { estudiantes, paginacion } = carga.datos;
   if (estudiantes.length === 0 && paginacion.total === 0) {
-    return <p className="estudiantes__vacio">{textoSinEstudiantes(estado.filtros)}</p>;
+    return <EstadoVacio titulo={textoSinEstudiantes(estado.filtros)} />;
   }
   return (
     <>
@@ -92,7 +99,7 @@ function Listado({ estado }: { estado: EstadoEstudiantes }) {
 
 export function VistaEstudiantes({ estado }: { estado: EstadoEstudiantes }) {
   return (
-    <section className="pagina pagina--ancha">
+    <section className="pagina pagina--ancha estudiantes">
       <h1>Estudiantes</h1>
       <p className="pagina__aviso">
         Todos los estudiantes registrados en la app, del más reciente al más antiguo. Si a alguno no
@@ -101,7 +108,7 @@ export function VistaEstudiantes({ estado }: { estado: EstadoEstudiantes }) {
       <Filtros estado={estado} />
       {estado.error && <Alerta texto={estado.error} />}
       {estado.aviso && (
-        <p className="estado__ok" role="status">
+        <p className="aviso aviso--exito" role="status">
           {estado.aviso}
         </p>
       )}

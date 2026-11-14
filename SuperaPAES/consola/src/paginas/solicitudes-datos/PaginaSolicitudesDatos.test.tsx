@@ -88,7 +88,7 @@ describe('bandeja de solicitudes (HU-55 esc. 1)', () => {
 
     expect(llamadas[0]).toMatchObject({ metodo: 'GET', ruta: `${RUTA}?estado=pendiente` });
     expect(texto()).not.toContain('En construcción');
-    expect(boton('Pendientes (2)').getAttribute('aria-pressed')).toBe('true');
+    expect(boton('Pendientes (2)').getAttribute('aria-selected')).toBe('true');
     expect(filas()).toHaveLength(2);
     expect(filas()[0]).toContain('10-11-2026');
     expect(filas()[0]).toContain('Vencida hace 2 días');

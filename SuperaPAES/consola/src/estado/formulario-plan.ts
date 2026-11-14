@@ -22,10 +22,21 @@ export function useFormularioPlan(
   const [error, setError] = useState('');
   const cambiar = (cambio: Partial<EdicionPlan>) =>
     setCampos((actual) => ({ ...actual, ...cambio }));
-  const enviar = (evento: FormEvent) => {
-    evento.preventDefault();
+  // Desactivar un plan activo lo saca de la tienda para quien no lo tiene: se confirma antes.
+  const [porConfirmar, setPorConfirmar] = useState(false);
+  const hacerGuardar = () => {
     setError('');
     guardar(campos).catch((problema: unknown) => setError(mensajeDeError(problema).mensaje));
   };
-  return { campos, cambiar, enviar, error };
+  const enviar = (evento: FormEvent) => {
+    evento.preventDefault();
+    if (plan.activo && !campos.activo) setPorConfirmar(true);
+    else hacerGuardar();
+  };
+  const confirmar = () => {
+    setPorConfirmar(false);
+    hacerGuardar();
+  };
+  const cancelar = () => setPorConfirmar(false);
+  return { campos, cambiar, enviar, error, porConfirmar, confirmar, cancelar };
 }

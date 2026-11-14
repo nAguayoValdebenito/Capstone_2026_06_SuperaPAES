@@ -7,6 +7,7 @@ import {
   useVerificacionCorreo,
   type EstadoVerificacion,
 } from '../../estado/verificar-correo';
+import { HojaActa } from '../ingreso/HojaActa';
 import { Aviso } from '../restablecer-contrasena/PaginaRestablecerContrasena';
 import '../restablecer-contrasena/restablecer-contrasena.css';
 
@@ -65,7 +66,7 @@ export function PaginaVerificarCorreo() {
   const token = parametros.get('token')?.trim() ?? '';
 
   return (
-    <main className="restablecer">
+    <HojaActa clase="restablecer">
       {token ? (
         <Verificacion key={token} token={token} />
       ) : (
@@ -76,6 +77,6 @@ export function PaginaVerificarCorreo() {
           extra={MENSAJES_VERIFICACION.pedirOtro}
         />
       )}
-    </main>
+    </HojaActa>
   );
 }

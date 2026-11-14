@@ -1,3 +1,4 @@
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import { SegunCarga } from '../../componentes/SegunCarga';
 import { useConfiguracion } from '../../estado/configuracion';
 import type { ParametroConfiguracion } from '../../tipos/configuracion';
@@ -7,6 +8,27 @@ import { GRUPOS_CONFIGURACION } from './grupos';
 import './configuracion.css';
 
 type Estado = ReturnType<typeof useConfiguracion>;
+
+/** El ancla de un grupo, para el índice de arriba. */
+function idDeGrupo(titulo: string): string {
+  return `grupo-${titulo
+    .normalize('NFD')
+    .replaceAll(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '-')}`;
+}
+
+function Indice({ titulos }: { titulos: string[] }) {
+  return (
+    <nav className="configuracion__indice" aria-label="Grupos de parámetros">
+      {titulos.map((titulo) => (
+        <a key={titulo} href={`#${idDeGrupo(titulo)}`}>
+          {titulo}
+        </a>
+      ))}
+    </nav>
+  );
+}
 
 function Grupo({
   titulo,
@@ -19,7 +41,7 @@ function Grupo({
 }) {
   if (parametros.length === 0) return null;
   return (
-    <section className="configuracion__grupo" aria-label={titulo}>
+    <section className="configuracion__grupo" aria-label={titulo} id={idDeGrupo(titulo)}>
       <h2>{titulo}</h2>
       <ul>
         {parametros.map((parametro) => (
@@ -39,11 +61,16 @@ function Grupo({
 }
 
 function Grupos({ parametros, estado }: { parametros: ParametroConfiguracion[]; estado: Estado }) {
-  if (parametros.length === 0) return <p>No hay parámetros de configuración para mostrar.</p>;
+  if (parametros.length === 0)
+    return <EstadoVacio titulo="No hay parámetros de configuración para mostrar." />;
   const asignadas = new Set<string>(GRUPOS_CONFIGURACION.flatMap((grupo) => grupo.claves));
   const otros = parametros.filter((parametro) => !asignadas.has(parametro.clave));
+  const conParametros = GRUPOS_CONFIGURACION.filter((grupo) =>
+    parametros.some((parametro) => grupo.claves.some((clave: string) => clave === parametro.clave)),
+  ).map((grupo) => grupo.titulo);
   return (
     <>
+      <Indice titulos={otros.length > 0 ? [...conParametros, 'Otros parámetros'] : conParametros} />
       {GRUPOS_CONFIGURACION.map((grupo) => (
         <Grupo
           key={grupo.titulo}

@@ -75,12 +75,14 @@ async function hacer(preguntaId: number, accion: AccionDelBanco): Promise<string
  */
 export function useAccionesDelBanco(alTerminar: () => void, avisoInicial: string | null) {
   const [enCurso, setEnCurso] = useState<number | null>(null);
+  // Retirar saca la pregunta de la app: primero se confirma en un diálogo.
+  const [porRetirar, setPorRetirar] = useState<number | null>(null);
   const [hechas, setHechas] = useState<ReadonlySet<string>>(new Set());
   const [aviso, setAviso] = useState<AvisoDelBanco | null>(
     avisoInicial === null ? null : { tipo: 'exito', texto: avisoInicial },
   );
 
-  const ejecutar = (preguntaId: number, accion: AccionDelBanco) => {
+  const hacerAhora = (preguntaId: number, accion: AccionDelBanco) => {
     if (enCurso !== null || hechas.has(claveDeAccion(preguntaId, accion))) return;
     setEnCurso(preguntaId);
     setAviso(null);
@@ -100,5 +102,15 @@ export function useAccionesDelBanco(alTerminar: () => void, avisoInicial: string
       .finally(() => setEnCurso(null));
   };
 
-  return { enCurso, hechas, aviso, ejecutar };
+  const ejecutar = (preguntaId: number, accion: AccionDelBanco) => {
+    if (accion === 'retirar') setPorRetirar(preguntaId);
+    else hacerAhora(preguntaId, accion);
+  };
+  const confirmarRetiro = () => {
+    if (porRetirar !== null) hacerAhora(porRetirar, 'retirar');
+    setPorRetirar(null);
+  };
+  const cancelarRetiro = () => setPorRetirar(null);
+
+  return { enCurso, hechas, aviso, ejecutar, porRetirar, confirmarRetiro, cancelarRetiro };
 }

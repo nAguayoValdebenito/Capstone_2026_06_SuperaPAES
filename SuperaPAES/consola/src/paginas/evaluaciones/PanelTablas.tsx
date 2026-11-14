@@ -14,10 +14,14 @@ function Fila({ tabla }: { tabla: TablaConversion }) {
       <th scope="row">{tabla.anioAdmision}</th>
       <td>{tabla.proceso}</td>
       <td>{tabla.electivo ?? '—'}</td>
-      <td>{tabla.publicadaEn}</td>
-      <td>{tabla.filas}</td>
+      <td className="evaluaciones__fecha">{tabla.publicadaEn}</td>
+      <td className="tabla__numero">{tabla.filas}</td>
       <td>
-        {tabla.vigente ? <span className="etiqueta etiqueta--activa">Vigente</span> : 'Anterior'}
+        {tabla.vigente ? (
+          <span className="etiqueta etiqueta--vigente">Vigente</span>
+        ) : (
+          <span className="etiqueta">Anterior</span>
+        )}
       </td>
     </tr>
   );
@@ -28,7 +32,7 @@ export function PanelTablas({ pruebaId }: { pruebaId: number }) {
   return (
     <>
       {aviso && (
-        <p className="estado__ok" role="status">
+        <p className="aviso aviso--exito" role="status">
           {aviso}
         </p>
       )}
@@ -37,7 +41,7 @@ export function PanelTablas({ pruebaId }: { pruebaId: number }) {
           <>
             {tablas.length > 0 ? (
               <div className="tabla-desplazable">
-                <table className="tabla">
+                <table className="tabla evaluaciones__tabla">
                   <EncabezadoTabla columnas={COLUMNAS} />
                   <tbody>
                     {tablas.map((tabla) => (
@@ -47,7 +51,9 @@ export function PanelTablas({ pruebaId }: { pruebaId: number }) {
                 </table>
               </div>
             ) : (
-              <p>Esta prueba aún no tiene tabla: el ensayo completo se muestra sin puntaje.</p>
+              <p className="aviso aviso--info">
+                Esta prueba aún no tiene tabla: el ensayo completo se muestra sin puntaje.
+              </p>
             )}
             <FormularioTabla
               pruebaId={pruebaId}

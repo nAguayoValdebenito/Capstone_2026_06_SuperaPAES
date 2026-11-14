@@ -27,3 +27,14 @@ export async function consultarListasOpciones(senal?: AbortSignal): Promise<List
   );
   return data;
 }
+
+/** C09 (HU-64, RN-09): guarda la mezcla global de dificultad; devuelve las dificultades vigentes. */
+export async function guardarMezclaDificultad(
+  dificultades: readonly { codigo: string; minimo: number; objetivo: number; maximo: number }[],
+): Promise<ListasOpciones['dificultades']> {
+  const { data } = await solicitarAdmin<ListasOpciones['dificultades']>(
+    '/temario/listas-opciones/dificultades',
+    { method: 'PUT', body: JSON.stringify({ dificultades }) },
+  );
+  return data;
+}

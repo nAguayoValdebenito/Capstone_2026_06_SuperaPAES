@@ -1,3 +1,4 @@
+import { estiloDeSello } from '../../estado/sello-prueba';
 import type { ContenidoTemarioConsulta, PruebaTemarioConsulta } from '../../tipos/temario';
 
 function Contenido({
@@ -69,7 +70,9 @@ export function PruebaTemario({ prueba }: { prueba: PruebaTemarioConsulta }) {
   return (
     <article className="temario__prueba" aria-labelledby={`prueba-temario-${prueba.id}`}>
       <header className="temario__cabecera">
-        <span className="temario__insignia">{prueba.codigo}</span>
+        <span className="temario__insignia" style={estiloDeSello(prueba.codigo)}>
+          {prueba.codigo}
+        </span>
         <h2 id={`prueba-temario-${prueba.id}`}>{prueba.nombre}</h2>
       </header>
       <div className="temario__columnas">

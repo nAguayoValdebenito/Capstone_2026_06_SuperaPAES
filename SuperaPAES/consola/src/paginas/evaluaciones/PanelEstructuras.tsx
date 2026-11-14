@@ -26,15 +26,15 @@ function Fila({
   alEditar: () => void;
 }) {
   return (
-    <tr>
+    <tr aria-current={editando ? 'true' : undefined}>
       <th scope="row">{estructura.tipoNombre}</th>
-      <td>{preguntasDe(estructura)}</td>
-      <td>{estructura.noPuntuables}</td>
-      <td>{tiempoDe(estructura)}</td>
-      <td>{textosDe(estructura)}</td>
-      <td>{gratisDe(estructura)}</td>
+      <td className="tabla__numero">{preguntasDe(estructura)}</td>
+      <td className="tabla__numero">{estructura.noPuntuables}</td>
+      <td className="tabla__numero">{tiempoDe(estructura)}</td>
+      <td className="tabla__numero">{textosDe(estructura)}</td>
+      <td className="tabla__numero">{gratisDe(estructura)}</td>
       <td>
-        <button type="button" className="boton" disabled={editando} onClick={alEditar}>
+        <button type="button" className="boton boton--chico" disabled={editando} onClick={alEditar}>
           {editando ? 'Editando' : 'Editar'}
         </button>
       </td>
@@ -48,7 +48,7 @@ export function PanelEstructuras({ pruebaId }: { pruebaId: number }) {
   return (
     <>
       {aviso && (
-        <p className="estado__ok" role="status">
+        <p className="aviso aviso--exito" role="status">
           {aviso}
         </p>
       )}
@@ -58,7 +58,7 @@ export function PanelEstructuras({ pruebaId }: { pruebaId: number }) {
           return (
             <>
               <div className="tabla-desplazable">
-                <table className="tabla">
+                <table className="tabla evaluaciones__tabla">
                   <EncabezadoTabla columnas={COLUMNAS} />
                   <tbody>
                     {estructuras.map((estructura) => (

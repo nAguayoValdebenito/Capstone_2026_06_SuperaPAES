@@ -1,5 +1,6 @@
 /* Calibración (D04): bandeja del docente con la barra de acierto y la confirmación de su decisión. Solo
-   tokens del tema (estilos/global.css). */
+   tokens del tema (estilos/global.css): el rango esperado lleva el tono de su dificultad (--dif-*) y la
+   confirmación tiene el aspecto del diálogo de la consola (.dialogo). */
 .calibracion__tabla {
   min-width: 52rem;
 }
@@ -17,25 +18,40 @@
   height: 0.5rem;
   border: 1px solid var(--borde);
   border-radius: 999px;
-  background: var(--fondo);
+  background: var(--superficie-2);
 }
 
 .calibracion__rango {
+  --dif: var(--tinta-3);
   position: absolute;
   top: 0;
   bottom: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--exito) 35%, transparent);
+  background: color-mix(in srgb, var(--dif) 30%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dif) 55%, transparent);
+}
+
+.calibracion__rango--facil {
+  --dif: var(--dif-facil);
+}
+
+.calibracion__rango--media {
+  --dif: var(--dif-media);
+}
+
+.calibracion__rango--dificil {
+  --dif: var(--dif-dificil);
 }
 
 .calibracion__marca {
   position: absolute;
-  top: -0.25rem;
-  width: 0.25rem;
-  height: 1rem;
-  margin-left: -0.125rem;
-  border-radius: 0.125rem;
-  background: var(--texto);
+  top: -0.3125rem;
+  width: 3px;
+  height: 1.0625rem;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--tinta);
+  box-shadow: 0 0 0 2px var(--superficie);
 }
 
 .calibracion__marca--bajo-el-rango,
@@ -43,8 +59,12 @@
   background: var(--error);
 }
 
+/* El valor, el rango y la posición: cifras en letra de datos. */
 .calibracion__texto {
-  font-size: var(--texto-sm);
+  color: var(--tinta-2);
+  font-family: var(--fuente-datos);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .calibracion__acciones {
@@ -58,7 +78,7 @@
   margin-top: 1.5rem;
 }
 
-/* Fondo de la confirmación: cubre la pantalla y centra el cuadro. */
+/* Fondo de la confirmación: el velo del diálogo, cubre la pantalla y centra el cuadro. */
 .calibracion__fondo {
   position: fixed;
   inset: 0;
@@ -67,19 +87,19 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: color-mix(in srgb, var(--texto) 45%, transparent);
+  background: var(--velo);
+  animation: calibracion-velo var(--normal) var(--curva-entrada) both;
 }
 
 .calibracion__confirmacion {
-  display: grid;
-  gap: 1rem;
-  width: min(30rem, 100%);
   margin: 0;
+  animation: entrar-dialogo var(--normal) var(--curva-enfasis) both;
 }
 
-.calibracion__confirmacion h2,
-.calibracion__confirmacion p {
-  margin: 0;
+@keyframes calibracion-velo {
+  from {
+    opacity: 0;
+  }
 }
 
 /* En pantallas táctiles, los botones de la fila miden al menos 44 px. */

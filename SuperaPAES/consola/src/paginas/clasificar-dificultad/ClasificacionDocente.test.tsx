@@ -29,6 +29,7 @@ const pregunta = (id: number, preguntaId: number, enunciado: string): PreguntaAC
   eje: 'Probabilidad y estadística',
   contenido: 'Medidas de posición',
   habilidad: 'Resolver problemas',
+  asignadoEn: '2026-10-20T15:00:00.000Z',
   venceEn: '2026-11-16T15:00:00.000Z',
   enunciado,
   explicacion: 'El valor central es 3.',

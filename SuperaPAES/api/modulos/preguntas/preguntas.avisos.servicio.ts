@@ -55,6 +55,8 @@ export interface PaginaDeAvisos {
 export interface AvisosDeError {
   /** HU-50 esc. 1: la bandeja paginada por pregunta. 400 si el motivo no existe. */
   listarAvisos(filtros: FiltrosAvisos): Promise<PaginaDeAvisos>;
+  /** El total de avisos pendientes del banco (contador del menú de la consola). */
+  contarAvisosPendientes(): Promise<number>;
   /** HU-50 esc. 2: 404 si el aviso no existe; 409 si ya está cerrado. */
   cerrarAviso(administradorId: string, id: string, estado: CierreAviso): Promise<AvisoDeError>;
 }
@@ -184,6 +186,7 @@ export function crearAvisosDeError(
   return {
     ...crearAnulacionPreguntas(dependencias),
     listarAvisos: (filtros) => listarAvisos(dependencias, filtros),
+    contarAvisosPendientes: () => dependencias.repositorio.contarPendientes(),
     cerrarAviso: (administradorId, id, estado) =>
       cerrarAviso(dependencias, administradorId, [id, estado]),
   };

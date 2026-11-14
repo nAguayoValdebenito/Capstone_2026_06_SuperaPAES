@@ -1,86 +1,54 @@
-/* W01 y W02 · Página de invitación: página pública que se abre en el teléfono o en el computador.
-   Sigue el boceto de Figma (prototipo v3) y el sistema de diseño de la app (DAS 7.5), como A05, por
-   eso tiene sus propios estilos y no los de la consola de escritorio. */
-
-.invitar {
-  /* Colores del sistema de diseño que la consola no define. */
-  --i-primario-suave: #e8eefd;
-  --i-texto-secundario: #4b5563;
-  --i-borde: #dde3ec;
-  --i-borde-input: #c9d2df;
-  --i-error-suave: #fdecec;
-  --i-error-texto: #7f1d1d;
-
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-  width: min(28rem, 100%);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 1.5rem;
-  color: var(--texto);
-}
-
-.invitar__marca {
-  margin: 0;
-  color: var(--primario);
-  font-size: 1.125rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.invitar h1 {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 800;
-  line-height: 1.2;
-}
+/* W01 y W02 · Página de invitación: página pública que se abre en el teléfono o en el computador, dentro
+   de la hoja de acta (ingreso/hoja-acta.css). Solo tokens de la consola, para el tema claro y el oscuro;
+   el código va en letra de datos. */
 
 .invitar__bajada,
 .invitar__pie {
   margin: 0;
-  color: var(--i-texto-secundario);
+  color: var(--tinta-2);
 }
 
 .invitar__bajada {
-  margin-top: -0.5rem;
-  font-size: 1rem;
+  margin-top: -0.75rem;
+  font-size: var(--t-base);
   line-height: 1.45;
 }
 
 .invitar__pie {
-  font-size: 0.875rem;
-  line-height: 1.4;
+  font-size: var(--t-sm);
+  line-height: 1.45;
   text-align: center;
 }
 
 .invitar__tarjeta {
   margin: 0;
-  padding: 1.25rem;
-  background: var(--superficie);
-  border: 1px solid var(--i-borde);
-  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--r-medio);
+  background: var(--superficie-2);
 }
 
 .invitar__codigo {
   display: grid;
-  justify-items: center;
   gap: 0.5rem;
+  justify-items: center;
   text-align: center;
 }
 
 .invitar__codigo h2 {
   margin: 0;
-  color: var(--i-texto-secundario);
-  font-size: 0.9375rem;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
   font-weight: 600;
 }
 
 .invitar__valor {
   margin: 0;
-  font-size: 2.75rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  color: var(--tinta);
+  font-family: var(--fuente-datos);
+  font-size: 2.25rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   /* Un código largo no se sale de la tarjeta con letra grande. */
   overflow-wrap: anywhere;
 }
@@ -88,48 +56,75 @@
 .invitar__copiar {
   min-height: 2.75rem;
   padding: 0 1.25rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--r-chico);
   background: var(--superficie);
-  color: var(--texto);
-  border: 1px solid var(--i-borde-input);
-  border-radius: 0.75rem;
+  color: var(--tinta);
   font: inherit;
-  font-weight: 700;
+  font-size: var(--t-sm);
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    background var(--rapido) ease,
+    border-color var(--rapido) ease,
+    transform 100ms ease;
+}
+
+.invitar__copiar:hover {
+  border-color: var(--tinta-3);
+  background: var(--superficie-2);
+}
+
+.invitar__copiar:active {
+  transform: scale(0.98);
 }
 
 .invitar__copiar:focus-visible,
 .invitar__tienda:focus-visible {
-  outline: 3px solid var(--foco);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
 .invitar__estado {
   min-height: 1.25rem;
   margin: 0;
-  color: var(--i-texto-secundario);
-  font-size: 0.8125rem;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
 }
 
 .invitar__aviso {
+  display: flex;
+  gap: 0.625rem;
+  align-items: baseline;
   margin: 0;
   padding: 0.75rem 0.875rem;
-  background: var(--i-error-suave);
-  color: var(--i-error-texto);
-  border-radius: 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.4;
+  border-radius: var(--r-medio);
+  background: var(--error-suave);
+  color: var(--tinta);
+  font-size: var(--t-sm);
+  line-height: 1.45;
 }
 
+.invitar__aviso::before {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--error);
+  mask: var(--marca-cruz) center / contain no-repeat;
+}
+
+/* Pasos numerados con la cifra en letra de datos, en un círculo del primario suave. */
 .invitar__pasos {
   display: grid;
-  gap: 0.875rem;
+  gap: 0.75rem;
   list-style: none;
   counter-reset: paso;
 }
 
 .invitar__pasos li {
   display: flex;
-  gap: 0.875rem;
+  gap: 0.75rem;
   align-items: center;
   line-height: 1.4;
   counter-increment: paso;
@@ -142,26 +137,33 @@
   place-items: center;
   width: 1.75rem;
   height: 1.75rem;
-  background: var(--i-primario-suave);
-  color: var(--primario);
   border-radius: 50%;
-  font-size: 0.875rem;
-  font-weight: 700;
+  background: var(--primario-suave);
+  color: var(--primario-texto);
+  font-family: var(--fuente-datos);
+  font-size: var(--t-sm);
+  font-weight: 500;
 }
 
+/* Botón de una tienda: tinta sólida sobre la hoja; sin enlace configurado, apagado. */
 .invitar__tienda {
   display: flex;
   gap: 0.875rem;
   align-items: center;
   justify-content: center;
-  min-height: 3.5rem;
+  min-height: 3.25rem;
   padding: 0.5rem 1rem;
-  background: var(--texto);
-  color: #ffffff;
-  border-radius: 0.875rem;
-  text-decoration: none;
-  font-size: 1.125rem;
+  border-radius: var(--r-medio);
+  background: var(--publicada-fondo);
+  color: var(--publicada-texto);
+  font-size: var(--t-md);
   font-weight: 700;
+  text-decoration: none;
+  transition: transform 100ms ease;
+}
+
+.invitar__tienda:active {
+  transform: scale(0.98);
 }
 
 .invitar__tienda span {
@@ -177,6 +179,11 @@
 }
 
 .invitar__tienda--pronto {
-  background: var(--i-primario-suave);
-  color: var(--i-texto-secundario);
+  border: 1px dashed var(--borde-fuerte);
+  background: var(--neutro-suave);
+  color: var(--tinta-2);
+}
+
+.invitar__tienda--pronto:active {
+  transform: none;
 }

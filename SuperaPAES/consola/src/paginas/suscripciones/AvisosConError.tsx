@@ -1,5 +1,6 @@
 // Bandeja de avisos con error (C16, HU-56 esc. 4): cada aviso de Google Play o de la App Store que no se
 // pudo procesar, con el motivo; si se sabe de qué suscripción es, abre su línea de tiempo. Solo presenta.
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import type { AvisoConError } from '../../tipos/suscripciones';
 import { fechaDeChile } from '../../utilidades/suscripciones';
 
@@ -10,7 +11,7 @@ interface Propiedades {
 
 export function AvisosConError({ avisos, alVer }: Propiedades) {
   if (avisos.length === 0) {
-    return <p className="suscripciones__vacio">No hay avisos con error.</p>;
+    return <EstadoVacio titulo="No hay avisos con error." />;
   }
   return (
     <div className="tabla-desplazable">
@@ -28,13 +29,15 @@ export function AvisosConError({ avisos, alVer }: Propiedades) {
         <tbody>
           {avisos.map(({ id, recibidoEn, tienda, tipo, detalle, suscripcionId }) => (
             <tr key={id}>
-              <td>{fechaDeChile(recibidoEn)}</td>
+              <td className="suscripciones__fecha">{fechaDeChile(recibidoEn)}</td>
               <td>{tienda.nombre}</td>
-              <td>{tipo}</td>
+              <td>
+                <span className="dato-codigo">{tipo}</span>
+              </td>
               <td>{detalle}</td>
               <td>
                 {suscripcionId === null ? (
-                  'Sin asociar'
+                  <span className="tabla__secundario">Sin asociar</span>
                 ) : (
                   <button
                     type="button"

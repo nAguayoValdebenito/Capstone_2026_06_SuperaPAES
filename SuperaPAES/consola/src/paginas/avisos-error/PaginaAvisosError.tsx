@@ -4,6 +4,7 @@
 // estado/avisos-error.ts.
 import { useRef } from 'react';
 import { Alerta } from '../../componentes/Alerta';
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import { Paginacion } from '../../componentes/Paginacion';
 import { Selector } from '../../componentes/Selector';
 import {
@@ -49,7 +50,7 @@ function Bandeja({ estado, datos }: { estado: EstadoAvisosError; datos: PaginaDe
       estado.filtros.estado === 'pendiente'
         ? 'No hay avisos pendientes.'
         : 'No hay avisos con estos filtros.';
-    return <p className="avisos__vacio">{vacio}</p>;
+    return <EstadoVacio titulo={vacio} />;
   }
   const { anulacion } = estado;
   const cancelar = () => {
@@ -104,7 +105,11 @@ export function VistaAvisos({ estado }: { estado: EstadoAvisosError }) {
           {mensaje.texto}
         </p>
       )}
-      {carga.tipo === 'cargando' && <p aria-live="polite">Cargando avisos…</p>}
+      {carga.tipo === 'cargando' && (
+        <p aria-live="polite" className="cargando">
+          Cargando avisos…
+        </p>
+      )}
       {carga.tipo === 'fallida' && (
         <div className="avisos__error">
           <Alerta texto={carga.mensaje} codigo={carga.codigo} />

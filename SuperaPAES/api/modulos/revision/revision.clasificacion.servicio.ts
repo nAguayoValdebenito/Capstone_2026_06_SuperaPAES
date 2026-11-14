@@ -18,7 +18,10 @@ import {
 import type { ClasificacionRepositorio } from './revision.clasificacion.repositorio.js';
 
 /** La pregunta que se clasifica: como en D01, con las dificultades y sin la pauta ni las decisiones. */
-export type PreguntaAClasificar = Omit<PreguntaARevisar, 'pauta' | 'decisiones'>;
+export type PreguntaAClasificar = Omit<
+  PreguntaARevisar,
+  'pauta' | 'decisiones' | 'maximoNoParaAprobar'
+>;
 
 /** La pregunta que sigue (null si no queda ninguna) y cuántas quedan. */
 export interface SiguienteAClasificar {

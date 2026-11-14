@@ -236,7 +236,7 @@ export function crearServicios(dependencias: Dependencias): Servicios {
     suscripciones,
     ...(dependencias.segundoPlano && { segundoPlano: dependencias.segundoPlano }),
   });
-  const temario = crearTemarioServicio(base);
+  const temario = crearTemarioServicio({ ...base, administracion });
   const preguntas = crearPreguntasServicio({ ...base, temario, administracion });
   const generador = crearGenerador(dependencias, { administracion, preguntas, temario });
   const evaluaciones = crearEvaluacionesServicio({

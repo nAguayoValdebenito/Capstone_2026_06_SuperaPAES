@@ -2,6 +2,7 @@
 // intentos cuyo porcentaje de acierto no coincide con su dificultad. El docente confirma que la dificultad
 // no corresponde (pasa al administrador, que la retira y la envía a una nueva revisión) o dice que está
 // bien, siempre con una confirmación. La lógica vive en estado/calibracion.ts.
+import { EstadoVacio } from '../../componentes/EstadoVacio';
 import { useRef } from 'react';
 import { Alerta } from '../../componentes/Alerta';
 import { SegunCarga } from '../../componentes/SegunCarga';
@@ -14,7 +15,7 @@ import './calibracion.css';
 function Bandeja({ estado, items }: { estado: EstadoCalibracion; items: ItemCalibracion[] }) {
   const boton = useRef<HTMLButtonElement | null>(null);
   if (items.length === 0) {
-    return <p className="calibracion__vacio">No hay preguntas para calibrar.</p>;
+    return <EstadoVacio titulo="No hay preguntas para calibrar." />;
   }
   const cancelar = () => {
     estado.cancelar();
@@ -46,11 +47,15 @@ export function VistaCalibracion({ estado }: { estado: EstadoCalibracion }) {
   const { carga, mensaje } = estado;
   return (
     <section className="pagina pagina--ancha calibracion">
-      <h1>Calibración</h1>
-      <p className="pagina__aviso">
-        Preguntas de tu área con 30 o más intentos cuyo porcentaje de acierto no coincide con su
-        dificultad.
-      </p>
+      <header className="pagina__encabezado">
+        <div>
+          <h1>Calibración</h1>
+          <p className="pagina__aviso">
+            Preguntas de tu área con 30 o más intentos cuyo porcentaje de acierto no coincide con su
+            dificultad.
+          </p>
+        </div>
+      </header>
       {mensaje && (
         <p
           className={`aviso aviso--${mensaje.tipo}`}

@@ -26,7 +26,7 @@ import {
 import type { DatosDesempate } from './revision.validadores.js';
 
 /** La pregunta en desempate con las revisiones de la ronda y si es posiblemente confusa (sin pauta). */
-export interface DesempateAbierto extends Omit<PreguntaARevisar, 'pauta'> {
+export interface DesempateAbierto extends Omit<PreguntaARevisar, 'pauta' | 'maximoNoParaAprobar'> {
   revisiones: RevisionDelRevisor[];
   posibleAmbigua: boolean;
 }

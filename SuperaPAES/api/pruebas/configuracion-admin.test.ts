@@ -45,6 +45,16 @@ function escenario() {
       },
     ],
     [
+      'max_no_para_aprobar',
+      {
+        clave: 'max_no_para_aprobar',
+        valor: 2,
+        descripcion: 'Criterios en «No» que permiten aprobar.',
+        actualizadoEn: FECHA,
+        actualizadoPor: null,
+      },
+    ],
+    [
       'umbral_eje_debil',
       {
         clave: 'umbral_eje_debil',
@@ -110,7 +120,7 @@ describe('configuración del sistema (HU-51.1)', () => {
         ]),
       },
     });
-    expect(respuesta.body.data.parametros).toHaveLength(4);
+    expect(respuesta.body.data.parametros).toHaveLength(5);
   });
 
   it('rechaza a docente y token de la app', async () => {
@@ -166,6 +176,8 @@ describe('configuración del sistema (HU-51.1)', () => {
     ['tope_mensual_ia_usd', -1],
     ['umbral_eje_debil', 101],
     ['umbral_eje_debil', -1],
+    ['max_no_para_aprobar', -1],
+    ['max_no_para_aprobar', 1.5],
   ])('rechaza %s con valor %s fuera de regla', async (clave, valor) => {
     const { app, auditoria } = escenario();
     const respuesta = await request(app)
@@ -175,6 +187,16 @@ describe('configuración del sistema (HU-51.1)', () => {
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.error.codigo).toBe('VALIDACION');
     expect(auditoria).not.toHaveBeenCalled();
+  });
+
+  it('acepta 0 como máximo de «No» para aprobar: con cualquier «No» no se aprueba', async () => {
+    const { app } = escenario();
+    const respuesta = await request(app)
+      .patch(`${RUTA}/max_no_para_aprobar`)
+      .set(await admin())
+      .send({ valor: 0, actualizadoEn: FECHA.toISOString() });
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.data.valor).toBe(0);
   });
 
   it('acepta un tope monetario con dos decimales', async () => {
