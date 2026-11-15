@@ -1,0 +1,34 @@
+# Actualizaciones de dependencias (seguridad y versiones): una sola solicitud agrupada por semana para
+# cada ecosistema, así se revisan juntas. Las de seguridad llegan además en cuanto se publican.
+version: 2
+updates:
+  # API y consola: un solo package-lock.json en SuperaPAES/ (workspaces).
+  - package-ecosystem: npm
+    directory: /SuperaPAES
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Santiago
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      produccion:
+        dependency-type: production
+        update-types: [minor, patch]
+      desarrollo:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  # Acciones de los flujos de .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Santiago
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      acciones:
+        patterns: ["*"]
