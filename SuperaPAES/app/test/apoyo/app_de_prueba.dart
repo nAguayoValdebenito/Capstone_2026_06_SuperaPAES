@@ -13,10 +13,12 @@ import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
 import 'package:supera_paes/presentacion/planes/estado_planes.dart';
 import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+import 'package:supera_paes/presentacion/pregunta/estado_avisos.dart';
 import 'package:supera_paes/presentacion/progreso/estado_progreso.dart';
 import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
 import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
 
+import 'repositorio_avisos_falso.dart';
 import 'repositorio_cuentas_falso.dart';
 import 'repositorio_cupo_falso.dart';
 import 'repositorio_evaluaciones_falso.dart';
@@ -40,6 +42,7 @@ ProviderContainer crearContenedor({
   RepositorioProgresoFalso? progreso,
   RepositorioPuntajesFalso? puntajes,
   RepositorioMisDatosFalso? misDatos,
+  RepositorioAvisosFalso? avisos,
   RepositorioResultadosFalso? resultados,
   RepositorioEvaluacionesFalso? evaluaciones,
   RepositorioSuscripcionesFalso? suscripciones,
@@ -78,6 +81,10 @@ ProviderContainer crearContenedor({
       ),
       repositorioMisDatosProvider.overrideWithValue(
         misDatos ?? RepositorioMisDatosFalso(),
+      ),
+      // Sin `avisos`, los cinco motivos y todo envío se guarda.
+      repositorioAvisosProvider.overrideWithValue(
+        avisos ?? RepositorioAvisosFalso(),
       ),
       // Sin `compartir`, el menú Compartir no hace nada.
       compartirArchivoProvider.overrideWithValue(compartir ?? (_) async {}),

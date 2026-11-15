@@ -126,7 +126,8 @@ class _VistaPreguntaState extends ConsumerState<_VistaPregunta> {
           alElegir: _enviando ? null : _elegir,
         ),
         BotonTexto(
-          onPressed: () => avisarError(context),
+          onPressed: () =>
+              avisarErrorDePractica(context, ref, widget.pregunta.itemId),
           child: const Text('Avisar un error'),
         ),
       ],
