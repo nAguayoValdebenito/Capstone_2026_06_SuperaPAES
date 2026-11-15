@@ -1,7 +1,8 @@
 // Borrado de la cuenta contra PostgreSQL real (HU-08.1, RF-A18, RNF-09, CU-14 paso 6, CP-34): no quedan el
 // nombre, el correo, el perfil ni los puntajes; las evaluaciones y sus respuestas quedan seudonimizadas;
 // la sesión se cierra, y nada de otro estudiante cambia. Antes de borrar, la app consulta la suscripción
-// que la tienda sigue cobrando (HU-08.2, RN-34); Mis datos, los términos aceptados (CU-14 paso 2).
+// que la tienda sigue cobrando (HU-08.2, RN-34); Mis datos, los términos aceptados (CU-14 paso 2). El
+// borrado pide la contraseña: incorrecta, no cambia nada.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
@@ -18,8 +19,12 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
   const r = prepararRespuestas('borrado');
   const { base, entorno } = r;
 
-  const borrar = (token: string) =>
-    request(entorno.app).delete(RUTA_BORRAR).set('Authorization', `Bearer ${token}`);
+  /** Borrar la cuenta pide la contraseña: por defecto la de base.sesion. */
+  const borrar = (token: string, contrasena = CONTRASENA) =>
+    request(entorno.app)
+      .delete(RUTA_BORRAR)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ contrasena });
   const estadoDeLaCuenta = (token: string) =>
     request(entorno.app).get(RUTA_BORRAR).set('Authorization', `Bearer ${token}`);
 
@@ -127,6 +132,32 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
     expect(ingreso.status).toBe(401);
   });
 
+  it('con una contraseña incorrecta responde 401 y no borra nada', async () => {
+    await base.publicar(6, { prueba: 'M1', dificultad: 'media' });
+    const ana = await base.sesion('ana@ejemplo.cl');
+    await practicarYCargar(ana.token);
+    const antes = await filas(ana.id);
+
+    const respuesta = await borrar(ana.token, 'no-es-la-clave');
+
+    expect(respuesta.status).toBe(401);
+    expect(respuesta.body.error).toMatchObject({
+      codigo: 'NO_AUTENTICADO',
+      mensaje: 'La contraseña no es correcta.',
+    });
+    expect(await filas(ana.id)).toEqual(antes);
+    const { rows } = await entorno.bd.query(
+      'SELECT 1 FROM app.estudiante WHERE id = $1 AND eliminado_en IS NULL',
+      [ana.id],
+    );
+    expect(rows).toHaveLength(1);
+    // La sesión sigue: la contraseña incorrecta no la cierra.
+    const conSesion = await request(entorno.app)
+      .get(RUTA_PUNTAJES)
+      .set('Authorization', `Bearer ${ana.token}`);
+    expect(conSesion.status).toBe(200);
+  });
+
   it('el mismo correo puede volver a registrarse después del borrado', async () => {
     const ana = await base.sesion('ana@ejemplo.cl');
     expect((await borrar(ana.token)).status).toBe(200);
@@ -222,7 +253,9 @@ describe.skipIf(!urlBase)('borrado de la cuenta con PostgreSQL (HU-08)', () => {
   it('sin sesión responde 401 y no borra nada', async () => {
     const ana = await base.sesion('ana@ejemplo.cl');
 
-    const respuesta = await request(entorno.app).delete(RUTA_BORRAR);
+    const respuesta = await request(entorno.app)
+      .delete(RUTA_BORRAR)
+      .send({ contrasena: CONTRASENA });
 
     expect(respuesta.status).toBe(401);
     expect((await request(entorno.app).get(RUTA_BORRAR)).status).toBe(401);

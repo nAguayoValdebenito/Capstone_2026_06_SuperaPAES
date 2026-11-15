@@ -255,6 +255,8 @@ async function editarUsuario(
       const hashContrasena = await cifrarNueva(cambios.contrasena, actual.correo);
       const nombre = cambios.nombre ?? actual.nombre;
       await repositorio.actualizarUsuarioInterno(id, { nombre, rol, hashContrasena }, tx);
+      // Con la contraseña nueva, las sesiones abiertas con la anterior se cierran (como al desactivar).
+      if (hashContrasena !== null) await contexto.revocarSesiones(id, tx);
       await repositorio.reemplazarEspecialidades(id, areas, tx);
       const editado = await obtener(contexto, id, tx);
       const despues = {

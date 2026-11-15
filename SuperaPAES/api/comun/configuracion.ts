@@ -138,8 +138,13 @@ const EXIGIDAS_POR_PROVEEDOR: [(v: Variables) => boolean, string, (keyof Variabl
   ],
 ];
 
-/** Proveedores de desarrollo que nunca deben llegar a producción, aunque falte la variable. */
-const PROHIBIDOS_EN_PRODUCCION: [keyof Variables, string, string][] = [
+/**
+ * Valores de desarrollo que nunca deben llegar a producción, aunque falte la variable: los proveedores
+ * simulados y la base sin TLS.
+ */
+const PROHIBIDOS_EN_PRODUCCION: [keyof Variables, string | boolean, string][] = [
+  // Sin TLS, los hashes, los tokens y los datos personales viajan legibles hasta la base.
+  ['DATABASE_SSL', false, 'en producción debe ser true (la conexión a la base usa TLS)'],
   // La pasarela simulada aprueba compras y acepta avisos sin firma.
   [
     'PROVEEDOR_PAGOS',

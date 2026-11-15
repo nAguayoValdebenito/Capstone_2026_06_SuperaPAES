@@ -9,8 +9,9 @@ import helmet from 'helmet';
 export const encabezadosSeguridad: RequestHandler = helmet();
 
 /**
- * Respuestas que ni el navegador ni un proxy intermedio deben guardar: las de la consola llevan datos
- * personales y del banco de preguntas. Una ruta puede cambiarlo con su propio Cache-Control.
+ * Respuestas que ni el navegador ni un proxy intermedio deben guardar: las de la consola y las de la
+ * app llevan datos personales, tokens de sesión y del banco de preguntas. Una ruta puede cambiarlo con
+ * su propio Cache-Control.
  */
 export const sinAlmacenar: RequestHandler = (_req, res, next) => {
   res.set('Cache-Control', 'no-store');

@@ -275,7 +275,7 @@ function crearRouterApp(s: Servicios, mw: MiddlewareRutas): Router {
   router.use('/evaluaciones', crearRutasAppEvaluaciones(s.evaluaciones));
   router.use('/cupo-invitaciones', crearRutasAppCupoInvitaciones(s.cupoInvitaciones, mw));
   router.use('/suscripciones', crearRutasAppSuscripciones(s.suscripciones));
-  router.use('/privacidad', crearRutasAppPrivacidad(s.privacidad));
+  router.use('/privacidad', crearRutasAppPrivacidad(s.privacidad, mw));
   return router;
 }
 
@@ -361,7 +361,7 @@ export function crearApp(
 
   app.use(`${PREFIJO_API}/salud`, crearRutasSalud(dependencias.comprobarBaseDeDatos));
   montarRutasSinSesion(app, servicios, dependencias.claveTareas);
-  app.use(`${PREFIJO_API}/app`, crearRouterApp(servicios, mw));
+  app.use(`${PREFIJO_API}/app`, sinAlmacenar, crearRouterApp(servicios, mw));
   app.use(`${PREFIJO_API}/admin`, sinAlmacenar, crearRouterAdmin(servicios, mw));
 
   app.use(rutaNoEncontrada);

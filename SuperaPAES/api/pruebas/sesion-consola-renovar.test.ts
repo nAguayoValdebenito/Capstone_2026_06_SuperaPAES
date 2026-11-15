@@ -1,6 +1,6 @@
 // Sesión de la consola, sin base real (HU-02.1 consola, HU-02.3, RNF-01, CP-04 paso 4, CU-23 3.b):
 // renovar con rotación, cerrar con el token de renovación, vencimiento con el reloj adelantado y
-// cierre de las sesiones al desactivar la cuenta. Las mismas reglas contra PostgreSQL están en
+// cierre de las sesiones al desactivar la cuenta o cambiar su contraseña. Las mismas reglas contra PostgreSQL están en
 // sesion-consola-bd.test.ts.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
@@ -216,5 +216,55 @@ describe('desactivar una cuenta cierra sus sesiones (CU-23 3.b)', () => {
       (fila) => fila.cuentaId === escenario.docenteId,
     );
     expect(delDocente.map((fila) => fila.revocadoEn !== null)).toEqual([true, false]);
+  });
+});
+
+describe('cambiar la contraseña de una cuenta interna cierra sus sesiones', () => {
+  const NUEVA = 'otra-clave-de-diego-2';
+
+  it('el docente pierde el acceso y la renovación, y entra con la contraseña nueva', async () => {
+    const escenario = await conCuentas();
+    const admin = await sesionDe(escenario);
+    const docente = await sesionDe(escenario, DOCENTE);
+    const rutaDocente = `${RUTA_USUARIOS}/${escenario.docenteId}`;
+
+    const cambio = await request(escenario.app)
+      .patch(rutaDocente)
+      .set(conToken(admin.tokenAcceso))
+      .send({ contrasena: NUEVA });
+    const acceso = await request(escenario.app).get(RUTA_YO).set(conToken(docente.tokenAcceso));
+    const renovar = await request(escenario.app)
+      .post(RUTA_RENOVAR)
+      .send({ tokenRenovacion: docente.tokenRenovacion });
+    const conLaAnterior = await escenario.ingresar(DOCENTE.correo, DOCENTE.contrasena);
+    const conLaNueva = await escenario.ingresar(DOCENTE.correo, NUEVA);
+
+    expect(cambio.status).toBe(200);
+    expect(acceso.status).toBe(401);
+    expect(renovar.status).toBe(401);
+    expect(conLaAnterior.status).toBe(401);
+    expect(conLaNueva.status).toBe(200);
+    // La sesión del administrador que hizo el cambio sigue abierta.
+    const yoAdmin = await request(escenario.app).get(RUTA_YO).set(conToken(admin.tokenAcceso));
+    expect(yoAdmin.status).toBe(200);
+  });
+
+  it('si solo cambia el nombre, la sesión del docente sigue', async () => {
+    const escenario = await conCuentas();
+    const admin = await sesionDe(escenario);
+    const docente = await sesionDe(escenario, DOCENTE);
+
+    const cambio = await request(escenario.app)
+      .patch(`${RUTA_USUARIOS}/${escenario.docenteId}`)
+      .set(conToken(admin.tokenAcceso))
+      .send({ nombre: 'Diego Docente Pérez' });
+    const acceso = await request(escenario.app).get(RUTA_YO).set(conToken(docente.tokenAcceso));
+    const renovar = await request(escenario.app)
+      .post(RUTA_RENOVAR)
+      .send({ tokenRenovacion: docente.tokenRenovacion });
+
+    expect(cambio.status).toBe(200);
+    expect(acceso.status).toBe(200);
+    expect(renovar.status).toBe(200);
   });
 });

@@ -1,7 +1,12 @@
 // Lo que la app del estudiante hace con su cuenta además del registro, la sesión y el perfil: el estado
 // del inicio (HU-35.1), los puntajes PAES declarados (HU-41.1), la cuenta para descargar sus datos
-// (HU-07.1) y el borrado de la cuenta (HU-08.1). cuentas.servicio.ts lo expone en su servicio.
+// (HU-07.1), el borrado de la cuenta (HU-08.1) y la confirmación de la contraseña que piden los dos.
+// cuentas.servicio.ts lo expone en su servicio.
 import { ErrorNoEncontrado } from '../../comun/errores.js';
+import {
+  crearConfirmacionContrasena,
+  type ConfirmacionContrasena,
+} from './cuentas.credenciales.js';
 import { crearEliminacionRepositorio } from './cuentas.eliminacion.repositorio.js';
 import {
   type ConsentimientoExportado,
@@ -40,7 +45,8 @@ export type CuentaEnLaApp = InicioCuenta &
   Puntajes &
   ExportacionCuenta &
   EliminacionCuenta &
-  EstadoCuentaApp;
+  EstadoCuentaApp &
+  ConfirmacionContrasena;
 
 export function crearCuentaEnLaApp(
   entrada: EntradaPuntajes & Pick<DependenciasEstadoCuenta, 'cupoInvitaciones'>,
@@ -56,6 +62,7 @@ export function crearCuentaEnLaApp(
     ...crearInicioCuenta(entrada.bd),
     ...crearPuntajes(entrada),
     exportarCuenta,
+    ...crearConfirmacionContrasena((id) => exportacion.hashContrasena(id)),
     ...crearEstadoCuentaApp({ exportarCuenta, cupoInvitaciones: entrada.cupoInvitaciones }),
     eliminarCuenta: (estudianteId) =>
       entrada.unidadDeTrabajo.enTransaccion(async (tx) => {

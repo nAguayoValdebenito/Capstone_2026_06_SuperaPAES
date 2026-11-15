@@ -1,6 +1,7 @@
 // Lo que la descarga de datos (HU-07.1, RF-A18) toma de la cuenta: sus datos y cada documento legal que
 // aceptó, con su versión. El tipo y la versión del documento se leen de contenido, como lo hace el
-// registro al validar lo aceptado.
+// registro al validar lo aceptado. También el hash de la contraseña, que se confirma antes de descargar
+// los datos o borrar la cuenta; nunca sale del módulo.
 import type { Ejecutor } from '../../db/transaccion.js';
 
 /** La cuenta sin el hash de la contraseña. */
@@ -29,6 +30,11 @@ const CUENTA = `
     FROM app.estudiante
    WHERE id = $1 AND eliminado_en IS NULL`;
 
+const HASH_CONTRASENA = `
+  SELECT hash_contrasena AS "hashContrasena"
+    FROM app.estudiante
+   WHERE id = $1 AND eliminado_en IS NULL`;
+
 const CONSENTIMIENTOS = `
   SELECT t.codigo AS documento, d.version, c.aceptado_en AS "aceptadoEn",
          c.revocado_en AS "revocadoEn"
@@ -43,6 +49,12 @@ export function crearExportacionRepositorio(bd: Ejecutor) {
     /** null si la cuenta no existe o se eliminó. */
     async cuenta(estudianteId: string, tx: Ejecutor = bd): Promise<CuentaExportada | null> {
       const { rows } = await tx.query<CuentaExportada>(CUENTA, [estudianteId]);
+      return rows[0] ?? null;
+    },
+
+    /** null si la cuenta no existe o se eliminó. */
+    async hashContrasena(estudianteId: string): Promise<{ hashContrasena: string } | null> {
+      const { rows } = await bd.query<{ hashContrasena: string }>(HASH_CONTRASENA, [estudianteId]);
       return rows[0] ?? null;
     },
 

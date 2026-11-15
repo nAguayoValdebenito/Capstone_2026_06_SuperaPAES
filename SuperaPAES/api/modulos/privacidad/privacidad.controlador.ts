@@ -6,6 +6,7 @@ import { responder } from '../../comun/respuesta.js';
 import type { PrivacidadServicio } from './privacidad.servicio.js';
 import type {
   DatosAtencionSolicitud,
+  DatosConfirmacionContrasena,
   DatosNuevaSolicitud,
   FiltrosSolicitudes,
 } from './privacidad.validadores.js';
@@ -13,8 +14,8 @@ import type {
 type ConCuerpo<C> = RequestHandler<Record<string, string>, unknown, C>;
 
 export interface PrivacidadControlador {
-  exportarDatos: RequestHandler;
-  borrarCuenta: RequestHandler;
+  exportarDatos: ConCuerpo<DatosConfirmacionContrasena>;
+  borrarCuenta: ConCuerpo<DatosConfirmacionContrasena>;
   estadoDeLaCuenta: RequestHandler;
   tiposDerecho: RequestHandler;
   crearSolicitud: ConCuerpo<DatosNuevaSolicitud>;
@@ -65,10 +66,10 @@ export function crearPrivacidadControlador(servicio: PrivacidadServicio): Privac
     exportarDatos: async (req, res) => {
       // Son datos personales: ni el navegador ni un proxy deben guardarlos.
       res.set('Cache-Control', 'no-store');
-      responder(res, await servicio.exportarDatos(estudianteDe(req)));
+      responder(res, await servicio.exportarDatos(estudianteDe(req), req.body.contrasena));
     },
     borrarCuenta: async (req, res) => {
-      responder(res, await servicio.borrarCuenta(estudianteDe(req)));
+      responder(res, await servicio.borrarCuenta(estudianteDe(req), req.body.contrasena));
     },
     estadoDeLaCuenta: async (req, res) => {
       responder(res, await servicio.estadoDeLaCuenta(estudianteDe(req)));

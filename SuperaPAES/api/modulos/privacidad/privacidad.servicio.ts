@@ -59,15 +59,17 @@ export interface PrivacidadServicio extends SolicitudesApp, SolicitudesConsola {
   /**
    * HU-07.1 (RF-A18, CU-14 3.a, CP-26): la cuenta, los documentos aceptados, el perfil, las
    * evaluaciones con sus respuestas y resultados, y los puntajes del estudiante de la sesión
-   * (acceso y portabilidad). Nunca la contraseña ni datos de otros estudiantes.
+   * (acceso y portabilidad). Nunca la contraseña ni datos de otros estudiantes. Antes confirma la
+   * contraseña del estudiante: incorrecta, 401 sin entregar nada.
    */
-  exportarDatos(estudianteId: string): Promise<DatosDelEstudiante>;
+  exportarDatos(estudianteId: string, contrasena: string): Promise<DatosDelEstudiante>;
   /**
    * HU-08.1 (RF-A18, RNF-09, CU-14 paso 6): borra la cuenta del estudiante de la sesión, aunque tenga
    * una suscripción vigente (RN-34; el aviso lo da la app). Sus evaluaciones y respuestas quedan
-   * seudonimizadas y su sesión se cierra.
+   * seudonimizadas y su sesión se cierra. Antes confirma la contraseña del estudiante: incorrecta, 401
+   * sin borrar nada.
    */
-  borrarCuenta(estudianteId: string): Promise<{ eliminadaEn: Date }>;
+  borrarCuenta(estudianteId: string, contrasena: string): Promise<{ eliminadaEn: Date }>;
   /**
    * CU-14 paso 2: las versiones aceptadas de los términos y de la privacidad, que muestra Mis datos
    * (A39). HU-08.2 (CU-14 paso 4 y alternativo 4.a): con una suscripción activa o en mora, la app
@@ -84,7 +86,8 @@ export function crearPrivacidadServicio(
   return {
     ...crearSolicitudesApp({ repositorio, administracion: dependencias.administracion, reloj }),
     ...crearSolicitudesConsola({ ...dependencias, repositorio }),
-    exportarDatos: async (estudianteId) => {
+    exportarDatos: async (estudianteId, contrasena) => {
+      await cuentas.confirmarContrasenaEstudiante(estudianteId, contrasena);
       const generadoEn = reloj();
       const cuenta = await cuentas.exportarCuenta(estudianteId);
       const perfil = await cuentas.obtenerPerfil(estudianteId);
@@ -97,7 +100,10 @@ export function crearPrivacidadServicio(
         puntajes,
       };
     },
-    borrarCuenta: (estudianteId) => cuentas.eliminarCuenta(estudianteId),
+    borrarCuenta: async (estudianteId, contrasena) => {
+      await cuentas.confirmarContrasenaEstudiante(estudianteId, contrasena);
+      return cuentas.eliminarCuenta(estudianteId);
+    },
     estadoDeLaCuenta: async (estudianteId) => {
       return {
         suscripcionVigente: await suscripciones.vigenteDe(estudianteId),

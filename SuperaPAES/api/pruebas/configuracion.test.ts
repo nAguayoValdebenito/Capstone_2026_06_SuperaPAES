@@ -212,6 +212,7 @@ describe('leerConfiguracion', () => {
       ...minimas,
       ...tiendas,
       NODE_ENV: 'production',
+      DATABASE_SSL: 'true',
       URL_CONSOLA: 'https://consola.superapaes.cl',
       CORS_ORIGENES: 'https://consola.superapaes.cl',
       PROVEEDOR_CORREO: 'smtp',

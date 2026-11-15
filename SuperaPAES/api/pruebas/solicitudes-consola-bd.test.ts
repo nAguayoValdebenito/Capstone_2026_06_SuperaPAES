@@ -225,7 +225,8 @@ describe.skipIf(!urlBase)('solicitudes de datos en la consola con PostgreSQL (HU
       .send({ correo, contrasena: CONTRASENA });
     const borrado = await request(entorno.app)
       .delete('/api/v1/app/privacidad/cuenta')
-      .set('Authorization', `Bearer ${ingreso.body.data.tokenAcceso as string}`);
+      .set('Authorization', `Bearer ${ingreso.body.data.tokenAcceso as string}`)
+      .send({ contrasena: CONTRASENA });
     expect(borrado.status).toBe(200);
 
     const lista = await request(entorno.app).get(RUTA).set(admin.conSesion);

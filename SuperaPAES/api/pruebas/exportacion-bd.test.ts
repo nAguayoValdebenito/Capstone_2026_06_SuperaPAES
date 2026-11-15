@@ -1,6 +1,6 @@
 // Descarga de los datos del estudiante contra PostgreSQL real (HU-07.1, RF-A18, CU-14 3.a, CP-26): la
 // cuenta sin la contraseña, los documentos aceptados, el perfil, las evaluaciones con sus respuestas y
-// resultados, y los puntajes, solo del estudiante de la sesión.
+// resultados, y los puntajes, solo del estudiante de la sesión y solo con su contraseña.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { exigirBaseEnCi, urlBase } from './base-temporal.js';
@@ -8,6 +8,8 @@ import { prepararRespuestas } from './respuestas-de-prueba.js';
 
 const RUTA_MIS_DATOS = '/api/v1/app/privacidad/mis-datos';
 const RUTA_PUNTAJES = '/api/v1/app/cuentas/puntajes';
+/** La de base.sesion (base-practicas.ts). */
+const CONTRASENA = 'clave-para-practicar';
 
 /** Lo que revisan estas pruebas del archivo de datos. */
 interface DatosExportados {
@@ -59,8 +61,9 @@ describe.skipIf(!urlBase)('descarga de los datos del estudiante con PostgreSQL (
     await practicar(beto.token);
 
     const respuesta = await request(entorno.app)
-      .get(RUTA_MIS_DATOS)
-      .set('Authorization', `Bearer ${ana.token}`);
+      .post(RUTA_MIS_DATOS)
+      .set('Authorization', `Bearer ${ana.token}`)
+      .send({ contrasena: CONTRASENA });
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.headers['cache-control']).toBe('no-store');
@@ -93,14 +96,34 @@ describe.skipIf(!urlBase)('descarga de los datos del estudiante con PostgreSQL (
     const { token } = await base.sesion('nueva@ejemplo.cl');
 
     const respuesta = await request(entorno.app)
-      .get(RUTA_MIS_DATOS)
-      .set('Authorization', `Bearer ${token}`);
+      .post(RUTA_MIS_DATOS)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ contrasena: CONTRASENA });
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body.data).toMatchObject({ evaluaciones: [], puntajes: [] });
   });
 
+  it('con una contraseña incorrecta responde 401 sin entregar ningún dato', async () => {
+    const { token } = await base.sesion('ana@ejemplo.cl');
+
+    const respuesta = await request(entorno.app)
+      .post(RUTA_MIS_DATOS)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ contrasena: 'no-es-la-clave' });
+
+    expect(respuesta.status).toBe(401);
+    expect(respuesta.body).toMatchObject({
+      data: null,
+      error: { codigo: 'NO_AUTENTICADO', mensaje: 'La contraseña no es correcta.' },
+    });
+    expect(JSON.stringify(respuesta.body)).not.toMatch(/ana@ejemplo\.cl/);
+  });
+
   it('sin la sesión de la app responde 401', async () => {
-    expect((await request(entorno.app).get(RUTA_MIS_DATOS)).status).toBe(401);
+    const sinSesion = await request(entorno.app)
+      .post(RUTA_MIS_DATOS)
+      .send({ contrasena: CONTRASENA });
+    expect(sinSesion.status).toBe(401);
   });
 });

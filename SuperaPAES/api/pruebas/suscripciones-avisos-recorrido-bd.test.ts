@@ -153,7 +153,9 @@ describe.skipIf(!urlBase)('recorrido de una suscripción con avisos (HU-44.2)', 
       const { id, token, compra } = await activaEn('app_store', 'borrada@ejemplo.cl');
       const borrado = await request(entorno.app)
         .delete('/api/v1/app/privacidad/cuenta')
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${token}`)
+        // La contraseña de base.sesion (base-practicas.ts): borrar la cuenta la pide.
+        .send({ contrasena: 'clave-para-practicar' });
       expect(borrado.status).toBe(200);
       const antes = correosDeMora().length;
 

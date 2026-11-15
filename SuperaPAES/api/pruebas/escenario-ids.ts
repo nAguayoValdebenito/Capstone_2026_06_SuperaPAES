@@ -244,6 +244,8 @@ function cuerpoPerfil(ruta: string): Record<string, unknown> | undefined {
     return { curso: '3M', pruebas: [1, 2, 5], electivoId: 4, pruebaReforzarId: 2 };
   if (ruta.endsWith('/confirmar-curso')) return { curso: '3M' };
   if (ruta === 'POST /api/v1/app/privacidad/solicitudes') return { tipo: 'acceso' };
+  // La descarga de datos pide la contraseña (el servicio de prueba no la comprueba).
+  if (ruta === 'POST /api/v1/app/privacidad/mis-datos') return { contrasena: 'clave-de-prueba' };
   if (ruta === 'PATCH /api/v1/admin/privacidad/solicitudes/:id')
     return { estado: 'respondida', respuesta: 'Listo.' };
   return cuerpoPuntajes(ruta);

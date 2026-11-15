@@ -1,6 +1,7 @@
 // Esquemas zod de entrada del módulo privacidad. Se usan con validar() en las rutas.
 import { z } from 'zod';
 import { numeroDePagina } from '../../comun/consultas.js';
+import { cabeEnBcrypt } from '../../comun/contrasenas.js';
 import { idDeRuta } from '../../comun/identificadores.js';
 
 /**
@@ -36,6 +37,19 @@ export const esquemaNuevaSolicitud = z.strictObject({
 });
 
 export type DatosNuevaSolicitud = z.output<typeof esquemaNuevaSolicitud>;
+
+/**
+ * Descargar mis datos y borrar la cuenta piden la contraseña: un token robado no basta. Igual que en el
+ * ingreso, solo se limita a 72 bytes de UTF-8 para que la contraseña completa cuente en bcrypt.
+ */
+export const esquemaConfirmacionContrasena = z.strictObject({
+  contrasena: z
+    .string('Ingresa tu contraseña.')
+    .min(1, 'Ingresa tu contraseña.')
+    .refine(cabeEnBcrypt, 'La contraseña es demasiado larga.'),
+});
+
+export type DatosConfirmacionContrasena = z.output<typeof esquemaConfirmacionContrasena>;
 
 /**
  * Bandeja de la consola (C14, HU-55 esc. 1): por defecto las pendientes. Los estados son los códigos de

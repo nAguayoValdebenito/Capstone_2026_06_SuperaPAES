@@ -191,7 +191,7 @@ export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfi
   /** La usa el middleware de autenticación en cada petición. */
   sesionVigente: ComprobarSesion;
   obtenerUsuarioConsola(id: string): Promise<UsuarioConsola>;
-  /** Cierra todas las sesiones abiertas de una cuenta interna (al desactivarla). */
+  /** Cierra todas las sesiones abiertas de una cuenta interna (al desactivarla o cambiar su contraseña). */
   revocarSesionesUsuarioInterno(id: string, tx: Ejecutor): Promise<void>;
   listarEstudiantes: listado.ListadoEstudiantes['listarEstudiantes'];
 }

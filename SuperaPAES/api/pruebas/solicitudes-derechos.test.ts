@@ -261,3 +261,45 @@ describe('sesión', () => {
     expect(repositorio.crearSolicitud).not.toHaveBeenCalled();
   });
 });
+
+describe('límite de solicitudes (5 por estudiante al día)', () => {
+  it('la sexta solicitud del día se corta con 429 y no se guarda; otro estudiante sí puede', async () => {
+    const { app, repositorio } = escenario();
+    const ana = await comoEstudiante('10');
+    const estados: number[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      const enviada = await request(app)
+        .post(`${RUTA}/solicitudes`)
+        .set(ana)
+        .send({ tipo: 'acceso', detalle: `Solicitud ${String(i + 1)}` });
+      estados.push(enviada.status);
+    }
+    const sexta = await request(app)
+      .post(`${RUTA}/solicitudes`)
+      .set(ana)
+      .send({ tipo: 'acceso', detalle: 'Solicitud 6' });
+    const deBeto = await request(app)
+      .post(`${RUTA}/solicitudes`)
+      .set(await comoEstudiante('11'))
+      .send({ tipo: 'acceso' });
+
+    expect(estados).toEqual([201, 201, 201, 201, 201]);
+    expect(sexta.status).toBe(429);
+    expect(sexta.body).toEqual(errorConFormato('DEMASIADOS_INTENTOS'));
+    expect(deBeto.status).toBe(201);
+    expect(repositorio.crearSolicitud).toHaveBeenCalledTimes(6);
+  });
+
+  it('un cuerpo inválido no gasta el límite', async () => {
+    const { app } = escenario();
+    const ana = await comoEstudiante('10');
+
+    for (let i = 0; i < 6; i++) {
+      await request(app).post(`${RUTA}/solicitudes`).set(ana).send({ tipo: '' });
+    }
+    const valida = await request(app).post(`${RUTA}/solicitudes`).set(ana).send({ tipo: 'acceso' });
+
+    expect(valida.status).toBe(201);
+  });
+});
