@@ -10,6 +10,11 @@ import type { AvisosRepositorio } from './preguntas.avisos.repositorio.js';
 import type { AnulacionPreguntas } from './preguntas.anulacion.servicio.js';
 import { crearAvisosDeError, type AvisosDeError } from './preguntas.avisos.servicio.js';
 import {
+  crearAvisosDeEstudiantes,
+  type AvisosDeEstudiantes,
+  type DependenciasAvisosApp,
+} from './preguntas.avisos-app.servicio.js';
+import {
   crearBusquedaPreguntas,
   crearBusquedaRepositorio,
   type BusquedaPreguntas,
@@ -55,10 +60,8 @@ import {
 import { crearTextosDeLectura, type TextosDeLectura } from './preguntas.textos.servicio.js';
 import type { FiltrosBanco } from './preguntas.validadores.js';
 
-export interface DependenciasPreguntasServicio extends Pick<
-  imagenes.DependenciasImagenes,
-  'repositorioImagenes'
-> {
+export interface DependenciasPreguntasServicio
+  extends Pick<imagenes.DependenciasImagenes, 'repositorioImagenes'>, DependenciasAvisosApp {
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
   temario: TemarioServicio;
@@ -91,6 +94,7 @@ export interface PreguntasServicio
     LecturasParaGenerar,
     PublicacionPreguntas,
     AvisosDeError,
+    AvisosDeEstudiantes,
     BusquedaPreguntas,
     AnulacionPreguntas,
     imagenes.ImagenesDePreguntas {
@@ -313,6 +317,7 @@ export function crearPreguntasServicio(
     ...importacion,
     ...publicacion,
     ...crearAvisosDeError(dependencias),
+    ...crearAvisosDeEstudiantes(dependencias),
     ...crearBusquedaPreguntas(
       dependencias.repositorioBusqueda ?? crearBusquedaRepositorio(dependencias.bd),
     ),

@@ -281,21 +281,24 @@ void main() {
     );
   });
 
-  testWidgets('A23 permite elegir motivo sin fingir un envio disponible', (
-    tester,
-  ) async {
+  testWidgets('A23 con letra grande: motivos de la lista y envío bloqueado '
+      'hasta tener comentario', (tester) async {
     final contenedor = crearContenedor();
     await tester.pumpWidget(
-      _marco(contenedor, const HojaAvisarError(), letra: 2),
+      _marco(
+        contenedor,
+        const HojaAvisarError(evaluacionId: 7, itemId: 70),
+        letra: 2,
+      ),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(OpcionRadio), findsNWidgets(4));
-    await tocar(tester, find.text('El enunciado tiene un error'));
+    expect(find.byType(OpcionRadio), findsNWidgets(5));
+    await tocar(tester, find.text('Error en el enunciado'));
     expect(
       tester
           .widgetList<OpcionRadio>(find.byType(OpcionRadio))
           .map((w) => w.seleccionada),
-      [true, false, false, false],
+      [true, false, false, false, false],
     );
     await tester.scrollUntilVisible(
       find.text('Enviar aviso'),
@@ -309,10 +312,6 @@ void main() {
           )
           .onPressed,
       isNull,
-    );
-    expect(
-      find.text('El envío de avisos aún no está disponible.'),
-      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });

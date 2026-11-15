@@ -53,6 +53,16 @@ export const esquemaIdPractica = z.object({ id: idDeRuta });
 export const esquemaIdEvaluacion = z.object({ id: idDeRuta });
 /** POST /evaluaciones/{id}/items/{item}/respuesta (DAS 1.13, Figura 17). */
 export const esquemaIdsItem = z.object({ id: idDeRuta, item: idDeRuta });
+/** HU-37 (A23): motivo de la lista y comentario de 5 a 500 caracteres (D5 del plan). */
+export const esquemaAviso = z.strictObject({
+  motivo: z.string().trim().min(1, 'Elige un motivo.').max(20),
+  comentario: z
+    .string()
+    .trim()
+    .min(5, 'Escribe un comentario de al menos 5 caracteres.')
+    .max(500, 'El comentario puede tener hasta 500 caracteres.'),
+});
+export type DatosAviso = z.infer<typeof esquemaAviso>;
 // No es strictObject a propósito: un campo de más (por ejemplo esCorrecta) se descarta y nunca se usa.
 // La corrección la hace el servidor (RN-06).
 export const esquemaRespuesta = z.object({ alternativaId: idDeCuerpo });

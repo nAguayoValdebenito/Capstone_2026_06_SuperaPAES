@@ -1,5 +1,6 @@
 import 'package:supera_paes/datos/fuentes/fuente_mis_datos_remota.dart';
 import 'package:supera_paes/dominio/entidades/archivo_mis_datos.dart';
+import 'package:supera_paes/dominio/entidades/solicitud_datos.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_mis_datos.dart';
 
@@ -17,4 +18,14 @@ class RepositorioMisDatosApi implements RepositorioMisDatos {
 
   @override
   Future<void> borrarCuenta() => _fuente.borrarCuenta();
+
+  @override
+  Future<List<TipoDerecho>> tiposDerecho() => _fuente.tiposDerecho();
+
+  @override
+  Future<List<SolicitudDatos>> solicitudes() => _fuente.solicitudes();
+
+  @override
+  Future<SolicitudDatos> crearSolicitud(String tipo, String? detalle) =>
+      _fuente.crearSolicitud(tipo, detalle);
 }

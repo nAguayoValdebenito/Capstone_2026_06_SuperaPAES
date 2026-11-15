@@ -40,6 +40,7 @@ export interface PreguntasControlador {
   volverABorrador: Validado;
   listarAvisos: RequestHandler;
   contarAvisosPendientes: RequestHandler;
+  motivosDeAvisoApp: RequestHandler;
   cerrarAviso: Validado<{ estado: CierreAviso }>;
   anularPregunta: Validado;
   subirImagen: Validado;
@@ -87,7 +88,7 @@ function controladorAvisos(
   servicio: PreguntasServicio,
 ): Pick<
   PreguntasControlador,
-  'listarAvisos' | 'contarAvisosPendientes' | 'cerrarAviso' | 'anularPregunta'
+  'listarAvisos' | 'contarAvisosPendientes' | 'motivosDeAvisoApp' | 'cerrarAviso' | 'anularPregunta'
 > {
   return {
     listarAvisos: async (_req, res) => {
@@ -98,6 +99,10 @@ function controladorAvisos(
     },
     contarAvisosPendientes: async (_req, res) => {
       responder(res, { pendientes: await servicio.contarAvisosPendientes() });
+    },
+    // HU-37 (A23): los motivos que elige el estudiante.
+    motivosDeAvisoApp: async (_req, res) => {
+      responder(res, await servicio.motivosDeAvisoApp());
     },
     cerrarAviso: async (req, res) => {
       const id = String(req.params.id);

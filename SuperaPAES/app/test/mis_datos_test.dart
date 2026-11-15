@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/fuentes/fuente_mis_datos_remota.dart';
 import 'package:supera_paes/datos/modelos/mis_datos_modelo.dart';
@@ -128,8 +129,7 @@ void main() {
       );
       expect(find.text('Mis puntajes PAES'), findsOne);
       expect(find.text('Permiso desactivado'), findsOne);
-      expect(find.text('Borrar mi cuenta'), findsOne);
-      expect(find.text('No se puede deshacer'), findsOne);
+      expect(find.text('Solicitudes sobre mis datos'), findsOne);
       // CU-14 paso 2: las versiones aceptadas, con su fecha.
       expect(
         find.text(
@@ -138,9 +138,17 @@ void main() {
         ),
         findsOne,
       );
-      // Llega con HU-09.
-      expect(find.text('Solicitudes sobre mis datos'), findsNothing);
-
+      await tester.scrollUntilVisible(
+        find.text('No se puede deshacer'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Borrar mi cuenta'), findsOne);
+      await tester.scrollUntilVisible(
+        find.byType(EnlaceVolver),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
       // «Perfil» también es una pestaña de la barra inferior.
       await tocar(
         tester,

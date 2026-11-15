@@ -47,6 +47,7 @@ abstract final class Rutas {
   static const String cambiarPlan = '/mi-suscripcion/cambiar-plan';
   static const String invitaciones = '/invitaciones';
   static const String misDatos = '/mis-datos';
+  static const String solicitudesDatos = '/mis-datos/solicitudes';
   static const String puntajes = '/mis-datos/puntajes';
   static const String borrarCuenta = '/mis-datos/borrar-cuenta';
 

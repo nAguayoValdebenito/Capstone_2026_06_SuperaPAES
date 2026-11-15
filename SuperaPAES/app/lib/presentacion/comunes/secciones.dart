@@ -16,6 +16,7 @@ import 'package:supera_paes/presentacion/inicio/pantalla_inicio.dart';
 import 'package:supera_paes/presentacion/invitaciones/pantalla_invitaciones.dart';
 import 'package:supera_paes/presentacion/mis_datos/pantalla_borrar_cuenta.dart';
 import 'package:supera_paes/presentacion/mis_datos/pantalla_mis_datos.dart';
+import 'package:supera_paes/presentacion/mis_datos/pantalla_solicitudes_datos.dart';
 import 'package:supera_paes/presentacion/perfil/pantalla_perfil.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_areas.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_curso.dart';
@@ -263,6 +264,12 @@ const List<Seccion> secciones = [
     Rutas.misDatos,
     Icons.shield_outlined,
     PantallaMisDatos.new,
+  ),
+  Seccion(
+    'Solicitudes sobre mis datos',
+    Rutas.solicitudesDatos,
+    Icons.assignment_outlined,
+    PantallaSolicitudesDatos.new,
   ),
   Seccion(
     'Mis puntajes PAES',

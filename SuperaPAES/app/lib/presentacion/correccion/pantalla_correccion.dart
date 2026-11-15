@@ -87,7 +87,7 @@ class PantallaCorreccion extends ConsumerWidget {
             elegida: correccion.elegida,
           ),
         BotonTexto(
-          onPressed: () => avisarError(context),
+          onPressed: () => avisarErrorDePractica(context, ref, pregunta.itemId),
           child: const Text('Avisar un error'),
         ),
       ],

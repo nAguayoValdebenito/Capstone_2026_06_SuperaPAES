@@ -1,5 +1,6 @@
 import 'package:supera_paes/dominio/entidades/archivo_mis_datos.dart';
 import 'package:supera_paes/dominio/entidades/documento_legal.dart';
+import 'package:supera_paes/dominio/entidades/solicitud_datos.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/dominio/repositorios/repositorio_mis_datos.dart';
 import 'package:supera_paes/nucleo/errores.dart';
@@ -28,9 +29,32 @@ final List<DocumentoAceptado> documentosDePrueba = [
     ),
 ];
 
-/// Repositorio de Mis datos sin red. Con [error], la descarga falla; con
-/// [errorEstado] o [errorBorrado], la consulta del estado de la cuenta o el
-/// borrado. Sin [suscripcion], no hay una vigente (A42).
+/// Tres de los seis derechos de `contenido.tipo_derecho`.
+const List<TipoDerecho> tiposDePrueba = [
+  TipoDerecho(
+    codigo: 'acceso',
+    nombre: 'Acceso',
+    descripcion:
+        'Saber qué datos personales guarda el sistema y recibir una copia.',
+  ),
+  TipoDerecho(
+    codigo: 'rectificacion',
+    nombre: 'Rectificación',
+    descripcion: 'Corregir datos inexactos o incompletos.',
+  ),
+  TipoDerecho(
+    codigo: 'supresion',
+    nombre: 'Supresión',
+    descripcion: 'Eliminar la cuenta y sus datos personales.',
+  ),
+];
+
+/// Repositorio de Mis datos sin red. Las solicitudes enviadas quedan en
+/// [solicitudesGuardadas], pendientes y con 30 días de plazo; con
+/// [errorSolicitud], el envío falla y con [errorSolicitudes], la lista. Con
+/// [error], la descarga falla; con [errorEstado] o [errorBorrado], la
+/// consulta del estado de la cuenta o el borrado. Sin [suscripcion], no hay
+/// una vigente (A42).
 class RepositorioMisDatosFalso implements RepositorioMisDatos {
   RepositorioMisDatosFalso({
     this.suscripcion,
@@ -44,6 +68,10 @@ class RepositorioMisDatosFalso implements RepositorioMisDatos {
   ErrorApi? errorBorrado;
   int descargas = 0;
   int borrados = 0;
+  ErrorApi? errorSolicitud;
+  ErrorApi? errorSolicitudes;
+  final List<SolicitudDatos> solicitudesGuardadas = [];
+  final List<(String, String?)> enviadas = [];
 
   @override
   Future<ArchivoMisDatos> descargar() async {
@@ -65,5 +93,32 @@ class RepositorioMisDatosFalso implements RepositorioMisDatos {
   Future<void> borrarCuenta() async {
     if (errorBorrado case final fallo?) throw fallo;
     borrados++;
+  }
+
+  @override
+  Future<List<TipoDerecho>> tiposDerecho() async => tiposDePrueba;
+
+  @override
+  Future<List<SolicitudDatos>> solicitudes() async {
+    if (errorSolicitudes case final fallo?) throw fallo;
+    return solicitudesGuardadas.reversed.toList();
+  }
+
+  @override
+  Future<SolicitudDatos> crearSolicitud(String tipo, String? detalle) async {
+    if (errorSolicitud case final fallo?) throw fallo;
+    enviadas.add((tipo, detalle));
+    final solicitadoEn = DateTime(2026, 11, 15, 10);
+    final solicitud = SolicitudDatos(
+      id: '${solicitudesGuardadas.length + 1}',
+      tipo: tiposDePrueba.firstWhere((t) => t.codigo == tipo).nombre,
+      estado: EstadoSolicitud.pendiente,
+      nombreEstado: 'Pendiente',
+      solicitadoEn: solicitadoEn,
+      venceEn: solicitadoEn.add(const Duration(days: 30)),
+      detalle: detalle,
+    );
+    solicitudesGuardadas.add(solicitud);
+    return solicitud;
   }
 }

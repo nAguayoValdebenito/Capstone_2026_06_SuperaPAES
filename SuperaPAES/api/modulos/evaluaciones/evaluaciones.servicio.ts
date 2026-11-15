@@ -73,6 +73,8 @@ import { conReintentoDeInicio } from './evaluaciones.reintento-inicio.js';
 import { crearMiniServicio, type MiniServicio } from './evaluaciones.mini.servicio.js';
 import { crearEnsayoServicio, type EnsayoServicio } from './evaluaciones.ensayo.servicio.js';
 import { crearEntregaServicio, type EntregaServicio } from './evaluaciones.entrega.servicio.js';
+import { crearAvisosItemRepositorio } from './evaluaciones.avisos.repositorio.js';
+import { crearAvisosServicio, type AvisosServicio } from './evaluaciones.avisos.servicio.js';
 
 export interface DependenciasEvaluacionesServicio {
   bd: Ejecutor;
@@ -102,7 +104,8 @@ export type EvaluacionesServicio = ConfiguracionEvaluaciones &
   HistorialServicio &
   ProgresoServicio &
   ExportacionEvaluaciones &
-  AbiertaServicio & {
+  AbiertaServicio &
+  AvisosServicio & {
     /** HU-50.2 (C13): evaluaciones donde aparece una pregunta, antes de anularla. */
     impactoDeAnular(preguntaId: string): Promise<ImpactoDeAnular>;
     /** HU-53.1 (tarea periódica): recalcula las estadísticas por pregunta; cuántas cambiaron. */
@@ -181,7 +184,7 @@ function crearConsultasPorPregunta(bd: Ejecutor) {
 
 function crearServicioSinReintento(
   dependencias: DependenciasEvaluacionesServicio,
-): EvaluacionesServicio {
+): Omit<EvaluacionesServicio, keyof AvisosServicio> {
   const seleccion = crearSeleccionPractica({
     repositorio: dependencias.repositorio ?? crearEvaluacionesRepositorio(dependencias.bd),
     administracion: dependencias.administracion,
@@ -236,6 +239,11 @@ export function crearEvaluacionesServicio(
   const servicio = crearServicioSinReintento(dependencias);
   return {
     ...servicio,
+    ...crearAvisosServicio({
+      unidadDeTrabajo: dependencias.unidadDeTrabajo,
+      preguntas: dependencias.preguntas,
+      repositorio: crearAvisosItemRepositorio(),
+    }),
     // Dos inicios del mismo estudiante a la vez pueden chocar con la hora del cierre de la práctica
     // anterior: se repite la transacción completa (ver evaluaciones.reintento-inicio.ts).
     iniciarPractica: (estudianteId, datos) =>

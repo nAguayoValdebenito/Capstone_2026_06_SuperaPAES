@@ -16,8 +16,8 @@ import 'package:supera_paes/presentacion/puntajes/estado_puntajes.dart';
 /// Mis datos y privacidad (A39; HU-07, HU-08, HU-41 esc. 4, CU-14), desde
 /// Perfil: las versiones aceptadas de los términos y de la privacidad (CU-14
 /// paso 2), descargar los datos en un archivo, los puntajes PAES con su
-/// permiso y borrar la cuenta. «Solicitudes sobre mis datos» (HU-09, A40)
-/// se agrega cuando la API de la app tenga sus rutas.
+/// permiso, las solicitudes sobre los datos (HU-09, A40) y borrar la
+/// cuenta.
 class PantallaMisDatos extends ConsumerStatefulWidget {
   const PantallaMisDatos({super.key});
 
@@ -82,6 +82,12 @@ class _PantallaMisDatosState extends ConsumerState<PantallaMisDatos>
         ),
         ListaDeFilas(
           filas: [
+            FilaNavegacion(
+              texto: 'Solicitudes sobre mis datos',
+              detalle: 'Acceso, rectificación, supresión y más',
+              icono: Icons.assignment_rounded,
+              onTap: () => context.push(Rutas.solicitudesDatos),
+            ),
             FilaNavegacion(
               texto: 'Mis puntajes PAES',
               detalle: resumen,
