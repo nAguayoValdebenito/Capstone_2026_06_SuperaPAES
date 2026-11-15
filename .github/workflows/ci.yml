@@ -118,6 +118,20 @@ jobs:
       - name: Secretos (secretlint)
         run: npm run revisar-secretos
 
+  # Job aparte: si aparece una vulnerabilidad alta o crítica en una dependencia de producción, la
+  # solicitud queda marcada sin detener la API, la consola, la calidad ni la app. npm audit lee solo
+  # package-lock.json: no hace falta instalar nada.
+  auditoria:
+    name: Auditoría de dependencias (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: SuperaPAES/.nvmrc
+      - name: Vulnerabilidades altas o críticas en producción
+        run: npm audit --omit=dev --audit-level=high
+
   app:
     name: App Flutter (Android e iOS)
     runs-on: ubuntu-latest

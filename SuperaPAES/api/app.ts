@@ -3,7 +3,6 @@
 // Recibe las dependencias externas ya construidas para poder reemplazarlas en las pruebas.
 import cors from 'cors';
 import express, { Router, type Express } from 'express';
-import helmet from 'helmet';
 import type { Proveedores } from './adaptadores/fabrica.js';
 import {
   crearAutenticacion,
@@ -18,6 +17,7 @@ import {
 } from './comun/middleware/limite-intentos.js';
 import { manejarErrores, rutaNoEncontrada } from './comun/middleware/manejo-errores.js';
 import { registrarPeticiones } from './comun/middleware/registro-peticiones.js';
+import { encabezadosSeguridad, sinAlmacenar } from './comun/middleware/encabezados.js';
 import type { ConfiguracionVerificacionCorreo } from './comun/configuracion.js';
 import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
@@ -328,7 +328,7 @@ export function crearApp(
   app.set('trust proxy', 1);
 
   if (dependencias.registrarPeticiones) app.use(registrarPeticiones);
-  app.use(helmet());
+  app.use(encabezadosSeguridad);
   // Solo la consola llama desde un navegador; la app móvil no necesita CORS.
   app.use(cors({ origin: dependencias.corsOrigenes }));
   app.use(
@@ -362,7 +362,7 @@ export function crearApp(
   app.use(`${PREFIJO_API}/salud`, crearRutasSalud(dependencias.comprobarBaseDeDatos));
   montarRutasSinSesion(app, servicios, dependencias.claveTareas);
   app.use(`${PREFIJO_API}/app`, crearRouterApp(servicios, mw));
-  app.use(`${PREFIJO_API}/admin`, crearRouterAdmin(servicios, mw));
+  app.use(`${PREFIJO_API}/admin`, sinAlmacenar, crearRouterAdmin(servicios, mw));
 
   app.use(rutaNoEncontrada);
   app.use(manejarErrores);

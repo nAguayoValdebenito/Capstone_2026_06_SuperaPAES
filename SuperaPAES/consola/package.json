@@ -16,6 +16,9 @@
     "cobertura": "vitest run --coverage"
   },
   "dependencies": {
+    "@fontsource/figtree": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/stix-two-text": "^5.3.0",
     "katex": "^0.19.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
