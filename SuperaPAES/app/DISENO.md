@@ -721,7 +721,12 @@ sin tabla. Las capturas de widgets no sustituyen una comprobación en dispositiv
 - A39: el aviso de los términos aceptados (con escudo), la tarjeta «Descargar
   mis datos» con `BotonPrincipal`, «Mis puntajes PAES» y, bajo «Si ya no
   quieres usar Supera PAES», «Borrar mi cuenta». «Solicitudes sobre mis datos»
-  (A40) no se agrega: la API de la app aún no tiene sus rutas (HU-09).
+  abre A40.
+- A40: los tipos de la Ley 21.719 como `OpcionRadio` con su descripción, el
+  detalle opcional (hasta 2000 caracteres) y `BotonPrincipal` «Enviar
+  solicitud». La confirmación lleva la fecha límite que fija el servidor; la
+  app no escribe el plazo. Debajo, «Mis solicitudes» con tipo, estado, fechas,
+  detalle y respuesta. Falta compararla con el boceto A40.
 - A41: el permiso es el texto completo junto al interruptor (se siguen pidiendo
   las hojas para darlo y retirarlo). Sin permiso, un aviso con candado y nada
   más. Con permiso, «Cargar un puntaje» con `ChipPrueba`, año, puntaje y

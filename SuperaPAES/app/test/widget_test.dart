@@ -14,9 +14,9 @@ import 'apoyo/app_de_prueba.dart';
 import 'apoyo/repositorio_cuentas_falso.dart';
 
 void main() {
-  test('las 36 pantallas de la app están declaradas una sola vez', () {
-    expect(secciones, hasLength(36));
-    expect(secciones.map((s) => s.ruta).toSet(), hasLength(36));
+  test('las 37 pantallas de la app están declaradas una sola vez', () {
+    expect(secciones, hasLength(37));
+    expect(secciones.map((s) => s.ruta).toSet(), hasLength(37));
     // Barra inferior del DAS 7.4: Planes pasa a Perfil.
     expect(pestanas.map((s) => s.etiquetaPestana ?? s.titulo), [
       'Inicio',
