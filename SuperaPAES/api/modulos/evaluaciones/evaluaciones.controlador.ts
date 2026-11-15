@@ -5,6 +5,7 @@ import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import type {
+  DatosAviso,
   DatosHistorial,
   DatosInicioPractica,
   DatosInicioRepaso,
@@ -31,6 +32,7 @@ export interface EvaluacionesControlador {
   obtenerProgreso: RequestHandler;
   evaluacionAbierta: RequestHandler;
   entregarEvaluacion: RequestHandler;
+  avisarError: RequestHandler<Record<string, string>, unknown, DatosAviso>;
 }
 
 function estudianteDe(req: Request): string {
@@ -115,6 +117,21 @@ function repasoEHistorial(
   };
 }
 
+/** HU-37 (A23): el aviso de error sobre un ítem recibido; 201 solo si quedó guardado. */
+function avisos(servicio: EvaluacionesServicio): Pick<EvaluacionesControlador, 'avisarError'> {
+  return {
+    avisarError: async (req, res) => {
+      const aviso = {
+        evaluacionId: String(req.params.id),
+        itemId: String(req.params.item),
+        motivo: req.body.motivo,
+        comentario: req.body.comentario,
+      };
+      responder(res, await servicio.avisarError(estudianteDe(req), aviso), { estado: 201 });
+    },
+  };
+}
+
 export function crearEvaluacionesControlador(
   servicio: EvaluacionesServicio,
 ): EvaluacionesControlador {
@@ -129,6 +146,7 @@ export function crearEvaluacionesControlador(
       responder(res, await servicio.iniciarPractica(estudianteDe(req), req.body), { estado: 201 });
     },
     ...repasoEHistorial(servicio),
+    ...avisos(servicio),
     siguientePregunta: async (req, res) => {
       responder(res, await servicio.siguientePregunta(estudianteDe(req), String(req.params.id)));
     },

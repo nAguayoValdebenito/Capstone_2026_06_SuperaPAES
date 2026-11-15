@@ -12,6 +12,7 @@ import {
 } from './evaluaciones.controlador.js';
 import type { EvaluacionesServicio } from './evaluaciones.servicio.js';
 import {
+  esquemaAviso,
   esquemaIdEvaluacion,
   esquemaIdPractica,
   esquemaIdsItem,
@@ -55,6 +56,21 @@ function registrarConTiempo(router: Router, controlador: EvaluacionesControlador
     '/diagnosticos',
     validar({ cuerpo: esquemaInicioMini }),
     controlador.iniciarDiagnostico,
+  );
+}
+
+/** Lo que se hace sobre un ítem recibido: responderlo y avisar un error (HU-37, A23). */
+function registrarItems(router: Router, controlador: EvaluacionesControlador) {
+  router.post(
+    '/:id/items/:item/respuesta',
+    validar({ parametros: esquemaIdsItem, cuerpo: esquemaRespuesta }),
+    controlador.responderPregunta,
+  );
+  // La versión que se guarda es la que vio el estudiante, la del ítem.
+  router.post(
+    '/:id/items/:item/avisos',
+    validar({ parametros: esquemaIdsItem, cuerpo: esquemaAviso }),
+    controlador.avisarError,
   );
 }
 
@@ -102,10 +118,6 @@ export function crearRutasAppEvaluaciones(servicio: EvaluacionesServicio): Route
     validar({ parametros: esquemaIdEvaluacion }),
     controlador.obtenerRevision,
   );
-  router.post(
-    '/:id/items/:item/respuesta',
-    validar({ parametros: esquemaIdsItem, cuerpo: esquemaRespuesta }),
-    controlador.responderPregunta,
-  );
+  registrarItems(router, controlador);
   return router;
 }

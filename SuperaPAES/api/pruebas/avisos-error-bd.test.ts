@@ -1,7 +1,7 @@
 // Bandeja y cierre de los avisos de error contra PostgreSQL real (HU-50.1, RF-C08, CU-26; ver
-// base-temporal.ts). HU-37 (el estudiante envía el aviso) está pendiente: los avisos se crean aquí
-// directo en la base (decisión D1 de docs/planes/hu-50-avisos-error.md), sobre preguntas de Historia
-// publicadas y en la versión que vio el estudiante.
+// base-temporal.ts). Los avisos se crean aquí directo en la base, con fechas fijas, sobre preguntas de
+// Historia publicadas y en la versión que vio el estudiante. El envío desde la app (HU-37) se prueba en
+// avisos-estudiante-bd.test.ts.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Servicios } from '../app.js';
 import { ejecutarEnTransaccion } from '../db/transaccion.js';
