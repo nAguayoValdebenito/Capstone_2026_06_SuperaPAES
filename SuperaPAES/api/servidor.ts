@@ -16,11 +16,14 @@ import { crearWorkerGeneracion } from './trabajos/worker-generacion.js';
 /** Las dependencias que solo existen con cierta configuración. */
 function opcionesDe(
   config: Configuracion,
-): Pick<Dependencias, 'claveTareas' | 'paqueteGooglePlay'> {
+): Pick<Dependencias, 'claveTareas' | 'opcionesSuscripciones'> {
   return {
-    ...(config.pagos.proveedor === 'tiendas' && {
-      paqueteGooglePlay: config.pagos.googlePlay.paquete,
-    }),
+    opcionesSuscripciones: {
+      ...(config.pagos.proveedor === 'tiendas' && {
+        paqueteGooglePlay: config.pagos.googlePlay.paquete,
+      }),
+      modoPruebas: config.modoPruebasSuscripcion,
+    },
     ...(config.claveTareas && { claveTareas: config.claveTareas }),
   };
 }

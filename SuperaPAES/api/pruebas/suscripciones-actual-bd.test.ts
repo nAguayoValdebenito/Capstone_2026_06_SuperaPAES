@@ -15,7 +15,9 @@ describe.skipIf(!urlBase)('suscripción actual con PostgreSQL (HU-45.2)', () => 
   const base = prepararPracticas('actual');
   const { entorno } = base;
   const consultar = (token: string) =>
-    request(entorno.crearAppCon({ paqueteGooglePlay: 'cl.superapaes.app' }))
+    request(
+      entorno.crearAppCon({ opcionesSuscripciones: { paqueteGooglePlay: 'cl.superapaes.app' } }),
+    )
       .get(RUTA)
       .set('Authorization', `Bearer ${token}`);
 

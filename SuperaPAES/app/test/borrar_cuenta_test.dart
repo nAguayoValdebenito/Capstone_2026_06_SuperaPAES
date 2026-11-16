@@ -253,6 +253,29 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('con la suscripción simulada del modo de pruebas no pide '
+        'cancelarla en una tienda', (tester) async {
+      await iniciarApp(
+        tester,
+        crearContenedor(
+          sesion: sesionDeEjemplo,
+          misDatos: RepositorioMisDatosFalso(
+            suscripcion: const SuscripcionVigente(
+              enMora: false,
+              plan: 'Todas las pruebas',
+              periodicidad: 'mensual',
+              tienda: Tienda.prueba,
+            ),
+          ),
+        ),
+        ruta: Rutas.borrarCuenta,
+      );
+
+      expect(find.textContaining('Tienes una suscripción'), findsNothing);
+      expect(find.text('Abrir suscripciones de la tienda'), findsNothing);
+      expect(_sePuedeBorrar(tester), isTrue);
+    });
+
     testWidgets('en mora en la App Store abre la gestión de Apple; si no '
         'abre, lo avisa', (tester) async {
       final abiertos = <Uri>[];
