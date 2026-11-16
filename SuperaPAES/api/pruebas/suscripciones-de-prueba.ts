@@ -10,7 +10,7 @@ export interface SuscripcionDePrueba {
   /** Código de contenido.estado_suscripcion. */
   estado: string;
   /** Código de contenido.canal_venta. */
-  tienda?: 'google_play' | 'app_store';
+  tienda?: 'google_play' | 'app_store' | 'prueba';
   /** Pruebas de app.suscripcion_prueba (la elegida en «Una prueba»). */
   pruebas?: number[];
   /** Fin del período pagado; sin él queda vacío. */

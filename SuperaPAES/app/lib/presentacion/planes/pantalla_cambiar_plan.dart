@@ -64,7 +64,7 @@ class PantallaCambiarPlan extends ConsumerWidget {
             mensaje: 'No pudimos cargar tu plan.',
             alReintentar: () => ref
               ..invalidate(suscripcionActualProvider)
-              ..invalidate(planesProvider),
+              ..invalidate(ofertaProvider),
           ),
         ],
       ),

@@ -15,9 +15,21 @@ final repositorioSuscripcionesProvider = Provider<RepositorioSuscripciones>(
   ),
 );
 
+/// Los planes que se ofrecen y si está el modo de pruebas (A43). Para volver
+/// a pedirlos se invalida este proveedor.
+final ofertaProvider = FutureProvider<OfertaDePlanes>(
+  (ref) => ref.watch(repositorioSuscripcionesProvider).oferta(),
+);
+
 /// Los planes que se ofrecen (A43).
 final planesProvider = FutureProvider<List<PlanOfrecido>>(
-  (ref) => ref.watch(repositorioSuscripcionesProvider).planes(),
+  (ref) async => (await ref.watch(ofertaProvider.future)).planes,
+);
+
+/// ¿La API tiene encendido el modo de pruebas de suscripción? Mientras no se
+/// sabe, no: el botón de la suscripción de prueba no aparece.
+final modoPruebasProvider = Provider<bool>(
+  (ref) => ref.watch(ofertaProvider).value?.modoPruebas ?? false,
 );
 
 /// La suscripción activa o en mora (A43 y A44); `null` en el plan Gratis o

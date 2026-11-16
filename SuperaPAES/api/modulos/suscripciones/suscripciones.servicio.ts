@@ -23,7 +23,10 @@ import {
   type ResultadoRenovacion,
 } from './suscripciones.renovacion.servicio.js';
 import { crearAvisosServicio, type AvisosServicio } from './suscripciones.avisos.servicio.js';
+import { CANAL_PRUEBA } from './suscripciones.canal-prueba.js';
 import { crearComprasRepositorio } from './suscripciones.compras.repositorio.js';
+import { crearSimuladaRepositorio } from './suscripciones.simulada.repositorio.js';
+import { crearSimuladaServicio, type SimuladaServicio } from './suscripciones.simulada.servicio.js';
 import { crearComprasServicio, type ComprasServicio } from './suscripciones.compras.servicio.js';
 import {
   crearTrazabilidadRepositorio,
@@ -63,6 +66,8 @@ export interface DependenciasSuscripcionesServicio {
   paqueteGooglePlay?: string;
   /** HU-45.3: el aviso de renovación anual (auditoría, cuentas, correo y candados). */
   avisoRenovacion?: DependenciasAvisoRenovacion;
+  /** MODO_PRUEBAS_SUSCRIPCION: permite la suscripción simulada; sin él, apagado. */
+  modoPruebas?: boolean;
 }
 
 /**
@@ -76,7 +81,8 @@ export interface SuscripcionesServicio
     ValidacionServicio,
     TrazabilidadServicio,
     AvisosServicio,
-    PlanesServicio {
+    PlanesServicio,
+    SimuladaServicio {
   /**
    * RN-04: ¿una suscripción activa o en mora cubre la prueba? Si la cubre, responder no descuenta
    * cupo (lo pregunta cupo-invitaciones dentro de la transacción de la respuesta). Una activa cubre
@@ -142,11 +148,34 @@ function cerrarCanceladas(
   });
 }
 
-/** La vigente con la dirección de su tienda, sin el producto (HU-45.2). */
+/**
+ * La vigente con la dirección de su tienda, sin el producto (HU-45.2). La simulada del modo de pruebas no
+ * tiene tienda donde gestionarla: gestionUrl null.
+ */
 function conGestion(fila: FilaVigente | null, paquete?: string): SuscripcionVigente | null {
   if (!fila) return null;
   const { idProducto, ...vigente } = fila;
-  return { ...vigente, gestionUrl: gestionEnTienda(fila.tienda, idProducto, paquete) };
+  const gestionUrl =
+    fila.tienda === CANAL_PRUEBA ? null : gestionEnTienda(fila.tienda, idProducto, paquete);
+  return { ...vigente, gestionUrl };
+}
+
+/** La trazabilidad de la consola (HU-56) y la suscripción simulada del modo de pruebas. */
+function serviciosDeLaConsolaYPruebas(
+  dependencias: DependenciasSuscripcionesServicio,
+  compras: ReturnType<typeof crearComprasRepositorio>,
+): TrazabilidadServicio & SimuladaServicio {
+  const trazabilidad = crearTrazabilidadServicio(
+    dependencias.repositorioTrazabilidad ?? crearTrazabilidadRepositorio(dependencias.bd),
+  );
+  const simulada = crearSimuladaServicio({
+    unidadDeTrabajo: dependencias.unidadDeTrabajo,
+    reloj: dependencias.reloj,
+    modoPruebas: dependencias.modoPruebas === true,
+    simulada: crearSimuladaRepositorio(dependencias.bd),
+    compras,
+  });
+  return { ...trazabilidad, ...simulada };
 }
 
 export function crearSuscripcionesServicio(
@@ -171,14 +200,11 @@ export function crearSuscripcionesServicio(
     validacion: validacionRepositorio,
     ...(dependencias.correoMora && { correoMora: dependencias.correoMora }),
   });
-  const trazabilidad = crearTrazabilidadServicio(
-    dependencias.repositorioTrazabilidad ?? crearTrazabilidadRepositorio(dependencias.bd),
-  );
   return {
     ...crearPlanesServicio(dependencias),
+    ...serviciosDeLaConsolaYPruebas(dependencias, comprasRepositorio),
     ...compras,
     ...validacion,
-    ...trazabilidad,
     ...avisos,
     planesOfrecidos: () => repositorio.planesOfrecidos(),
     cubrePrueba: (estudianteId, pruebaId, tx) =>

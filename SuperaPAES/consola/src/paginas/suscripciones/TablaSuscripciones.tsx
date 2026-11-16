@@ -1,8 +1,10 @@
 // Lista de suscripciones (C16, HU-56 esc. 2): estudiante, plan, tienda, estado y desde cuándo. El correo
-// abre la línea de tiempo; una cuenta eliminada sale como «Cuenta eliminada». Solo presenta.
+// abre la línea de tiempo; una cuenta eliminada sale como «Cuenta eliminada». La del modo de pruebas
+// lleva la etiqueta «Simulada» en vez de una tienda. Solo presenta.
 import { EstadoVacio } from '../../componentes/EstadoVacio';
 import type { SuscripcionDeLaLista } from '../../tipos/suscripciones';
-import { estudianteDe, fechaDeChile } from '../../utilidades/suscripciones';
+import { esSimulada, estudianteDe, fechaDeChile } from '../../utilidades/suscripciones';
+import { EtiquetaSimulada } from './EtiquetaSimulada';
 
 interface Propiedades {
   suscripciones: readonly SuscripcionDeLaLista[];
@@ -45,7 +47,9 @@ export function TablaSuscripciones({ suscripciones, elegida, alVer }: Propiedade
                 </button>
               </td>
               <td>{suscripcion.plan}</td>
-              <td>{suscripcion.tienda.nombre}</td>
+              <td>
+                {esSimulada(suscripcion.tienda) ? <EtiquetaSimulada /> : suscripcion.tienda.nombre}
+              </td>
               <td>
                 <span className={`etiqueta etiqueta--${suscripcion.estado.codigo}`}>
                   {suscripcion.estado.nombre}
