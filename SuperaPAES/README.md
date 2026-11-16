@@ -114,7 +114,11 @@ docker compose --env-file .env.docker up --build
 
 La primera ejecución crea la base `supera_paes`, aplica las migraciones `001` a `003` y carga las
 cinco semillas, incluidos los textos legales locales. En cada arranque, `migraciones` termina antes
-de iniciar la API. La API usa IA y pagos simulados y escribe el correo en los registros. Abre
+de iniciar la API. La API usa IA y pagos simulados y, por defecto, escribe el correo en los registros.
+Para ver los correos de verificación como llegarían a un estudiante, el compose incluye **Mailpit**
+(solo desarrollo): en `.env.docker` usa `PROVEEDOR_CORREO=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025`,
+`SMTP_TLS=none` y un `CORREO_REMITENTE` cualquiera, sin usuario ni clave, y abre http://localhost:8025.
+La API acepta el nombre `mailpit` sin TLS solo fuera de producción. Abre
 http://localhost:3000/api/v1/salud/vivo para comprobar la API y http://localhost:8080 para la consola.
 La base queda disponible solo desde este computador en el puerto 5433.
 
@@ -139,6 +143,12 @@ base local del volumen**; úsalo solo si quieres empezar desde cero. Si 5433 est
 `PUERTO_POSTGRES_LOCAL` en `.env.docker`. Si están ocupados 3000 u 8080, libera esos puertos antes de
 levantar los servicios: son las direcciones configuradas para la API, el navegador y los enlaces del
 correo.
+
+Las imágenes no llevan secretos: `.dockerignore` deja fuera `.env*`, claves, `key.properties`, respaldos,
+`docs/` y la app móvil, y todas las claves entran como variables de entorno al ejecutar. La consola se
+sirve con nginx sin privilegios en el puerto 8080 del contenedor, con los mismos encabezados de
+seguridad que en Vercel (salvo HSTS, porque en local es HTTP). `CLAVE_RESPALDO` y los secretos de
+Neon, Brevo, DeepSeek, Gemini y las tiendas no se usan en Docker.
 
 La app Flutter se ejecuta fuera de Docker. Desde el emulador de Android, conéctala a
 `http://10.0.2.2:3000`. La instalación sin Docker de la sección «Puesta en marcha» sigue disponible
