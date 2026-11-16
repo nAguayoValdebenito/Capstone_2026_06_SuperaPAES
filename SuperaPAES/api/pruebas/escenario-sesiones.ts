@@ -1,7 +1,7 @@
 // Escenario de las pruebas de sesión y permisos (HU-02.1 consola, HU-03.3): la app con los servicios
 // reales de cuentas y administracion sobre repositorios en memoria que imitan app.token_sesion y
 // contenido.usuario_interno, y un reloj que se adelanta para simular el paso del tiempo sin esperar.
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { expect } from 'vitest';
 import { crearApp, crearServicios, type Dependencias } from '../app.js';
@@ -31,6 +31,9 @@ export const sha256 = (texto: string) => createHash('sha256').update(texto).dige
 export interface FilaSesion extends NuevaSesion {
   id: string;
   revocadoEn: Date | null;
+  familia: string;
+  /** Sesión que la reemplazó al renovarla (revocación por rotación). */
+  reemplazadaPor: string | null;
 }
 
 type Usuarios = ReturnType<typeof crearRepositorioFalso>['usuarios'];
@@ -91,14 +94,28 @@ function crearRepositorioCuentas(
     },
     crearSesion: (sesion) => {
       const id = String(siguienteId++);
-      sesiones.set(id, { ...sesion, id, revocadoEn: null });
+      const { reemplazaA } = sesion;
+      const familia = reemplazaA?.familia ?? randomUUID();
+      sesiones.set(id, { ...sesion, id, revocadoEn: null, familia, reemplazadaPor: null });
+      const consumida = reemplazaA && sesiones.get(reemplazaA.id);
+      if (consumida) consumida.reemplazadaPor = id;
       return Promise.resolve(id);
     },
     consumirSesion: (tipo, hashToken, ahora) => {
       const fila = buscar(tipo, hashToken);
       if (!fila || !abierta(fila, ahora) || estudianteEliminado(fila)) return Promise.resolve(null);
       fila.revocadoEn = ahora;
-      return Promise.resolve({ tipo, cuentaId: fila.cuentaId, dispositivo: fila.dispositivo });
+      const { id, familia, cuentaId, dispositivo } = fila;
+      return Promise.resolve({ tipo, id, familia, cuentaId, dispositivo });
+    },
+    revocarFamiliaReusada: (tipo, hashToken, ahora) => {
+      const reusada = buscar(tipo, hashToken);
+      if (!reusada?.reemplazadaPor) return Promise.resolve(null);
+      const abiertas = [...sesiones.values()].filter(
+        (f) => f.familia === reusada.familia && f.revocadoEn === null,
+      );
+      for (const fila of abiertas) fila.revocadoEn = ahora;
+      return Promise.resolve({ cuentaId: reusada.cuentaId, sesionesRevocadas: abiertas.length });
     },
     revocarSesion: (tipo, hashToken, ahora) => {
       const fila = buscar(tipo, hashToken);

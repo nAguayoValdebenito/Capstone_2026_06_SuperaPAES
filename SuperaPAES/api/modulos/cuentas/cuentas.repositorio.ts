@@ -43,9 +43,23 @@ export interface DuenoSesion {
   dispositivo: string | null;
 }
 
+/** Sesión que una renovación acaba de consumir: la nueva hereda su familia y la marca como reemplazada. */
+export interface SesionConsumida extends DuenoSesion {
+  id: string;
+  familia: string;
+}
+
 export interface NuevaSesion extends DuenoSesion {
   hashToken: string;
   expiraEn: Date;
+  /** Al renovar: la sesión consumida. Sin ella (ingreso o registro) la sesión abre una familia nueva. */
+  reemplazaA?: Pick<SesionConsumida, 'id' | 'familia'>;
+}
+
+/** Reuso detectado: la cuenta dueña del token rotado y cuántas sesiones abiertas de su familia se cerraron. */
+export interface ReusoDetectado {
+  cuentaId: string;
+  sesionesRevocadas: number;
 }
 
 export interface CuentasRepositorio {
@@ -60,18 +74,32 @@ export interface CuentasRepositorio {
     correo: string,
     tx?: Ejecutor,
   ): Promise<CredencialesEstudiante | null>;
-  /** Devuelve el id de la nueva fila de app.token_sesion. */
+  /**
+   * Devuelve el id de la nueva fila de app.token_sesion. Con `reemplazaA`, la nueva queda en esa familia
+   * y la consumida guarda en reemplazada_por el id de la nueva (revocación por rotación).
+   */
   crearSesion(sesion: NuevaSesion, tx?: Ejecutor): Promise<string>;
   /**
    * Revoca la sesión abierta y vigente del token, del tipo indicado, en una sola sentencia (dos
-   * renovaciones simultáneas no pueden usar el mismo token). Devuelve su dueño, o null.
+   * renovaciones simultáneas no pueden usar el mismo token). Devuelve la sesión consumida, o null.
    */
   consumirSesion(
     tipo: Audiencia,
     hashToken: string,
     ahora: Date,
     tx?: Ejecutor,
-  ): Promise<DuenoSesion | null>;
+  ): Promise<SesionConsumida | null>;
+  /**
+   * Si el token es de una sesión revocada por rotación (reemplazada_por con valor), cierra todas las
+   * sesiones abiertas de su familia y devuelve su dueño. Un token cerrado por el usuario, vencido sin
+   * rotar o desconocido no cambia nada y devuelve null.
+   */
+  revocarFamiliaReusada(
+    tipo: Audiencia,
+    hashToken: string,
+    ahora: Date,
+    tx?: Ejecutor,
+  ): Promise<ReusoDetectado | null>;
   /** Cierra la sesión del token si sigue abierta; si no existe o ya estaba cerrada, no hace nada. */
   revocarSesion(tipo: Audiencia, hashToken: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   revocarSesionesUsuarioInterno(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
@@ -100,10 +128,18 @@ const CREDENCIALES_ESTUDIANTE = `
     FROM app.estudiante
    WHERE lower(correo) = lower($1) AND eliminado_en IS NULL`;
 
+// $6 es la familia heredada (NULL: familia nueva) y $7 la sesión consumida (NULL al ingresar), que
+// queda apuntando a la nueva en la misma sentencia.
 const INSERTAR_SESION = `
-  INSERT INTO app.token_sesion (estudiante_id, usuario_interno_id, hash_token, dispositivo, expira_en)
-  VALUES ($1, $2, $3, $4, $5)
-  RETURNING id::text AS id`;
+  WITH nueva AS (
+    INSERT INTO app.token_sesion
+           (estudiante_id, usuario_interno_id, hash_token, dispositivo, expira_en, familia)
+    VALUES ($1, $2, $3, $4, $5, COALESCE($6::uuid, gen_random_uuid()))
+    RETURNING id
+  ), rotada AS (
+    UPDATE app.token_sesion SET reemplazada_por = (SELECT id FROM nueva) WHERE id = $7::bigint
+  )
+  SELECT id::text AS id FROM nueva`;
 
 // $3 indica el tipo: true para la consola (usuario interno), false para la app (estudiante, que además
 // no debe haber sido eliminado: su sesión abierta no se renueva).
@@ -115,7 +151,26 @@ const CONSUMIR_SESION = `
      AND (usuario_interno_id IS NOT NULL OR EXISTS (
            SELECT 1 FROM app.estudiante e
             WHERE e.id = token_sesion.estudiante_id AND e.eliminado_en IS NULL))
-  RETURNING COALESCE(usuario_interno_id, estudiante_id)::text AS "cuentaId", dispositivo`;
+  RETURNING id::text AS id, familia::text AS familia,
+            COALESCE(usuario_interno_id, estudiante_id)::text AS "cuentaId", dispositivo`;
+
+// Solo un token revocado por rotación (reemplazada_por con valor) delata una copia: cierra las sesiones
+// abiertas de su familia. $3 indica el tipo, como en CONSUMIR_SESION.
+const REVOCAR_FAMILIA_REUSADA = `
+  WITH reusada AS (
+    SELECT familia, COALESCE(usuario_interno_id, estudiante_id) AS cuenta
+      FROM app.token_sesion
+     WHERE hash_token = $1 AND reemplazada_por IS NOT NULL
+       AND (usuario_interno_id IS NOT NULL) = $3
+  ), revocadas AS (
+    UPDATE app.token_sesion t
+       SET revocado_en = $2
+      FROM reusada r
+     WHERE t.familia = r.familia AND t.revocado_en IS NULL
+    RETURNING t.id
+  )
+  SELECT cuenta::text AS "cuentaId", (SELECT COUNT(*)::int FROM revocadas) AS "sesionesRevocadas"
+    FROM reusada`;
 
 const REVOCAR_SESION = `
   UPDATE app.token_sesion
@@ -199,13 +254,15 @@ function consultasSesiones(
   bd: Ejecutor,
 ): Omit<CuentasRepositorio, keyof Ingreso | keyof RevocacionesMasivas> {
   return {
-    async crearSesion({ tipo, cuentaId, hashToken, dispositivo, expiraEn }, tx = bd) {
+    async crearSesion({ tipo, cuentaId, hashToken, dispositivo, expiraEn, reemplazaA }, tx = bd) {
       const dueno = tipo === 'admin' ? [null, cuentaId] : [cuentaId, null];
       const { rows } = await tx.query<{ id: string }>(INSERTAR_SESION, [
         ...dueno,
         hashToken,
         dispositivo,
         expiraEn,
+        reemplazaA?.familia ?? null,
+        reemplazaA?.id ?? null,
       ]);
       const fila = rows[0];
       if (!fila) throw new Error('El INSERT de token_sesion no devolvió el id.');
@@ -213,13 +270,22 @@ function consultasSesiones(
     },
 
     async consumirSesion(tipo, hashToken, ahora, tx = bd) {
-      const { rows } = await tx.query<Omit<DuenoSesion, 'tipo'>>(CONSUMIR_SESION, [
+      const { rows } = await tx.query<Omit<SesionConsumida, 'tipo'>>(CONSUMIR_SESION, [
         hashToken,
         ahora,
         tipo === 'admin',
       ]);
       const fila = rows[0];
-      return fila ? { tipo, cuentaId: fila.cuentaId, dispositivo: fila.dispositivo } : null;
+      return fila ? { tipo, ...fila } : null;
+    },
+
+    async revocarFamiliaReusada(tipo, hashToken, ahora, tx = bd) {
+      const { rows } = await tx.query<ReusoDetectado>(REVOCAR_FAMILIA_REUSADA, [
+        hashToken,
+        ahora,
+        tipo === 'admin',
+      ]);
+      return rows[0] ?? null;
     },
 
     async revocarSesion(tipo, hashToken, ahora, tx = bd) {

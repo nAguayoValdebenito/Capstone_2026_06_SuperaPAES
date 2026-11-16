@@ -28,6 +28,9 @@ describe('renovar la sesión', () => {
     const renovada = await request(escenario.app)
       .post(RUTA_RENOVAR)
       .send({ tokenRenovacion: primera.tokenRenovacion });
+    const nuevo = await request(escenario.app)
+      .get(RUTA_YO)
+      .set(conToken(renovada.body.data.tokenAcceso as string));
     const otraVez = await request(escenario.app)
       .post(RUTA_RENOVAR)
       .send({ tokenRenovacion: primera.tokenRenovacion });
@@ -35,12 +38,14 @@ describe('renovar la sesión', () => {
     expect(renovada.status).toBe(200);
     expect(renovada.body.data.tokenRenovacion).not.toBe(primera.tokenRenovacion);
     expect(renovada.body.data.tokenAcceso).not.toBe(primera.tokenAcceso);
+    expect(nuevo.status).toBe(200);
     expect(otraVez.status).toBe(401);
     expect(otraVez.body).toEqual(errorConFormato('NO_AUTENTICADO'));
-    const nuevo = await request(escenario.app)
+    // Reusar el token rotado cierra también la sesión que salió de él (sesion-reuso-token.test.ts).
+    const despuesDelReuso = await request(escenario.app)
       .get(RUTA_YO)
       .set(conToken(renovada.body.data.tokenAcceso as string));
-    expect(nuevo.status).toBe(200);
+    expect(despuesDelReuso.status).toBe(401);
   });
 
   it('el token de acceso de la sesión rotada deja de servir', async () => {

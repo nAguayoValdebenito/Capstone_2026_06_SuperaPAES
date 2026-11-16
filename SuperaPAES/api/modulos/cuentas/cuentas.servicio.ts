@@ -2,10 +2,10 @@
 // contraseña de estudiantes, consentimientos, pruebas elegidas, áreas de carrera de interés,
 // puntajes PAES declarados, ingreso del personal interno y sesiones de la app y de la consola.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import type { ProveedorCorreo } from '../../adaptadores/fabrica.js';
 import type { ConfiguracionVerificacionCorreo } from '../../comun/configuracion.js';
-import { ErrorCuentaDesactivada, ErrorNoAutenticado } from '../../comun/errores.js';
+import { ErrorCuentaDesactivada } from '../../comun/errores.js';
 import { type Audiencia, firmarToken } from '../../comun/jwt.js';
 import { generarCodigoInvitacion } from '../../comun/codigo-invitacion.js';
 import type { ComprobarSesion, SecretosJwt } from '../../comun/middleware/autenticacion.js';
@@ -14,11 +14,15 @@ import type { RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
 import type { AdministracionServicio, DocumentoLegalVigente } from '../administracion/index.js';
 import type { CupoInvitacionesServicio } from '../cupo-invitaciones/index.js';
+import { crearCuentasRepositorio, type CuentasRepositorio } from './cuentas.repositorio.js';
 import {
-  crearCuentasRepositorio,
-  type CuentasRepositorio,
-  type DuenoSesion,
-} from './cuentas.repositorio.js';
+  type DatosToken,
+  errorSesion,
+  hashDe,
+  LARGO_DISPOSITIVO,
+  renovarSesion,
+  type SesionIniciada,
+} from './cuentas.sesiones.servicio.js';
 import { comprobarCredenciales, hashDeRelleno } from './cuentas.credenciales.js';
 import * as listado from './cuentas.estudiantes.servicio.js';
 import { crearCuentaEnLaApp, type CuentaEnLaApp } from './cuentas.app.servicio.js';
@@ -65,8 +69,6 @@ export const DURACION_TOKEN_RENOVACION_SEGUNDOS: { [A in Audiencia]: number } = 
 };
 /** Bytes al azar del token de renovación (se entrega en base64url y se guarda solo su SHA-256). */
 const BYTES_TOKEN_RENOVACION = 32;
-/** app.token_sesion.dispositivo es VARCHAR(100). */
-const LARGO_DISPOSITIVO = 100;
 
 /** Con lo que pide el listado de C15: quiénes tienen suscripción vigente (de suscripciones). */
 export interface DependenciasCuentasServicio extends listado.DependenciasListado {
@@ -95,10 +97,7 @@ export interface DependenciasCuentasServicio extends listado.DependenciasListado
   generarCodigoInvitacion?: () => string;
 }
 
-export interface SesionIniciada {
-  tokenAcceso: string;
-  tokenRenovacion: string;
-}
+export type { SesionIniciada };
 
 /** Datos mínimos del usuario interno que entrega el ingreso. Nunca el hash de la contraseña. */
 export interface UsuarioDeSesion {
@@ -169,8 +168,10 @@ export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfi
    */
   ingresarUsuarioInterno(credenciales: Credenciales, navegador?: string): Promise<SesionConsola>;
   /**
-   * Rota el token: revoca la sesión usada y abre otra. Revocado, vencido o de otro tipo: 401. Con
-   * `dispositivo`, la sesión nueva lo guarda; sin él, conserva el de la sesión usada.
+   * Rota el token: revoca la sesión usada y abre otra en su misma familia. Revocado, vencido o de otro
+   * tipo: 401. Un token ya rotado delata una copia: antes del 401 se cierran las sesiones abiertas de su
+   * familia (no las de otros ingresos). Con `dispositivo`, la sesión nueva lo guarda; sin él, conserva
+   * el de la sesión usada.
    */
   renovarSesion(
     tipo: Audiencia,
@@ -204,17 +205,6 @@ interface Contexto {
   reloj: Reloj;
 }
 
-/** Lo que lleva la sesión además de la cuenta: su tipo (con el rol, en la consola) y el dispositivo. */
-type DatosToken = { dispositivo: string | null } & (
-  { tipo: 'app' } | { tipo: 'admin'; rol: RolCuentaInterna }
-);
-
-const hashDe = (token: string) => createHash('sha256').update(token).digest('hex');
-
-const SESION_TERMINADA = 'La sesión venció o se cerró. Vuelve a iniciar sesión.';
-
-const errorSesion = () => new ErrorNoAutenticado(SESION_TERMINADA);
-
 async function abrirSesion(
   { repositorio, jwt, reloj }: Contexto,
   cuentaId: string,
@@ -233,6 +223,7 @@ async function abrirSesion(
       dispositivo: datos.dispositivo,
       hashToken: hashDe(tokenRenovacion),
       expiraEn,
+      ...(datos.rota && { reemplazaA: datos.rota }),
     },
     tx,
   );
@@ -282,31 +273,6 @@ async function ingresarDeEstudiante(
     abrirSesion(contexto, id, { tipo: 'app', dispositivo: dispositivo ?? null }, tx),
   );
   return { ...sesion, estudiante: { id, nombre, correo: cuenta.correo, correoVerificado } };
-}
-
-/** En la consola el rol se lee de nuevo: un cambio de rol rige desde la renovación. */
-async function datosDelToken(c: Contexto, dueno: DuenoSesion, tx: Ejecutor): Promise<DatosToken> {
-  const { tipo, cuentaId, dispositivo } = dueno;
-  if (tipo === 'app') return { tipo, dispositivo };
-  const usuario = await c.administracion.obtenerUsuarioInterno(cuentaId, tx);
-  if (!usuario?.activo) throw errorSesion();
-  return { tipo, rol: usuario.rol, dispositivo };
-}
-
-async function renovar(
-  contexto: Contexto,
-  tipo: Audiencia,
-  tokenRenovacion: string,
-  dispositivo: string | undefined,
-): Promise<SesionIniciada> {
-  const { repositorio, unidadDeTrabajo, reloj } = contexto;
-  return unidadDeTrabajo.enTransaccion(async (tx) => {
-    const dueno = await repositorio.consumirSesion(tipo, hashDe(tokenRenovacion), reloj(), tx);
-    if (!dueno) throw errorSesion();
-    const datos = await datosDelToken(contexto, dueno, tx);
-    const nuevo = dispositivo?.slice(0, LARGO_DISPOSITIVO) || datos.dispositivo;
-    return abrirSesion(contexto, dueno.cuentaId, { ...datos, dispositivo: nuevo }, tx);
-  });
 }
 
 async function usuarioConsola({ administracion }: Contexto, id: string): Promise<UsuarioConsola> {
@@ -362,6 +328,11 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     reloj: dependencias.reloj,
   };
   const { repositorio, reloj } = contexto;
+  const renovacion = {
+    ...contexto,
+    abrirSesion: (id: string, datos: DatosToken, tx: Ejecutor) =>
+      abrirSesion(contexto, id, datos, tx),
+  };
   const perfilPractica = crearPerfilPracticaRepositorio(dependencias.bd);
   // Se prepara al crear el servicio para que el primer ingreso con un correo sin cuenta no tarde más.
   void hashDeRelleno();
@@ -371,10 +342,12 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
     ingresarEstudiante: (credenciales) => ingresarDeEstudiante(contexto, credenciales),
     ingresarUsuarioInterno: (credenciales, navegador) =>
       ingresarInterno(contexto, credenciales, navegador),
-    renovarSesion: (tipo, token, dispositivo) => renovar(contexto, tipo, token, dispositivo),
+    renovarSesion: (tipo, token, dispositivo) =>
+      renovarSesion(renovacion, tipo, token, dispositivo),
     cerrarSesion: (tipo, token) => repositorio.revocarSesion(tipo, hashDe(token), reloj()),
     // La consola renueva con el navegador de la petición, que queda como dispositivo.
-    renovarSesionConsola: (token, navegador) => renovar(contexto, 'admin', token, navegador),
+    renovarSesionConsola: (token, navegador) =>
+      renovarSesion(renovacion, 'admin', token, navegador),
     cerrarSesionConsola: (token) => repositorio.revocarSesion('admin', hashDe(token), reloj()),
     // Solo la sesión: la cuenta de la consola la comprueba el middleware con administracion.
     sesionVigente: (audiencia, { sub, sid }) =>
