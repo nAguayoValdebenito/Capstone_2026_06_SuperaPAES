@@ -1,14 +1,19 @@
 import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 
 /// Tienda en que se compró la suscripción: solo ella la puede cancelar
-/// (RN-34).
+/// (RN-34). [prueba] no es una tienda: es la suscripción simulada del modo de
+/// pruebas, que no se cobra ni se gestiona en ninguna tienda.
 enum Tienda {
   googlePlay('Google Play'),
-  appStore('App Store');
+  appStore('App Store'),
+  prueba('Prueba (simulada)');
 
   const Tienda(this.nombre);
 
   final String nombre;
+
+  /// La suscripción simulada del modo de pruebas: sin cobros ni tienda.
+  bool get simulada => this == Tienda.prueba;
 }
 
 /// La suscripción activa o en mora que la tienda sigue cobrando (RN-34): al

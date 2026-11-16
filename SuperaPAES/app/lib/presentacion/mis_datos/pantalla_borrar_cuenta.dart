@@ -34,11 +34,11 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
   bool _borrando = false;
 
   Future<void> _abrirTienda(Tienda tienda) async {
+    final enlace = gestionDeSuscripciones(tienda);
+    if (enlace == null) return;
     bool abierta;
     try {
-      abierta = await ref.read(abrirEnlaceProvider)(
-        gestionDeSuscripciones(tienda),
-      );
+      abierta = await ref.read(abrirEnlaceProvider)(enlace);
     } on Exception {
       abierta = false;
     }
@@ -84,7 +84,12 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
     final estado = ref.watch(estadoDeLaCuentaProvider);
     // Sin saber si hay una suscripción vigente, no se puede avisar (RN-34).
     final revisada = estado is AsyncData<EstadoDeLaCuenta>;
-    final vigente = revisada ? estado.value.suscripcionVigente : null;
+    // La simulada del modo de pruebas no la cobra ninguna tienda: no hay
+    // nada que cancelar antes de borrar.
+    final vigente = switch (revisada ? estado.value.suscripcionVigente : null) {
+      final suscripcion? when !suscripcion.tienda.simulada => suscripcion,
+      _ => null,
+    };
     final confirmada = vigente == null || _entiendoTienda;
     return PantallaFormulario(
       separacion: 14,

@@ -92,14 +92,19 @@ final abrirEnlaceProvider = Provider<AbrirEnlace>(
 );
 
 /// La dirección que entrega la API (HU-45.2) o, sin ella, la de la tienda.
-Uri enlaceDeGestion(SuscripcionVigente suscripcion) =>
+/// `null` en la simulada del modo de pruebas, que no tiene tienda.
+Uri? enlaceDeGestion(SuscripcionVigente suscripcion) =>
     switch (suscripcion.gestionUrl) {
       final direccion? => Uri.parse(direccion),
       null => gestionDeSuscripciones(suscripcion.tienda),
     };
 
-/// La gestión de suscripciones de cada tienda, donde se cancela (RN-34).
-Uri gestionDeSuscripciones(Tienda tienda) => Uri.parse(switch (tienda) {
-  Tienda.googlePlay => 'https://play.google.com/store/account/subscriptions',
-  Tienda.appStore => 'https://apps.apple.com/account/subscriptions',
-});
+/// La gestión de suscripciones de cada tienda, donde se cancela (RN-34);
+/// `null` en la simulada, que no se gestiona en ninguna tienda.
+Uri? gestionDeSuscripciones(Tienda tienda) => switch (tienda) {
+  Tienda.googlePlay => Uri.parse(
+    'https://play.google.com/store/account/subscriptions',
+  ),
+  Tienda.appStore => Uri.parse('https://apps.apple.com/account/subscriptions'),
+  Tienda.prueba => null,
+};

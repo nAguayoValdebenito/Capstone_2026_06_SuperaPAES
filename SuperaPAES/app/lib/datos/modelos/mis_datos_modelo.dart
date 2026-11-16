@@ -77,6 +77,7 @@ abstract final class MisDatosModelo {
       tienda: switch (datos['tienda']) {
         'google_play' => Tienda.googlePlay,
         'app_store' => Tienda.appStore,
+        'prueba' => Tienda.prueba,
         _ => throw const ErrorApi(
           codigo: 'RESPUESTA_INVALIDA',
           mensaje: 'Recibimos una tienda que no conocemos. Inténtalo de nuevo.',

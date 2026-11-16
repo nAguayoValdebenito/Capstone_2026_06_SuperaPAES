@@ -8,6 +8,7 @@ import 'package:supera_paes/dominio/entidades/perfil_estudiante.dart';
 import 'package:supera_paes/dominio/entidades/plan.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/errores.dart';
 import 'package:supera_paes/nucleo/tema.dart';
 import 'package:supera_paes/presentacion/comunes/animados.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
@@ -81,7 +82,7 @@ class _PantallaPlanesState extends ConsumerState<PantallaPlanes> {
             ErrorConReintento(
               error: error,
               mensaje: 'No pudimos cargar los planes.',
-              alReintentar: () => ref.invalidate(planesProvider),
+              alReintentar: () => ref.invalidate(ofertaProvider),
             ),
           ],
           _ => const [
@@ -191,6 +192,37 @@ class _TarjetaPlan extends ConsumerWidget {
   final PlanOfrecido plan;
   final SuscripcionVigente? actual;
 
+  /// Modo de pruebas: activa la suscripción simulada de este plan, sin tienda
+  /// ni cobro, para que quede su registro en la consola. «Una prueba» pregunta
+  /// antes cuál. Al terminar lo confirma y vuelve a pedir la suscripción.
+  Future<void> _activarDePrueba(
+    BuildContext context,
+    WidgetRef ref,
+    List<PruebaDeInicio> pruebas,
+    OpcionesPerfil? nombres,
+  ) async {
+    int? pruebaId;
+    if (plan.esUnaPrueba) {
+      pruebaId = await mostrarHoja<int>(
+        context,
+        _HojaElegirPrueba(pruebas: pruebas, nombres: nombres),
+      );
+      if (pruebaId == null || !context.mounted) return;
+    }
+    final mensajero = ScaffoldMessenger.of(context);
+    String mensaje;
+    try {
+      await ref
+          .read(repositorioSuscripcionesProvider)
+          .activarSimulada(planId: plan.id, pruebaId: pruebaId);
+      ref.invalidate(suscripcionActualProvider);
+      mensaje = 'Activamos tu suscripción de prueba de ${plan.alcanceNombre}.';
+    } on ErrorApi catch (fallo) {
+      mensaje = fallo.mensaje;
+    }
+    mensajero.showSnackBar(SnackBar(content: Text(mensaje)));
+  }
+
   bool get _esTuPlan =>
       actual?.plan == plan.alcanceNombre &&
       actual?.periodicidad == plan.periodicidad;
@@ -225,6 +257,8 @@ class _TarjetaPlan extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final perfil = ref.watch(perfilProvider).value;
     final nombres = ref.watch(opcionesPerfilProvider).value;
+    // Solo sin plan y con el modo de pruebas encendido en la API.
+    final dePrueba = actual == null && ref.watch(modoPruebasProvider);
     final pruebas = perfil == null || nombres == null
         ? const <PruebaDeInicio>[]
         : pruebasDeInicio(perfil, nombres);
@@ -321,6 +355,15 @@ class _TarjetaPlan extends ConsumerWidget {
                 onPressed: () => _elegir(context, pruebas, nombres),
                 child: Text(accion),
               ),
+            if (dePrueba) ...[
+              const SizedBox(height: TemaSuperaPaes.espacio8),
+              TextButton.icon(
+                onPressed: () =>
+                    _activarDePrueba(context, ref, pruebas, nombres),
+                icon: const Icon(Icons.science_outlined, size: 18),
+                label: const Text('Activar suscripción de prueba'),
+              ),
+            ],
           ],
         ],
       ),
