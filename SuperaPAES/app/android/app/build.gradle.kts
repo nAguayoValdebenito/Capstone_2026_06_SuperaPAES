@@ -13,6 +13,12 @@ val firma = Properties().apply {
     if (archivoFirma.exists()) archivoFirma.inputStream().use { load(it) }
 }
 
+// Un release nunca se firma con la clave de depuración, que es pública. Solo para probar en local
+// se permite con la propiedad -PpermitirFirmaDebug=true, que Flutter pasa a Gradle:
+// `flutter run --release -PpermitirFirmaDebug=true`.
+val permitirFirmaDebug =
+    providers.gradleProperty("permitirFirmaDebug").map { it == "true" }.getOrElse(false)
+
 android {
     namespace = "cl.superapaes.app"
     compileSdk = flutter.compileSdkVersion
@@ -49,13 +55,33 @@ android {
 
     buildTypes {
         release {
-            // Sin key.properties firma con la clave de depuración, para que `flutter run --release`
-            // funcione en cualquier computador. Google Play rechaza esa firma.
-            signingConfig = signingConfigs.getByName(
-                if (archivoFirma.exists()) "publicacion" else "debug",
+            // Con key.properties, la firma de publicación. Sin ella, la de depuración solo si se
+            // pidió con permitirFirmaDebug; si no, exigirFirmaPublicacion detiene la compilación.
+            signingConfig = when {
+                archivoFirma.exists() -> signingConfigs.getByName("publicacion")
+                permitirFirmaDebug -> signingConfigs.getByName("debug")
+                else -> null
+            }
+        }
+    }
+}
+
+// Corre antes de cualquier compilación release (apk o appbundle). Las de depuración no la usan.
+val hayFirmaPublicacion = archivoFirma.exists()
+val exigirFirmaPublicacion = tasks.register("exigirFirmaPublicacion") {
+    doLast {
+        if (!hayFirmaPublicacion && !permitirFirmaDebug) {
+            throw GradleException(
+                "Falta android/key.properties: un release no se firma con la clave de depuración. " +
+                    "Crea la firma de publicación como explica el manual de despliegue o, solo para " +
+                    "probar en este computador, agrega -PpermitirFirmaDebug=true " +
+                    "(por ejemplo: flutter run --release -PpermitirFirmaDebug=true).",
             )
         }
     }
+}
+tasks.configureEach {
+    if (name == "preReleaseBuild") dependsOn(exigirFirmaPublicacion)
 }
 
 kotlin {

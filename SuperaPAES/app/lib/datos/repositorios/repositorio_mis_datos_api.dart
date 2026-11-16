@@ -11,13 +11,15 @@ class RepositorioMisDatosApi implements RepositorioMisDatos {
   final FuenteMisDatosRemota _fuente;
 
   @override
-  Future<ArchivoMisDatos> descargar() => _fuente.descargar();
+  Future<ArchivoMisDatos> descargar(String contrasena) =>
+      _fuente.descargar(contrasena);
 
   @override
   Future<EstadoDeLaCuenta> estadoDeLaCuenta() => _fuente.estadoDeLaCuenta();
 
   @override
-  Future<void> borrarCuenta() => _fuente.borrarCuenta();
+  Future<void> borrarCuenta(String contrasena) =>
+      _fuente.borrarCuenta(contrasena);
 
   @override
   Future<List<TipoDerecho>> tiposDerecho() => _fuente.tiposDerecho();

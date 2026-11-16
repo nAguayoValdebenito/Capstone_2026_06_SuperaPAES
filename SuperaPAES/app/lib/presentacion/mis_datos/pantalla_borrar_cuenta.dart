@@ -12,14 +12,15 @@ import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
 import 'package:supera_paes/presentacion/comunes/estados.dart';
 import 'package:supera_paes/presentacion/mis_datos/estado_mis_datos.dart';
+import 'package:supera_paes/presentacion/mis_datos/hoja_contrasena.dart';
 
 /// Borrar mi cuenta (A42 y A42b; HU-08.2, CU-14 pasos 4 a 6 y alternativos
 /// 4.a y 5.a, RF-A18), desde Mis datos: explica qué se borra y qué queda
-/// seudonimizado y ofrece descargar los datos antes; «Borrar mi cuenta»
-/// confirma. Con una suscripción activa o en mora (A42b) avisa que la tienda
-/// seguirá cobrando, ofrece abrir su gestión de suscripciones y pide marcar
-/// que debe cancelarla allá (RN-34). Al borrar, la sesión se cierra y la app
-/// vuelve al ingreso.
+/// seudonimizado y ofrece descargar los datos antes; la contraseña y
+/// «Borrar mi cuenta» confirman. Con una suscripción activa o en mora
+/// (A42b) avisa que la tienda seguirá cobrando, ofrece abrir su gestión de
+/// suscripciones y pide marcar que debe cancelarla allá (RN-34). Al borrar,
+/// la sesión se cierra y la app vuelve al ingreso.
 class PantallaBorrarCuenta extends ConsumerStatefulWidget {
   const PantallaBorrarCuenta({super.key});
 
@@ -32,6 +33,14 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
     with DescargaDeMisDatos {
   bool _entiendoTienda = false;
   bool _borrando = false;
+  final _contrasena = TextEditingController();
+  String? _errorContrasena;
+
+  @override
+  void dispose() {
+    _contrasena.dispose();
+    super.dispose();
+  }
 
   Future<void> _abrirTienda(Tienda tienda) async {
     bool abierta;
@@ -51,24 +60,29 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
     }
   }
 
-  /// CU-14 paso 6: la API borra la cuenta y cierra la sesión; aquí se olvida
-  /// en el teléfono, y el enrutador lleva al ingreso.
+  /// CU-14 paso 6: con la contraseña, la API borra la cuenta y cierra la
+  /// sesión; aquí se olvida en el teléfono, y el enrutador lleva al ingreso.
+  /// Si la contraseña no es correcta, lo dice bajo el campo y la sesión
+  /// sigue abierta.
   Future<void> _borrar() async {
-    if (_borrando) return;
+    if (_borrando || _contrasena.text.isEmpty) return;
     final repositorio = ref.read(repositorioMisDatosProvider);
     final sesion = ref.read(sesionProvider.notifier);
     final mensajero = ScaffoldMessenger.of(context);
     setState(() {
       _borrando = true;
       error = null;
+      _errorContrasena = null;
     });
     try {
-      await repositorio.borrarCuenta();
+      await repositorio.borrarCuenta(_contrasena.text);
     } on ErrorApi catch (fallo) {
+      final errores = erroresDeContrasena(fallo);
       if (mounted) {
         setState(() {
           _borrando = false;
-          error = fallo.mensaje;
+          _errorContrasena = errores.campo;
+          error = errores.general;
         });
       }
       return;
@@ -125,6 +139,15 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
           ],
           _ => const [GrupoEsqueleto(child: EsqueletoTarjeta())],
         },
+        CampoContrasena(
+          etiqueta: 'Escribe tu contraseña para confirmar',
+          controller: _contrasena,
+          enabled: !_borrando,
+          forceErrorText: _errorContrasena,
+          autofillHints: const [AutofillHints.password],
+          textInputAction: TextInputAction.done,
+          onChanged: (_) => setState(() => _errorContrasena = null),
+        ),
       ],
       pie: Column(
         mainAxisSize: MainAxisSize.min,
@@ -139,7 +162,9 @@ class _PantallaBorrarCuentaState extends ConsumerState<PantallaBorrarCuenta>
                 ? EstadoBoton.normal
                 : EstadoBoton.error,
             error: error,
-            onPressed: revisada && confirmada ? _borrar : null,
+            onPressed: revisada && confirmada && _contrasena.text.isNotEmpty
+                ? _borrar
+                : null,
           ),
           const SizedBox(height: 12),
           OutlinedButton(
