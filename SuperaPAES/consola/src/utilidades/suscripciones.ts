@@ -1,5 +1,6 @@
 // Formatos de la trazabilidad de suscripciones (C16, HU-56): fechas y meses de Chile, pesos y cómo se
 // lee cada cambio de la línea de tiempo.
+import type { Opcion } from '../tipos';
 import type { DetalleSuscripcion } from '../tipos/suscripciones';
 
 const fechaCorta = new Intl.DateTimeFormat('es-CL', {
@@ -33,6 +34,12 @@ export const enPesos = (monto: number) => pesos.format(monto);
 
 /** El correo, o «Cuenta eliminada» si el estudiante la eliminó (sus datos quedan seudonimizados). */
 export const estudianteDe = (correo: string | null) => correo ?? 'Cuenta eliminada';
+
+/**
+ * ¿Es la suscripción simulada del modo de pruebas? Su «tienda» es el canal `prueba`: no se compró en
+ * Google Play ni en la App Store, no tiene pagos ni recibe avisos.
+ */
+export const esSimulada = (tienda: Opcion) => tienda.codigo === 'prueba';
 
 type Cambio = DetalleSuscripcion['historial'][number];
 

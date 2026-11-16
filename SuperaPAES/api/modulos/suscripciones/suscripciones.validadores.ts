@@ -15,6 +15,17 @@ export const esquemaNuevaSuscripcion = z.strictObject({
 
 export type DatosNuevaSuscripcion = z.infer<typeof esquemaNuevaSuscripcion>;
 
+/**
+ * POST /app/suscripciones/simulada (modo de pruebas): el plan y, en Una prueba, la prueba (RN-05). Sin
+ * tienda: la simulada nunca pasa por Google Play ni la App Store.
+ */
+export const esquemaSuscripcionSimulada = z.strictObject({
+  planId: identificador,
+  pruebaId: identificador.optional(),
+});
+
+export type DatosSuscripcionSimulada = z.infer<typeof esquemaSuscripcionSimulada>;
+
 /** POST /app/suscripciones/{id}/compra: la suscripción del estudiante. */
 export const esquemaIdSuscripcion = z.object({ id: idDeRuta });
 

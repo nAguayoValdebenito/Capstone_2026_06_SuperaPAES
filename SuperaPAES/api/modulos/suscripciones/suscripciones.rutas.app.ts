@@ -11,6 +11,7 @@ import {
   esquemaCompra,
   esquemaIdSuscripcion,
   esquemaNuevaSuscripcion,
+  esquemaSuscripcionSimulada,
 } from './suscripciones.validadores.js';
 
 export function crearRutasAppSuscripciones(servicio: SuscripcionesServicio): Router {
@@ -22,6 +23,15 @@ export function crearRutasAppSuscripciones(servicio: SuscripcionesServicio): Rou
   router.get('/actual', controlador.suscripcionActual);
   // HU-43.1, CU-12 paso 3: la suscripción pendiente que la app compra en la tienda (A43).
   router.post('/', validar({ cuerpo: esquemaNuevaSuscripcion }), controlador.crearSuscripcion);
+  // Modo de pruebas (MODO_PRUEBAS_SUSCRIPCION): la suscripción simulada, solo para verla en la consola
+  // (HU-56). Apagado, la ruta no se monta y responde 404 como cualquier ruta inexistente.
+  if (servicio.modoPruebasActivo()) {
+    router.post(
+      '/simulada',
+      validar({ cuerpo: esquemaSuscripcionSimulada }),
+      controlador.crearSimulada,
+    );
+  }
   // HU-43.1, CU-12 paso 5 y 1.b: la API valida la compra con la tienda antes de activar o cambiar el plan.
   router.post(
     '/:id/compra',

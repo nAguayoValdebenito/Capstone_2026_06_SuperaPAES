@@ -21,7 +21,10 @@ describe.skipIf(!urlBase)('aviso de renovación anual con PostgreSQL (HU-45.3)',
   let siguiente = 0;
 
   beforeAll(() => {
-    app = entorno.crearAppCon({ claveTareas: CLAVE, paqueteGooglePlay: 'cl.superapaes.app' });
+    app = entorno.crearAppCon({
+      claveTareas: CLAVE,
+      opcionesSuscripciones: { paqueteGooglePlay: 'cl.superapaes.app' },
+    });
   });
   beforeEach(() => {
     entorno.fijarHora(AHORA);

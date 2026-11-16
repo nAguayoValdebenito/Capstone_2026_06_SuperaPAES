@@ -10,8 +10,12 @@ class RepositorioSuscripcionesApi implements RepositorioSuscripciones {
   final FuenteSuscripcionesRemota _fuente;
 
   @override
-  Future<List<PlanOfrecido>> planes() => _fuente.planes();
+  Future<OfertaDePlanes> oferta() => _fuente.oferta();
 
   @override
   Future<SuscripcionVigente?> actual() => _fuente.actual();
+
+  @override
+  Future<void> activarSimulada({required int planId, int? pruebaId}) =>
+      _fuente.activarSimulada(planId: planId, pruebaId: pruebaId);
 }

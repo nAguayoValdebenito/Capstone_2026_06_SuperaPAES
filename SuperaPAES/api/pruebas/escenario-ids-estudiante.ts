@@ -194,6 +194,7 @@ export function cuerpoPuntajes(ruta: string): Record<string, unknown> | undefine
   if (ruta === 'POST /api/v1/app/suscripciones/')
     return { planId: 1, tienda: 'google_play', pruebaId: 2 };
   if (ruta === 'POST /api/v1/app/suscripciones/:id/compra') return { idCompraTienda: 'token' };
+  if (ruta === 'POST /api/v1/app/suscripciones/simulada') return { planId: 1, pruebaId: 2 };
   if (ruta === 'POST /api/v1/admin/generador/lotes') return { contenidoId: 12, cantidad: 5 };
   return undefined;
 }
@@ -218,6 +219,17 @@ export const suscripcionesDePrueba = {
       ...suscripcion,
       estado: 'activa' as const,
       cambioEnRenovacion: { planId: 3, desde: new Date('2026-12-15T00:00:00.000Z') },
+    }),
+  ),
+  crearSimulada: vi.fn(() =>
+    Promise.resolve({
+      id: '8',
+      estado: 'activa' as const,
+      planId: 1,
+      tienda: 'prueba' as const,
+      pruebaId: 2,
+      inicio: new Date('2026-11-16T00:00:00.000Z'),
+      periodoFin: new Date('2026-12-16T00:00:00.000Z'),
     }),
   ),
 };

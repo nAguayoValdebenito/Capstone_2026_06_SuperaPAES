@@ -3,8 +3,11 @@ import type { Opcion, Paginacion } from './index';
 
 /** Trazabilidad de suscripciones (C16, HU-56): el resumen del mes, por plan y estado, y por mes. */
 export interface ResumenSuscripciones {
+  /** Activas y en mora de las tiendas, sin las simuladas del modo de pruebas. */
   activas: number;
   enMora: number;
+  /** Simuladas del modo de pruebas que siguen activas o en mora: no son ingresos. */
+  simuladas: number;
   altasDelMes: number;
   cancelacionesDelMes: number;
   ingresosDelMes: number;

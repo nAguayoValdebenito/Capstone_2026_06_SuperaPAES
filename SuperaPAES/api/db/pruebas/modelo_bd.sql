@@ -864,6 +864,25 @@ BEGIN
     format('SELECT COUNT(*) FILTER (WHERE NOT dificultad_corresponde) || ''/'' || COUNT(*) FILTER (WHERE dificultad_corresponde) FROM contenido.calibracion_pregunta WHERE pregunta_id = %s', pid), '1/1');
 END $$;
 
+-- ---------- 26. Suscripción simulada del modo de pruebas (migración 012) ----------
+SELECT pg_temp.grupo('26. Suscripción simulada');
+INSERT INTO app.estudiante (nombre, correo, hash_contrasena, codigo_invitacion, anio_egreso, creado_en) VALUES
+  ('Simu', 'simu@ejemplo.cl', 'x', 'SMPR23', 2026, now());
+SELECT pg_temp.debe_ser('El canal prueba existe y no tiene productos de tienda',
+  'SELECT c.nombre || '':'' || (SELECT COUNT(*) FROM contenido.plan_producto_tienda pt WHERE pt.canal_venta_id = c.id) FROM contenido.canal_venta c WHERE c.codigo = ''prueba''',
+  'Prueba (simulada):0');
+INSERT INTO app.suscripcion (estudiante_id, plan_id, estado_suscripcion_id, vigente, canal_venta_id, inicio, periodo_fin, creado_en)
+SELECT pg_temp.est('Simu'), pg_temp.plan('Todas las pruebas mensual'), pg_temp.id('estado_suscripcion', 'activa'), true,
+       pg_temp.id('canal_venta', 'prueba'), now(), now() + INTERVAL '30 days', now();
+SELECT pg_temp.debe_pasar('El primer registro de la simulada nace activa, con origen sistema',
+  'INSERT INTO app.suscripcion_evento (suscripcion_id, estado_nuevo_id, plan_nuevo_id, origen_evento_id, detalle, creado_en) SELECT s.id, pg_temp.id(''estado_suscripcion'', ''activa''), s.plan_id, pg_temp.id(''origen_evento'', ''sistema''), ''Suscripción simulada (modo de pruebas)'', now() FROM app.suscripcion s WHERE s.estudiante_id = pg_temp.est(''Simu'')');
+SELECT pg_temp.debe_fallar('La simulada también ocupa la única vigente del estudiante',
+  'INSERT INTO app.suscripcion (estudiante_id, plan_id, estado_suscripcion_id, vigente, canal_venta_id, creado_en) SELECT pg_temp.est(''Simu''), MIN(id), pg_temp.id(''estado_suscripcion'', ''pendiente''), true, pg_temp.id(''canal_venta'', ''google_play''), now() FROM contenido.plan');
+SELECT pg_temp.debe_ser('La simulada no suma pagos ni ingresos en v_pagos_mes',
+  'SELECT COUNT(*)::text FROM app.v_pagos_mes WHERE tienda = ''prueba''', '0');
+SELECT pg_temp.debe_ser('El resumen la cuenta aparte, en el canal prueba',
+  'SELECT string_agg(estado || '':'' || suscripciones, '','') FROM app.v_resumen_suscripciones WHERE tienda = ''prueba''', 'activa:1');
+
 -- ---------- Resultado ----------
 \o
 SELECT n, grupo, caso, esperado, obtenido, left(detalle, 80) AS motivo FROM resultado_caso

@@ -7,6 +7,7 @@ const opcion = (codigo: string, nombre: string) => ({ codigo, nombre });
 export const resumenDePrueba: ResumenSuscripciones = {
   activas: 12,
   enMora: 2,
+  simuladas: 0,
   altasDelMes: 5,
   cancelacionesDelMes: 1,
   ingresosDelMes: 29900,
