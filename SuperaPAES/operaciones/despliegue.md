@@ -43,7 +43,7 @@ respaldo de DeepSeek, y conserva los flujos de respaldo y tareas periódicas.
    Si el administrador ya existe, el comando no crea otro. Para restablecer su contraseña existe
    `npm run crear-admin:produccion -w api -- --restablecer`.
 
-## 2. Render: API y 29 variables
+## 2. Render: API y 30 variables
 
 Crear un **Web Service** Node con raíz `SuperaPAES`, Node 24 (archivo `.nvmrc`) y plan **Free**.
 Conectar la rama que ya tenga la integración de IA. Configurar:
@@ -63,24 +63,26 @@ de un minuto. Ese primer arranque tarda más porque vuelve a ejecutar las migrac
 local es efímero y el plan tiene límites mensuales de uso; conservar los datos en Neon. Consultar
 los [límites actuales del plan Free](https://render.com/docs/free) antes de una demostración.
 
-En **Environment**, cargar estas **29 variables**, incluido `NODE_ENV=production` explícitamente.
+En **Environment**, cargar estas **30 variables**, incluido `NODE_ENV=production` explícitamente.
 `PORT` lo proporciona [Render al servicio Node](https://render.com/docs/environment-variables) y
 no se fija manualmente. `SMTP_TIMEOUT_MS` es opcional y aquí usa el valor predeterminado.
-`CORREO_REMITENTE_NOMBRE` también es opcional y queda fuera de las 29: si no se define, los correos
+`CORREO_REMITENTE_NOMBRE` también es opcional y queda fuera de las 30: si no se define, los correos
 salen con el nombre visible «Supera PAES» (se explica en la sección 3).
 
-| Grupo                    |                                                                                                                                                                                                            Variables (cantidad) | Qué cargar                                                                                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base, consola y secretos |                                                                 `NODE_ENV`, `DATABASE_URL`, `DATABASE_SSL`, `CORS_ORIGENES`, `URL_CONSOLA`, `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP`, `CLAVE_CODIGO_CORREO`, `CLAVE_TAREAS` (9) | `NODE_ENV=production`; conexión de Neon; `DATABASE_SSL=true`; origen HTTPS de Vercel en las dos variables de consola; cuatro secretos distintos.                  |
-| IA                       |                                                                                                                                                       `PROVEEDOR_IA`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GEMINI_MODELO` (4) | `PROVEEDOR_IA=deepseek`; claves emitidas por cada proveedor; modelo de Gemini elegido para el respaldo. `GEMINI_API_KEY` activa el respaldo de la rama integrada. |
-| Correo                   |                                                                                                                  `PROVEEDOR_CORREO`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CLAVE`, `CORREO_REMITENTE` (7) | Configuración de Brevo descrita en la sección 3.                                                                                                                  |
-| Tiendas                  | `PROVEEDOR_PAGOS`, `GOOGLE_PLAY_PAQUETE`, `GOOGLE_PLAY_CUENTA_SERVICIO`, `GOOGLE_PLAY_PUBSUB_AUDIENCIA`, `APP_STORE_BUNDLE_ID`, `APP_STORE_ID_EMISOR`, `APP_STORE_ID_CLAVE`, `APP_STORE_CLAVE_PRIVADA`, `APP_STORE_ENTORNO` (9) | `PROVEEDOR_PAGOS=tiendas`; texto de relleno claramente marcado en las siete variables de texto; `APP_STORE_ENTORNO=sandbox`.                                      |
+| Grupo                    |                                                                                                                                                                                                                                          Variables (cantidad) | Qué cargar                                                                                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base, consola y secretos |                                                                                               `NODE_ENV`, `DATABASE_URL`, `DATABASE_SSL`, `CORS_ORIGENES`, `URL_CONSOLA`, `JWT_SECRETO_CONSOLA`, `JWT_SECRETO_APP`, `CLAVE_CODIGO_CORREO`, `CLAVE_TAREAS` (9) | `NODE_ENV=production`; conexión de Neon; `DATABASE_SSL=true`; origen HTTPS de Vercel en las dos variables de consola; cuatro secretos distintos.                                                     |
+| IA                       |                                                                                                                                                                                     `PROVEEDOR_IA`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GEMINI_MODELO` (4) | `PROVEEDOR_IA=deepseek`; claves emitidas por cada proveedor; modelo de Gemini elegido para el respaldo. `GEMINI_API_KEY` activa el respaldo de la rama integrada.                                    |
+| Correo                   |                                                                                                                                                `PROVEEDOR_CORREO`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CLAVE`, `CORREO_REMITENTE` (7) | Configuración de Brevo descrita en la sección 3.                                                                                                                                                     |
+| Tiendas                  | `PROVEEDOR_PAGOS`, `GOOGLE_PLAY_PAQUETE`, `GOOGLE_PLAY_CUENTA_SERVICIO`, `GOOGLE_PLAY_PUBSUB_AUDIENCIA`, `GOOGLE_PLAY_PUBSUB_CORREO`, `APP_STORE_BUNDLE_ID`, `APP_STORE_ID_EMISOR`, `APP_STORE_ID_CLAVE`, `APP_STORE_CLAVE_PRIVADA`, `APP_STORE_ENTORNO` (10) | `PROVEEDOR_PAGOS=tiendas`; texto de relleno claramente marcado en las siete variables de texto; un correo de relleno con formato válido en `GOOGLE_PLAY_PUBSUB_CORREO`; `APP_STORE_ENTORNO=sandbox`. |
 
-**Avisos de las tiendas (HU-44).** No llevan variables nuevas, pero cada tienda debe saber a dónde enviarlos:
+**Avisos de las tiendas (HU-44).** Cada tienda debe saber a dónde enviarlos:
 
 - Google Play: en la suscripción push de Cloud Pub/Sub del tema de las notificaciones en tiempo real, el
   extremo `https://<api>.onrender.com/api/v1/webhooks/google-play`, con autenticación activada y la audiencia
-  igual a `GOOGLE_PLAY_PUBSUB_AUDIENCIA`. Sin el token de Google, la API responde 401 y no registra el aviso.
+  igual a `GOOGLE_PLAY_PUBSUB_AUDIENCIA`. El correo de la cuenta de servicio elegida para esa autenticación va en
+  `GOOGLE_PLAY_PUBSUB_CORREO`: la API solo acepta tokens emitidos para esa cuenta. Sin el token de Google, o con
+  el de otra cuenta de servicio, la API responde 401 y no registra el aviso.
 - App Store: en App Store Connect, la URL de App Store Server Notifications versión 2 (sandbox)
   `https://<api>.onrender.com/api/v1/webhooks/app-store`. Fuera de sandbox la API responde 503 y Apple
   reintenta.

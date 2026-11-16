@@ -16,6 +16,8 @@ import { httpFalso, type RespuestaFalsa } from './http-falso.js';
 
 export const AUDIENCIA = 'https://api.superapaes.cl/api/v1/webhooks/google-play';
 export const ID_MENSAJE = '4567890123456789';
+/** Correo de la cuenta de servicio de la suscripción push (GOOGLE_PLAY_PUBSUB_CORREO). */
+export const CORREO_PUBSUB = 'pubsub@supera-paes.iam.gserviceaccount.com';
 
 const ID_LLAVE = 'llave-de-prueba';
 const google = await generateKeyPair('RS256');
@@ -39,7 +41,7 @@ export function tokenPubSub(
 ) {
   const ahora = segundos(AHORA);
   return new SignJWT({
-    email: 'pubsub@supera-paes.iam.gserviceaccount.com',
+    email: CORREO_PUBSUB,
     email_verified: true,
     ...cambios.claims,
   })
@@ -84,7 +86,7 @@ export function pasarelaConAvisos(
 ) {
   const falso = httpFalso({ [URL_TOKEN]: tokenDeAcceso, ...respuestas });
   return new PasarelaGooglePlay(
-    { paquete: PAQUETE, cuentaServicio, audienciaPubSub: AUDIENCIA },
+    { paquete: PAQUETE, cuentaServicio, audienciaPubSub: AUDIENCIA, correoPubSub: CORREO_PUBSUB },
     { http: falso.cliente, reloj: () => AHORA, llavesPubSub },
   );
 }

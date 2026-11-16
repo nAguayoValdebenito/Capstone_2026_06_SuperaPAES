@@ -97,7 +97,12 @@ describe('FabricaProveedores: correo', () => {
 describe('FabricaProveedores: pagos', () => {
   const tiendas = {
     proveedor: 'tiendas' as const,
-    googlePlay: { paquete: 'cl.superapaes.app', cuentaServicio: '{}', audienciaPubSub: 'aud' },
+    googlePlay: {
+      paquete: 'cl.superapaes.app',
+      cuentaServicio: '{}',
+      audienciaPubSub: 'aud',
+      correoPubSub: 'pubsub@ejemplo.iam.gserviceaccount.com',
+    },
     appStore: {
       bundleId: 'cl.superapaes.app',
       idEmisor: 'emisor',

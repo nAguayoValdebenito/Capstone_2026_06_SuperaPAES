@@ -7,7 +7,14 @@ import {
   type ConfiguracionCorreo,
 } from './configuracion-smtp.js';
 
+import { leerConfiguracionPagos, type ConfiguracionPagos } from './configuracion-pagos.js';
+
 export type { ConfiguracionCorreo } from './configuracion-smtp.js';
+export type {
+  ConfiguracionAppStore,
+  ConfiguracionGooglePlay,
+  ConfiguracionPagos,
+} from './configuracion-pagos.js';
 
 const textoOpcional = z
   .string()
@@ -96,6 +103,11 @@ const esquemaBase = z.object({
   GOOGLE_PLAY_PAQUETE: textoOpcional,
   GOOGLE_PLAY_CUENTA_SERVICIO: textoOpcional,
   GOOGLE_PLAY_PUBSUB_AUDIENCIA: textoOpcional,
+  // Correo de la cuenta de servicio que firma los envíos push de Cloud Pub/Sub.
+  GOOGLE_PLAY_PUBSUB_CORREO: z.preprocess(
+    (valor) => (valor === '' ? undefined : valor),
+    z.email().optional(),
+  ),
   APP_STORE_BUNDLE_ID: textoOpcional,
   APP_STORE_ID_EMISOR: textoOpcional,
   APP_STORE_ID_CLAVE: textoOpcional,
@@ -129,6 +141,7 @@ const EXIGIDAS_POR_PROVEEDOR: [(v: Variables) => boolean, string, (keyof Variabl
       'GOOGLE_PLAY_PAQUETE',
       'GOOGLE_PLAY_CUENTA_SERVICIO',
       'GOOGLE_PLAY_PUBSUB_AUDIENCIA',
+      'GOOGLE_PLAY_PUBSUB_CORREO',
       'APP_STORE_BUNDLE_ID',
       'APP_STORE_ID_EMISOR',
       'APP_STORE_ID_CLAVE',
@@ -221,26 +234,6 @@ export type ConfiguracionIA =
   | { proveedor: 'gemini'; claveApi: string; modelo: string }
   | { proveedor: 'deepseek'; claveApi: string; respaldo?: { claveApi: string; modelo: string } };
 
-export interface ConfiguracionGooglePlay {
-  paquete: string;
-  /** Ruta o contenido del JSON de la cuenta de servicio de la Google Play Developer API. */
-  cuentaServicio: string;
-  /** Audiencia esperada en el token de los envíos de Cloud Pub/Sub. */
-  audienciaPubSub: string;
-}
-
-export interface ConfiguracionAppStore {
-  bundleId: string;
-  idEmisor: string;
-  idClave: string;
-  clavePrivada: string;
-  entorno: 'sandbox' | 'produccion';
-}
-
-export type ConfiguracionPagos =
-  | { proveedor: 'simulado' }
-  | { proveedor: 'tiendas'; googlePlay: ConfiguracionGooglePlay; appStore: ConfiguracionAppStore };
-
 /** Lo que necesita el correo de verificación (RN-32): la página de la consola y la clave del código. */
 export interface ConfiguracionVerificacionCorreo {
   urlConsola: string;
@@ -298,25 +291,6 @@ function leerConfiguracionIA(v: Variables): ConfiguracionIA {
     claveApi: v.DEEPSEEK_API_KEY ?? '',
     // Con GEMINI_API_KEY, Gemini es el respaldo del saldo agotado de DeepSeek.
     ...(v.GEMINI_API_KEY !== undefined && { respaldo: gemini }),
-  };
-}
-
-function leerConfiguracionPagos(v: Variables): ConfiguracionPagos {
-  if (v.PROVEEDOR_PAGOS === 'simulado') return { proveedor: 'simulado' };
-  return {
-    proveedor: 'tiendas',
-    googlePlay: {
-      paquete: v.GOOGLE_PLAY_PAQUETE ?? '',
-      cuentaServicio: v.GOOGLE_PLAY_CUENTA_SERVICIO ?? '',
-      audienciaPubSub: v.GOOGLE_PLAY_PUBSUB_AUDIENCIA ?? '',
-    },
-    appStore: {
-      bundleId: v.APP_STORE_BUNDLE_ID ?? '',
-      idEmisor: v.APP_STORE_ID_EMISOR ?? '',
-      idClave: v.APP_STORE_ID_CLAVE ?? '',
-      clavePrivada: v.APP_STORE_CLAVE_PRIVADA ?? '',
-      entorno: v.APP_STORE_ENTORNO ?? 'sandbox',
-    },
   };
 }
 

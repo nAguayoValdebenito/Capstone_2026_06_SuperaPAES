@@ -1,9 +1,11 @@
 // Avisos de Google Play (HU-44.1, DAS 4.3.3): notificaciones en tiempo real para desarrolladores que
 // Cloud Pub/Sub envía a /api/v1/webhooks/google-play. Se verifica el token OIDC del envío con las llaves
-// públicas de Google (jose), su emisor, su audiencia (GOOGLE_PLAY_PUBSUB_AUDIENCIA) y el correo
-// verificado; después se lee el mensaje y se comprueba que sea de esta app. También traduce el estado de
-// purchases.subscriptionsv2 al de la tienda (SuscripcionEnTienda). Nada del token, de la compra ni del
-// mensaje llega a los registros ni a los errores.
+// públicas de Google (jose), su emisor, su audiencia (GOOGLE_PLAY_PUBSUB_AUDIENCIA), el correo verificado
+// y que ese correo sea el de la cuenta de servicio de la suscripción (GOOGLE_PLAY_PUBSUB_CORREO): cualquier
+// cuenta de servicio de Google puede pedir un token con la misma audiencia. Después se lee el mensaje y
+// se comprueba que sea de esta app. También traduce el estado de purchases.subscriptionsv2 al de la
+// tienda (SuscripcionEnTienda). Nada del token, de la compra ni del mensaje llega a los registros ni a
+// los errores.
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { z } from 'zod';
 import {
@@ -90,12 +92,17 @@ const PRODUCTO_SUSCRIPCION = 1;
 
 export interface OpcionesAvisoGoogle {
   audiencia: string;
+  /** Correo de la cuenta de servicio de la suscripción push; se compara sin distinguir mayúsculas. */
+  correo: string;
   paquete: string;
   llaves: JWTVerifyGetKey;
   ahora: Date;
 }
 
-/** El token OIDC del envío: firmado por Google, para esta audiencia y con el correo verificado. */
+/**
+ * El token OIDC del envío: firmado por Google, para esta audiencia, con el correo verificado y emitido
+ * para la cuenta de servicio configurada.
+ */
 async function verificarToken(aviso: AvisoEntrante, opciones: OpcionesAvisoGoogle) {
   const encabezado = aviso.encabezados['authorization'];
   const token = typeof encabezado === 'string' ? /^Bearer (\S+)$/.exec(encabezado)?.[1] : undefined;
@@ -108,6 +115,9 @@ async function verificarToken(aviso: AvisoEntrante, opciones: OpcionesAvisoGoogl
       currentDate: opciones.ahora,
     });
     if (payload['email_verified'] !== true) throw new Error('correo sin verificar');
+    const correo = payload['email'];
+    if (typeof correo !== 'string' || correo.toLowerCase() !== opciones.correo.toLowerCase())
+      throw new Error('otra cuenta de servicio');
   } catch {
     throw new ErrorNoAutenticado('El aviso no viene de Google Play.');
   }

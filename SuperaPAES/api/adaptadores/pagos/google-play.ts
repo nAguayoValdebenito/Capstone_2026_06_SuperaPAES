@@ -4,7 +4,7 @@
 // un token de acceso (OAuth 2.0), que se reutiliza hasta un minuto antes de vencer. El cliente HTTP y
 // el reloj se inyectan. Nada de la compra, la llave ni el token llega a los registros.
 // - verificarAviso y consultarSuscripcion (HU-44.1): avisos RTDN por Cloud Pub/Sub con la audiencia
-//   GOOGLE_PLAY_PUBSUB_AUDIENCIA, verificados y traducidos en google-play-avisos.ts.
+//   GOOGLE_PLAY_PUBSUB_AUDIENCIA y la cuenta GOOGLE_PLAY_PUBSUB_CORREO, verificados y traducidos en google-play-avisos.ts.
 import { readFile } from 'node:fs/promises';
 import { importPKCS8, SignJWT, type JWTVerifyGetKey } from 'jose';
 import { z } from 'zod';
@@ -159,6 +159,7 @@ export class PasarelaGooglePlay implements PasarelaPago {
   verificarAviso(aviso: AvisoEntrante): Promise<AvisoVerificado> {
     return verificarAvisoGoogle(aviso, {
       audiencia: this.opciones.audienciaPubSub,
+      correo: this.opciones.correoPubSub,
       paquete: this.opciones.paquete,
       llaves: this.llavesPubSub,
       ahora: this.reloj(),
