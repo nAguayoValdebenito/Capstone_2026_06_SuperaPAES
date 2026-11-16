@@ -52,6 +52,37 @@ describe('sesión guardada', () => {
     expect(usuarioGuardado()).toEqual({ id: 'u-1', rol: 'admin' });
   });
 
+  it('guarda el nombre que entrega el ingreso, sin el resto de la cuenta', () => {
+    const datos = instalarAlmacen();
+    const sesion = {
+      ...sesionDePrueba('docente'),
+      usuario: { id: 'u-1', nombre: 'Diego Docente', correo: 'd@ejemplo.cl' },
+    };
+
+    expect(abrirSesion(sesion)).toEqual({ id: 'u-1', rol: 'docente', nombre: 'Diego Docente' });
+    expect(usuarioGuardado()).toEqual({ id: 'u-1', rol: 'docente', nombre: 'Diego Docente' });
+    expect([...datos.values()].join()).not.toContain('d@ejemplo.cl');
+  });
+
+  it('la renovación, que no trae la cuenta, conserva el nombre de la misma cuenta', () => {
+    instalarAlmacen();
+    abrirSesion({ ...sesionDePrueba('admin'), usuario: { id: 'u-1', nombre: 'Ana Admin' } });
+
+    const renovada = { tokenAcceso: tokenConsola('admin'), tokenRenovacion: 'otra' };
+
+    expect(abrirSesion(renovada)).toEqual({ id: 'u-1', rol: 'admin', nombre: 'Ana Admin' });
+    expect(usuarioGuardado()?.nombre).toBe('Ana Admin');
+  });
+
+  it('no pasa el nombre de una cuenta a otra', () => {
+    instalarAlmacen();
+    abrirSesion({ ...sesionDePrueba('admin'), usuario: { id: 'u-1', nombre: 'Ana Admin' } });
+
+    const otra = { tokenAcceso: tokenConsola('docente', 'd-7'), tokenRenovacion: 'r' };
+
+    expect(abrirSesion(otra)).toEqual({ id: 'd-7', rol: 'docente' });
+  });
+
   it('no guarda una sesión que no es de la consola', () => {
     const datos = instalarAlmacen();
 
