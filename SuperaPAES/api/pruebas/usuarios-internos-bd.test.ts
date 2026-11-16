@@ -95,11 +95,118 @@ describe.skipIf(!urlBase)('usuarios internos con PostgreSQL', () => {
     });
     const servicio = servicioSobre(bd);
 
-    expect(await servicio.cuentaInternaVigente(admin.id, 'admin')).toBe(true);
-    expect(await servicio.cuentaInternaVigente(admin.id, 'docente')).toBe(false);
-    expect(await servicio.cuentaInternaVigente('999999999', 'admin')).toBe(false);
+    // crear-admin deja al primer administrador sin cambio pendiente: la contraseña es suya.
+    expect(await servicio.estadoCuentaInterna(admin.id, 'admin')).toBe('vigente');
+    expect(await servicio.estadoCuentaInterna(admin.id, 'docente')).toBe('no_vigente');
+    expect(await servicio.estadoCuentaInterna('999999999', 'admin')).toBe('no_vigente');
     await bd.query('UPDATE contenido.usuario_interno SET activo = false WHERE id = $1', [admin.id]);
-    expect(await servicio.cuentaInternaVigente(admin.id, 'admin')).toBe(false);
+    expect(await servicio.estadoCuentaInterna(admin.id, 'admin')).toBe('no_vigente');
+  });
+
+  it('la marca de cambio pendiente: crear y editar la ponen, crear-admin no y el cambio propio la quita', async () => {
+    const admin = await crearPrimerAdministrador(bd, {
+      nombre: 'Admin',
+      correo: 'admin@ejemplo.cl',
+      contrasena: 'clave-del-admin',
+    });
+    const servicio = servicioSobre(bd);
+    const marca = async (id: string) =>
+      (
+        await bd.query<{ marca: boolean }>(
+          'SELECT debe_cambiar_contrasena AS marca FROM contenido.usuario_interno WHERE id = $1',
+          [id],
+        )
+      ).rows[0]?.marca;
+    expect(await marca(admin.id)).toBe(false);
+
+    const otro = await servicio.crearUsuarioInterno(admin.id, {
+      nombre: 'Otro Admin',
+      correo: 'otro@ejemplo.cl',
+      rol: 'admin',
+      areas: [],
+      contrasena: 'clave-del-otro',
+    });
+    expect(otro.debeCambiarContrasena).toBe(true);
+    expect(await servicio.estadoCuentaInterna(otro.id, 'admin')).toBe('cambio_pendiente');
+
+    await ejecutarEnTransaccion(bd, (tx) =>
+      servicio.guardarContrasenaPropia(otro.id, 'hash-de-prueba', tx),
+    );
+    expect(await marca(otro.id)).toBe(false);
+    expect(await servicio.estadoCuentaInterna(otro.id, 'admin')).toBe('vigente');
+
+    await servicio.editarUsuarioInterno(admin.id, otro.id, { nombre: 'Otro A.' });
+    expect(await marca(otro.id)).toBe(false);
+    await servicio.editarUsuarioInterno(admin.id, otro.id, { contrasena: 'clave-puesta-1' });
+    expect(await marca(otro.id)).toBe(true);
+    // La contraseña que el administrador se pone a sí mismo no deja la marca.
+    await servicio.editarUsuarioInterno(admin.id, admin.id, { contrasena: 'clave-propia-2' });
+    expect(await marca(admin.id)).toBe(false);
+    // crear-admin --restablecer: la contraseña la eligió quien ejecuta el comando.
+    await bd.query('UPDATE contenido.usuario_interno SET debe_cambiar_contrasena = true');
+    await restablecerAdministrador(bd, 'admin@ejemplo.cl', 'clave-restablecida-3');
+    expect(await marca(admin.id)).toBe(false);
+
+    const { rows } = await bd.query<{ despues: unknown }>(
+      `SELECT x.despues FROM contenido.auditoria x
+         JOIN contenido.accion_auditoria a ON a.id = x.accion_auditoria_id
+        WHERE a.codigo = 'cambiar_contrasena'`,
+    );
+    expect(rows).toEqual([{ despues: { contrasena_cambiada: true } }]);
+  });
+
+  it('cambiar la propia contraseña cierra las demás sesiones y deja abierta la actual', async () => {
+    const admin = await crearPrimerAdministrador(bd, {
+      nombre: 'Admin',
+      correo: 'admin@ejemplo.cl',
+      contrasena: 'clave-del-admin',
+    });
+    const dependencias = crearDependenciasDePrueba();
+    const cuentas = crearCuentasServicio({
+      bd,
+      unidadDeTrabajo: { enTransaccion: (trabajo) => ejecutarEnTransaccion(bd, trabajo) },
+      correo: dependencias.proveedores.correo,
+      administracion: servicioSobre(bd),
+      cupoInvitaciones: crearServicios(dependencias).cupoInvitaciones,
+      jwt: dependencias.jwt,
+      reloj: dependencias.reloj,
+      verificacionCorreo: dependencias.verificacionCorreo,
+      suscripciones: sinSuscripciones,
+    });
+    const credenciales = { correo: 'admin@ejemplo.cl', contrasena: 'clave-del-admin' };
+    await cuentas.ingresarUsuarioInterno(credenciales);
+    await cuentas.ingresarUsuarioInterno(credenciales);
+    const sesiones = async () =>
+      (
+        await bd.query<{ id: string; vigente: boolean }>(
+          `SELECT id::text AS id, revocado_en IS NULL AS vigente
+             FROM app.token_sesion WHERE usuario_interno_id = $1 ORDER BY id`,
+          [admin.id],
+        )
+      ).rows;
+    const [primera, segunda] = await sesiones();
+
+    await expect(
+      cuentas.cambiarContrasenaConsola(admin.id, segunda?.id ?? '', {
+        actual: 'no-es-la-actual',
+        nueva: 'clave-nueva-del-admin',
+      }),
+    ).rejects.toThrow('La contraseña actual no es correcta.');
+    await cuentas.cambiarContrasenaConsola(admin.id, segunda?.id ?? '', {
+      actual: 'clave-del-admin',
+      nueva: 'clave-nueva-del-admin',
+    });
+
+    expect(await sesiones()).toEqual([
+      { id: primera?.id, vigente: false },
+      { id: segunda?.id, vigente: true },
+    ]);
+    await expect(cuentas.ingresarUsuarioInterno(credenciales)).rejects.toThrow(/incorrectos/);
+    const nueva = await cuentas.ingresarUsuarioInterno({
+      correo: 'admin@ejemplo.cl',
+      contrasena: 'clave-nueva-del-admin',
+    });
+    expect(nueva.usuario.debeCambiarContrasena).toBe(false);
   });
 
   it('ingreso, renovación y cierre de la consola en app.token_sesion (CU-03, RNF-01)', async () => {

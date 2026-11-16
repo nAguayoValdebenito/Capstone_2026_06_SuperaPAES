@@ -34,6 +34,17 @@ export async function cerrar(tokenRenovacion: string): Promise<void> {
   });
 }
 
+/**
+ * Cambia la contraseña de la propia cuenta con la actual. Cierra las demás sesiones de la cuenta; la de
+ * esta pestaña sigue abierta.
+ */
+export async function cambiarContrasena(actual: string, nueva: string): Promise<void> {
+  await solicitarAdmin<{ contrasenaCambiada: boolean }>('/cuentas/contrasena', {
+    method: 'POST',
+    body: JSON.stringify({ actual, nueva }),
+  });
+}
+
 /** C15: estudiantes registrados, del más reciente al más antiguo, con los filtros que tengan valor. */
 export async function listarEstudiantes(
   filtros: FiltrosEstudiantes,

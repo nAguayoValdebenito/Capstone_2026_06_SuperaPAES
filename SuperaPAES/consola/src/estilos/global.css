@@ -639,6 +639,15 @@ kbd {
   color: var(--error);
 }
 
+/* Cambiar contraseña: un enlace con el aspecto de Cerrar sesión, sin el rojo de salir. */
+a.menu__salir {
+  text-decoration: none;
+}
+
+a.menu__salir:hover {
+  color: var(--tinta);
+}
+
 .principal {
   display: flex;
   flex-direction: column;

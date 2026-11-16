@@ -9,6 +9,8 @@ import {
 import {
   abrirSesion,
   borrarSesion,
+  cambioPendienteGuardado,
+  guardarCambioPendiente,
   leerSesionGuardada,
   usuarioDelToken,
   usuarioGuardado,
@@ -57,6 +59,41 @@ describe('sesión guardada', () => {
 
     expect(abrirSesion(sesionDePrueba('estudiante'))).toBeNull();
     expect(datos.size).toBe(0);
+  });
+
+  it('guarda la marca de cambio de contraseña que trae el ingreso, sin los demás datos del usuario', () => {
+    const datos = instalarAlmacen();
+    const sesion = sesionDePrueba('admin');
+
+    abrirSesion({ ...sesion, usuario: { debeCambiarContrasena: true } });
+
+    expect(cambioPendienteGuardado()).toBe(true);
+    expect(JSON.parse([...datos.values()][0] ?? '{}')).toEqual({
+      ...sesion,
+      debeCambiarContrasena: true,
+    });
+  });
+
+  it('una renovación, que no trae el usuario, conserva la marca guardada', () => {
+    instalarAlmacen();
+    abrirSesion({ ...sesionDePrueba('admin'), usuario: { debeCambiarContrasena: true } });
+
+    abrirSesion(sesionDePrueba('admin'));
+
+    expect(cambioPendienteGuardado()).toBe(true);
+  });
+
+  it('la marca se pone y se quita sobre la sesión guardada', () => {
+    instalarAlmacen();
+    const sesion = sesionDePrueba('docente');
+    abrirSesion(sesion);
+    expect(cambioPendienteGuardado()).toBe(false);
+
+    guardarCambioPendiente(true);
+    expect(cambioPendienteGuardado()).toBe(true);
+    guardarCambioPendiente(false);
+    expect(cambioPendienteGuardado()).toBe(false);
+    expect(leerSesionGuardada()).toEqual(sesion);
   });
 
   it('al cerrar sesión borra los tokens', () => {

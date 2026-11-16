@@ -22,6 +22,7 @@ function conCuentas() {
     areas: rol === 'docente' ? [1] : [],
     creadoEn: new Date('2026-10-23T12:00:00Z'),
     ultimoAcceso: null,
+    debeCambiarContrasena: false,
     hash: 'hash',
   });
   escenario.usuarios.set('7', cuenta('7', 'admin'));
@@ -134,7 +135,7 @@ describe('separación de roles en la consola (HU-03 esc. 3)', () => {
   });
 });
 
-describe('cuentaInternaVigente', () => {
+describe('estadoCuentaInterna', () => {
   it('un id que no es un número no consulta la base y no es vigente', async () => {
     let consultas = 0;
     const { usuarios } = conCuentas();
@@ -148,18 +149,46 @@ describe('cuentaInternaVigente', () => {
         buscarRolActivo: (id) => {
           consultas += 1;
           const usuario = usuarios.get(id);
-          return Promise.resolve(usuario ? { rol: usuario.rol, activo: usuario.activo } : null);
+          if (!usuario) return Promise.resolve(null);
+          const { rol, activo, debeCambiarContrasena } = usuario;
+          return Promise.resolve({ rol, activo, debeCambiarContrasena });
         },
       },
     });
 
-    expect(await servicio.cuentaInternaVigente('desarrollo', 'admin')).toBe(false);
-    expect(await servicio.cuentaInternaVigente('7 OR 1=1', 'admin')).toBe(false);
+    expect(await servicio.estadoCuentaInterna('desarrollo', 'admin')).toBe('no_vigente');
+    expect(await servicio.estadoCuentaInterna('7 OR 1=1', 'admin')).toBe('no_vigente');
     // Más de 18 dígitos no caben en el BIGINT de usuario_interno: se rechazan sin consultar la base.
-    expect(await servicio.cuentaInternaVigente('9999999999999999999', 'admin')).toBe(false);
+    expect(await servicio.estadoCuentaInterna('9999999999999999999', 'admin')).toBe('no_vigente');
     expect(consultas).toBe(0);
-    expect(await servicio.cuentaInternaVigente('7', 'admin')).toBe(true);
-    expect(await servicio.cuentaInternaVigente('7', 'docente')).toBe(false);
+    expect(await servicio.estadoCuentaInterna('7', 'admin')).toBe('vigente');
+    expect(await servicio.estadoCuentaInterna('7', 'docente')).toBe('no_vigente');
     expect(consultas).toBe(2);
+  });
+
+  it('con la contraseña que asignó un administrador, la cuenta tiene un cambio pendiente', async () => {
+    const { usuarios } = conCuentas();
+    const escenario = crearEscenario();
+    const servicio = crearAdministracionServicio({
+      bd: { query: () => Promise.reject(new Error('sin base')) },
+      unidadDeTrabajo: { enTransaccion: () => Promise.reject(new Error('sin base')) },
+      revocarSesionesUsuarioInterno: () => Promise.resolve(),
+      repositorio: {
+        ...escenario.repositorio,
+        buscarRolActivo: (id) => {
+          const usuario = usuarios.get(id);
+          if (!usuario) return Promise.resolve(null);
+          return Promise.resolve({
+            rol: usuario.rol,
+            activo: usuario.activo,
+            debeCambiarContrasena: true,
+          });
+        },
+      },
+    });
+
+    expect(await servicio.estadoCuentaInterna('7', 'admin')).toBe('cambio_pendiente');
+    // Una cuenta con otro rol sigue sin ser vigente, tenga o no el cambio pendiente.
+    expect(await servicio.estadoCuentaInterna('7', 'docente')).toBe('no_vigente');
   });
 });

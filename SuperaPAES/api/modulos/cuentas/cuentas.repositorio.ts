@@ -21,6 +21,8 @@ export interface CredencialesInternas {
   correo: string;
   rol: RolCuentaInterna;
   activo: boolean;
+  /** Aún tiene la contraseña que le asignó un administrador. */
+  debeCambiarContrasena: boolean;
   hashContrasena: string;
 }
 
@@ -75,6 +77,13 @@ export interface CuentasRepositorio {
   /** Cierra la sesión del token si sigue abierta; si no existe o ya estaba cerrada, no hace nada. */
   revocarSesion(tipo: Audiencia, hashToken: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   revocarSesionesUsuarioInterno(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
+  /** Cierra las sesiones abiertas de una cuenta interna salvo `sesionId` (al cambiar su contraseña). */
+  revocarOtrasSesionesUsuarioInterno(
+    id: string,
+    sesionId: string,
+    ahora: Date,
+    tx?: Ejecutor,
+  ): Promise<void>;
   /** Cierra todas las sesiones abiertas de un estudiante (al cambiar su contraseña, CU-04). */
   revocarSesionesEstudiante(id: string, ahora: Date, tx?: Ejecutor): Promise<void>;
   /** Sesión abierta, vigente y de esa cuenta interna, que además sigue activa y con ese rol. */
@@ -89,7 +98,7 @@ interface FilaCredenciales extends Omit<CredencialesInternas, 'rol'> {
 
 const CREDENCIALES_INTERNAS = `
   SELECT u.id::text AS id, u.nombre, u.correo, r.codigo AS rol, u.activo,
-         u.hash_contrasena AS "hashContrasena"
+         u.debe_cambiar_contrasena AS "debeCambiarContrasena", u.hash_contrasena AS "hashContrasena"
     FROM contenido.usuario_interno u
     JOIN contenido.rol r ON r.id = u.rol_id
    WHERE lower(u.correo) = lower($1)`;
@@ -172,7 +181,9 @@ function consultasIngreso(bd: Ejecutor): Ingreso {
 /** Cierre de todas las sesiones de una cuenta (al desactivar un usuario interno o cambiar la contraseña). */
 type RevocacionesMasivas = Pick<
   CuentasRepositorio,
-  'revocarSesionesUsuarioInterno' | 'revocarSesionesEstudiante'
+  | 'revocarSesionesUsuarioInterno'
+  | 'revocarOtrasSesionesUsuarioInterno'
+  | 'revocarSesionesEstudiante'
 >;
 
 function consultasRevocaciones(bd: Ejecutor): RevocacionesMasivas {
@@ -182,6 +193,14 @@ function consultasRevocaciones(bd: Ejecutor): RevocacionesMasivas {
         `UPDATE app.token_sesion SET revocado_en = $2
           WHERE usuario_interno_id = $1 AND revocado_en IS NULL`,
         [id, ahora],
+      );
+    },
+
+    async revocarOtrasSesionesUsuarioInterno(id, sesionId, ahora, tx = bd) {
+      await tx.query(
+        `UPDATE app.token_sesion SET revocado_en = $3
+          WHERE usuario_interno_id = $1 AND id <> $2 AND revocado_en IS NULL`,
+        [id, sesionId, ahora],
       );
     },
 

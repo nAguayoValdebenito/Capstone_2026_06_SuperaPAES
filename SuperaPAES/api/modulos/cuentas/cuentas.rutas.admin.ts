@@ -3,6 +3,9 @@
 // token de renovación, así cerrar sirve aunque el token de acceso ya haya vencido (CP-04 paso 4).
 // Este router se monta antes de la autenticación general de /admin: una ruta con sesión lleva
 // mw.autenticarAdmin y exigirRol en su propia cadena.
+// Mientras la cuenta tenga la contraseña que le asignó un administrador, autenticarAdmin responde 403
+// CAMBIO_CONTRASENA_PENDIENTE. Solo /yo y /contrasena usan mw.autenticarAdminSinExigirCambio: es lo que
+// la consola necesita para pedir el cambio (renovar y cerrar no llevan token de acceso).
 import { Router } from 'express';
 import type { MiddlewareRutas } from '../../comun/middleware/index.js';
 import { exigirRol, rutaPublica } from '../../comun/middleware/autorizacion.js';
@@ -10,11 +13,15 @@ import { validar } from '../../comun/middleware/validacion.js';
 import { crearCuentasControlador } from './cuentas.controlador.js';
 import type { CuentasServicio } from './cuentas.servicio.js';
 import {
+  esquemaCambioContrasena,
   esquemaConsultaEstudiantes,
   esquemaIdEstudiante,
   esquemaIngreso,
   esquemaTokenRenovacion,
 } from './cuentas.validadores.js';
+
+/** 5 intentos fallidos de cambiar la contraseña cada 15 minutos, por cuenta. */
+const LIMITE_CAMBIO = { maximo: 5, ventanaMs: 15 * 60 * 1000 };
 
 export function crearRutasAdminCuentas(servicio: CuentasServicio, mw: MiddlewareRutas): Router {
   const router = Router();
@@ -32,8 +39,17 @@ export function crearRutasAdminCuentas(servicio: CuentasServicio, mw: Middleware
   );
   router.post('/renovar', rutaPublica, conToken, controlador.renovarConsola);
   router.post('/cerrar', rutaPublica, conToken, controlador.cerrarConsola);
+  const sinExigirCambio = [mw.autenticarAdminSinExigirCambio, exigirRol('admin', 'docente')];
   // Usuario de la sesión, para que la consola arme el menú de su rol (HU-03.2).
-  router.get('/yo', mw.autenticarAdmin, exigirRol('admin', 'docente'), controlador.usuarioConsola);
+  router.get('/yo', ...sinExigirCambio, controlador.usuarioConsola);
+  // Cambiar la propia contraseña. Límite por cuenta: solo cuentan los intentos fallidos.
+  router.post(
+    '/contrasena',
+    ...sinExigirCambio,
+    validar({ cuerpo: esquemaCambioContrasena }),
+    mw.crearLimiteIntentos({ soloFallidos: true, porUsuarioInterno: true, ...LIMITE_CAMBIO }),
+    controlador.cambiarContrasenaConsola,
+  );
   // C15 · Estudiantes: listado paginado (con filtro opcional por nombre o correo) y confirmar la
   // cuenta cuando el correo de verificación no llega (CU-02b).
   router.get(

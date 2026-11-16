@@ -44,7 +44,7 @@ export function crearDependenciasDePrueba(cambios: Partial<Dependencias> = {}): 
     corsOrigenes: [URL_CONSOLA_DE_PRUEBA],
     registrarPeticiones: false,
     // Sin base: la cuenta del token se da por vigente. Las pruebas de la separación de roles la cambian.
-    verificarCuentaInterna: () => Promise.resolve(true),
+    verificarCuentaInterna: () => Promise.resolve('vigente'),
     ...cambios,
   };
 }

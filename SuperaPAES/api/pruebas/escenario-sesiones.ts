@@ -19,6 +19,7 @@ export const RUTA_INGRESO = '/api/v1/admin/cuentas/ingreso';
 export const RUTA_RENOVAR = '/api/v1/admin/cuentas/renovar';
 export const RUTA_CERRAR = '/api/v1/admin/cuentas/cerrar';
 export const RUTA_YO = '/api/v1/admin/cuentas/yo';
+export const RUTA_CONTRASENA = '/api/v1/admin/cuentas/contrasena';
 export const RUTA_INGRESO_APP = '/api/v1/app/cuentas/ingreso';
 export const RUTA_RENOVAR_APP = '/api/v1/app/cuentas/renovar';
 export const RUTA_CERRAR_APP = '/api/v1/app/cuentas/cerrar';
@@ -67,8 +68,12 @@ function crearRepositorioCuentas(
     buscarCredencialesInternas: (correo) => {
       const u = [...usuarios.values()].find((x) => x.correo.toLowerCase() === correo.toLowerCase());
       if (!u) return Promise.resolve(null);
-      const { id, nombre, rol, activo, hash } = u;
-      return Promise.resolve({ id, nombre, correo: u.correo, rol, activo, hashContrasena: hash });
+      const { id, nombre, rol, activo, hash, debeCambiarContrasena } = u;
+      const correoCuenta = u.correo;
+      return Promise.resolve({
+        ...{ id, nombre, correo: correoCuenta, rol, activo, debeCambiarContrasena },
+        hashContrasena: hash,
+      });
     },
     registrarAccesoInterno: (id, ahora) => {
       const usuario = usuarios.get(id);
@@ -121,6 +126,13 @@ function crearRepositorioCuentas(
       }
       return Promise.resolve();
     },
+    revocarOtrasSesionesUsuarioInterno: (id, sesionId, ahora) => {
+      for (const fila of sesiones.values()) {
+        const otra = fila.tipo === 'admin' && fila.cuentaId === id && fila.id !== sesionId;
+        if (otra && fila.revocadoEn === null) fila.revocadoEn = ahora;
+      }
+      return Promise.resolve();
+    },
     // Solo la sesión: la cuenta la comprueba administracion.cuentaInternaVigente sobre `usuarios`.
     sesionInternaVigente: (sid, usuarioId, ahora) =>
       Promise.resolve(vigente('admin', sid, usuarioId, ahora)),
@@ -139,6 +151,8 @@ export interface CuentaDePrueba {
   rol: RolCuentaInterna;
   areas?: number[];
   activo?: boolean;
+  /** La contraseña la asignó un administrador: debe cambiarla antes de usar la consola. */
+  debeCambiarContrasena?: boolean;
 }
 
 export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
@@ -176,7 +190,11 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
     const { correo, rol, areas = rol === 'docente' ? [1, 2] : [], activo = true } = cuenta;
     const nombre = cuenta.nombre ?? correo.split('@')[0] ?? correo;
     const hashContrasena = await hashDeContrasena(cuenta.contrasena);
-    const id = await falso.repositorio.crearUsuarioInterno({ nombre, correo, rol, hashContrasena });
+    const debeCambiarContrasena = cuenta.debeCambiarContrasena ?? false;
+    const id = await falso.repositorio.crearUsuarioInterno({
+      ...{ nombre, correo, rol, hashContrasena },
+      debeCambiarContrasena,
+    });
     await falso.repositorio.reemplazarEspecialidades(id, areas);
     await falso.repositorio.cambiarActivoUsuarioInterno(id, activo);
     return id;
@@ -211,6 +229,7 @@ export function crearEscenarioSesiones(cambios: Partial<Dependencias> = {}) {
     cuentas,
     sesiones,
     usuarios: falso.usuarios,
+    auditoria: falso.auditoria,
     estudiantes,
     crearCuenta,
     crearEstudiante,

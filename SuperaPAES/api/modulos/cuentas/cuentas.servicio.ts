@@ -20,6 +20,11 @@ import {
   type DuenoSesion,
 } from './cuentas.repositorio.js';
 import { comprobarCredenciales, hashDeRelleno } from './cuentas.credenciales.js';
+import {
+  type CuentaConsola,
+  crearCuentaConsola,
+  type UsuarioDeSesion,
+} from './cuentas.consola.servicio.js';
 import * as listado from './cuentas.estudiantes.servicio.js';
 import { crearCuentaEnLaApp, type CuentaEnLaApp } from './cuentas.app.servicio.js';
 import {
@@ -100,14 +105,6 @@ export interface SesionIniciada {
   tokenRenovacion: string;
 }
 
-/** Datos mínimos del usuario interno que entrega el ingreso. Nunca el hash de la contraseña. */
-export interface UsuarioDeSesion {
-  id: string;
-  nombre: string;
-  correo: string;
-  rol: RolCuentaInterna;
-}
-
 export interface SesionConsola extends SesionIniciada {
   usuario: UsuarioDeSesion;
 }
@@ -124,16 +121,13 @@ export interface SesionApp extends SesionIniciada {
   estudiante: EstudianteDeSesion;
 }
 
-/** Usuario de la sesión para armar el menú de la consola; el docente también trae sus áreas. */
-export interface UsuarioConsola extends UsuarioDeSesion {
-  areas?: number[];
-}
-
 /**
  * Incluye la verificación del correo, la recuperación de la contraseña, el perfil del estudiante, lo
- * que muestra el inicio de la app, los puntajes PAES declarados y el listado de estudiantes (C15).
+ * que muestra el inicio de la app, los puntajes PAES declarados, el listado de estudiantes (C15) y el
+ * cambio de la propia contraseña en la consola.
  */
-export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfil, CuentaEnLaApp {
+export interface CuentasServicio
+  extends VerificacionCorreo, Recuperacion, Perfil, CuentaEnLaApp, CuentaConsola {
   /** HU-29.1, contrato mínimo para iniciar una práctica. Con bloquear, serializa inicios sobre el
    * estudiante dentro de la transacción del módulo consumidor. */
   obtenerPerfilPractica(
@@ -190,7 +184,6 @@ export interface CuentasServicio extends VerificacionCorreo, Recuperacion, Perfi
   documentosLegalesVigentes(): Promise<DocumentoLegalVigente[]>;
   /** La usa el middleware de autenticación en cada petición. */
   sesionVigente: ComprobarSesion;
-  obtenerUsuarioConsola(id: string): Promise<UsuarioConsola>;
   /** Cierra todas las sesiones abiertas de una cuenta interna (al desactivarla). */
   revocarSesionesUsuarioInterno(id: string, tx: Ejecutor): Promise<void>;
   listarEstudiantes: listado.ListadoEstudiantes['listarEstudiantes'];
@@ -260,12 +253,15 @@ async function ingresarInterno(
     contrasena,
   );
   if (!cuenta.activo) throw new ErrorCuentaDesactivada();
-  const { id, nombre, rol } = cuenta;
+  const { id, nombre, rol, debeCambiarContrasena } = cuenta;
   return unidadDeTrabajo.enTransaccion(async (tx) => {
     await repositorio.registrarAccesoInterno(id, reloj(), tx);
     const dispositivo = navegador?.slice(0, LARGO_DISPOSITIVO) || null;
     const sesion = await abrirSesion(contexto, id, { tipo: 'admin', rol, dispositivo }, tx);
-    return { ...sesion, usuario: { id, nombre, correo: cuenta.correo, rol } };
+    return {
+      ...sesion,
+      usuario: { id, nombre, correo: cuenta.correo, rol, debeCambiarContrasena },
+    };
   });
 }
 
@@ -307,13 +303,6 @@ async function renovar(
     const nuevo = dispositivo?.slice(0, LARGO_DISPOSITIVO) || datos.dispositivo;
     return abrirSesion(contexto, dueno.cuentaId, { ...datos, dispositivo: nuevo }, tx);
   });
-}
-
-async function usuarioConsola({ administracion }: Contexto, id: string): Promise<UsuarioConsola> {
-  const usuario = await administracion.obtenerUsuarioInterno(id);
-  if (!usuario) throw errorSesion();
-  const { nombre, correo, rol, areas } = usuario;
-  return rol === 'docente' ? { id, nombre, correo, rol, areas } : { id, nombre, correo, rol };
 }
 
 /** Verificación del correo y registro, cada uno en su archivo, sobre el mismo contexto. */
@@ -381,10 +370,10 @@ export function crearCuentasServicio(dependencias: DependenciasCuentasServicio):
       audiencia === 'app'
         ? repositorio.sesionEstudianteVigente(sid, sub, reloj())
         : repositorio.sesionInternaVigente(sid, sub, reloj()),
-    obtenerUsuarioConsola: (id) => usuarioConsola(contexto, id),
     documentosLegalesVigentes: () => dependencias.administracion.documentosLegalesVigentes(reloj()),
     revocarSesionesUsuarioInterno: (id, tx) =>
       repositorio.revocarSesionesUsuarioInterno(id, reloj(), tx),
+    ...crearCuentaConsola(contexto),
     ...crearVerificacionYRegistro(dependencias, contexto),
     ...crearPerfil(dependencias),
     ...crearCuentaEnLaApp(dependencias),

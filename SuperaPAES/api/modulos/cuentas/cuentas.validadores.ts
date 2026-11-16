@@ -93,6 +93,18 @@ export const esquemaRestablecer = z.strictObject({
     .max(500),
 });
 
+/**
+ * Cambio de la propia contraseña en la consola: la actual (se comprueba con bcrypt) y la nueva, que se
+ * valida con RN-31 en el servicio porque necesita el correo de la cuenta; aquí solo se acota su tamaño.
+ */
+export const esquemaCambioContrasena = z.strictObject({
+  actual: z
+    .string('Ingresa tu contraseña actual.')
+    .min(1, 'Ingresa tu contraseña actual.')
+    .refine(cabeEnBcrypt, 'La contraseña es demasiado larga.'),
+  nueva: z.string('Ingresa la contraseña nueva.').min(1, 'Ingresa la contraseña nueva.').max(500),
+});
+
 /** Renovar y cerrar la sesión: el token de renovación que entregó el ingreso (o la última renovación). */
 export const esquemaTokenRenovacion = z.strictObject({
   tokenRenovacion: z.string().min(1).max(100),
@@ -220,6 +232,7 @@ export type CredencialesApp = z.output<typeof esquemaIngresoApp>;
 export type DatosRecuperacion = z.output<typeof esquemaRecuperacion>;
 export type DatosRestablecer = z.output<typeof esquemaRestablecer>;
 export type DatosTokenRenovacion = z.output<typeof esquemaTokenRenovacion>;
+export type DatosCambioContrasena = z.output<typeof esquemaCambioContrasena>;
 export type DatosEnlaceVerificacion = z.output<typeof esquemaEnlaceVerificacion>;
 export type DatosCodigoVerificacion = z.output<typeof esquemaCodigoVerificacion>;
 export type ConsultaEstudiantes = z.output<typeof esquemaConsultaEstudiantes>;

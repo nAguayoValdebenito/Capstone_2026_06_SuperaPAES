@@ -35,6 +35,7 @@ let obtenerToken: () => string | null = () => null;
 let alRechazarSesion: () => void = () => undefined;
 let renovarSesion: () => Promise<boolean> = () => Promise.resolve(false);
 let renovacionEnCurso: Promise<boolean> | null = null;
+let alExigirCambioContrasena: () => void = () => undefined;
 
 /** Rutas de ingreso, renovación y cierre: un 401 en ellas no se intenta renovar. */
 const RUTAS_DE_SESION = '/admin/cuentas/';
@@ -59,6 +60,17 @@ export function configurarAlRechazarSesion(accion: () => void): void {
 export function configurarRenovacion(accion: () => Promise<boolean>): void {
   renovarSesion = accion;
 }
+
+/**
+ * Lo configura ProveedorSesion: qué hacer cuando la API responde 403 CAMBIO_CONTRASENA_PENDIENTE, es
+ * decir, cuando la cuenta aún tiene la contraseña que le asignó el administrador.
+ */
+export function configurarAlExigirCambioContrasena(accion: () => void): void {
+  alExigirCambioContrasena = accion;
+}
+
+const esCambioPendiente = (error: unknown) =>
+  error instanceof ErrorApi && error.codigo === 'CAMBIO_CONTRASENA_PENDIENTE';
 
 /** Varias peticiones rechazadas al mismo tiempo comparten una sola renovación. */
 function renovarUnaVez(): Promise<boolean> {
@@ -159,6 +171,7 @@ async function repetirTrasRenovar<T>(ruta: string, opciones: RequestInit): Promi
     return await pedir<T>(ruta, opciones);
   } catch (error) {
     if (esSesionRechazada(error)) alRechazarSesion();
+    if (esCambioPendiente(error)) alExigirCambioContrasena();
     throw error;
   }
 }
@@ -177,6 +190,7 @@ export async function solicitar<T>(
   try {
     return await pedir<T>(ruta, opciones);
   } catch (error) {
+    if (esCambioPendiente(error)) alExigirCambioContrasena();
     if (!conToken || !esSesionRechazada(error) || ruta.startsWith(RUTAS_DE_SESION)) throw error;
     if (await renovarUnaVez()) return repetirTrasRenovar<T>(ruta, opciones);
     alRechazarSesion();

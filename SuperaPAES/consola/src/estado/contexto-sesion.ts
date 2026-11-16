@@ -7,6 +7,13 @@ export interface ValorSesion {
   /** Guarda la sesión que entregó la API. Devuelve false si el token no es de un usuario interno. */
   iniciarSesion: (sesion: SesionIniciada) => boolean;
   cerrarSesion: () => void;
+  /**
+   * La cuenta aún tiene la contraseña que le asignó el administrador: la consola solo le deja
+   * cambiarla (la API responde 403 CAMBIO_CONTRASENA_PENDIENTE a todo lo demás).
+   */
+  cambioPendiente: boolean;
+  /** Después de cambiar la contraseña: quita la marca y la consola vuelve a abrirse. */
+  marcarContrasenaCambiada: () => void;
 }
 
 export const ContextoSesion = createContext<ValorSesion | null>(null);

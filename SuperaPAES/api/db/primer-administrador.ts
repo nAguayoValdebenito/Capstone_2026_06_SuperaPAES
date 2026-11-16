@@ -159,7 +159,10 @@ export async function restablecerAdministrador(
     const cuenta = await buscarAdministrador(tx, correo, true);
     if (!cuenta) throw new ErrorPrimerAdministrador('No hay un administrador con ese correo.');
     await tx.query(
-      'UPDATE contenido.usuario_interno SET hash_contrasena = $2, activo = true WHERE id = $1',
+      // La contraseña la eligió quien ejecuta el comando: no queda un cambio pendiente.
+      `UPDATE contenido.usuario_interno
+          SET hash_contrasena = $2, activo = true, debe_cambiar_contrasena = false
+        WHERE id = $1`,
       [cuenta.id, hash],
     );
     const despues = {

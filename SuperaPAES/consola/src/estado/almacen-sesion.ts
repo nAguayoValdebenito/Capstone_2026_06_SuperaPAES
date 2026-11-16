@@ -1,9 +1,15 @@
 // Guarda la sesión de la consola en sessionStorage: se borra al cerrar la pestaña y no la comparten
 // otras pestañas. Si el navegador bloquea el almacenamiento, la sesión dura solo mientras la página
-// esté abierta.
+// esté abierta. Guarda los tokens y, si la hay, la marca de que la cuenta debe cambiar la contraseña
+// que le asignó el administrador (nunca el resto de los datos del usuario).
 import { esRolCuentaInterna, type SesionIniciada, type UsuarioInterno } from '../tipos';
 
 const CLAVE = 'supera-paes.sesion-consola';
+
+/** Lo que queda guardado: los tokens y la marca de cambio de contraseña pendiente, si la hay. */
+export interface SesionGuardada extends SesionIniciada {
+  debeCambiarContrasena?: true;
+}
 
 function almacen(): Storage | null {
   try {
@@ -13,21 +19,26 @@ function almacen(): Storage | null {
   }
 }
 
-function esSesionIniciada(valor: unknown): valor is SesionIniciada {
+function esSesionIniciada(valor: unknown): valor is SesionGuardada {
   if (typeof valor !== 'object' || valor === null) return false;
   const { tokenAcceso, tokenRenovacion } = valor as Record<string, unknown>;
   return typeof tokenAcceso === 'string' && typeof tokenRenovacion === 'string';
 }
 
-function guardarSesion(sesion: SesionIniciada): void {
+function guardarSesion({ tokenAcceso, tokenRenovacion }: SesionIniciada, cambio: boolean): void {
+  const guardada: SesionGuardada = {
+    tokenAcceso,
+    tokenRenovacion,
+    ...(cambio && { debeCambiarContrasena: true }),
+  };
   try {
-    almacen()?.setItem(CLAVE, JSON.stringify(sesion));
+    almacen()?.setItem(CLAVE, JSON.stringify(guardada));
   } catch {
     // Sin almacenamiento disponible: la sesión queda solo en memoria.
   }
 }
 
-export function leerSesionGuardada(): SesionIniciada | null {
+export function leerSesionGuardada(): SesionGuardada | null {
   try {
     const valor: unknown = JSON.parse(almacen()?.getItem(CLAVE) ?? 'null');
     return esSesionIniciada(valor) ? valor : null;
@@ -74,10 +85,25 @@ export function usuarioDelToken(token: string, ahora = Date.now()): UsuarioInter
   return typeof rol === 'string' && esRolCuentaInterna(rol) ? { id: sub, rol } : null;
 }
 
-/** Guarda la sesión si su token es de un usuario interno vigente y devuelve ese usuario. */
+/** Si la sesión guardada tiene pendiente el cambio de la contraseña asignada. */
+export function cambioPendienteGuardado(): boolean {
+  return leerSesionGuardada()?.debeCambiarContrasena === true;
+}
+
+/** Pone o quita la marca de cambio pendiente en la sesión guardada (si hay una). */
+export function guardarCambioPendiente(pendiente: boolean): void {
+  const sesion = leerSesionGuardada();
+  if (sesion) guardarSesion(sesion, pendiente);
+}
+
+/**
+ * Guarda la sesión si su token es de un usuario interno vigente y devuelve ese usuario. La marca de
+ * cambio pendiente viene del ingreso; una renovación, que no trae el usuario, conserva la guardada.
+ */
 export function abrirSesion(sesion: SesionIniciada, ahora = Date.now()): UsuarioInterno | null {
   const usuario = usuarioDelToken(sesion.tokenAcceso, ahora);
-  if (usuario) guardarSesion(sesion);
+  const cambio = sesion.usuario?.debeCambiarContrasena ?? cambioPendienteGuardado();
+  if (usuario) guardarSesion(sesion, cambio);
   return usuario;
 }
 

@@ -3,6 +3,7 @@
 // métricas y consulta de estudiantes.
 // Es la única puerta de entrada al módulo: los demás módulos usan este servicio, nunca su repositorio.
 import { crearPanelRepositorio } from './administracion.panel.repositorio.js';
+import { estadoCuenta, guardarContrasenaPropia } from './administracion.cuenta-consola.servicio.js';
 import { crearPanel, type PanelAdministracion } from './administracion.panel.servicio.js';
 import type { ConfiguracionRepositorio } from './administracion.configuracion.repositorio.js';
 import {
@@ -12,6 +13,7 @@ import {
 } from './administracion.configuracion.servicio.js';
 import { cifrarContrasena, validarContrasena } from '../../comun/contrasenas.js';
 import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../comun/errores.js';
+import type { EstadoCuentaInterna } from '../../comun/middleware/autenticacion.js';
 import type { Reloj } from '../../comun/reloj.js';
 import type { RolCuentaInterna } from '../../comun/roles.js';
 import type { Ejecutor, UnidadDeTrabajo } from '../../db/transaccion.js';
@@ -75,10 +77,16 @@ export interface AdministracionServicio extends PanelAdministracion, Configuraci
     activo: boolean,
   ): Promise<UsuarioInterno>;
   /**
-   * HU-03 esc. 3 y CU-23 3.b: si la cuenta existe, está activa y tiene ese rol. autenticarAdmin lo
-   * llama en cada petición de la consola, así que un cambio de rol o una desactivación rige de inmediato.
+   * HU-03 esc. 3 y CU-23 3.b: si la cuenta existe, está activa y tiene ese rol, y si aún debe cambiar
+   * la contraseña que le asignó un administrador. autenticarAdmin lo llama en cada petición de la
+   * consola, así que un cambio de rol o una desactivación rige de inmediato. Una sola consulta.
    */
-  cuentaInternaVigente(id: string, rol: RolCuentaInterna): Promise<boolean>;
+  estadoCuentaInterna(id: string, rol: RolCuentaInterna): Promise<EstadoCuentaInterna>;
+  /**
+   * La persona cambió su propia contraseña: guarda el hash, quita la marca de cambio pendiente y lo
+   * registra en la auditoría (sin la contraseña ni el hash), dentro de la transacción de cuentas.
+   */
+  guardarContrasenaPropia(id: string, hashContrasena: string, tx: Ejecutor): Promise<void>;
   /**
    * Registra una acción de la consola en contenido.auditoria (RNF-08), dentro de la transacción del
    * módulo que hace el cambio, o un aviso del sistema, sin usuario (HU-45.3). Nunca recibe contraseñas,
@@ -206,7 +214,9 @@ async function crearUsuario(contexto: Contexto, autorId: string, datos: DatosCre
     const hashContrasena = await cifrarContrasena(datos.contrasena);
     return unidadDeTrabajo.enTransaccion(async (tx) => {
       const { nombre, correo, rol, areas } = datos;
-      const id = await repositorio.crearUsuarioInterno({ nombre, correo, rol, hashContrasena }, tx);
+      // La contraseña la eligió el administrador: la persona debe cambiarla al entrar.
+      const nuevo = { nombre, correo, rol, hashContrasena, debeCambiarContrasena: true };
+      const id = await repositorio.crearUsuarioInterno(nuevo, tx);
       await repositorio.reemplazarEspecialidades(id, areas, tx);
       const creado = await obtener(contexto, id, tx);
       await repositorio.registrarAuditoria(
@@ -233,6 +243,15 @@ async function cifrarNueva(contrasena: string | undefined, correo: string): Prom
   return cifrarContrasena(contrasena);
 }
 
+/**
+ * Una contraseña que el administrador pone a otra cuenta debe cambiarse al entrar; la que se pone a sí
+ * mismo ya es propia. null: la marca no cambia.
+ */
+function marcaDeCambio(hash: string | null, id: string, autorId: string): boolean | null {
+  if (hash === null) return null;
+  return id !== autorId;
+}
+
 async function editarUsuario(
   contexto: Contexto,
   autorId: string,
@@ -254,7 +273,12 @@ async function editarUsuario(
       comprobarAreas(rol, areas);
       const hashContrasena = await cifrarNueva(cambios.contrasena, actual.correo);
       const nombre = cambios.nombre ?? actual.nombre;
-      await repositorio.actualizarUsuarioInterno(id, { nombre, rol, hashContrasena }, tx);
+      const debeCambiarContrasena = marcaDeCambio(hashContrasena, id, autorId);
+      await repositorio.actualizarUsuarioInterno(
+        id,
+        { nombre, rol, hashContrasena, debeCambiarContrasena },
+        tx,
+      );
       await repositorio.reemplazarEspecialidades(id, areas, tx);
       const editado = await obtener(contexto, id, tx);
       const despues = {
@@ -302,19 +326,6 @@ async function cambiarEstado(contexto: Contexto, autorId: string, id: string, ac
   });
 }
 
-/** El id de usuario_interno es BIGINT: un sub que no es un número no corresponde a ninguna cuenta. */
-const ID_USUARIO_INTERNO = /^[1-9]\d{0,17}$/;
-
-async function cuentaVigente(
-  { repositorio }: Contexto,
-  id: string,
-  rol: RolCuentaInterna,
-): Promise<boolean> {
-  if (!ID_USUARIO_INTERNO.test(id)) return false;
-  const cuenta = await repositorio.buscarRolActivo(id);
-  return cuenta !== null && cuenta.activo && cuenta.rol === rol;
-}
-
 export function crearAdministracionServicio(
   dependencias: DependenciasAdministracionServicio,
 ): AdministracionServicio {
@@ -343,7 +354,9 @@ export function crearAdministracionServicio(
     editarUsuarioInterno: (autorId, id, cambios) => editarUsuario(contexto, autorId, id, cambios),
     cambiarEstadoUsuarioInterno: (autorId, id, activo) =>
       cambiarEstado(contexto, autorId, id, activo),
-    cuentaInternaVigente: (id, rol) => cuentaVigente(contexto, id, rol),
+    estadoCuentaInterna: (id, rol) => estadoCuenta(contexto.repositorio, id, rol),
+    guardarContrasenaPropia: (id, hash, tx) =>
+      guardarContrasenaPropia(contexto.repositorio, id, hash, tx),
     registrarAuditoria: (entrada, tx) => contexto.repositorio.registrarAuditoria(entrada, tx),
     existeAuditoria: (consulta, tx) => contexto.repositorio.existeAuditoria(consulta, tx),
     documentosLegalesVigentes: (ahora) => contexto.repositorio.documentosLegalesVigentes(ahora),

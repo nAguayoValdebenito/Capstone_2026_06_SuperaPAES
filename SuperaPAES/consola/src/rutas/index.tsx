@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { DisenoGeneral } from '../componentes/DisenoGeneral';
 import { useSesion } from '../estado/contexto-sesion';
+import { PaginaCambiarContrasena } from '../paginas/cambiar-contrasena/PaginaCambiarContrasena';
 import { PaginaImportar } from '../paginas/importar/PaginaImportar';
 import { PaginaIngreso } from '../paginas/ingreso/PaginaIngreso';
 import { PaginaInvitar } from '../paginas/invitar/PaginaInvitar';
@@ -11,7 +12,7 @@ import { PaginaNoEncontrada } from '../paginas/no-encontrada/PaginaNoEncontrada'
 import { PaginaRestablecerContrasena } from '../paginas/restablecer-contrasena/PaginaRestablecerContrasena';
 import { PaginaVerificarCorreo } from '../paginas/verificar-correo/PaginaVerificarCorreo';
 import { RutaProtegida } from './RutaProtegida';
-import { INICIO_POR_ROL, SECCIONES } from './secciones';
+import { INICIO_POR_ROL, RUTA_CAMBIAR_CONTRASENA, SECCIONES } from './secciones';
 
 // C03 se descarga al abrirla: su vista previa trae KaTeX y sus fuentes (HU-12.4).
 const PaginaPregunta = lazy(() =>
@@ -34,6 +35,16 @@ const PREGUNTA = (
   </RutaProtegida>
 );
 
+/**
+ * El diseño general con todas las secciones. Mientras la cuenta tenga la contraseña que le asignó el
+ * administrador, lleva a Cambia tu contraseña: la API rechazaría todo lo demás.
+ */
+function DisenoSinCambioPendiente() {
+  const { usuario, cambioPendiente } = useSesion();
+  if (usuario && cambioPendiente) return <Navigate to={RUTA_CAMBIAR_CONTRASENA} replace />;
+  return <DisenoGeneral />;
+}
+
 function RedirigirAlInicio() {
   const { usuario } = useSesion();
   return <Navigate to={usuario ? INICIO_POR_ROL[usuario.rol] : '/ingreso'} replace />;
@@ -53,8 +64,10 @@ export function RutasConsola() {
           pasar de una a otra no vuelve a pedir los textos. */}
       <Route path="/terminos" element={<PaginaDocumentoLegal tipo="terminos" />} />
       <Route path="/privacidad" element={<PaginaDocumentoLegal tipo="privacidad" />} />
+      {/* Con sesión: cambiar la propia contraseña (obligatorio si la asignó el administrador). */}
+      <Route path={RUTA_CAMBIAR_CONTRASENA} element={<PaginaCambiarContrasena />} />
       <Route path="/" element={<RedirigirAlInicio />} />
-      <Route element={<DisenoGeneral />}>
+      <Route element={<DisenoSinCambioPendiente />}>
         {SECCIONES.map(({ ruta, roles, Pagina }) => (
           <Route
             key={ruta}

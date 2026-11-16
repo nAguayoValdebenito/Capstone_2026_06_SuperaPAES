@@ -1,4 +1,5 @@
 // Menú lateral con las secciones que el rol de la sesión puede ver, por grupo y en el orden del DAS 7.4.
+// Al pie, el menú de la cuenta: el usuario, Cambiar contraseña y Cerrar sesión.
 // No hay forma de cambiar de rol: el administrador no ve la consola del docente ni al revés.
 // En el teléfono es un cajón (estado/menu-movil.ts): cerrado queda inerte.
 import type { RefObject } from 'react';
@@ -6,7 +7,7 @@ import { Link, NavLink, useNavigate } from 'react-router';
 import { useSesion } from '../estado/contexto-sesion';
 import type { Contador, Contadores } from '../estado/contadores-menu';
 import type { MenuMovil } from '../estado/menu-movil';
-import { gruposDelRol, NOMBRE_ROL_SESION } from '../rutas/secciones';
+import { gruposDelRol, NOMBRE_ROL_SESION, RUTA_CAMBIAR_CONTRASENA } from '../rutas/secciones';
 import { Icono, Logo } from './Icono';
 
 /** Dos iniciales del nombre para el avatar. */
@@ -77,6 +78,10 @@ function PieDeSesion() {
           <p className="menu__rol">{NOMBRE_ROL_SESION[usuario.rol]}</p>
         </div>
       </div>
+      <Link className="menu__salir" to={RUTA_CAMBIAR_CONTRASENA}>
+        <Icono nombre="escudo" />
+        Cambiar contraseña
+      </Link>
       <button className="menu__salir" type="button" onClick={salir}>
         <Icono nombre="salir" />
         Cerrar sesión

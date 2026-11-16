@@ -7,6 +7,7 @@ import type { CuentasServicio } from './cuentas.servicio.js';
 import type {
   Credenciales,
   CredencialesApp,
+  DatosCambioContrasena,
   ConsultaEstudiantes,
   DatosCodigoVerificacion,
   DatosCurso,
@@ -51,6 +52,7 @@ export interface CuentasControlador {
   renovarConsola: ConCuerpo<DatosTokenRenovacion>;
   cerrarConsola: ConCuerpo<DatosTokenRenovacion>;
   usuarioConsola: RequestHandler;
+  cambiarContrasenaConsola: ConCuerpo<DatosCambioContrasena>;
   documentosVigentes: RequestHandler;
   verificarEnlace: ConCuerpo<DatosEnlaceVerificacion>;
   verificarCodigo: ConCuerpo<DatosCodigoVerificacion>;
@@ -69,10 +71,15 @@ function estudianteDe(req: Request<unknown, unknown, unknown>): string {
   return req.estudiante.id;
 }
 
+/** Usuario interno y sesión de la consola. Los deja autenticarAdmin. */
+function sesionInternaDe(req: Request<unknown, unknown, unknown>): { id: string; sid: string } {
+  if (!req.usuarioInterno) throw new ErrorNoAutenticado();
+  return req.usuarioInterno;
+}
+
 /** Usuario interno de la sesión de la consola. Lo deja autenticarAdmin. */
 function usuarioInternoDe(req: Request<unknown, unknown, unknown>): string {
-  if (!req.usuarioInterno) throw new ErrorNoAutenticado();
-  return req.usuarioInterno.id;
+  return sesionInternaDe(req).id;
 }
 
 export function crearCuentasControlador(servicio: CuentasServicio): CuentasControlador {
@@ -121,6 +128,12 @@ export function crearCuentasControlador(servicio: CuentasServicio): CuentasContr
     },
     usuarioConsola: async (req, res) => {
       responder(res, await servicio.obtenerUsuarioConsola(usuarioInternoDe(req)));
+    },
+    cambiarContrasenaConsola: async (req, res) => {
+      const { id, sid } = sesionInternaDe(req);
+      await servicio.cambiarContrasenaConsola(id, sid, req.body);
+      // La sesión de esta petición sigue abierta: la consola vuelve al panel sin pedir la contraseña.
+      responder(res, { contrasenaCambiada: true });
     },
     ...crearControladorVerificacion(servicio),
     ...crearControladorPerfil(servicio),

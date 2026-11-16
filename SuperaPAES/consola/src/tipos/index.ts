@@ -25,6 +25,11 @@ export interface UsuarioInterno {
 export interface SesionIniciada {
   tokenAcceso: string;
   tokenRenovacion: string;
+  /**
+   * El ingreso dice si la cuenta aún tiene la contraseña que le asignó el administrador; la
+   * renovación no trae el usuario.
+   */
+  usuario?: { debeCambiarContrasena?: boolean };
 }
 
 export interface Credenciales {

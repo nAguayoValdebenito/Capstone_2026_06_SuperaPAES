@@ -38,6 +38,7 @@ describe('ingreso a la consola', () => {
           nombre: 'Ana Admin',
           correo: ADMIN.correo,
           rol: 'admin',
+          debeCambiarContrasena: false,
         },
       },
       error: null,
@@ -136,7 +137,7 @@ describe('usuario de la sesión (GET /admin/cuentas/yo)', () => {
     expect(respuesta.body).toEqual(errorConFormato('NO_AUTENTICADO'));
   });
 
-  it('el administrador recibe id, nombre, correo y rol, sin áreas', async () => {
+  it('el administrador recibe id, nombre, correo, rol y el cambio pendiente, sin áreas', async () => {
     const escenario = await conCuentas();
     const { tokenAcceso } = await sesionDe(escenario);
 
@@ -148,6 +149,7 @@ describe('usuario de la sesión (GET /admin/cuentas/yo)', () => {
       nombre: 'Ana Admin',
       correo: ADMIN.correo,
       rol: 'admin',
+      debeCambiarContrasena: false,
     });
   });
 

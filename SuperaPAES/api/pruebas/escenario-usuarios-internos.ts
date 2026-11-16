@@ -27,7 +27,7 @@ export function crearRepositorioFalso() {
       const usuario = usuarios.get(id);
       return Promise.resolve(usuario ? sinHash(usuario) : null);
     },
-    crearUsuarioInterno: ({ nombre, correo, rol, hashContrasena }) => {
+    crearUsuarioInterno: ({ nombre, correo, rol, hashContrasena, debeCambiarContrasena }) => {
       if ([...usuarios.values()].some((u) => u.correo === correo)) {
         return Promise.reject(
           Object.assign(new Error('duplicado'), {
@@ -38,13 +38,34 @@ export function crearRepositorioFalso() {
       }
       const id = String(siguienteId++);
       const creadoEn = new Date('2026-10-23T12:00:00Z');
-      const nuevo = { id, nombre, correo, rol, activo: true, areas: [], creadoEn };
+      const nuevo = {
+        id,
+        nombre,
+        correo,
+        rol,
+        activo: true,
+        areas: [],
+        creadoEn,
+        debeCambiarContrasena,
+      };
       usuarios.set(id, { ...nuevo, ultimoAcceso: null, hash: hashContrasena });
       return Promise.resolve(id);
     },
-    actualizarUsuarioInterno: (id, { nombre, rol, hashContrasena }) => {
+    actualizarUsuarioInterno: (id, { nombre, rol, hashContrasena, debeCambiarContrasena }) => {
       const usuario = usuarios.get(id);
-      if (usuario) Object.assign(usuario, { nombre, rol, hash: hashContrasena ?? usuario.hash });
+      if (usuario) {
+        Object.assign(usuario, {
+          nombre,
+          rol,
+          hash: hashContrasena ?? usuario.hash,
+          debeCambiarContrasena: debeCambiarContrasena ?? usuario.debeCambiarContrasena,
+        });
+      }
+      return Promise.resolve();
+    },
+    guardarContrasenaPropia: (id, hashContrasena) => {
+      const usuario = usuarios.get(id);
+      if (usuario) Object.assign(usuario, { hash: hashContrasena, debeCambiarContrasena: false });
       return Promise.resolve();
     },
     cambiarActivoUsuarioInterno: (id, activo) => {
@@ -72,7 +93,9 @@ export function crearRepositorioFalso() {
     },
     buscarRolActivo: (id) => {
       const usuario = usuarios.get(id);
-      return Promise.resolve(usuario ? { rol: usuario.rol, activo: usuario.activo } : null);
+      if (!usuario) return Promise.resolve(null);
+      const { rol, activo, debeCambiarContrasena } = usuario;
+      return Promise.resolve({ rol, activo, debeCambiarContrasena });
     },
     bloquearAdministradoresActivos: () =>
       Promise.resolve(

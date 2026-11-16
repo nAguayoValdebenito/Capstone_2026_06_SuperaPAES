@@ -347,7 +347,7 @@ export function crearApp(
   // La cuenta de cada token de la consola se vuelve a comprobar con su dueño, el módulo administracion.
   const verificarCuentaInterna: VerificarCuentaInterna =
     dependencias.verificarCuentaInterna ??
-    (({ sub, rol }) => servicios.administracion.cuentaInternaVigente(sub, rol));
+    (({ sub, rol }) => servicios.administracion.estadoCuentaInterna(sub, rol));
   const mw: MiddlewareRutas = {
     ...crearAutenticacion(dependencias.jwt, {
       reloj: dependencias.reloj,

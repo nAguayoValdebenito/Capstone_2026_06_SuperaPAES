@@ -21,6 +21,8 @@ export interface UsuarioInterno {
   areas: number[];
   creadoEn: Date;
   ultimoAcceso: Date | null;
+  /** Aún tiene la contraseña que le asignó un administrador: debe cambiarla antes de usar la consola. */
+  debeCambiarContrasena: boolean;
 }
 
 export interface NuevoUsuarioInterno {
@@ -28,6 +30,8 @@ export interface NuevoUsuarioInterno {
   correo: string;
   rol: RolCuentaInterna;
   hashContrasena: string;
+  /** Verdadero si la contraseña la eligió otra persona (un administrador). */
+  debeCambiarContrasena: boolean;
 }
 
 export interface CambiosUsuarioInterno {
@@ -35,6 +39,16 @@ export interface CambiosUsuarioInterno {
   rol: RolCuentaInterna;
   /** Hash de la contraseña nueva; null si no cambia. */
   hashContrasena: string | null;
+  /** Nuevo valor de la marca de cambio pendiente; null si no cambia. */
+  debeCambiarContrasena: boolean | null;
+}
+
+/** Lo que autenticarAdmin comprueba de la cuenta en cada petición de la consola. */
+export interface RolYEstado {
+  /** Código de contenido.rol. */
+  rol: string;
+  activo: boolean;
+  debeCambiarContrasena: boolean;
 }
 
 export interface EntradaAuditoria {
@@ -74,14 +88,16 @@ export interface AdministracionRepositorio {
     tx?: Ejecutor,
   ): Promise<UsuarioInterno | null>;
   crearUsuarioInterno(datos: NuevoUsuarioInterno, tx?: Ejecutor): Promise<string>;
-  /** Rol (código de contenido.rol) y estado de la cuenta, para validar cada sesión de la consola. */
-  buscarRolActivo(id: string, tx?: Ejecutor): Promise<{ rol: string; activo: boolean } | null>;
+  /** Rol, estado y cambio pendiente de la cuenta, para validar cada sesión de la consola. */
+  buscarRolActivo(id: string, tx?: Ejecutor): Promise<RolYEstado | null>;
   actualizarUsuarioInterno(
     id: string,
     cambios: CambiosUsuarioInterno,
     tx?: Ejecutor,
   ): Promise<void>;
   cambiarActivoUsuarioInterno(id: string, activo: boolean, tx?: Ejecutor): Promise<void>;
+  /** Guarda la contraseña que eligió la propia persona y quita la marca de cambio pendiente. */
+  guardarContrasenaPropia(id: string, hashContrasena: string, tx?: Ejecutor): Promise<void>;
   reemplazarEspecialidades(id: string, areas: readonly number[], tx?: Ejecutor): Promise<void>;
   registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
   existeAuditoria(consulta: ConsultaAuditoria, tx?: Ejecutor): Promise<boolean>;
@@ -105,6 +121,7 @@ interface FilaUsuarioInterno extends Omit<UsuarioInterno, 'rol'> {
 const SELECCION_USUARIO_INTERNO = `
   SELECT u.id::text AS id, u.nombre, u.correo, r.codigo AS rol, u.activo,
          u.creado_en AS "creadoEn", u.ultimo_acceso AS "ultimoAcceso",
+         u.debe_cambiar_contrasena AS "debeCambiarContrasena",
          COALESCE(array_agg(de.area_id ORDER BY de.area_id) FILTER (WHERE de.area_id IS NOT NULL),
                   '{}') AS areas
     FROM contenido.usuario_interno u
@@ -119,14 +136,21 @@ function aUsuarioInterno({ rol, ...resto }: FilaUsuarioInterno): UsuarioInterno 
 }
 
 const INSERTAR_USUARIO_INTERNO = `
-  INSERT INTO contenido.usuario_interno (nombre, correo, hash_contrasena, rol_id, creado_en)
-  VALUES ($1, $2, $3, (SELECT id FROM contenido.rol WHERE codigo = $4), now())
+  INSERT INTO contenido.usuario_interno (nombre, correo, hash_contrasena, rol_id,
+                                         debe_cambiar_contrasena, creado_en)
+  VALUES ($1, $2, $3, (SELECT id FROM contenido.rol WHERE codigo = $4), $5, now())
   RETURNING id::text AS id`;
 
 const ACTUALIZAR_USUARIO_INTERNO = `
   UPDATE contenido.usuario_interno
      SET nombre = $2, rol_id = (SELECT id FROM contenido.rol WHERE codigo = $3),
-         hash_contrasena = COALESCE($4, hash_contrasena)
+         hash_contrasena = COALESCE($4, hash_contrasena),
+         debe_cambiar_contrasena = COALESCE($5, debe_cambiar_contrasena)
+   WHERE id = $1`;
+
+const GUARDAR_CONTRASENA_PROPIA = `
+  UPDATE contenido.usuario_interno
+     SET hash_contrasena = $2, debe_cambiar_contrasena = false
    WHERE id = $1`;
 
 const INSERTAR_AUDITORIA = `
@@ -143,7 +167,7 @@ const EXISTE_AUDITORIA = `
   ) AS existe`;
 
 const ROL_Y_ESTADO = `
-  SELECT r.codigo AS rol, u.activo
+  SELECT r.codigo AS rol, u.activo, u.debe_cambiar_contrasena AS "debeCambiarContrasena"
     FROM contenido.usuario_interno u
     JOIN contenido.rol r ON r.id = u.rol_id
    WHERE u.id = $1`;
@@ -180,6 +204,7 @@ function consultasUsuarios(bd: Ejecutor): ConsultasUsuarios {
         datos.correo,
         datos.hashContrasena,
         datos.rol,
+        datos.debeCambiarContrasena,
       ]);
       const fila = rows[0];
       if (!fila) throw new Error('El INSERT de usuario_interno no devolvió el id.');
@@ -187,7 +212,7 @@ function consultasUsuarios(bd: Ejecutor): ConsultasUsuarios {
     },
 
     async buscarRolActivo(id, tx = bd) {
-      const { rows } = await tx.query<{ rol: string; activo: boolean }>(ROL_Y_ESTADO, [id]);
+      const { rows } = await tx.query<RolYEstado>(ROL_Y_ESTADO, [id]);
       return rows[0] ?? null;
     },
   };
@@ -217,12 +242,31 @@ const ADMINISTRADORES_ACTIVOS = `
      FOR UPDATE OF u`;
 
 type Auditoria = Pick<AdministracionRepositorio, 'registrarAuditoria' | 'existeAuditoria'>;
-type Cambios = Omit<AdministracionRepositorio, keyof ConsultasUsuarios | keyof Auditoria>;
+/** Cambios a una cuenta interna: datos, contraseña propia y estado. */
+type CambiosCuenta = Pick<
+  AdministracionRepositorio,
+  'actualizarUsuarioInterno' | 'guardarContrasenaPropia' | 'cambiarActivoUsuarioInterno'
+>;
+type Cambios = Omit<
+  AdministracionRepositorio,
+  keyof ConsultasUsuarios | keyof Auditoria | keyof CambiosCuenta
+>;
 
-function cambios(bd: Ejecutor): Cambios {
+function cambiosCuenta(bd: Ejecutor): CambiosCuenta {
   return {
-    async actualizarUsuarioInterno(id, { nombre, rol, hashContrasena }, tx = bd) {
-      await tx.query(ACTUALIZAR_USUARIO_INTERNO, [id, nombre, rol, hashContrasena]);
+    async actualizarUsuarioInterno(id, cambios, tx = bd) {
+      const { nombre, rol, hashContrasena, debeCambiarContrasena } = cambios;
+      await tx.query(ACTUALIZAR_USUARIO_INTERNO, [
+        id,
+        nombre,
+        rol,
+        hashContrasena,
+        debeCambiarContrasena,
+      ]);
+    },
+
+    async guardarContrasenaPropia(id, hashContrasena, tx = bd) {
+      await tx.query(GUARDAR_CONTRASENA_PROPIA, [id, hashContrasena]);
     },
 
     async cambiarActivoUsuarioInterno(id, activo, tx = bd) {
@@ -231,7 +275,11 @@ function cambios(bd: Ejecutor): Cambios {
         activo,
       ]);
     },
+  };
+}
 
+function cambios(bd: Ejecutor): Cambios {
+  return {
     async reemplazarEspecialidades(id, areas, tx = bd) {
       await tx.query('DELETE FROM contenido.docente_especialidad WHERE usuario_interno_id = $1', [
         id,
@@ -289,5 +337,10 @@ function auditoria(bd: Ejecutor): Auditoria {
 }
 
 export function crearAdministracionRepositorio(bd: Ejecutor): AdministracionRepositorio {
-  return { ...consultasUsuarios(bd), ...cambios(bd), ...auditoria(bd) };
+  return {
+    ...consultasUsuarios(bd),
+    ...cambiosCuenta(bd),
+    ...cambios(bd),
+    ...auditoria(bd),
+  };
 }

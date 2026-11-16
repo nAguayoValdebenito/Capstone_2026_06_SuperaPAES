@@ -1,4 +1,4 @@
-// Límite de intentos para ingreso, registro, recuperación de contraseña e invitaciones.
+// Límite de intentos para ingreso, registro, recuperación y cambio de contraseña e invitaciones.
 // Va al final de la cadena (autenticar → autorizar rol → validar → limitar), así solo cuentan los
 // intentos bien formados. Detrás del proxy de Render la IP real llega por `trust proxy`.
 // Los valores son de protección técnica, no parámetros de negocio (esos viven en contenido.configuracion).
@@ -26,6 +26,8 @@ export interface UsoLimiteIntentos {
   soloFallidos?: boolean;
   /** Cuenta por estudiante autenticado (si lo hay) en vez de por IP. */
   porEstudiante?: boolean;
+  /** Cuenta por usuario interno autenticado (si lo hay) en vez de por IP. */
+  porUsuarioInterno?: boolean;
   /**
    * Cuenta por el correo del cuerpo ya validado en vez de por IP: frena a quien prueba contraseñas
    * de una cuenta desde muchas IP. El ingreso usa los dos límites, por IP y por correo (RNF-02).
@@ -45,8 +47,10 @@ function correoDelCuerpo(req: Request): string | null {
   return typeof cuerpo.correo === 'string' ? cuerpo.correo : null;
 }
 
-function claveDe(req: Request, { porEstudiante, porCorreo }: UsoLimiteIntentos): string {
+function claveDe(req: Request, uso: UsoLimiteIntentos): string {
+  const { porEstudiante, porUsuarioInterno, porCorreo } = uso;
   if (porEstudiante && req.estudiante) return `estudiante:${req.estudiante.id}`;
+  if (porUsuarioInterno && req.usuarioInterno) return `usuario-interno:${req.usuarioInterno.id}`;
   const correo = porCorreo ? correoDelCuerpo(req) : null;
   if (correo !== null) return `correo:${correo}`;
   // ipKeyGenerator agrupa las direcciones IPv6 por subred para que no se esquive el límite.

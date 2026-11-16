@@ -70,17 +70,23 @@ function IconoAviso({ tono }: { tono: 'exito' | 'error' }) {
   );
 }
 
-/** Campo contraseña del sistema de diseño, con el ojo para mostrarla. */
-function CampoContrasena({
+/**
+ * Campo contraseña del sistema de diseño, con el ojo para mostrarla. También lo usa Cambia tu
+ * contraseña (paginas/cambiar-contrasena).
+ */
+export function CampoContrasena({
   nombre,
   etiqueta,
   conError,
   descripcion,
+  autocompletar = 'new-password',
 }: {
   nombre: string;
   etiqueta: string;
   conError: boolean;
   descripcion?: string;
+  /** `current-password` para la contraseña actual; por defecto, una nueva. */
+  autocompletar?: 'new-password' | 'current-password';
 }) {
   const [visible, cambiarVisible] = useState(false);
   return (
@@ -90,7 +96,7 @@ function CampoContrasena({
         <input
           name={nombre}
           type={visible ? 'text' : 'password'}
-          autoComplete="new-password"
+          autoComplete={autocompletar}
           required
           aria-invalid={conError}
           aria-describedby={descripcion}
@@ -108,8 +114,8 @@ function CampoContrasena({
   );
 }
 
-/** Requisitos de RN-31 bajo los campos, como en el boceto. */
-function Requisitos() {
+/** Requisitos de RN-31 bajo los campos, como en el boceto. También en Cambia tu contraseña. */
+export function Requisitos() {
   return (
     <section className="restablecer__requisitos" id="requisitos-contrasena">
       <h2>Tu contraseña debe cumplir con:</h2>

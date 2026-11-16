@@ -26,7 +26,13 @@ export const PREFIJO = '/api/v1';
 
 const fecha = new Date('2026-01-01T00:00:00.000Z');
 const estudiante = { id: '84', nombre: 'Ana', correo: 'ana@ejemplo.cl', correoVerificado: true };
-const usuario = { id: '7', nombre: 'Admin', correo: 'admin@ejemplo.cl', rol: 'admin' as const };
+const usuario = {
+  id: '7',
+  nombre: 'Admin',
+  correo: 'admin@ejemplo.cl',
+  rol: 'admin' as const,
+  debeCambiarContrasena: false,
+};
 const interno = { ...usuario, activo: true, areas: [1, 2], creadoEn: fecha, ultimoAcceso: null };
 const sesion = { tokenAcceso: 'token', tokenRenovacion: 'renovacion' };
 const resumenPractica = {

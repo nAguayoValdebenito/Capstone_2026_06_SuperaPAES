@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  configurarAlExigirCambioContrasena,
   configurarAlRechazarSesion,
   configurarRenovacion,
   configurarToken,
@@ -30,6 +31,7 @@ afterEach(() => {
   configurarToken(() => null);
   configurarAlRechazarSesion(() => undefined);
   configurarRenovacion(() => Promise.resolve(false));
+  configurarAlExigirCambioContrasena(() => undefined);
 });
 
 describe('cliente de la API', () => {
@@ -128,6 +130,39 @@ describe('cliente de la API', () => {
 
     expect((await errorDe(solicitarAdmin('/x'))).estadoHttp).toBe(401);
     expect(alRechazar).toHaveBeenCalledOnce();
+  });
+
+  it('un 403 CAMBIO_CONTRASENA_PENDIENTE avisa que hay que cambiar la contraseña, sin cerrar la sesión', async () => {
+    responder(
+      {
+        data: null,
+        error: { codigo: 'CAMBIO_CONTRASENA_PENDIENTE', mensaje: 'Cambia tu contraseña.' },
+        meta: null,
+      },
+      403,
+    );
+    configurarToken(() => 'abc');
+    const alExigir = vi.fn();
+    const alRechazar = vi.fn();
+    configurarAlExigirCambioContrasena(alExigir);
+    configurarAlRechazarSesion(alRechazar);
+
+    const error = await errorDe(solicitarAdmin('/administracion/usuarios-internos'));
+
+    expect(error.codigo).toBe('CAMBIO_CONTRASENA_PENDIENTE');
+    expect(alExigir).toHaveBeenCalledTimes(1);
+    expect(alRechazar).not.toHaveBeenCalled();
+  });
+
+  it('otro 403 no pide cambiar la contraseña', async () => {
+    responder({ data: null, error: { codigo: 'SIN_PERMISO', mensaje: 'No.' }, meta: null }, 403);
+    configurarToken(() => 'abc');
+    const alExigir = vi.fn();
+    configurarAlExigirCambioContrasena(alExigir);
+
+    await errorDe(solicitarAdmin('/x'));
+
+    expect(alExigir).not.toHaveBeenCalled();
   });
 
   it('un 401 en las rutas de sesión no intenta renovar', async () => {

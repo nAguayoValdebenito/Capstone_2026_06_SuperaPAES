@@ -92,6 +92,9 @@ export const SECCIONES: readonly Seccion[] = [
  * Primera sección de cada rol: a dónde lleva la raíz `/`. El administrador entra al Banco de
  * preguntas mientras el Panel esté pendiente (HU-48, DAS 7.4).
  */
+/** Cambia tu contraseña: no es una sección del menú lateral; se abre desde el menú de la cuenta. */
+export const RUTA_CAMBIAR_CONTRASENA = '/cambiar-contrasena';
+
 export const INICIO_POR_ROL: Record<RolCuentaInterna, string> = {
   admin: '/banco',
   docente: '/revision',

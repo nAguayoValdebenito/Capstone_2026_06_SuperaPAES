@@ -56,6 +56,20 @@ export class ErrorCuentaDesactivada extends ErrorAplicacion {
   }
 }
 
+/**
+ * 403 CAMBIO_CONTRASENA_PENDIENTE: la cuenta interna tiene la contraseña que le asignó un administrador.
+ * Hasta cambiarla solo puede ver su usuario, cambiar la contraseña, renovar y cerrar la sesión.
+ */
+export class ErrorCambioContrasenaPendiente extends ErrorAplicacion {
+  constructor() {
+    super(
+      403,
+      'CAMBIO_CONTRASENA_PENDIENTE',
+      'Debes cambiar la contraseña que te asignó el administrador antes de seguir usando la consola.',
+    );
+  }
+}
+
 export class ErrorNoEncontrado extends ErrorAplicacion {
   constructor(mensaje = 'El recurso solicitado no existe.') {
     super(404, 'NO_ENCONTRADO', mensaje);
