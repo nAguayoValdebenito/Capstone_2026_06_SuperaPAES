@@ -1,6 +1,7 @@
 // Reglas y mapeo de la configuración SMTP, separados de la configuración general de la API.
 
 export interface VariablesSmtp {
+  NODE_ENV?: string | undefined;
   PROVEEDOR_CORREO: 'consola' | 'smtp';
   SMTP_HOST?: string | undefined;
   SMTP_PORT?: number | undefined;
@@ -33,14 +34,18 @@ export const NOMBRE_REMITENTE_POR_DEFECTO = 'Supera PAES';
 type ProblemaSmtp = [keyof VariablesSmtp, string];
 
 const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+// Nombre del servicio Mailpit en docker-compose. Solo cuenta como local fuera de producción.
+const HOST_MAILPIT_DOCKER = 'mailpit';
 
-function esLocal(host: string | undefined): boolean {
-  return host !== undefined && HOSTS_LOCALES.has(host.toLowerCase());
+function esLocal(host: string | undefined, entorno: string | undefined): boolean {
+  if (host === undefined) return false;
+  const nombre = host.toLowerCase();
+  return HOSTS_LOCALES.has(nombre) || (nombre === HOST_MAILPIT_DOCKER && entorno !== 'production');
 }
 
 function problemasDeCifrado(v: VariablesSmtp, local: boolean): ProblemaSmtp[] {
   if (v.SMTP_TLS === 'none' && !local) {
-    return [['SMTP_TLS', 'solo puede ser none para localhost']];
+    return [['SMTP_TLS', 'solo puede ser none para localhost (o mailpit fuera de producción)']];
   }
   if (v.SMTP_TLS === 'implicit' && v.SMTP_PORT !== undefined && v.SMTP_PORT !== 465) {
     return [['SMTP_PORT', 'debe ser 465 con SMTP_TLS=implicit']];
@@ -65,7 +70,7 @@ function problemasDeCredenciales(v: VariablesSmtp, local: boolean): ProblemaSmtp
 
 export function problemasDeSmtp(v: VariablesSmtp): ProblemaSmtp[] {
   if (v.PROVEEDOR_CORREO !== 'smtp') return [];
-  const local = esLocal(v.SMTP_HOST);
+  const local = esLocal(v.SMTP_HOST, v.NODE_ENV);
   return [...problemasDeCifrado(v, local), ...problemasDeCredenciales(v, local)];
 }
 

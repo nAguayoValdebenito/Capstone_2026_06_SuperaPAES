@@ -50,6 +50,7 @@ services:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODELO: ${GEMINI_MODELO:-}
+      CLAVE_TAREAS: ${CLAVE_TAREAS:-}
       PROVEEDOR_CORREO: ${PROVEEDOR_CORREO:-consola}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}
@@ -65,6 +66,22 @@ services:
     depends_on:
       migraciones:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
+    networks:
+      - interna
+
+  # Solo desarrollo: recibe los correos de verificación. Interfaz en http://localhost:8025.
+  # Para usarlo: PROVEEDOR_CORREO=smtp, SMTP_HOST=mailpit, SMTP_PORT=1025 y SMTP_TLS=none en .env.docker.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - '127.0.0.1:${PUERTO_MAILPIT_LOCAL:-8025}:8025'
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - interna
 
@@ -74,8 +91,10 @@ services:
       dockerfile: consola/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     ports:
-      - '127.0.0.1:8080:80'
+      - '127.0.0.1:8080:8080'
     depends_on:
       api:
         condition: service_healthy
