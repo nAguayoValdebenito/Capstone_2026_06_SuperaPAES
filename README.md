@@ -74,11 +74,11 @@ Cubre las cinco pruebas regulares de la PAES: **Competencia Lectora, Matemática
 - Los precios son iguales en Google Play y en la App Store.
 - Si el plan es anual, el sistema avisa por correo 7 días antes de cada renovación.
 - La cancelación se hace en la gestión de suscripciones de la tienda, que la app abre directamente.
-- Durante el proyecto no se cobra dinero real: las compras se prueban con las cuentas de prueba de cada tienda.
+- Durante el proyecto no se cobra dinero real: las compras se prueban con las cuentas de prueba de cada tienda. Para ver una suscripción en la consola sin pasar por las tiendas existe el modo de pruebas de suscripción, apagado por defecto.
 
 ## Arquitectura
 
-Supera PAES es un **monolito modular en capas**: una sola API REST, desplegada como una unidad y organizada por módulos funcionales. La app y la consola son sus interfaces de usuario. Se comunican con la API por HTTPS y nunca acceden directo a la base de datos.
+Supera PAES es un **monolito por capas**: una sola API REST, desplegada como una unidad y organizada por módulos funcionales. La app y la consola son sus interfaces de usuario. Se comunican con la API por HTTPS y nunca acceden directo a la base de datos.
 
 ```mermaid
 flowchart LR
@@ -112,7 +112,7 @@ Cada módulo tiene cuatro capas: **rutas y middleware, controladores, servicios 
 
 **Patrones aplicados:** capas, controlador, capa de servicios, repositorio, unidad de trabajo, cadena de responsabilidad (middleware), adaptador y estrategia, fábrica, productor-consumidor y receptor idempotente para los avisos de las tiendas. Los estados de las preguntas y de las suscripciones se controlan con una máquina de estados.
 
-**Modelo de datos:** 40 tablas, 69 relaciones con integridad referencial y 6 vistas, en PostgreSQL 18. La app solo lee las preguntas publicadas, a través de vistas que no exponen la alternativa correcta.
+**Modelo de datos:** 87 tablas con integridad referencial y 12 vistas, en PostgreSQL 18. La app solo lee las preguntas publicadas, a través de vistas que no exponen la alternativa correcta.
 
 El detalle completo está en el Documento de Arquitectura de Software (DAS), que describe el sistema con el modelo de vistas 4+1.
 
@@ -124,31 +124,41 @@ El detalle completo está en el Documento de Arquitectura de Software (DAS), que
 | Consola web | React, Vite y TypeScript |
 | API | Node.js 24, Express y TypeScript; SQL parametrizado con `pg`, sin ORM; validación con zod |
 | Base de datos | PostgreSQL 18 |
-| IA | DeepSeek (`deepseek-chat`), Gemini como respaldo y un proveedor simulado para desarrollo |
+| IA | DeepSeek (`deepseek-flash`), Gemini como respaldo y un proveedor simulado para desarrollo |
 | Pagos | Google Play Billing y compra integrada de la App Store (StoreKit), más un proveedor simulado |
-| Correo | Consola de la API en desarrollo, o Mailpit (opcional) |
+| Correo | Consola de la API o Mailpit en desarrollo (Mailpit viene incluido en Docker) y SMTP de Brevo en producción |
 | Pruebas | Vitest y Supertest (API), Vitest (consola), `flutter test` (app), k6 (carga), OWASP ZAP (seguridad) |
 | Calidad de código | ESLint, Prettier, `flutter analyze` |
+| Contenedores | Docker y Docker Compose, para levantar la base, la API y la consola en un computador |
 | Integración continua | GitHub Actions |
 | Publicación | Render (API), Neon (base de datos), Vercel (consola), TestFlight y la prueba cerrada de Google Play (app) |
 
-El proyecto no usa Docker. Cada parte se publica con el entorno propio de su plataforma.
+Docker se usa para levantar el sistema completo en un computador (ver `SuperaPAES/README.md`). La publicación no usa contenedores: cada parte se publica con el entorno propio de su plataforma.
 
 ## Estructura del repositorio
 
 ```
 Capstone_2026_06_SuperaPAES/
-├── api/
-│   ├── modulos/       # un paquete por módulo: rutas, controlador, servicio y repositorio
-│   ├── comun/         # middleware de seguridad, manejo de errores y configuración
-│   ├── adaptadores/   # IA, pagos (Google Play, App Store, simulado) y correo
-│   ├── trabajos/      # worker de la cola de generación con IA
-│   ├── db/            # migraciones y semillas (temario PAES 2027, planes y parámetros)
-│   └── pruebas/       # pruebas unitarias y de integración
-├── consola/           # consola web: páginas, componentes, servicios y estado
-├── app/               # proyecto Flutter, con las carpetas android e ios
-├── docs/              # documentación técnica
-└── .github/           # flujos de GitHub Actions y plantilla de pull request
+├── SuperaPAES/               # el sistema; los comandos se ejecutan desde esta carpeta
+│   ├── api/
+│   │   ├── modulos/          # un paquete por módulo: rutas, controlador, servicio y repositorio
+│   │   ├── comun/            # middleware de seguridad, manejo de errores y configuración
+│   │   ├── adaptadores/      # IA, pagos (Google Play, App Store, simulado) y correo
+│   │   ├── trabajos/         # worker de la cola de generación con IA
+│   │   ├── db/               # migraciones y semillas (temario PAES 2027, planes y parámetros)
+│   │   └── pruebas/          # pruebas unitarias y de integración
+│   ├── consola/              # consola web: páginas, componentes, servicios y estado
+│   ├── app/                  # proyecto Flutter, con las carpetas android e ios
+│   ├── operaciones/          # guías de despliegue y de contingencia
+│   ├── docs/                 # documentación técnica
+│   ├── docker-compose.yml    # base, API y consola en un computador, con Mailpit
+│   └── README.md             # puesta en marcha, Docker y variables de entorno
+├── Fase 1/                   # evidencias de la Fase 1
+├── Fase 2/                   # evidencias de la Fase 2
+│   └── Evidencias Proyecto/Evidencias de Sistema/
+│       ├── Aplicacion/       # copia del código fuente y de la configuración de despliegue
+│       └── Base de Datos/    # migraciones, semillas y datos de prueba
+└── .github/                  # flujos de GitHub Actions y plantilla de pull request
 ```
 
 La consola y la app dependen de la API solo por HTTP. Los módulos de la API pueden usar `comun`, `adaptadores` y `db`, pero esas carpetas nunca usan a los módulos.
@@ -159,7 +169,7 @@ La consola y la app dependen de la API solo por HTTP. Los módulos de la API pue
 - **Invitaciones.** Se entregan 5 preguntas por cada invitado que verifica su correo. El bono se da una vez por invitado, se acumula y no vence. Hay un tope mensual de invitaciones premiadas.
 - **Corrección en el servidor.** Solo se responde una pregunta que el sistema entregó a ese estudiante y que aún no ha sido respondida.
 - **Alternativas.** Competencia Lectora, M1 e Historia usan 4 alternativas; M2 y Ciencias usan 4 o 5. Siempre hay una sola correcta.
-- **Dificultad.** La IA o el autor solo la sugieren. Los docentes la asignan. La mezcla en práctica y ensayos es de 20 a 30 % fácil, 50 a 60 % media y 15 a 20 % difícil.
+- **Dificultad.** La IA o el autor solo la sugieren. Los docentes la asignan. La mezcla en práctica y ensayos es de 30 % fácil, 45 % media y 25 % difícil.
 - **Revisión.** Dos docentes del área revisan cada pregunta. Nunca la revisan su autor ni quien pidió el lote. Solo se publica una pregunta aprobada y con dificultad asignada.
 - **Refuerzo.** Un eje se marca para reforzar si el acierto del estudiante es menor a 60 %, con al menos 5 respuestas.
 - **Calibración.** Con 30 o más intentos, una pregunta cuyo acierto no coincide con su dificultad vuelve a revisión docente.
@@ -181,7 +191,7 @@ La consola y la app dependen de la API solo por HTTP. Los módulos de la API pue
    proyecto vive en la carpeta `SuperaPAES/`; los comandos siguientes se ejecutan desde ahí:
 
    ```bash
-   git clone https://github.com/<organizacion>/Capstone_2026_06_SuperaPAES.git
+   git clone https://github.com/nAguayoValdebenito/Capstone_2026_06_SuperaPAES.git
    cd Capstone_2026_06_SuperaPAES/SuperaPAES
    npm ci
    ```
@@ -204,6 +214,7 @@ La consola y la app dependen de la API solo por HTTP. Los módulos de la API pue
    ```bash
    npm run migrar -w api
    npm run semillas -w api
+   npm run crear-admin -w api   # una sola vez: crea tu administrador para entrar a la consola
    ```
 
 5. Levantar la API y la consola, cada una en su terminal:
@@ -246,6 +257,8 @@ La consola y la app dependen de la API solo por HTTP. Los módulos de la API pue
 
    `10.0.2.2` es la dirección de tu computador vista desde el emulador de Android. En el simulador de iOS se usa `localhost`.
 
+Para levantar todo con Docker, en vez de instalar Node y PostgreSQL, sigue la sección «Levantar con Docker» de `SuperaPAES/README.md`.
+
 Con los proveedores en modo `simulado`, el sistema funciona completo sin claves externas: la IA devuelve preguntas de ejemplo, los pagos se aprueban o rechazan de forma simulada y los correos se muestran en la consola de la API.
 
 ## Variables de entorno
@@ -267,10 +280,13 @@ Nunca se suben valores reales al repositorio. Solo se versionan los archivos `.e
 | `PROVEEDOR_IA` | `simulado`, `deepseek` o `gemini` |
 | `DEEPSEEK_API_KEY`, `GEMINI_API_KEY` | Claves de la IA; solo se piden si se elige ese proveedor |
 | `PROVEEDOR_PAGOS` | `simulado` o `tiendas` |
+| `MODO_PRUEBAS_SUSCRIPCION` | `false` por defecto. Con `true`, la app permite activar una suscripción simulada de 30 días que la consola muestra como «Simulada», sin tiendas ni pagos |
 | `GOOGLE_PLAY_*` | Paquete de la app, cuenta de servicio de la Google Play Developer API y audiencia de Pub/Sub; solo con `tiendas` |
 | `APP_STORE_*` | Identificador de la app, clave de la App Store Server API y entorno (`sandbox` o `produccion`); solo con `tiendas` |
 | `PROVEEDOR_CORREO` | `consola` o `smtp` |
-| `SMTP_HOST`, `SMTP_PORT`, `CORREO_REMITENTE` | Datos del correo; con Mailpit, SMTP en el puerto 1025 y la interfaz web en el 8025 |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CLAVE`, `CORREO_REMITENTE`, `CORREO_REMITENTE_NOMBRE` | Datos del correo; `SMTP_TLS` es `implicit`, `starttls` o `none` (esta última solo con localhost, como Mailpit: SMTP en el puerto 1025 y la interfaz web en el 8025) |
+
+Con Docker, las variables van en `.env.docker`, que se copia de `.env.docker.example` y nunca se sube al repositorio.
 
 **Consola (`consola/.env`)**
 
@@ -293,23 +309,23 @@ Comandos desde `SuperaPAES/`:
 npm run lint
 npm run test               # con DATABASE_URL_PRUEBAS, también las pruebas con PostgreSQL
 npm run build
-npm run probar:bd -w api   # 249 casos del modelo de datos
+npm run probar:bd -w api   # casos del modelo de datos
 ```
 
 `npm run probar:bd -w api` usa `DATABASE_URL`, no `DATABASE_URL_PRUEBAS`. Crea su propia base
 temporal, ejecuta los casos y la borra al terminar. No vacía tablas de ninguna otra base, pero
 tampoco tiene la protección de `_test` de las pruebas de Vitest.
 
-En cada pull request, **GitHub Actions** instala las dependencias, levanta una base PostgreSQL 18 temporal, ejecuta las pruebas de la API, la consola y la app, y verifica que todo compile. Un pull request con la revisión automática en rojo no se une.
+En cada pull request, **GitHub Actions** instala las dependencias, levanta una base PostgreSQL 18 temporal, ejecuta las pruebas de la API, la consola y la app, revisa la calidad del código, audita las dependencias con `npm audit` y verifica que todo compile. Un pull request con la revisión automática en rojo no se une.
 
 ## Despliegue
 
 | Parte | Plataforma | Configuración |
 |---|---|---|
 | Base de datos | Neon | PostgreSQL 18 con los esquemas `contenido` y `app`, con recuperación ante fallos activa |
-| API y worker | Render (Web Service, entorno Node) | Build: `npm ci && npm run build -w api`. Pre-deploy: `npm run migrar:produccion -w api`. Start: `npm start -w api`. Ruta de salud: `/api/v1/salud/vivo` |
+| API y worker | Render (Web Service, entorno Node) | Build: `npm ci --include=dev && npm run build -w api`. Start: `SEMILLAS_OMITIDAS=003_documentos_legales.sql npm run migrar:produccion -w api && npm start -w api`, que aplica migraciones y semillas en cada arranque. Ruta de salud: `/api/v1/salud/vivo`. Detalle en `SuperaPAES/operaciones/despliegue.md` |
 | Consola | Vercel | Archivos estáticos generados por Vite, con `VITE_API_URL` apuntando a la API |
-| App Android | Google Play Console | Se compila con Android Studio y se distribuye por la prueba cerrada |
+| App Android | Google Play Console | Se compila con Flutter (`flutter build apk --release`) y se distribuye por la prueba cerrada y como APK firmado en la release v1.0.0 de GitHub |
 | App iOS | App Store Connect | Se compila y firma con Xcode en macOS y se distribuye por TestFlight |
 
 Render y Vercel publican automáticamente la rama principal. La app lleva el mismo número de versión en Android y en iOS, y cada subida a los canales de prueba suma un número de compilación (por ejemplo, `0.7.0+3`).
@@ -323,7 +339,7 @@ Los avisos de las tiendas llegan a la API así:
 
 - **Ramas:** la rama principal siempre está estable y es la que se publica. Cada tarea se trabaja en su propia rama.
 - **Pull requests:** los cambios entran solo por pull request, revisado por otro integrante y con la revisión automática en verde.
-- **Versiones del código:** se usa versionamiento semántico `x.y.z`. Al cierre de cada sprint de desarrollo se crea una etiqueta en la rama principal (por ejemplo, `v0.4.0` al cerrar el Sprint 4), y la entrega final es `v1.0.0`.
+- **Versiones del código:** se usa versionamiento semántico `x.y.z`. Al cierre de cada sprint de desarrollo se crea una etiqueta en la rama principal (por ejemplo, `v0.4.0` al cerrar el Sprint 4), y la entrega final es `v1.0.0`, publicada como release en GitHub.
 - **Base de datos:** los cambios se aplican con migraciones ordenadas en `api/db`. El modelo y su script SQL comparten la misma numeración de versión.
 - **Metodología:** Scrum, con 9 sprints semanales de 52 horas de trabajo cada uno.
 
@@ -340,7 +356,7 @@ Proyecto del 03/09/2026 al 05/11/2026.
 | 5 | 02/10 al 08/10 | Banco de preguntas y generador |
 | 6 | 09/10 al 15/10 | Revisión docente y calidad de la IA |
 | 7 | 16/10 al 22/10 | Núcleo de la app del estudiante |
-| 8 | 23/10 al 29/10 | Invitaciones, suscripción y ensayos |
+| 8 | 23/10 al 29/10 | Evaluaciones y suscripción |
 | 9 | 30/10 al 05/11 | Pruebas y entrega |
 
 **Hitos**
