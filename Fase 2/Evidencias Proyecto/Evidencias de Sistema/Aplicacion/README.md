@@ -3,7 +3,7 @@
 Plataforma de práctica para la PAES (Chile), pensada para estudiantes con menos recursos. Cubre
 Competencia Lectora, Matemática M1 y M2, Historia y Ciencias.
 
-Es un **monolito modular en capas**: una sola API REST con diez módulos, y dos interfaces de
+Es un **monolito por capas**: una sola API REST con diez módulos, y dos interfaces de
 usuario que solo hablan con ella por HTTP.
 
 | Pieza                      | Tecnología                                    | Carpeta    |
@@ -13,11 +13,13 @@ usuario que solo hablan con ella por HTTP.
 | App de estudiantes         | Flutter: Android 8 o superior e iOS           | `app/`     |
 
 Este proyecto vive en la carpeta `SuperaPAES/` del repositorio `Capstone_2026_06_SuperaPAES`, junto a
-`Fase 1` y `Fase 2`. Todos los comandos se ejecutan desde `SuperaPAES/`; la integración continua está
-en `.github/` de la raíz del repositorio.
+`Fase 1` y `Fase 2`. Esta carpeta es la copia de `SuperaPAES/` incluida en
+`Fase 2/Evidencias Proyecto/Evidencias de Sistema/Aplicacion` como evidencia de la Fase 2: los comandos se
+ejecutan desde esta misma carpeta y los flujos de la integración continua están en su `.github/`.
 
-La documentación interna del proyecto (arquitectura, modelo de datos y reglas de negocio) y el SQL de
-la base de datos no se publican: el equipo los recibe por un canal privado.
+La documentación interna del proyecto (arquitectura, modelo de datos y reglas de negocio) no se publica
+en este README: el equipo la recibe por un canal privado. El SQL de la base de datos sí está en `api/db`:
+migraciones, semillas y datos de prueba (con una copia en la carpeta Base de Datos de esta evidencia).
 
 ## Requisitos
 
@@ -35,18 +37,18 @@ cd Capstone_2026_06_SuperaPAES/SuperaPAES
 npm install
 createdb -U postgres supera_paes             # en Windows: "C:\Program Files\PostgreSQL\18\bin\createdb.exe"
 cp api/.env.example api/.env                 # completa DATABASE_URL y los dos JWT_SECRETO_*
-npm run migrar -w api                        # 86 tablas, 159 claves foráneas, 12 vistas y datos iniciales
+npm run migrar -w api                        # 87 tablas, 12 vistas y datos iniciales
 npm run semillas -w api                      # temario, evaluaciones y documentos legales (idempotente)
 npm run semilla-demo -w api                  # opcional, solo desarrollo: 5 preguntas de ejemplo para probar la práctica
-npm run probar:bd -w api                     # 249 casos del modelo en una base temporal (necesita psql 18)
+npm run probar:bd -w api                     # casos del modelo en una base temporal (necesita psql 18)
 npm run crear-admin -w api                   # una sola vez: tu administrador para entrar a la consola
 npm run dev -w api                           # http://localhost:3000/api/v1/salud
 npm run dev -w consola                       # http://localhost:5173
 ```
 
-El SQL vive en `api/db`: migraciones `001` a `003` (modelo de datos 12.0), semillas `001` a `005`
-(temario PAES 2027, evaluaciones, documentos legales 1.0, acciones de auditoría de usuarios internos
-y tipos de pregunta por prueba, en ese orden) y las pruebas del modelo. La migración `003` y la semilla `003` comparten el número,
+El SQL vive en `api/db`: migraciones `001` a `009` y `012` (modelo de datos 13.0; la `012` agrega el canal de venta de
+prueba), semillas `001` a `006` (temario PAES 2027, evaluaciones, documentos legales 1.0, acciones de
+auditoría de usuarios internos, tipos de pregunta por prueba y acciones de auditoría de textos, en ese orden) y las pruebas del modelo. La migración `003` y la semilla `003` comparten el número,
 pero están en carpetas distintas y no chocan.
 
 `npm run semilla-demo -w api` carga una pregunta de ejemplo publicada por prueba (cinco, la de Competencia
@@ -64,7 +66,7 @@ olvidaste la contraseña, `npm run crear-admin -w api -- --restablecer` asigna u
 cuenta. Las dos acciones quedan en la auditoría; la contraseña nunca se pasa como argumento ni en
 `.env`.
 
-> **Poner al día una base local.** Si tu base tiene el modelo 11.0 o los textos legales anteriores
+> **Poner al día una base local.** Si tu base tiene un modelo o unos textos legales anteriores
 > (la semilla no reemplaza una versión ya cargada), lo más simple es recrearla:
 >
 > ```bash
@@ -74,8 +76,8 @@ cuenta. Las dos acciones quedan en la auditoría; la contraseña nunca se pasa c
 > npm run semillas -w api
 > ```
 >
-> Si solo te falta el modelo 12.0 y no te importa el texto legal, basta con `npm run migrar -w api`,
-> que aplica la 002 y la 003.
+> Si solo te faltan migraciones recientes y no te importa el texto legal, basta con `npm run migrar -w api`,
+> que aplica las pendientes.
 
 Contacto del proyecto: superapaes@gmail.com. Los documentos legales 1.0 rigen desde el 19/10/2026;
 falta completar «dirección de la consola» y la revisión de un docente o del cliente (RN-30), así que
@@ -186,8 +188,8 @@ cd app && flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3000
 | `GET /api/v1/salud/vivo`            | Solo el proceso, sin tocar la base (chequeo de Render)        |
 | `/api/v1/app/<modulo>`              | App del estudiante, con el JWT de la app                      |
 | `/api/v1/admin/<modulo>`            | Consola, con el JWT de la consola y rol `admin` o `docente`   |
-| `POST /api/v1/webhooks/google-play` | Avisos de Google Play (501 hasta el sprint de suscripciones)  |
-| `POST /api/v1/webhooks/app-store`   | Avisos de la App Store (501 hasta el sprint de suscripciones) |
+| `POST /api/v1/webhooks/google-play` | Avisos de Google Play                                         |
+| `POST /api/v1/webhooks/app-store`   | Avisos de la App Store                                        |
 
 Toda respuesta tiene la forma `{ "data": …, "error": …, "meta": … }`.
 
@@ -241,6 +243,15 @@ valores en el repositorio.
 Ver [app/README.md](app/README.md). En el emulador de Android la API local es `http://10.0.2.2:3000`;
 en el simulador de iOS, `http://localhost:3000`.
 
+Para generar el APK firmado de la entrega, el keystore y `app/android/key.properties` deben existir en el
+equipo (nunca se versionan) y se usa Flutter 3.47.7, la versión que fija la integración continua:
+
+```bash
+cd app && flutter build apk --release --dart-define=API_URL=https://supera-paes-api.onrender.com
+```
+
+El APK de la versión 1.0 está publicado en las releases del repositorio (`v1.0.0`).
+
 ## Chequeos
 
 Las pruebas con PostgreSQL usan una base aparte cuyo nombre termina en `_test` (se niegan a vaciar o
@@ -258,6 +269,6 @@ npm run test      # Vitest; con DATABASE_URL_PRUEBAS en api/.env también corre 
 npm run build
 npm run codigo-muerto && npm run circulares && npm run duplicacion
 npm run revisar-secretos   # ningún secreto puede llegar a GitHub
-npm run probar:bd -w api   # 249 casos del modelo de datos (también en la CI); usa DATABASE_URL, crea y borra su propia base, sin la protección de _test
+npm run probar:bd -w api   # casos del modelo de datos (también en la CI); usa DATABASE_URL, crea y borra su propia base, sin la protección de _test
 cd app && dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test
 ```
