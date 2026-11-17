@@ -22,14 +22,14 @@
     "revisar-secretos": "secretlint \"**/*\""
   },
   "devDependencies": {
-    "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.1.0",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint-plugin-sonarjs": "^4.2.2",
-    "jscpd": "^5.4.1",
-    "knip": "^6.41.0",
+    "jscpd": "^5.4.3",
+    "knip": "^6.45.1",
     "madge": "^8.0.0",
-    "prettier": "^3.9.9",
-    "secretlint": "^13.0.7"
+    "prettier": "^3.10.1",
+    "secretlint": "^13.1.0"
   },
   "overrides": {
     "minimatch": "^11.0.1"
