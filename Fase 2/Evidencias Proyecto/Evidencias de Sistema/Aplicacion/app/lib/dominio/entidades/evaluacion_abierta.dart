@@ -1,0 +1,102 @@
+import 'package:supera_paes/dominio/entidades/evaluacion_con_tiempo.dart';
+import 'package:supera_paes/dominio/entidades/practica.dart';
+
+/// La evaluación sin terminar del estudiante, para retomarla donde quedó
+/// (HU-60, CU-28, RF-A22). RN-19 deja una sola.
+class EvaluacionAbierta {
+  const EvaluacionAbierta({
+    required this.id,
+    required this.tipo,
+    required this.tipoNombre,
+    required this.pruebaId,
+    required this.prueba,
+    required this.alcance,
+    required this.dificultadId,
+    required this.cantidad,
+    required this.respondidas,
+    this.segundosRestantes,
+    this.venceEnServidor,
+    this.duracionSegundos,
+    this.preguntas = const [],
+  });
+
+  final int id;
+
+  /// Código del tipo: `practica`, `mini_ensayo`...
+  final String tipo;
+
+  /// «Práctica», «Mini-ensayo»...
+  final String tipoNombre;
+  final int pruebaId;
+
+  /// Como en Inicio: «Matemática M2».
+  final String prueba;
+
+  /// Lo que se eligió practicar; toda la prueba sin nombre, como al iniciar.
+  final Alcance alcance;
+
+  /// `null`: la mezcla.
+  final int? dificultadId;
+  final int cantidad;
+  final int respondidas;
+
+  /// Lo que le quedaba según el servidor al consultarla; `null` sin tiempo.
+  final int? segundosRestantes;
+  final DateTime? venceEnServidor;
+  final int? duracionSegundos;
+
+  /// Con tiempo, sus preguntas con lo que ya respondió (A27); vacía en la
+  /// práctica.
+  final List<PreguntaConTiempo> preguntas;
+
+  bool get conTiempo => segundosRestantes != null;
+  bool get esPractica => tipo == 'practica';
+
+  /// El repaso se sigue igual que la práctica, en A17 (HU-39).
+  bool get esRepaso => tipo == 'repaso';
+
+  /// Para seguir la práctica en A17, con su encabezado.
+  PracticaIniciada get practica =>
+      PracticaIniciada(id: id, pruebaId: pruebaId, cantidad: cantidad);
+  DatosPractica get datos => DatosPractica(
+    pruebaId: pruebaId,
+    alcance: alcance,
+    dificultadId: dificultadId,
+    cantidad: cantidad,
+  );
+
+  /// Para seguirla en A27 con el reloj donde quedó (RN-21).
+  EvaluacionConTiempo get conReloj => EvaluacionConTiempo(
+    id: id,
+    tipoNombre: tipoNombre,
+    pruebaId: pruebaId,
+    preguntas: preguntas,
+    segundosRestantes: segundosRestantes ?? 0,
+    venceEnServidor: venceEnServidor,
+    duracionSegundos: duracionSegundos,
+  );
+}
+
+/// La que el servidor cerró al consultarla: venció (RN-21) o era una
+/// práctica sin actividad (RN-19). Se puede ver su resultado.
+class EvaluacionRecienCerrada {
+  const EvaluacionRecienCerrada({
+    required this.id,
+    required this.tipoNombre,
+    required this.porTiempo,
+  });
+
+  final int id;
+  final String tipoNombre;
+
+  /// `false`: abandonada por inactividad.
+  final bool porTiempo;
+}
+
+/// GET /evaluaciones/abierta: a lo más una de las dos.
+class ConsultaEvaluacionAbierta {
+  const ConsultaEvaluacionAbierta({this.abierta, this.cerrada});
+
+  final EvaluacionAbierta? abierta;
+  final EvaluacionRecienCerrada? cerrada;
+}

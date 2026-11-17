@@ -1,0 +1,89 @@
+import 'package:dio/dio.dart';
+import 'package:supera_paes/datos/modelos/documento_legal_modelo.dart';
+import 'package:supera_paes/datos/modelos/sesion_estudiante_modelo.dart';
+import 'package:supera_paes/dominio/entidades/datos_registro.dart';
+import 'package:supera_paes/dominio/entidades/sesion_estudiante.dart';
+import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/respuesta_api.dart';
+
+/// Llama a las rutas públicas de /api/v1/app/cuentas.
+class FuenteCuentasRemota {
+  const FuenteCuentasRemota(this._dio);
+
+  final Dio _dio;
+
+  Future<List<DocumentoLegalModelo>> documentosVigentes() async {
+    try {
+      final respuesta = await _dio.get<Object?>(
+        '/cuentas/documentos-legales/vigentes',
+      );
+      final data = leerData(respuesta.data, estadoHttp: respuesta.statusCode);
+      if (data is! List<dynamic>) {
+        throw const ErrorApi(
+          codigo: 'RESPUESTA_INVALIDA',
+          mensaje: 'No recibimos los documentos legales. Inténtalo de nuevo.',
+        );
+      }
+      return [
+        for (final documento in data.whereType<Map<String, dynamic>>())
+          DocumentoLegalModelo.fromJson(documento),
+      ];
+    } on DioException catch (excepcion) {
+      throw ErrorApi.desdeDio(excepcion);
+    }
+  }
+
+  Future<SesionEstudianteModelo> registrar(DatosRegistro datos) async {
+    final data = await _publicar('/cuentas/registro', {
+      'nombre': datos.nombre,
+      'correo': datos.correo,
+      'contrasena': datos.contrasena,
+      // Aceptar los documentos vigentes incluye declarar la edad (RN-18).
+      'declaraTenerCatorceAnios': true,
+      'documentosAceptados': datos.documentosAceptados,
+      'codigoInvitacion': ?datos.codigoInvitacion,
+    }, sinData: 'No recibimos la cuenta creada. Inténtalo de nuevo.');
+    return SesionEstudianteModelo.fromJson(data);
+  }
+
+  Future<SesionEstudianteModelo> ingresar({
+    required String correo,
+    required String contrasena,
+    String? dispositivo,
+  }) async {
+    final data = await _publicar('/cuentas/ingreso', {
+      'correo': correo,
+      'contrasena': contrasena,
+      'dispositivo': ?dispositivo,
+    }, sinData: 'No recibimos la sesión. Inténtalo de nuevo.');
+    return SesionEstudianteModelo.fromJson(data);
+  }
+
+  Future<TokensSesion> renovar(String tokenRenovacion) async {
+    final data = await _publicar('/cuentas/renovar', {
+      'tokenRenovacion': tokenRenovacion,
+    }, sinData: 'No recibimos la sesión renovada. Inténtalo de nuevo.');
+    return (
+      tokenAcceso: data['tokenAcceso'] as String,
+      tokenRenovacion: data['tokenRenovacion'] as String,
+    );
+  }
+
+  Future<void> cerrar(String tokenRenovacion) async {
+    await _publicar('/cuentas/cerrar', {
+      'tokenRenovacion': tokenRenovacion,
+    }, sinData: 'No pudimos confirmar el cierre. Inténtalo de nuevo.');
+  }
+
+  Future<void> solicitarRecuperacion(String correo) async {
+    await _publicar('/cuentas/recuperacion/solicitar', {
+      'correo': correo,
+    }, sinData: 'No pudimos confirmar la solicitud. Inténtalo de nuevo.');
+  }
+
+  Future<Map<String, dynamic>> _publicar(
+    String ruta,
+    Map<String, Object?> cuerpo, {
+    required String sinData,
+  }) => publicarObjeto(_dio, ruta, cuerpo, sinData: sinData);
+}

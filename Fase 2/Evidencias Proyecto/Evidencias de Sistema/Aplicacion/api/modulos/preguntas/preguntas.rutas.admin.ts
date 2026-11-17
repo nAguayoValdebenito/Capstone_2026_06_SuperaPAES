@@ -1,0 +1,166 @@
+// Rutas de /api/v1/admin/preguntas (consola, JWT de la consola, rol admin): banco de preguntas,
+// alternativas, versiones, textos de estímulo, importaciones y avisos de error de los estudiantes.
+// Cada ruta declara su rol (DAS 4.3.3); el módulo no aplica un rol común.
+// Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
+// crearPreguntasControlador(servicio).
+import express, { Router } from 'express';
+import { BYTES_MAXIMOS_IMAGEN, TIPOS_IMAGEN } from '../../comun/imagenes.js';
+import { exigirRol } from '../../comun/middleware/autorizacion.js';
+import { validar } from '../../comun/middleware/validacion.js';
+import { crearPreguntasControlador, type PreguntasControlador } from './preguntas.controlador.js';
+import type { PreguntasServicio } from './preguntas.servicio.js';
+import {
+  esquemaArchivosImportacion,
+  esquemaCierreAviso,
+  esquemaConsultaTextos,
+  esquemaBusquedaPreguntas,
+  esquemaFiltrosAvisos,
+  esquemaFiltrosBanco,
+  esquemaIdAviso,
+  esquemaIdPregunta,
+  esquemaIdTexto,
+  esquemaImportacion,
+  esquemaPregunta,
+  esquemaTexto,
+} from './preguntas.validadores.js';
+
+/** Textos de lectura (C03, HU-12.2). Van antes de /:id, para que «textos» no se lea como una pregunta. */
+function agregarRutasTextos(router: Router, controlador: PreguntasControlador): void {
+  router.get(
+    '/textos',
+    exigirRol('admin'),
+    validar({ consulta: esquemaConsultaTextos }),
+    controlador.listarTextos,
+  );
+  router.get('/textos/tipos', exigirRol('admin'), controlador.tiposDeTexto);
+  router.get(
+    '/textos/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdTexto }),
+    controlador.obtenerTexto,
+  );
+  router.post(
+    '/textos',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaTexto }),
+    controlador.crearTexto,
+  );
+  router.put(
+    '/textos/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdTexto, cuerpo: esquemaTexto }),
+    controlador.editarTexto,
+  );
+}
+
+/**
+ * Avisos de error de los estudiantes (C13, HU-50.1, RF-C08, CU-26): la bandeja, agrupada por pregunta,
+ * y el cierre de un aviso como resuelto o descartado. Van antes de /:id, como los textos.
+ */
+function agregarRutasAvisos(router: Router, controlador: PreguntasControlador): void {
+  router.get(
+    '/avisos',
+    exigirRol('admin'),
+    validar({ consulta: esquemaFiltrosAvisos }),
+    controlador.listarAvisos,
+  );
+  // Antes de /avisos/:id: «pendientes» no es un id.
+  router.get('/avisos/pendientes', exigirRol('admin'), controlador.contarAvisosPendientes);
+  router.patch(
+    '/avisos/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdAviso, cuerpo: esquemaCierreAviso }),
+    controlador.cerrarAviso,
+  );
+}
+
+/**
+ * Subir una imagen para una pregunta o un texto de lectura (HU-12.6). El cuerpo es el
+ * archivo mismo; el límite de 2 MB es solo de esta ruta (el resto de la API acepta JSON de hasta 1 MB).
+ */
+function agregarRutaImagenes(router: Router, controlador: PreguntasControlador): void {
+  router.post(
+    '/imagenes',
+    exigirRol('admin'),
+    express.raw({ type: [...TIPOS_IMAGEN], limit: BYTES_MAXIMOS_IMAGEN }),
+    controlador.subirImagen,
+  );
+}
+
+/** Textos, avisos e imágenes van antes de /:id, para que sus nombres no se lean como una pregunta. */
+function agregarRutasAntesDeId(router: Router, controlador: PreguntasControlador): void {
+  // Búsqueda global (Ctrl K): solo lectura.
+  router.get(
+    '/busqueda',
+    exigirRol('admin'),
+    validar({ consulta: esquemaBusquedaPreguntas }),
+    controlador.buscarPreguntas,
+  );
+  agregarRutasTextos(router, controlador);
+  agregarRutasAvisos(router, controlador);
+  agregarRutaImagenes(router, controlador);
+}
+
+export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
+  const router = Router();
+  const controlador = crearPreguntasControlador(servicio);
+
+  // Banco de preguntas (C02, HU-11, RF-G01): lista filtrada y paginada, y las opciones de sus filtros.
+  router.get(
+    '/',
+    exigirRol('admin'),
+    validar({ consulta: esquemaFiltrosBanco }),
+    controlador.listarBanco,
+  );
+  router.get('/filtros', exigirRol('admin'), controlador.filtrosDelBanco);
+
+  agregarRutasAntesDeId(router, controlador);
+
+  // CU-16 paso 1: descarga de las plantillas CSV (HU-13.3), solo para administradores.
+  router.get('/importaciones/plantillas', exigirRol('admin'), controlador.plantillasImportacion);
+
+  // Importar preguntas con la plantilla CSV (C04, HU-13.1, RF-G05, CU-16): revisar entrega el informe
+  // sin guardar nada; importar exige la declaración del origen (RN-29) y crea las válidas.
+  router.post(
+    '/importaciones/revision',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaArchivosImportacion }),
+    controlador.revisarImportacion,
+  );
+  router.post(
+    '/importaciones',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaImportacion }),
+    controlador.importarPreguntas,
+  );
+
+  // Crear y editar preguntas (C03, HU-12.1, RF-G02, RF-G09): la consola del administrador recibe la
+  // pregunta completa, con la alternativa correcta.
+  router.post(
+    '/',
+    exigirRol('admin'),
+    validar({ cuerpo: esquemaPregunta }),
+    controlador.crearPregunta,
+  );
+  router.get(
+    '/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdPregunta }),
+    controlador.obtenerPregunta,
+  );
+  router.put(
+    '/:id',
+    exigirRol('admin'),
+    validar({ parametros: esquemaIdPregunta, cuerpo: esquemaPregunta }),
+    controlador.editarPregunta,
+  );
+  // Publicar, retirar y volver a borrador (C02, HU-24, CU-21, RF-G09, RF-G10): solo una aprobada con
+  // dificultad se publica, solo una publicada se retira y solo una retirada vuelve a borrador.
+  const etapa = validar({ parametros: esquemaIdPregunta });
+  router.post('/:id/publicar', exigirRol('admin'), etapa, controlador.publicarPregunta);
+  router.post('/:id/retirar', exigirRol('admin'), etapa, controlador.retirarPregunta);
+  router.post('/:id/borrador', exigirRol('admin'), etapa, controlador.volverABorrador);
+  // Anular una pregunta con error (C13, HU-50.2, CU-26a, RN-22): solo una publicada; irreversible.
+  router.post('/:id/anulacion', exigirRol('admin'), etapa, controlador.anularPregunta);
+  return router;
+}

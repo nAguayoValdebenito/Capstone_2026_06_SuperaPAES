@@ -1,0 +1,216 @@
+/* Avisos de error (C13): bandeja a la izquierda y el detalle de la pregunta a la derecha, como acta
+   (folio arriba y la línea de margen del cuaderno). Solo tokens del tema (estilos/global.css). */
+.avisos__contenido {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.avisos__contenido .tabla-desplazable {
+  margin-top: 0;
+}
+
+.avisos__tabla {
+  min-width: 36rem;
+}
+
+.avisos__tabla td:first-child {
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.avisos__tabla .tabla__numero {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Panel lateral: acta con la línea de margen; queda a la vista al bajar por la bandeja. */
+.avisos__panel.acta {
+  position: sticky;
+  top: 1rem;
+  max-width: none;
+  margin-top: 0;
+  padding-left: 2.25rem;
+}
+
+.avisos__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+.avisos__panel h2 {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: var(--t-md);
+}
+
+.avisos__titulo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.avisos__lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cada aviso es un renglón del acta, separado por una línea fina. */
+.avisos__aviso {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.875rem 0;
+  border-top: 1px solid var(--borde);
+}
+
+.avisos__aviso:first-child {
+  padding-top: 0.25rem;
+  border-top: 0;
+}
+
+.avisos__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  font-size: var(--t-sm);
+}
+
+/* Lo que escribió el estudiante es una cita: va en la letra de las citas. */
+.avisos__comentario {
+  margin: 0;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--borde-fuerte);
+  color: var(--tinta);
+  font-family: var(--fuente-formulas);
+  font-size: var(--t-md);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.avisos__dato {
+  margin: 0;
+  color: var(--tinta-3);
+  font-size: var(--t-sm);
+}
+
+.avisos__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Zona de la acción irreversible: contorno granate, sin relleno de alarma. */
+.avisos__peligro {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--error) 40%, transparent);
+  border-radius: var(--r-medio);
+  background: var(--error-suave);
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+}
+
+.avisos__peligro strong {
+  color: var(--error);
+}
+
+.avisos__peligro p {
+  margin: 0;
+}
+
+.avisos__peligro .boton {
+  justify-self: start;
+}
+
+.avisos__error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-top: 1.5rem;
+}
+
+/* Estados del aviso con marca de forma además del color (pendiente ya es global: anillo pizarra). */
+.etiqueta.etiqueta--resuelto {
+  --marca: var(--marca-visto);
+  background: var(--exito-suave);
+  color: var(--exito);
+}
+
+.etiqueta.etiqueta--descartado {
+  --marca: var(--marca-cruz);
+  background: var(--neutro-suave);
+  color: var(--tinta-2);
+}
+
+/* Confirmación propia (alertdialog, sin <dialog>) con el aspecto del diálogo de global.css. */
+.avisos__fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--velo);
+}
+
+.avisos__confirmacion {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: 90vh;
+  margin: 0;
+  padding: 1.375rem 1.5rem 1.25rem;
+  overflow: auto;
+  animation: entrar-dialogo var(--normal) var(--curva-enfasis) both;
+}
+
+.avisos__confirmacion strong {
+  color: var(--tinta);
+}
+
+.avisos__entendido {
+  align-items: flex-start;
+  color: var(--tinta);
+}
+
+/* Pantallas táctiles: objetivos de al menos 44 px. */
+@media (pointer: coarse) {
+  .avisos .boton-texto,
+  .avisos__entendido input {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 64rem) {
+  .avisos__contenido {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .avisos__panel.acta {
+    position: static;
+  }
+}
+
+@media (max-width: 40rem) {
+  .avisos__tabla {
+    min-width: 0;
+  }
+}

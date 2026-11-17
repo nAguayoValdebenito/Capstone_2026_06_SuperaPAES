@@ -1,0 +1,123 @@
+/* Hoja de acta de las páginas públicas: una hoja sobre el papel (--fondo), con la línea de margen
+   celeste de 1 px (.acta), el logo y el visto arriba, y el lema en STIX cursiva al pie. Sin menú. */
+
+.hoja-acta {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 2rem max(16px, env(safe-area-inset-right, 0px)) 2rem
+    max(16px, env(safe-area-inset-left, 0px));
+  background: var(--fondo);
+}
+
+.hoja-acta__hoja {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: min(27rem, 100%);
+  padding: 1.75rem 2rem 2rem 3rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--r-grande);
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: 0 12px 32px -20px rgb(var(--sombra) / 0.35);
+}
+
+.hoja-acta--ancha .hoja-acta__hoja {
+  width: min(44rem, 100%);
+}
+
+.hoja-acta__hoja.acta::before {
+  left: 1.75rem;
+}
+
+/* Cabeza: el logo con su nombre a la izquierda y el visto del logo a la derecha, con una línea fina debajo. */
+.hoja-acta__cabeza {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+.hoja-acta__marca {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.hoja-acta__nombre {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+.hoja-acta__nombre span {
+  color: var(--celeste-texto);
+}
+
+.hoja-acta__subtitulo {
+  color: var(--tinta-3);
+  font-size: var(--t-xs);
+}
+
+/* El visto del logo, grande, se dibuja una vez al abrir la hoja. */
+.hoja-acta__visto {
+  flex: none;
+}
+
+.hoja-acta__visto path {
+  fill: none;
+  stroke: var(--logo-celeste);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: hoja-acta-visto 1100ms var(--curva-enfasis) 300ms forwards;
+}
+
+@keyframes hoja-acta-visto {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* La hoja entra corta y contenida (200 ms, 4 px), como las vistas de la consola. */
+.hoja-acta__hoja {
+  animation: entrar var(--normal) var(--curva-entrada) both;
+}
+
+.hoja-acta__hoja h1 {
+  margin: 0;
+  font-size: var(--t-xl);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+@media (max-width: 32.5rem) {
+  .hoja-acta {
+    justify-content: flex-start;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .hoja-acta__hoja {
+    padding: 1.25rem 1rem 1.5rem 2.25rem;
+  }
+
+  .hoja-acta__hoja.acta::before {
+    left: 1.125rem;
+  }
+
+  .hoja-acta__visto {
+    display: none;
+  }
+}

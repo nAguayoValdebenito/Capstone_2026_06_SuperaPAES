@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "tags": ["-esqueleto"],
+  "workspaces": {
+    "api": {
+      "ignore": ["eslint.reglas-arquitectura.d.ts"]
+    },
+    "consola": {
+      "ignore": []
+    }
+  },
+  "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"]
+}

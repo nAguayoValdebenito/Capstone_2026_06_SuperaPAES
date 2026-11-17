@@ -1,0 +1,1042 @@
+// Componentes de selección y de filas del sistema de diseño (DAS 7.5; página
+// «Componentes» de Figma, versión 3): Opción, Chip, Etiqueta, la tarjeta con
+// casilla de A10, el indicador de pasos de A08 a A10 y las filas de A37.
+// Guía: app/DISENO.md.
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart'
+    show Destacado;
+import 'package:supera_paes/presentacion/comunes/formato_pregunta_vista.dart';
+import 'package:supera_paes/presentacion/comunes/movimiento.dart';
+import 'package:supera_paes/presentacion/comunes/pulso.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
+
+/// Opción con radio (Opción: Normal y Seleccionada), como los cursos de A08.
+class OpcionRadio extends StatelessWidget {
+  const OpcionRadio({
+    required this.texto,
+    required this.seleccionada,
+    required this.onTap,
+    super.key,
+    this.detalle,
+    this.conMovimiento = false,
+  });
+
+  final String texto;
+  final bool seleccionada;
+  final VoidCallback onTap;
+
+  /// Texto gris bajo el título, como el contenido elegido en A13.
+  final String? detalle;
+  final bool conMovimiento;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      checked: seleccionada,
+      child: _Seleccionable(
+        seleccionada: seleccionada,
+        conMovimiento: conMovimiento,
+        bordeAncho: conMovimiento || seleccionada ? 2 : 1,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        onTap: () {
+          if (conMovimiento && !seleccionada) {
+            unawaited(HapticFeedback.selectionClick());
+          }
+          onTap();
+        },
+        child: Row(
+          children: [
+            _Marca(
+              redonda: true,
+              marcada: seleccionada,
+              conMovimiento: conMovimiento,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _TituloConDetalle(texto: texto, detalle: detalle),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Título (Cuerpo fuerte) con un detalle gris opcional debajo, de
+/// [OpcionRadio] y [FilaNavegacion].
+class _TituloConDetalle extends StatelessWidget {
+  const _TituloConDetalle({
+    required this.texto,
+    required this.detalle,
+    this.color,
+  });
+
+  final String texto;
+  final String? detalle;
+
+  /// Color del título; por defecto, el del texto.
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(texto, style: TemaSuperaPaes.cuerpoFuerte.copyWith(color: color)),
+        if (detalle case final abajo?) ...[
+          const SizedBox(height: 2),
+          Text(
+            abajo,
+            style: TemaSuperaPaes.pequeno.copyWith(
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Tarjeta con casilla, como cada prueba de A10: título, detalle opcional y
+/// una [Etiqueta] a la derecha.
+class TarjetaCasilla extends StatelessWidget {
+  const TarjetaCasilla({
+    required this.titulo,
+    required this.marcada,
+    required this.onTap,
+    super.key,
+    this.detalle,
+    this.etiqueta,
+    this.prueba,
+  });
+
+  final String titulo;
+  final bool marcada;
+  final VoidCallback onTap;
+  final String? detalle;
+  final String? etiqueta;
+
+  /// Identidad de A10; las tarjetas aún no migradas conservan su estilo.
+  final Prueba? prueba;
+
+  @override
+  Widget build(BuildContext context) {
+    final identidad = prueba;
+    return Semantics(
+      checked: marcada,
+      child: _Seleccionable(
+        seleccionada: marcada,
+        conMovimiento: identidad != null,
+        colores: marcada && identidad != null
+            ? (identidad.fondo, identidad.tono)
+            : null,
+        bordeAncho: 1,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        onTap: () {
+          if (identidad != null) {
+            unawaited(HapticFeedback.selectionClick());
+          }
+          onTap();
+        },
+        child: Row(
+          children: [
+            _Marca(
+              redonda: false,
+              marcada: marcada,
+              tono: identidad?.tono,
+              conMovimiento: identidad != null,
+            ),
+            const SizedBox(width: 12),
+            if (identidad != null) ...[
+              SelloPrueba(identidad),
+              const SizedBox(width: TemaSuperaPaes.espacio12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo, style: TemaSuperaPaes.cuerpoFuerte),
+                  if (detalle case final texto?)
+                    Text(
+                      texto,
+                      style: TemaSuperaPaes.pequeno.copyWith(
+                        color: TemaSuperaPaes.textoSecundario,
+                      ),
+                    ),
+                  if (identidad != null && etiqueta != null) ...[
+                    const SizedBox(height: TemaSuperaPaes.espacio4),
+                    Etiqueta(texto: etiqueta!),
+                  ],
+                ],
+              ),
+            ),
+            if (identidad == null && etiqueta != null) ...[
+              const SizedBox(width: 8),
+              Etiqueta(texto: etiqueta!),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Recuadro que se toca: blanco con la sombra suave de lo que se toca, o
+/// azul suave con borde azul si está seleccionado. Sin [onTap] (ya
+/// corregido) queda plano, con borde.
+class _Seleccionable extends StatelessWidget {
+  const _Seleccionable({
+    required this.seleccionada,
+    required this.bordeAncho,
+    required this.padding,
+    required this.onTap,
+    required this.child,
+    this.colores,
+    this.conMovimiento = false,
+  });
+
+  final bool seleccionada;
+  final double bordeAncho;
+  final EdgeInsets padding;
+
+  /// `null`: no se puede tocar (una alternativa ya corregida).
+  final VoidCallback? onTap;
+  final Widget child;
+
+  /// Fondo y borde propios, como el verde de la alternativa correcta.
+  final (Color, Color)? colores;
+  final bool conMovimiento;
+
+  @override
+  Widget build(BuildContext context) {
+    final forma = BorderRadius.circular(TemaSuperaPaes.radioBoton);
+    final conSombra = onTap != null && colores == null && !seleccionada;
+    final (fondo, borde) =
+        colores ??
+        (seleccionada
+            ? (TemaSuperaPaes.primarioSuave, TemaSuperaPaes.primario)
+            : (
+                TemaSuperaPaes.superficie,
+                // El borde transparente mantiene el tamaño al seleccionar.
+                conSombra ? Colors.transparent : TemaSuperaPaes.borde,
+              ));
+    if (conMovimiento) {
+      return AnimatedContainer(
+        duration: duracion(context, TemaSuperaPaes.movimientoRapido),
+        curve: TemaSuperaPaes.curvaEntrada,
+        decoration: BoxDecoration(
+          color: fondo,
+          borderRadius: forma,
+          border: Border.all(color: borde, width: bordeAncho),
+          boxShadow: conSombra ? TemaSuperaPaes.sombraSuave : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: forma,
+          child: InkWell(
+            borderRadius: forma,
+            onTap: onTap,
+            child: Padding(padding: padding, child: child),
+          ),
+        ),
+      );
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: forma,
+        boxShadow: conSombra ? TemaSuperaPaes.sombraSuave : null,
+      ),
+      child: Material(
+        color: fondo,
+        shape: RoundedRectangleBorder(
+          borderRadius: forma,
+          side: BorderSide(color: borde, width: bordeAncho),
+        ),
+        child: InkWell(
+          borderRadius: forma,
+          onTap: onTap,
+          child: Padding(padding: padding, child: child),
+        ),
+      ),
+    );
+  }
+}
+
+/// Radio (redonda) o casilla (cuadrada) de 22, marcada en azul.
+class _Marca extends StatelessWidget {
+  const _Marca({
+    required this.redonda,
+    required this.marcada,
+    this.tono,
+    this.conMovimiento = false,
+  });
+
+  final bool redonda;
+  final bool marcada;
+  final Color? tono;
+  final bool conMovimiento;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: conMovimiento
+          ? duracion(context, TemaSuperaPaes.movimientoRapido)
+          : Duration.zero,
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: marcada
+            ? tono ?? TemaSuperaPaes.primario
+            : TemaSuperaPaes.superficie,
+        borderRadius: BorderRadius.circular(redonda ? 11 : 6),
+        border: conMovimiento
+            ? Border.all(
+                color: marcada
+                    ? tono ?? TemaSuperaPaes.primario
+                    : TemaSuperaPaes.bordeInput,
+                width: 2,
+              )
+            : marcada
+            ? null
+            : Border.all(color: TemaSuperaPaes.bordeInput, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: !marcada
+          ? null
+          : redonda
+          ? Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: TemaSuperaPaes.superficie,
+                shape: BoxShape.circle,
+              ),
+            )
+          : const Icon(Icons.check, size: 16, color: TemaSuperaPaes.superficie),
+    );
+  }
+}
+
+/// Chip (Normal y Activo), como las áreas de carrera de A09.
+class ChipSeleccion extends StatelessWidget {
+  const ChipSeleccion({
+    required this.texto,
+    required this.seleccionado,
+    required this.onTap,
+    super.key,
+    this.conMovimiento = false,
+  });
+
+  final String texto;
+  final bool seleccionado;
+  final VoidCallback onTap;
+  final bool conMovimiento;
+
+  @override
+  Widget build(BuildContext context) {
+    final forma = BorderRadius.circular(TemaSuperaPaes.radioChip);
+    if (conMovimiento) {
+      return Semantics(
+        checked: seleccionado,
+        button: true,
+        label: texto,
+        onTap: onTap,
+        child: ExcludeSemantics(
+          child: Presionable(
+            radio: TemaSuperaPaes.radioChip,
+            onTap: () {
+              unawaited(HapticFeedback.selectionClick());
+              onTap();
+            },
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: TemaSuperaPaes.zonaTactil,
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: AnimatedContainer(
+                  duration: duracion(context, TemaSuperaPaes.movimientoRapido),
+                  curve: TemaSuperaPaes.curvaEntrada,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TemaSuperaPaes.espacio16,
+                    vertical: TemaSuperaPaes.espacio8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: seleccionado
+                        ? TemaSuperaPaes.primario
+                        : TemaSuperaPaes.superficie,
+                    borderRadius: forma,
+                    border: Border.all(
+                      color: seleccionado
+                          ? TemaSuperaPaes.primario
+                          : TemaSuperaPaes.bordeInput,
+                    ),
+                  ),
+                  child: Text(
+                    texto,
+                    style: TemaSuperaPaes.etiqueta.copyWith(
+                      color: seleccionado
+                          ? TemaSuperaPaes.superficie
+                          : TemaSuperaPaes.texto,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return ZonaTactil(
+      onTap: onTap,
+      child: Semantics(
+        checked: seleccionado,
+        button: true,
+        child: Material(
+          color: seleccionado
+              ? TemaSuperaPaes.primario
+              : TemaSuperaPaes.superficie,
+          shape: RoundedRectangleBorder(
+            borderRadius: forma,
+            side: seleccionado
+                ? BorderSide.none
+                : const BorderSide(color: TemaSuperaPaes.bordeInput),
+          ),
+          child: InkWell(
+            borderRadius: forma,
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: TemaSuperaPaes.altoChip,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              child: Text(
+                texto,
+                style: TemaSuperaPaes.etiqueta.copyWith(
+                  color: seleccionado
+                      ? TemaSuperaPaes.superficie
+                      : TemaSuperaPaes.texto,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Chip de texto animado (F2): selección con vibración y color, zona de 48.
+/// Mantiene ChipSeleccion como base para migrar cada pantalla por fase.
+class ChipTexto extends StatelessWidget {
+  const ChipTexto({
+    required this.texto,
+    required this.seleccionado,
+    required this.onTap,
+    super.key,
+  });
+
+  final String texto;
+  final bool seleccionado;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ChipSeleccion(
+    texto: texto,
+    seleccionado: seleccionado,
+    onTap: onTap,
+    conMovimiento: true,
+  );
+}
+
+/// Grupo de chips que pasan a la línea siguiente, con 8 de separación.
+class GrupoChips extends StatelessWidget {
+  const GrupoChips({required this.chips, super.key});
+
+  final List<Widget> chips;
+
+  @override
+  Widget build(BuildContext context) =>
+      // La zona táctil de 48 de cada chip ya deja 12 entre las filas.
+      Wrap(spacing: 8, children: chips);
+}
+
+/// Cómo quedó una alternativa en la corrección (A19 y A19b).
+enum ResultadoAlternativa { correcta, incorrecta }
+
+/// Alternativa de una pregunta (A17 a A20): la letra en un círculo y su
+/// texto. Seleccionada, con borde y fondo `primario`, igual que [OpcionRadio].
+/// En la corrección, la correcta va en verde y la elegida incorrecta en rojo,
+/// con su [etiqueta] («Tu respuesta», «Correcta»).
+class OpcionAlternativa extends StatelessWidget {
+  const OpcionAlternativa({
+    required this.letra,
+    required this.texto,
+    required this.seleccionada,
+    required this.onTap,
+    super.key,
+    this.resultado,
+    this.etiqueta,
+    this.conMovimiento = false,
+  });
+
+  final String letra;
+  final String texto;
+  final bool seleccionada;
+
+  /// `null` mientras se envía la respuesta o ya corregida.
+  final VoidCallback? onTap;
+  final ResultadoAlternativa? resultado;
+  final String? etiqueta;
+  final bool conMovimiento;
+
+  /// Desde esta escala de letra, la [etiqueta] baja bajo el texto: al lado no
+  /// cabe (RNF-12).
+  static const double escalaParaApilar = 1.3;
+
+  @override
+  Widget build(BuildContext context) {
+    final apilar =
+        MediaQuery.textScalerOf(context).scale(1) >= escalaParaApilar;
+    final etiquetaVista = switch (etiqueta) {
+      final texto? => Etiqueta(
+        texto: texto,
+        tono: resultado == ResultadoAlternativa.incorrecta
+            ? TonoEtiqueta.error
+            : TonoEtiqueta.exito,
+      ),
+      null => null,
+    };
+    final (fondo, color) = switch (resultado) {
+      ResultadoAlternativa.correcta => (
+        TemaSuperaPaes.exitoSuave,
+        TemaSuperaPaes.exito,
+      ),
+      ResultadoAlternativa.incorrecta => (
+        TemaSuperaPaes.errorSuave,
+        TemaSuperaPaes.error,
+      ),
+      null when seleccionada => (
+        TemaSuperaPaes.primarioSuave,
+        TemaSuperaPaes.primario,
+      ),
+      null => (TemaSuperaPaes.superficie, TemaSuperaPaes.borde),
+    };
+    final marcada = seleccionada || resultado != null;
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      checked: seleccionada,
+      label: ['Alternativa $letra', ?etiqueta].join(', '),
+      child: Pulso(
+        activo: conMovimiento && resultado == ResultadoAlternativa.correcta,
+        escala: TemaSuperaPaes.escalaPulsoCorrecta,
+        tiempo: TemaSuperaPaes.movimientoLento,
+        child: _Seleccionable(
+          conMovimiento: conMovimiento,
+          seleccionada: seleccionada,
+          bordeAncho: marcada ? 2 : 1,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          onTap: onTap == null
+              ? null
+              : () {
+                  if (conMovimiento && !seleccionada) {
+                    unawaited(HapticFeedback.selectionClick());
+                  }
+                  onTap!();
+                },
+          colores: (fondo, color),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Pulso(
+                activo: conMovimiento && seleccionada && resultado == null,
+                child: Container(
+                  width: TemaSuperaPaes.circuloLetra,
+                  height: TemaSuperaPaes.circuloLetra,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: marcada ? color : TemaSuperaPaes.neutroSuave,
+                  ),
+                  child: Text(
+                    letra,
+                    style: TemaSuperaPaes.etiqueta.copyWith(
+                      color: marcada
+                          ? TemaSuperaPaes.superficie
+                          : TemaSuperaPaes.texto,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Las alternativas también pueden traer fórmulas e
+                      // imágenes.
+                      TextoConFormulas(texto),
+                      if (etiquetaVista != null && apilar) ...[
+                        const SizedBox(height: 6),
+                        etiquetaVista,
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              if (etiquetaVista != null && !apilar) ...[
+                const SizedBox(width: 8),
+                etiquetaVista,
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Selector segmentado: una opción entre pocas, a lo ancho, como la
+/// dificultad de A13 (Mezcla, Fácil, Media, Difícil). La activa va en blanco
+/// con el texto en `primario`.
+class SelectorSegmentado<T> extends StatelessWidget {
+  const SelectorSegmentado({
+    required this.opciones,
+    required this.seleccionado,
+    required this.onChanged,
+    super.key,
+    this.conMovimiento = false,
+  });
+
+  /// Cada opción con su valor y su texto.
+  final List<(T, String)> opciones;
+  final T seleccionado;
+  final ValueChanged<T> onChanged;
+  final bool conMovimiento;
+
+  @override
+  Widget build(BuildContext context) {
+    // Cada segmento responde en todo el alto de la barra (48), también en
+    // el relleno de 4 que rodea a la opción activa.
+    final columnas =
+        conMovimiento &&
+            opciones.length > 2 &&
+            MediaQuery.textScalerOf(context).scale(1) >= 1.3
+        ? 2
+        : opciones.isEmpty
+        ? 1
+        : opciones.length;
+    final filas = (opciones.length + columnas - 1) ~/ columnas;
+    final indice = opciones.indexWhere((o) => o.$1 == seleccionado);
+    final elegido = indice < 0 ? 0 : indice;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: TemaSuperaPaes.neutroSuave,
+        borderRadius: BorderRadius.circular(TemaSuperaPaes.radioCampo),
+      ),
+      child: Stack(
+        children: [
+          if (conMovimiento && opciones.isNotEmpty)
+            Positioned.fill(
+              child: AnimatedAlign(
+                duration: duracion(context, TemaSuperaPaes.movimientoNormal),
+                curve: TemaSuperaPaes.curvaEntrada,
+                alignment: AlignmentDirectional(
+                  columnas < 2
+                      ? 0
+                      : -1 + 2 * (elegido % columnas) / (columnas - 1),
+                  filas < 2 ? 0 : -1 + 2 * (elegido ~/ columnas) / (filas - 1),
+                ),
+                child: FractionallySizedBox(
+                  widthFactor: 1 / columnas,
+                  heightFactor: 1 / filas,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: TemaSuperaPaes.superficie,
+                      borderRadius: BorderRadius.circular(
+                        TemaSuperaPaes.radioSegmento,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var fila = 0; fila < filas; fila++)
+                Row(
+                  children: [
+                    for (var col = 0; col < columnas; col++) ...[
+                      if (col > 0) const SizedBox(width: 4),
+                      Expanded(
+                        child: fila * columnas + col >= opciones.length
+                            ? const SizedBox.shrink()
+                            : ZonaTactil(
+                                onTap: () => onChanged(
+                                  opciones[fila * columnas + col].$1,
+                                ),
+                                child: _Segmento(
+                                  fondoActivo: !conMovimiento,
+                                  texto: opciones[fila * columnas + col].$2,
+                                  activo:
+                                      opciones[fila * columnas + col].$1 ==
+                                      seleccionado,
+                                  onTap: () => onChanged(
+                                    opciones[fila * columnas + col].$1,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ],
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Segmento extends StatelessWidget {
+  const _Segmento({
+    required this.texto,
+    required this.activo,
+    required this.onTap,
+    this.fondoActivo = true,
+  });
+
+  final String texto;
+  final bool activo;
+  final VoidCallback onTap;
+  final bool fondoActivo;
+
+  @override
+  Widget build(BuildContext context) {
+    final radio = BorderRadius.circular(TemaSuperaPaes.radioSegmento);
+    return Semantics(
+      button: true,
+      selected: activo,
+      inMutuallyExclusiveGroup: true,
+      child: Material(
+        color: activo && fondoActivo
+            ? TemaSuperaPaes.superficie
+            : Colors.transparent,
+        borderRadius: radio,
+        child: InkWell(
+          borderRadius: radio,
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(
+              minHeight: TemaSuperaPaes.altoSegmento,
+            ),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              texto,
+              textAlign: TextAlign.center,
+              style: TemaSuperaPaes.etiqueta.copyWith(
+                color: activo
+                    ? TemaSuperaPaes.primario
+                    : TemaSuperaPaes.textoSecundario,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Agranda la zona que responde al toque hasta [TemaSuperaPaes.zonaTactil]
+/// (48 dp) sin cambiar lo que se ve: el [child] queda centrado y un toque en
+/// el borde que lo rodea hace lo mismo que tocarlo.
+class ZonaTactil extends StatelessWidget {
+  const ZonaTactil({required this.onTap, required this.child, super.key});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      excludeFromSemantics: true,
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: TemaSuperaPaes.zonaTactil),
+        child: Center(widthFactor: 1, child: child),
+      ),
+    );
+  }
+}
+
+/// Tonos de [Etiqueta]: primario («Sugerida», «Tu plan»), aviso («Sin
+/// verificar», «Reforzar»: va con el destacador), éxito («Correcta»,
+/// «Rendido») y error («Tu respuesta» incorrecta).
+enum TonoEtiqueta { primario, aviso, exito, error }
+
+/// Etiqueta (Texto/Pequeño fuerte): ícono y texto en su tono, sin píldora
+/// pastel. El tono aviso va con el [Destacado] del cuaderno. Éxito y error
+/// llevan un ícono por defecto (✓ y ✕), para no depender solo del color.
+class Etiqueta extends StatelessWidget {
+  const Etiqueta({
+    required this.texto,
+    super.key,
+    this.tono = TonoEtiqueta.primario,
+    this.icono,
+  });
+
+  final String texto;
+  final TonoEtiqueta tono;
+
+  /// Ícono antes del texto; sin él, éxito y error usan el suyo.
+  final IconData? icono;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tono == TonoEtiqueta.aviso) {
+      return Destacado(texto: texto, icono: icono);
+    }
+    final (color, simbolo) = switch (tono) {
+      TonoEtiqueta.exito => (
+        TemaSuperaPaes.exitoTexto,
+        icono ?? Icons.check_circle_rounded,
+      ),
+      TonoEtiqueta.error => (
+        TemaSuperaPaes.errorTexto,
+        icono ?? Icons.cancel_rounded,
+      ),
+      _ => (TemaSuperaPaes.primario, icono),
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (simbolo != null) ...[
+          Icon(
+            simbolo,
+            size: MediaQuery.textScalerOf(context).scale(15),
+            color: color,
+          ),
+          const SizedBox(width: TemaSuperaPaes.espacio4),
+        ],
+        Flexible(
+          child: Text(
+            texto,
+            style: TemaSuperaPaes.pequenoFuerte.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// «Paso 1 de 3» con su barra de avance (A08 a A10). A la derecha puede ir
+/// una [accion], como «Omitir» en A09.
+class IndicadorPasos extends StatelessWidget {
+  const IndicadorPasos({
+    required this.paso,
+    required this.total,
+    super.key,
+    this.opcional = false,
+    this.accion,
+  });
+
+  final int paso;
+  final int total;
+  final bool opcional;
+  final Widget? accion;
+
+  @override
+  Widget build(BuildContext context) {
+    final texto = 'Paso $paso de $total${opcional ? ' · Opcional' : ''}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                texto,
+                style: TemaSuperaPaes.pequenoFuerte.copyWith(
+                  color: TemaSuperaPaes.primario,
+                ),
+              ),
+            ),
+            ?accion,
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (var i = 1; i <= total; i++) ...[
+              if (i > 1) const SizedBox(width: 6),
+              Expanded(
+                child: ExcludeSemantics(
+                  child: BarraAnimada(
+                    valor: i <= paso ? 1 : 0,
+                    desde: i < paso ? 1 : 0,
+                    alto: TemaSuperaPaes.altoAvance,
+                    riel: TemaSuperaPaes.neutroSuave,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Fila de dato de una tarjeta: etiqueta gris a la izquierda y valor a la
+/// derecha (Texto/Pequeño), como «Curso · 3° medio» en A37.
+class FilaDato extends StatelessWidget {
+  const FilaDato({required this.etiqueta, required this.valor, super.key});
+
+  final String etiqueta;
+  final String valor;
+
+  @override
+  Widget build(BuildContext context) {
+    // Todos los valores terminan en el borde derecho: lo que no usa una
+    // etiqueta corta queda entre ella y el valor (sin esto, el valor se
+    // corría a la izquierda según el largo de su etiqueta). Etiqueta y valor
+    // van en la misma línea base, y las cifras tienen ancho fijo para que
+    // los números de varias filas queden uno bajo el otro.
+    // La etiqueta usa lo que el valor deja libre, y el valor hasta el 60 %
+    // del ancho: «Registrados con tu código» no baja de línea por un «3», y
+    // una fecha larga sí baja en vez de empujar la etiqueta (RNF-12).
+    return LayoutBuilder(
+      builder: (context, limites) => Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Expanded(
+            child: Text(
+              etiqueta,
+              style: TemaSuperaPaes.pequeno.copyWith(
+                color: TemaSuperaPaes.textoSecundario,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: limites.maxWidth * 0.6),
+            child: Text(
+              valor,
+              textAlign: TextAlign.end,
+              style: TemaSuperaPaes.pequenoFuerte.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fila que lleva a otra pantalla, con «›» a la derecha (Fila), como «Mi
+/// suscripción» en A37. Varias van juntas en [ListaDeFilas].
+class FilaNavegacion extends StatelessWidget {
+  const FilaNavegacion({
+    required this.texto,
+    required this.onTap,
+    super.key,
+    this.detalle,
+    this.icono,
+    this.peligro = false,
+  });
+
+  final String texto;
+  final VoidCallback onTap;
+
+  /// Texto gris bajo el título, como «Pasas de 10 a 20 preguntas diarias.»
+  /// en A22.
+  final String? detalle;
+
+  /// Ícono suelto a la izquierda, en azul (A22).
+  final IconData? icono;
+
+  /// Acción que no se deshace, como «Borrar mi cuenta» en A39: el título y
+  /// el ícono van en rojo.
+  final bool peligro;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            if (icono case final simbolo?) ...[
+              Icon(
+                simbolo,
+                size: 22,
+                color: peligro ? TemaSuperaPaes.error : TemaSuperaPaes.primario,
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: _TituloConDetalle(
+                texto: texto,
+                detalle: detalle,
+                color: peligro ? TemaSuperaPaes.error : null,
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: TemaSuperaPaes.textoSecundario,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Lista plana con borde y filas que se tocan, separadas por una línea (A37).
+/// Sin sombra: la sombra suave queda para tarjetas sueltas.
+class ListaDeFilas extends StatelessWidget {
+  const ListaDeFilas({required this.filas, super.key});
+
+  final List<Widget> filas;
+
+  @override
+  Widget build(BuildContext context) {
+    final radio = BorderRadius.circular(TemaSuperaPaes.radioTarjeta);
+    return Material(
+      color: TemaSuperaPaes.superficie,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: radio,
+        side: const BorderSide(color: TemaSuperaPaes.borde),
+      ),
+      child: Column(
+        children: [
+          for (final (i, fila) in filas.indexed) ...[
+            if (i > 0) const Divider(height: 1),
+            fila,
+          ],
+        ],
+      ),
+    );
+  }
+}
