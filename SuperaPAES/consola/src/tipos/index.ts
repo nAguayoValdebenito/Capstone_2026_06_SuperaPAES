@@ -16,7 +16,7 @@ export type RolAsignacion = 'revisor' | 'desempate';
 
 export interface UsuarioInterno {
   id: string;
-  /** El token de la consola no trae el nombre: falta mientras el ingreso no lo devuelva (HU-03.1). */
+  /** El token no trae el nombre: sale del usuario que entrega el ingreso y se guarda con la sesión. */
   nombre?: string;
   rol: RolCuentaInterna;
 }
@@ -25,11 +25,15 @@ export interface UsuarioInterno {
 export interface SesionIniciada {
   tokenAcceso: string;
   tokenRenovacion: string;
+export interface SesionIniciada {
+  tokenAcceso: string;
+  tokenRenovacion: string;
   /**
-   * El ingreso dice si la cuenta aún tiene la contraseña que le asignó el administrador; la
+   * El ingreso trae la cuenta y dice si aún tiene la contraseña que le asignó el administrador; la
    * renovación no trae el usuario.
    */
-  usuario?: { debeCambiarContrasena?: boolean };
+  usuario?: { id?: string; nombre?: string; debeCambiarContrasena?: boolean };
+}
 }
 
 export interface Credenciales {

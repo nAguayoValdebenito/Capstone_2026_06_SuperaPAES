@@ -1,0 +1,42 @@
+// Rutas de /api/v1/app/suscripciones (estudiante autenticado con el JWT de la app): planes,
+// suscripciones compradas en Google Play o la App Store, pagos, historial de estados y avisos de
+// las tiendas.
+// Cada endpoint: router.<metodo>(ruta, validar(...), controlador.<accion>), con
+// crearSuscripcionesControlador(servicio).
+import { Router } from 'express';
+import { validar } from '../../comun/middleware/validacion.js';
+import { crearSuscripcionesControlador } from './suscripciones.controlador.js';
+import type { SuscripcionesServicio } from './suscripciones.servicio.js';
+import {
+  esquemaCompra,
+  esquemaIdSuscripcion,
+  esquemaNuevaSuscripcion,
+  esquemaSuscripcionSimulada,
+} from './suscripciones.validadores.js';
+
+export function crearRutasAppSuscripciones(servicio: SuscripcionesServicio): Router {
+  const router = Router();
+  const controlador = crearSuscripcionesControlador(servicio);
+  // CU-12 paso 1, A43: los planes con su precio y su producto en cada tienda.
+  router.get('/planes', controlador.planes);
+  // HU-45.2, A44: la suscripción activa o en mora, con la dirección para gestionarla en la tienda.
+  router.get('/actual', controlador.suscripcionActual);
+  // HU-43.1, CU-12 paso 3: la suscripción pendiente que la app compra en la tienda (A43).
+  router.post('/', validar({ cuerpo: esquemaNuevaSuscripcion }), controlador.crearSuscripcion);
+  // Modo de pruebas (MODO_PRUEBAS_SUSCRIPCION): la suscripción simulada, solo para verla en la consola
+  // (HU-56). Apagado, la ruta no se monta y responde 404 como cualquier ruta inexistente.
+  if (servicio.modoPruebasActivo()) {
+    router.post(
+      '/simulada',
+      validar({ cuerpo: esquemaSuscripcionSimulada }),
+      controlador.crearSimulada,
+    );
+  }
+  // HU-43.1, CU-12 paso 5 y 1.b: la API valida la compra con la tienda antes de activar o cambiar el plan.
+  router.post(
+    '/:id/compra',
+    validar({ parametros: esquemaIdSuscripcion, cuerpo: esquemaCompra }),
+    controlador.validarCompra,
+  );
+  return router;
+}

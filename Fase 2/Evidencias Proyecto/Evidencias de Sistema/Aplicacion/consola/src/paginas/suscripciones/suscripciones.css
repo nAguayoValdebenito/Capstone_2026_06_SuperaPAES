@@ -1,0 +1,56 @@
+/* C16 · Suscripciones: lo propio de la página. El marco (lista con la línea de tiempo al lado, resumen
+   al pie, regla de cifras y línea de tiempo con marcas) ya está en estilos/global.css. Solo tokens. */
+
+/* El correo del estudiante es un dato: letra de datos, cortado en cualquier punto si no cabe. */
+.suscripciones__correo {
+  font-family: var(--fuente-datos);
+  font-size: var(--t-xs);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.suscripciones__fecha {
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La lista arranca a la altura de la línea de tiempo. */
+.suscripciones > div > .tabla-desplazable:first-child,
+.suscripciones > div > .vacio:first-child {
+  margin-top: 0;
+}
+
+.suscripciones .linea-tiempo {
+  margin-top: 0;
+}
+
+/* Resultado de cada aviso de la tienda: procesado lleva visto; error ya tiene cruz en global.css. */
+.linea-tiempo .etiqueta--procesado {
+  --marca: var(--marca-visto);
+  background: var(--exito-suave);
+  color: var(--exito);
+}
+
+/* Una tabla del resumen sin filas lo dice dentro de su caja, bajo la cabecera. */
+.suscripciones__sin-filas {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  color: var(--tinta-3);
+  font-size: var(--t-sm);
+}
+
+/* Las simuladas del modo de pruebas, bajo las tarjetas: fuera de las cifras del mes. */
+.suscripciones__simuladas {
+  margin: 0.75rem 0 0;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+}
+
+.suscripciones__resumen {
+  margin-top: 1.5rem;
+}
+
+.suscripciones__resumen .tabla-desplazable {
+  margin-top: 0;
+}

@@ -1,0 +1,160 @@
+import { Alerta } from '../../componentes/Alerta';
+import { DialogoConfirmacion } from '../../componentes/DialogoConfirmacion';
+import { useFormularioPlan } from '../../estado/formulario-plan';
+import type { DatosPlanes, EdicionPlan, OpcionPlan, PlanAdministrable } from '../../tipos/planes';
+
+interface Propiedades {
+  plan: PlanAdministrable;
+  opciones: DatosPlanes;
+  guardando: boolean;
+  alGuardar: (datos: EdicionPlan) => Promise<void>;
+  alCancelar: () => void;
+}
+
+function Selector({
+  nombre,
+  opciones,
+  valor,
+  cambiar,
+}: {
+  nombre: string;
+  opciones: OpcionPlan[];
+  valor: number;
+  cambiar: (id: number) => void;
+}) {
+  return (
+    <label className="campo">
+      {nombre}
+      <select value={valor} onChange={(e) => cambiar(Number(e.target.value))} required>
+        {opciones.map((opcion) => (
+          <option key={opcion.id} value={opcion.id}>
+            {opcion.nombre}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function CamposProductos({ formulario }: { formulario: ReturnType<typeof useFormularioPlan> }) {
+  const { campos, cambiar } = formulario;
+  return (
+    <label className="campo">
+      Identificador del producto en ambas tiendas
+      <input
+        className="planes__identificador"
+        required
+        maxLength={100}
+        value={campos.productos.google_play}
+        aria-describedby="producto-plan-ayuda"
+        onChange={(e) =>
+          cambiar({ productos: { google_play: e.target.value, app_store: e.target.value } })
+        }
+      />
+      <span id="producto-plan-ayuda" className="campo__ayuda">
+        Registra este mismo identificador en Google Play y en la App Store para el plan y la
+        periodicidad elegidos. No puede estar asignado a otro plan en la misma tienda.
+      </span>
+      {campos.productos.google_play !== campos.productos.app_store && (
+        <span role="alert" className="campo__error">
+          Las tiendas tienen identificadores distintos. Escribe el identificador común antes de
+          guardar.
+        </span>
+      )}
+    </label>
+  );
+}
+
+function CamposDatos({
+  formulario,
+  opciones,
+}: {
+  formulario: ReturnType<typeof useFormularioPlan>;
+  opciones: DatosPlanes;
+}) {
+  const { campos, cambiar } = formulario;
+  return (
+    <>
+      <label className="campo">
+        Nombre
+        <input
+          required
+          maxLength={60}
+          value={campos.nombre}
+          onChange={(e) => cambiar({ nombre: e.target.value })}
+        />
+      </label>
+      <Selector
+        nombre="Alcance"
+        opciones={opciones.alcances}
+        valor={campos.alcanceId}
+        cambiar={(alcanceId) => cambiar({ alcanceId })}
+      />
+      <Selector
+        nombre="Periodicidad"
+        opciones={opciones.periodicidades}
+        valor={campos.periodicidadId}
+        cambiar={(periodicidadId) => cambiar({ periodicidadId })}
+      />
+      <label className="campo">
+        Precio (CLP)
+        <input
+          required
+          type="number"
+          min={1}
+          step={1}
+          value={Number.isNaN(campos.precioClp) ? '' : campos.precioClp}
+          onChange={(e) => cambiar({ precioClp: e.target.valueAsNumber })}
+        />
+      </label>
+    </>
+  );
+}
+
+export function FormularioPlan({ plan, opciones, guardando, alGuardar, alCancelar }: Propiedades) {
+  const formulario = useFormularioPlan(plan, alGuardar);
+  const { campos, cambiar, enviar, error } = formulario;
+  return (
+    <form
+      className="panel panel--ancho planes__formulario"
+      onSubmit={enviar}
+      aria-labelledby="editar-plan"
+    >
+      <h2 id="editar-plan">Editar plan: {plan.nombre}</h2>
+      {error && <Alerta texto={error} />}
+      <fieldset disabled={guardando} className="planes__campos">
+        <legend>Datos del plan</legend>
+        <CamposDatos formulario={formulario} opciones={opciones} />
+        <CamposProductos formulario={formulario} />
+        <label className="campo">
+          Estado
+          <select
+            value={String(campos.activo)}
+            onChange={(e) => cambiar({ activo: e.target.value === 'true' })}
+          >
+            <option value="true">Activo</option>
+            <option value="false">Desactivado</option>
+          </select>
+        </label>
+        <div className="panel__acciones planes__acciones">
+          <button className="boton" type="button" onClick={alCancelar}>
+            Cancelar
+          </button>
+          <button className="boton boton--primario" type="submit">
+            {guardando ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </fieldset>
+      <DialogoConfirmacion
+        abierto={formulario.porConfirmar}
+        titulo={`¿Desactivar el plan ${plan.nombre}?`}
+        textoConfirmar="Desactivar plan"
+        peligro
+        alConfirmar={formulario.confirmar}
+        alCancelar={formulario.cancelar}
+      >
+        <p>Deja de ofrecerse a estudiantes nuevos. El cambio queda registrado en la auditoría.</p>
+      </DialogoConfirmacion>
+    </form>
+  );
+}

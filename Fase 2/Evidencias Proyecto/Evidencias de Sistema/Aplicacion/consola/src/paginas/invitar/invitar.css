@@ -1,0 +1,189 @@
+/* W01 y W02 · Página de invitación: página pública que se abre en el teléfono o en el computador, dentro
+   de la hoja de acta (ingreso/hoja-acta.css). Solo tokens de la consola, para el tema claro y el oscuro;
+   el código va en letra de datos. */
+
+.invitar__bajada,
+.invitar__pie {
+  margin: 0;
+  color: var(--tinta-2);
+}
+
+.invitar__bajada {
+  margin-top: -0.75rem;
+  font-size: var(--t-base);
+  line-height: 1.45;
+}
+
+.invitar__pie {
+  font-size: var(--t-sm);
+  line-height: 1.45;
+  text-align: center;
+}
+
+.invitar__tarjeta {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--r-medio);
+  background: var(--superficie-2);
+}
+
+.invitar__codigo {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.invitar__codigo h2 {
+  margin: 0;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.invitar__valor {
+  margin: 0;
+  color: var(--tinta);
+  font-family: var(--fuente-datos);
+  font-size: 2.25rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  /* Un código largo no se sale de la tarjeta con letra grande. */
+  overflow-wrap: anywhere;
+}
+
+.invitar__copiar {
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--r-chico);
+  background: var(--superficie);
+  color: var(--tinta);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--rapido) ease,
+    border-color var(--rapido) ease,
+    transform 100ms ease;
+}
+
+.invitar__copiar:hover {
+  border-color: var(--tinta-3);
+  background: var(--superficie-2);
+}
+
+.invitar__copiar:active {
+  transform: scale(0.98);
+}
+
+.invitar__copiar:focus-visible,
+.invitar__tienda:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.invitar__estado {
+  min-height: 1.25rem;
+  margin: 0;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+}
+
+.invitar__aviso {
+  display: flex;
+  gap: 0.625rem;
+  align-items: baseline;
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--r-medio);
+  background: var(--error-suave);
+  color: var(--tinta);
+  font-size: var(--t-sm);
+  line-height: 1.45;
+}
+
+.invitar__aviso::before {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--error);
+  mask: var(--marca-cruz) center / contain no-repeat;
+}
+
+/* Pasos numerados con la cifra en letra de datos, en un círculo del primario suave. */
+.invitar__pasos {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  counter-reset: paso;
+}
+
+.invitar__pasos li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  line-height: 1.4;
+  counter-increment: paso;
+}
+
+.invitar__pasos li::before {
+  content: counter(paso);
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--primario-suave);
+  color: var(--primario-texto);
+  font-family: var(--fuente-datos);
+  font-size: var(--t-sm);
+  font-weight: 500;
+}
+
+/* Botón de una tienda: tinta sólida sobre la hoja; sin enlace configurado, apagado. */
+.invitar__tienda {
+  display: flex;
+  gap: 0.875rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--r-medio);
+  background: var(--publicada-fondo);
+  color: var(--publicada-texto);
+  font-size: var(--t-md);
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 100ms ease;
+}
+
+.invitar__tienda:active {
+  transform: scale(0.98);
+}
+
+.invitar__tienda span {
+  display: grid;
+  line-height: 1.15;
+}
+
+.invitar__tienda small {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.invitar__tienda--pronto {
+  border: 1px dashed var(--borde-fuerte);
+  background: var(--neutro-suave);
+  color: var(--tinta-2);
+}
+
+.invitar__tienda--pronto:active {
+  transform: none;
+}

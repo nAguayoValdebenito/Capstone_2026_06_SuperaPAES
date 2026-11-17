@@ -1,13 +1,57 @@
+# Nada de esto entra a las imágenes: los secretos se entregan al ejecutar (variables de entorno).
+# Dependencias y compilados del computador (la imagen los genera dentro)
 **/node_modules
 **/dist
 **/coverage
+
+# Secretos y credenciales
 **/.env*
 !**/.env.example
 !.env.docker.example
+**/*.pem
+**/*.key
+**/*.p8
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+**/key.properties
+**/cuenta-servicio*.json
+**/service-account*.json
+**/credenciales*.json
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Datos y respaldos
+**/*.dump
+**/*.backup
+**/*.bak
+**/pg_dump*.sql
+**/*_datos.sql
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+/respaldo*
+/backup*
+**/respaldo*.cifrado
+**/respaldo*.sql
+**/respaldo*.gz
+**/datos-reales
+
+# Material interno y archivos locales
 .git
 .github
 .claude
 .agents
+.playwright-mcp
 CLAUDE.md
 docs
+operaciones
+maquetas_consola
+maquetas_diseno
+**/*.log
+**/*.zip
+**/*.md
+
+# La app móvil se compila fuera de Docker
 app

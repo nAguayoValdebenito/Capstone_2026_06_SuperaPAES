@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { leerConfiguracion } from '../comun/configuracion.js';
 import { variablesMinimas } from './variables-configuracion.js';
 
-// Variables de despliegue comunes: 24 contando NODE_ENV y el selector PROVEEDOR_IA.
+// Variables de despliegue comunes: 25 contando NODE_ENV y el selector PROVEEDOR_IA.
 const comunes = {
   ...variablesMinimas,
   NODE_ENV: 'production',
@@ -20,6 +20,7 @@ const comunes = {
   GOOGLE_PLAY_PAQUETE: 'cl.ejemplo.app',
   GOOGLE_PLAY_CUENTA_SERVICIO: '/secretos/ficticios.json',
   GOOGLE_PLAY_PUBSUB_AUDIENCIA: 'https://api.ejemplo.cl/google-play',
+  GOOGLE_PLAY_PUBSUB_CORREO: 'pubsub@ficticio.iam.gserviceaccount.com',
   APP_STORE_BUNDLE_ID: 'cl.ejemplo.app',
   APP_STORE_ID_EMISOR: 'ficticio',
   APP_STORE_ID_CLAVE: 'ficticia',
@@ -29,12 +30,12 @@ const comunes = {
 
 describe('conteo de variables efectivas de producción según la IA', () => {
   it.each([
-    [25, { DEEPSEEK_API_KEY: 'ficticia' }],
+    [26, { DEEPSEEK_API_KEY: 'ficticia' }],
     [
-      27,
+      28,
       { DEEPSEEK_API_KEY: 'ficticia', GEMINI_API_KEY: 'respaldo', GEMINI_MODELO: 'modelo-prueba' },
     ],
-    [26, { PROVEEDOR_IA: 'gemini', GEMINI_API_KEY: 'ficticia', GEMINI_MODELO: 'modelo-prueba' }],
+    [27, { PROVEEDOR_IA: 'gemini', GEMINI_API_KEY: 'ficticia', GEMINI_MODELO: 'modelo-prueba' }],
   ])('%i variables configuran un despliegue válido', (cantidad, ia) => {
     const variables = { ...comunes, ...ia };
     expect(Object.keys(variables)).toHaveLength(cantidad);

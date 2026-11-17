@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AUDIENCIA,
+  CORREO_PUBSUB,
   envio,
   ID_MENSAJE,
   notificacionDeSuscripcion,
@@ -69,12 +70,41 @@ describe('PasarelaGooglePlay: verificación del aviso (HU-44.1)', () => {
     expect(await verificar(deUnaVez)).toMatchObject({ tipo: 'OTRO', idCompraTienda: null });
   });
 
+  it('acepta el token de la cuenta de servicio configurada, sin distinguir mayúsculas', async () => {
+    for (const email of [CORREO_PUBSUB, CORREO_PUBSUB.toUpperCase()]) {
+      const token = await tokenPubSub({ claims: { email } });
+      expect((await verificar(notificacionDeSuscripcion(2), token)).tipo).toBe(
+        'SUBSCRIPTION_RENEWED',
+      );
+    }
+  });
+
+  it('rechaza otra cuenta de servicio aunque firma, audiencia y correo verificado sean válidos', async () => {
+    const token = await tokenPubSub({
+      claims: { email: 'atacante@otro-proyecto.iam.gserviceaccount.com', email_verified: true },
+    });
+    const rechazo = await error(google.verificarAviso(envio(notificacionDeSuscripcion(), token)));
+
+    expect(rechazo).toMatchObject({
+      estadoHttp: 401,
+      codigo: 'NO_AUTENTICADO',
+      message: 'El aviso no viene de Google Play.',
+    });
+    expect(String(rechazo)).not.toContain('atacante');
+  });
+
   it.each([
     ['sin token', undefined],
     ['firmado con otra llave', { llaveAjena: true }],
     ['para otra audiencia', { audiencia: `${AUDIENCIA}/otra` }],
     ['de otro emisor', { emisor: 'https://otro.example.com' }],
     ['sin el correo verificado', { claims: { email_verified: false } }],
+    [
+      'de otra cuenta de servicio',
+      { claims: { email: 'otra@proyecto-ajeno.iam.gserviceaccount.com' } },
+    ],
+    ['sin el correo de la cuenta', { claims: { email: undefined } }],
+    ['con el correo en otro tipo', { claims: { email: [CORREO_PUBSUB] } }],
     ['vencido', { vencido: true }],
   ])('un token %s responde 401 y no se procesa', async (_caso, cambios) => {
     const token = cambios === undefined ? undefined : await tokenPubSub(cambios);

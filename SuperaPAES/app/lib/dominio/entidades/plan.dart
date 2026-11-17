@@ -1,3 +1,12 @@
+/// Los planes que se ofrecen (A43) y si la API tiene encendido el modo de
+/// pruebas de suscripción, que permite activar una suscripción simulada.
+class OfertaDePlanes {
+  const OfertaDePlanes({required this.planes, this.modoPruebas = false});
+
+  final List<PlanOfrecido> planes;
+  final bool modoPruebas;
+}
+
 /// Un plan que se ofrece (A43; HU-43, CU-12 paso 1, RN-05). El plan Gratis no
 /// viene de la API: lo muestra la pantalla.
 class PlanOfrecido {

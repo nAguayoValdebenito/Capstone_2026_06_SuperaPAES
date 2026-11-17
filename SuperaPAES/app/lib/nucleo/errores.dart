@@ -1,5 +1,10 @@
 import 'package:dio/dio.dart';
 
+/// Mensaje del 401 de la API cuando la contraseña que confirma descargar
+/// los datos o borrar la cuenta no es la de la cuenta. No es una sesión
+/// vencida: no se renueva el token ni se cierra la sesión.
+const String contrasenaIncorrecta = 'La contraseña no es correcta.';
+
 /// Problema de un campo en un error `VALIDACION`: `ruta` es el campo del
 /// cuerpo y `motivo`, cuando viene, identifica la regla (por ejemplo
 /// `contrasena_comun`, RN-31).

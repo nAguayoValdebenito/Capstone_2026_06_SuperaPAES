@@ -72,6 +72,7 @@ export const INVENTARIO_IDS = [
   'GET /api/v1/app/privacidad/mis-datos → data.cuenta.id, data.perfil.pruebas[], data.perfil.electivoId, data.perfil.pruebaReforzarId, data.perfil.areasCarrera[], data.evaluaciones[].id, data.evaluaciones[].respuestas[].preguntaId, data.puntajes[].id, data.puntajes[].pruebaId',
   'GET /api/v1/app/evaluaciones/progreso → data.pruebas[].pruebaId, data.pruebas[].ejes[].id, data.pruebas[].habilidades[].id, data.pruebas[].ensayos[].id',
   'POST /api/v1/app/suscripciones/ → data.id, data.planId, data.pruebaId',
+  'POST /api/v1/app/suscripciones/simulada → data.id, data.planId, data.pruebaId',
   'POST /api/v1/admin/generador/lotes → data.id, data.contenidoId',
   'GET /api/v1/admin/generador/lotes → data[].id, data[].contenidoId',
   'GET /api/v1/admin/generador/lotes/:id → data.id, data.contenidoId',

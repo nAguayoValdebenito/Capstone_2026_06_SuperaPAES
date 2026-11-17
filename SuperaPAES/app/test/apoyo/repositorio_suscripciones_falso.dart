@@ -46,22 +46,47 @@ final SuscripcionVigente suscripcionDeEjemplo = SuscripcionVigente(
       'https://play.google.com/store/account/subscriptions?sku=todas_mensual&package=cl.superapaes.app',
 );
 
-/// Suscripciones sin red: por defecto, los planes de RN-05 y el plan Gratis.
+/// Suscripciones sin red: por defecto, los planes de RN-05, el plan Gratis y
+/// el modo de pruebas apagado.
 class RepositorioSuscripcionesFalso implements RepositorioSuscripciones {
-  RepositorioSuscripcionesFalso({this.suscripcion});
+  RepositorioSuscripcionesFalso({this.suscripcion, this.modoPruebas = false});
 
   SuscripcionVigente? suscripcion;
   ErrorApi? error;
+  bool modoPruebas;
+
+  /// Si se indica, activar la simulada falla con este error.
+  ErrorApi? errorSimulada;
+
+  /// Cada simulada pedida: el plan y la prueba.
+  final List<({int planId, int? pruebaId})> simuladas = [];
 
   @override
-  Future<List<PlanOfrecido>> planes() async {
+  Future<OfertaDePlanes> oferta() async {
     if (error case final fallo?) throw fallo;
-    return planesDeEjemplo;
+    return OfertaDePlanes(planes: planesDeEjemplo, modoPruebas: modoPruebas);
   }
 
   @override
   Future<SuscripcionVigente?> actual() async {
     if (error case final fallo?) throw fallo;
     return suscripcion;
+  }
+
+  @override
+  Future<void> activarSimulada({required int planId, int? pruebaId}) async {
+    simuladas.add((planId: planId, pruebaId: pruebaId));
+    if (errorSimulada case final fallo?) throw fallo;
+    final plan = planesDeEjemplo.firstWhere((p) => p.id == planId);
+    suscripcion = SuscripcionVigente(
+      enMora: false,
+      plan: plan.alcanceNombre,
+      periodicidad: plan.periodicidad,
+      tienda: Tienda.prueba,
+      periodoFin: DateTime(2026, 12, 16),
+      alcance: plan.alcance,
+      pruebasIncluidas: [?pruebaId],
+      coberturaVigente: true,
+    );
   }
 }

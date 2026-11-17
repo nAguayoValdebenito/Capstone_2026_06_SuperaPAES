@@ -6,19 +6,10 @@ import {
   URL_CONSOLA_DE_PRUEBA,
 } from './ayudantes.js';
 
-import { variablesMinimas as minimas } from './variables-configuracion.js';
-
-const tiendas = {
-  PROVEEDOR_PAGOS: 'tiendas',
-  GOOGLE_PLAY_PAQUETE: 'cl.superapaes.app',
-  GOOGLE_PLAY_CUENTA_SERVICIO: '/secretos/cuenta-servicio.json',
-  GOOGLE_PLAY_PUBSUB_AUDIENCIA: 'https://api.superapaes.cl/api/v1/webhooks/google-play',
-  APP_STORE_BUNDLE_ID: 'cl.superapaes.app',
-  APP_STORE_ID_EMISOR: 'emisor',
-  APP_STORE_ID_CLAVE: 'ABC123',
-  APP_STORE_CLAVE_PRIVADA: '-----BEGIN PRIVATE KEY-----',
-  APP_STORE_ENTORNO: 'sandbox',
-};
+import {
+  variablesMinimas as minimas,
+  variablesTiendas as tiendas,
+} from './variables-configuracion.js';
 
 const smtpBrevo = {
   PROVEEDOR_CORREO: 'smtp',
@@ -162,49 +153,6 @@ describe('leerConfiguracion', () => {
     expect(() =>
       leerConfiguracion({ ...minimas, ...smtpBrevo, SMTP_CLAVE: clave, SMTP_TLS: 'none' }),
     ).toThrowError(expect.not.stringContaining(clave));
-  });
-
-  it('con PROVEEDOR_PAGOS=tiendas exige todas las variables de Google Play y la App Store', () => {
-    let mensaje = '';
-    try {
-      leerConfiguracion({ ...minimas, PROVEEDOR_PAGOS: 'tiendas' });
-    } catch (error) {
-      mensaje = (error as Error).message;
-    }
-
-    for (const variable of Object.keys(tiendas).filter((v) => v !== 'PROVEEDOR_PAGOS')) {
-      expect(mensaje).toContain(variable);
-    }
-  });
-
-  it('con pagos simulados no exige las variables de las tiendas', () => {
-    expect(() => leerConfiguracion({ ...minimas, PROVEEDOR_PAGOS: 'simulado' })).not.toThrow();
-  });
-
-  it('con todas las variables de las tiendas arma su configuración', () => {
-    const config = leerConfiguracion({ ...minimas, ...tiendas });
-
-    expect(config.pagos).toEqual({
-      proveedor: 'tiendas',
-      googlePlay: {
-        paquete: 'cl.superapaes.app',
-        cuentaServicio: '/secretos/cuenta-servicio.json',
-        audienciaPubSub: 'https://api.superapaes.cl/api/v1/webhooks/google-play',
-      },
-      appStore: {
-        bundleId: 'cl.superapaes.app',
-        idEmisor: 'emisor',
-        idClave: 'ABC123',
-        clavePrivada: '-----BEGIN PRIVATE KEY-----',
-        entorno: 'sandbox',
-      },
-    });
-  });
-
-  it('rechaza un entorno de la App Store desconocido', () => {
-    expect(() =>
-      leerConfiguracion({ ...minimas, ...tiendas, APP_STORE_ENTORNO: 'pruebas' }),
-    ).toThrow(/APP_STORE_ENTORNO/);
   });
 
   describe('en producción', () => {

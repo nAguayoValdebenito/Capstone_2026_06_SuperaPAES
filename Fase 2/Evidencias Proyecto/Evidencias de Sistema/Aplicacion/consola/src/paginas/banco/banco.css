@@ -1,0 +1,132 @@
+/* Banco (C02): filtros con «Más filtros», tabla con ID, sello de prueba y estados apilados, y las
+   confirmadas en calibración sobre la tabla (HU-26.2). Solo tokens del tema. */
+
+.banco__botones-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.banco__mas-filtros::after {
+  content: '';
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin-left: 0.125rem;
+  border-right: 1.5px solid currentcolor;
+  border-bottom: 1.5px solid currentcolor;
+  transform: translateY(-0.15em) rotate(45deg);
+  transition: transform var(--rapido) ease;
+}
+
+.banco__mas-filtros[aria-expanded='true']::after {
+  transform: translateY(0.1em) rotate(-135deg);
+}
+
+/* En la pila, la etiqueta de confusa no necesita el margen que trae cuando va sola. */
+.tabla--banco .tabla__pilas .etiqueta {
+  margin-top: 0;
+}
+
+.tabla--banco .tabla__recorte {
+  min-width: 14rem;
+}
+
+.panel.confirmadas {
+  max-width: none;
+  margin: 1.5rem 0 0;
+}
+
+.confirmadas h2 {
+  margin: 0;
+  font-size: var(--t-md);
+}
+
+.confirmadas__lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--r-medio);
+  list-style: none;
+}
+
+.confirmadas__item {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  padding: 0.875rem 1rem;
+}
+
+.confirmadas__item + .confirmadas__item {
+  border-top: 1px solid var(--borde);
+}
+
+.confirmadas__item p {
+  margin: 0;
+}
+
+.confirmadas__item .boton {
+  margin-top: 0.375rem;
+}
+
+.confirmadas__pregunta {
+  overflow-wrap: anywhere;
+}
+
+/* Densidad (auditoría visual): una fila de unas dos líneas y no de cuatro o cinco. El eje y el contenido
+   se recortan con puntos suspensivos, el enunciado a dos líneas y las acciones van en una sola línea. */
+.tabla--banco td {
+  padding-block: 0.5rem;
+}
+
+.tabla--banco td:nth-child(4) {
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tabla--banco td:nth-child(4) .tabla__secundario {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabla--banco .tabla__recorte {
+  max-width: 24rem;
+}
+
+.tabla--banco .tabla__acciones {
+  flex-wrap: nowrap;
+  gap: 0.375rem;
+}
+
+.tabla--banco .tabla__acciones .boton {
+  min-height: 2rem;
+  padding-inline: 0.625rem;
+}
+
+.tabla--banco .tabla__acciones a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding-inline: 0.25rem;
+}
+
+/* En el teléfono la tabla se apila: vuelve a poder partir las líneas. */
+@media (max-width: 40rem) {
+  .tabla--banco td:nth-child(4) {
+    max-width: none;
+    white-space: normal;
+  }
+
+  /* La fecha de actualización es lo menos útil en el teléfono: la fila queda de seis datos, no de nueve. */
+  .tabla--banco td:nth-last-child(2) {
+    display: none;
+  }
+
+  .tabla--banco tr {
+    padding-block: 0.5rem;
+  }
+}

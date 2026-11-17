@@ -64,7 +64,12 @@ export function pasarela(
 ) {
   const falso = httpFalso({ [URL_TOKEN]: tokenDeAcceso, ...respuestas });
   const google = new PasarelaGooglePlay(
-    { paquete: PAQUETE, cuentaServicio: opciones.cuenta ?? cuentaServicio, audienciaPubSub: 'aud' },
+    {
+      paquete: PAQUETE,
+      cuentaServicio: opciones.cuenta ?? cuentaServicio,
+      audienciaPubSub: 'aud',
+      correoPubSub: 'pubsub@ejemplo.iam.gserviceaccount.com',
+    },
     { http: falso.cliente, reloj: opciones.reloj ?? (() => AHORA) },
   );
   return { google, peticiones: falso.peticiones };

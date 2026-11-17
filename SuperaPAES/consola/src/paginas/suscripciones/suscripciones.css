@@ -40,6 +40,13 @@
   font-size: var(--t-sm);
 }
 
+/* Las simuladas del modo de pruebas, bajo las tarjetas: fuera de las cifras del mes. */
+.suscripciones__simuladas {
+  margin: 0.75rem 0 0;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+}
+
 .suscripciones__resumen {
   margin-top: 1.5rem;
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:supera_paes/nucleo/errores.dart';
 
 /// Agrega el token de acceso a cada petición y, si la API responde 401,
 /// renueva la sesión una sola vez y repite la petición (RNF-01: JWT de 15
@@ -27,6 +28,21 @@ class InterceptorSesion extends QueuedInterceptor {
   static const String _encabezado = 'Authorization';
   static const String _reintentada = 'sesion_reintentada';
 
+  /// Clave de `extra` de las peticiones que llevan la contraseña en el cuerpo
+  /// (descargar mis datos y borrar la cuenta). Si la API las rechaza con 401
+  /// por la contraseña, no se renueva ni se repite: la sesión sigue vigente,
+  /// y repetirla gastaría otro de los intentos permitidos. Un 401 por el
+  /// token vencido se renueva como en cualquier otra ruta.
+  static const String confirmaContrasena = 'confirma_contrasena';
+
+  static bool _rechazoDeContrasena(DioException err) {
+    if (err.requestOptions.extra[confirmaContrasena] != true) return false;
+    return switch (err.response?.data) {
+      {'error': {'mensaje': contrasenaIncorrecta}} => true,
+      _ => false,
+    };
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final token = tokenAcceso();
@@ -42,7 +58,10 @@ class InterceptorSesion extends QueuedInterceptor {
     final opciones = err.requestOptions;
     final usado = opciones.headers[_encabezado];
     final esReintento = opciones.extra[_reintentada] == true;
-    if (err.response?.statusCode != 401 || usado == null || esReintento) {
+    if (err.response?.statusCode != 401 ||
+        usado == null ||
+        esReintento ||
+        _rechazoDeContrasena(err)) {
       handler.next(err);
       return;
     }

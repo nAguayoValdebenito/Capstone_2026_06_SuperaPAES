@@ -1,0 +1,201 @@
+/* Solicitudes de datos (C14): bandeja a la izquierda y el detalle de la solicitud a la derecha, como acta
+   (folio con las fechas, la línea de margen y la firma junto a los botones). Solo tokens del tema. */
+.solicitudes__contenido {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.solicitudes__contenido .tabla-desplazable {
+  margin-top: 0;
+}
+
+.solicitudes__tabla {
+  min-width: 40rem;
+}
+
+.solicitudes__plazo {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+}
+
+.solicitudes__fecha {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.solicitudes__plazo .solicitudes__fecha {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+.solicitudes__estudiante {
+  overflow-wrap: anywhere;
+}
+
+/* Panel lateral: acta; queda a la vista al bajar por la bandeja. */
+.solicitudes__panel.acta {
+  position: sticky;
+  top: 1rem;
+  max-width: none;
+  margin-top: 0;
+  padding-left: 2.25rem;
+}
+
+.solicitudes__folio {
+  align-items: center;
+}
+
+.solicitudes__panel h2 {
+  font-size: var(--t-md);
+  overflow-wrap: anywhere;
+}
+
+.solicitudes__dato {
+  margin: 0;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+}
+
+/* Lo que pidió el estudiante y la respuesta son citas: van en la letra de las citas. */
+.solicitudes__cita {
+  margin: 0;
+  padding: 0.125rem 0 0.125rem 0.75rem;
+  border-left: 2px solid var(--borde-fuerte);
+  color: var(--tinta);
+  font-family: var(--fuente-formulas);
+  font-size: var(--t-md);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.solicitudes__formulario {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.solicitudes__formulario .campo__ayuda {
+  margin: 0;
+}
+
+.solicitudes__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.solicitudes__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.solicitudes__error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-top: 1.5rem;
+}
+
+/* Etiqueta de plazo: el texto dice el estado y cada caso lleva su marca. Vencida: cruz granate con
+   contorno; vence pronto: anillo granate; a tiempo: neutra, con raya. */
+.plazo {
+  --marca: var(--marca-raya);
+  display: inline-flex;
+  gap: 0.3125rem;
+  align-items: center;
+  padding: 0.0625rem 0.5rem 0.0625rem 0.375rem;
+  border-radius: 4px;
+  background: var(--neutro-suave);
+  color: var(--tinta-2);
+  font-family: var(--fuente-interfaz);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.plazo::before {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: currentcolor;
+  mask: var(--marca) center / contain no-repeat;
+}
+
+.plazo--vencida {
+  --marca: var(--marca-cruz);
+  background: var(--aviso-suave);
+  color: var(--aviso);
+  box-shadow: inset 0 0 0 1px var(--aviso);
+}
+
+.plazo--pronto {
+  --marca: var(--marca-anillo);
+  background: var(--aviso-suave);
+  color: var(--aviso);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--aviso) 55%, transparent);
+}
+
+.plazo--a-tiempo {
+  --marca: var(--marca-raya);
+}
+
+/* Confirmación propia (alertdialog, sin <dialog>) con el aspecto del diálogo de global.css. */
+.solicitudes__fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--velo);
+}
+
+.solicitudes__confirmacion {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: 90vh;
+  margin: 0;
+  padding: 1.375rem 1.5rem 1.25rem;
+  overflow: auto;
+  animation: entrar-dialogo var(--normal) var(--curva-enfasis) both;
+}
+
+.solicitudes__confirmacion p {
+  margin: 0 0 0.625rem;
+}
+
+/* Objetivos táctiles de al menos 44 px. */
+@media (pointer: coarse) {
+  .solicitudes .boton-texto {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 64rem) {
+  .solicitudes__contenido {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .solicitudes__panel.acta {
+    position: static;
+  }
+}
+
+@media (max-width: 40rem) {
+  .solicitudes__tabla {
+    min-width: 0;
+  }
+}

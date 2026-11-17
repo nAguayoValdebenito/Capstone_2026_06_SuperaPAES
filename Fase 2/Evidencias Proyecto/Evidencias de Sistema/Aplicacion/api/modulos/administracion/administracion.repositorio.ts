@@ -1,0 +1,293 @@
+// Único lugar con SQL del módulo administracion. Consultas siempre parametrizadas ($1, $2...).
+// Tablas que pertenecen a este módulo (ningún otro módulo las escribe):
+//   - contenido.usuario_interno (gestión)
+//   - contenido.docente_especialidad
+//   - contenido.configuracion
+//   - contenido.auditoria
+//   - contenido.documento_legal (versiones que publica el administrador)
+// Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
+// El rol y la acción de auditoría se buscan por su código, nunca por su id.
+import { esRolCuentaInterna, type RolCuentaInterna } from '../../comun/roles.js';
+import type { Ejecutor } from '../../db/transaccion.js';
+
+/** Cuenta interna tal como la ve la consola. Nunca lleva la contraseña ni su hash. */
+export interface UsuarioInterno {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: RolCuentaInterna;
+  activo: boolean;
+  /** Ids de contenido.area que puede revisar (solo docentes). */
+  areas: number[];
+  creadoEn: Date;
+  ultimoAcceso: Date | null;
+}
+
+export interface NuevoUsuarioInterno {
+  nombre: string;
+  correo: string;
+  rol: RolCuentaInterna;
+  hashContrasena: string;
+}
+
+export interface CambiosUsuarioInterno {
+  nombre: string;
+  rol: RolCuentaInterna;
+  /** Hash de la contraseña nueva; null si no cambia. */
+  hashContrasena: string | null;
+}
+
+export interface EntradaAuditoria {
+  /** `null` si la acción la hizo el sistema en una tarea periódica (HU-45.3). */
+  usuarioId: string | null;
+  /** Código de contenido.accion_auditoria, por ejemplo crear_usuario. */
+  accion: string;
+  entidad: string;
+  entidadId: string;
+  antes: Record<string, unknown> | null;
+  despues: Record<string, unknown> | null;
+}
+
+/** Una acción ya registrada: `despues` debe estar contenido en el de la fila. */
+export type ConsultaAuditoria = Pick<EntradaAuditoria, 'accion' | 'entidad' | 'entidadId'> & {
+  despues: Record<string, unknown>;
+};
+
+/** Versión vigente de un documento legal obligatorio (términos o privacidad, RN-30). */
+export interface DocumentoLegalVigente {
+  id: number;
+  /** Código de contenido.tipo_documento_legal: terminos o privacidad. */
+  tipo: string;
+  nombre: string;
+  /** mayor.menor, por ejemplo 1.0. */
+  version: string;
+  texto: string;
+  vigenteDesde: Date;
+}
+
+export interface AdministracionRepositorio {
+  listarUsuariosInternos(tx?: Ejecutor): Promise<UsuarioInterno[]>;
+  /** Con `bloquear`, bloquea la fila hasta el fin de la transacción (FOR UPDATE). */
+  buscarUsuarioInterno(
+    id: string,
+    bloquear: boolean,
+    tx?: Ejecutor,
+  ): Promise<UsuarioInterno | null>;
+  crearUsuarioInterno(datos: NuevoUsuarioInterno, tx?: Ejecutor): Promise<string>;
+  /** Rol (código de contenido.rol) y estado de la cuenta, para validar cada sesión de la consola. */
+  buscarRolActivo(id: string, tx?: Ejecutor): Promise<{ rol: string; activo: boolean } | null>;
+  actualizarUsuarioInterno(
+    id: string,
+    cambios: CambiosUsuarioInterno,
+    tx?: Ejecutor,
+  ): Promise<void>;
+  cambiarActivoUsuarioInterno(id: string, activo: boolean, tx?: Ejecutor): Promise<void>;
+  reemplazarEspecialidades(id: string, areas: readonly number[], tx?: Ejecutor): Promise<void>;
+  registrarAuditoria(entrada: EntradaAuditoria, tx?: Ejecutor): Promise<void>;
+  existeAuditoria(consulta: ConsultaAuditoria, tx?: Ejecutor): Promise<boolean>;
+  /** De cada tipo obligatorio, la versión con mayor vigente_desde que ya empezó a la hora `ahora`. */
+  documentosLegalesVigentes(ahora: Date, tx?: Ejecutor): Promise<DocumentoLegalVigente[]>;
+  /** La versión vigente del permiso de puntajes, que es opcional (RN-16); null si no hay. */
+  permisoPuntajesVigente(ahora: Date, tx?: Ejecutor): Promise<DocumentoLegalVigente | null>;
+  /** Valor (JSON) de un parámetro de contenido.configuracion, o undefined si la clave no existe. */
+  leerParametro(clave: string, tx?: Ejecutor): Promise<unknown>;
+  /**
+   * Ids de los administradores activos, bloqueados (FOR UPDATE, en orden de id) hasta el fin de la
+   * transacción: dos cambios a la vez no pueden dejar la consola sin administradores (CU-23 3.c).
+   */
+  bloquearAdministradoresActivos(tx?: Ejecutor): Promise<string[]>;
+}
+
+interface FilaUsuarioInterno extends Omit<UsuarioInterno, 'rol'> {
+  rol: string;
+}
+
+const SELECCION_USUARIO_INTERNO = `
+  SELECT u.id::text AS id, u.nombre, u.correo, r.codigo AS rol, u.activo,
+         u.creado_en AS "creadoEn", u.ultimo_acceso AS "ultimoAcceso",
+         COALESCE(array_agg(de.area_id ORDER BY de.area_id) FILTER (WHERE de.area_id IS NOT NULL),
+                  '{}') AS areas
+    FROM contenido.usuario_interno u
+    JOIN contenido.rol r ON r.id = u.rol_id
+    LEFT JOIN contenido.docente_especialidad de ON de.usuario_interno_id = u.id`;
+
+function aUsuarioInterno({ rol, ...resto }: FilaUsuarioInterno): UsuarioInterno {
+  if (!esRolCuentaInterna(rol)) {
+    throw new Error(`contenido.rol tiene un código desconocido para la API: ${rol}`);
+  }
+  return { ...resto, rol };
+}
+
+const INSERTAR_USUARIO_INTERNO = `
+  INSERT INTO contenido.usuario_interno (nombre, correo, hash_contrasena, rol_id, creado_en)
+  VALUES ($1, $2, $3, (SELECT id FROM contenido.rol WHERE codigo = $4), now())
+  RETURNING id::text AS id`;
+
+const ACTUALIZAR_USUARIO_INTERNO = `
+  UPDATE contenido.usuario_interno
+     SET nombre = $2, rol_id = (SELECT id FROM contenido.rol WHERE codigo = $3),
+         hash_contrasena = COALESCE($4, hash_contrasena)
+   WHERE id = $1`;
+
+const INSERTAR_AUDITORIA = `
+  INSERT INTO contenido.auditoria (usuario_id, accion_auditoria_id, entidad, entidad_id, antes,
+                                   despues, creado_en)
+  VALUES ($1, (SELECT id FROM contenido.accion_auditoria WHERE codigo = $2), $3, $4, $5, $6, now())`;
+
+const EXISTE_AUDITORIA = `
+  SELECT EXISTS (
+    SELECT 1
+      FROM contenido.auditoria a
+      JOIN contenido.accion_auditoria x ON x.id = a.accion_auditoria_id
+     WHERE a.entidad = $1 AND a.entidad_id = $2 AND x.codigo = $3 AND a.despues @> $4::jsonb
+  ) AS existe`;
+
+const ROL_Y_ESTADO = `
+  SELECT r.codigo AS rol, u.activo
+    FROM contenido.usuario_interno u
+    JOIN contenido.rol r ON r.id = u.rol_id
+   WHERE u.id = $1`;
+
+type ConsultasUsuarios = Pick<
+  AdministracionRepositorio,
+  'listarUsuariosInternos' | 'buscarUsuarioInterno' | 'crearUsuarioInterno' | 'buscarRolActivo'
+>;
+
+function consultasUsuarios(bd: Ejecutor): ConsultasUsuarios {
+  return {
+    async listarUsuariosInternos(tx = bd) {
+      const { rows } = await tx.query<FilaUsuarioInterno>(
+        `${SELECCION_USUARIO_INTERNO} GROUP BY u.id, r.codigo ORDER BY u.nombre, u.id`,
+      );
+      return rows.map(aUsuarioInterno);
+    },
+
+    async buscarUsuarioInterno(id, bloquear, tx = bd) {
+      if (bloquear) {
+        await tx.query('SELECT 1 FROM contenido.usuario_interno WHERE id = $1 FOR UPDATE', [id]);
+      }
+      const { rows } = await tx.query<FilaUsuarioInterno>(
+        `${SELECCION_USUARIO_INTERNO} WHERE u.id = $1 GROUP BY u.id, r.codigo`,
+        [id],
+      );
+      const fila = rows[0];
+      return fila ? aUsuarioInterno(fila) : null;
+    },
+
+    async crearUsuarioInterno(datos, tx = bd) {
+      const { rows } = await tx.query<{ id: string }>(INSERTAR_USUARIO_INTERNO, [
+        datos.nombre,
+        datos.correo,
+        datos.hashContrasena,
+        datos.rol,
+      ]);
+      const fila = rows[0];
+      if (!fila) throw new Error('El INSERT de usuario_interno no devolvió el id.');
+      return fila.id;
+    },
+
+    async buscarRolActivo(id, tx = bd) {
+      const { rows } = await tx.query<{ rol: string; activo: boolean }>(ROL_Y_ESTADO, [id]);
+      return rows[0] ?? null;
+    },
+  };
+}
+
+const DOCUMENTOS_VIGENTES = `
+  SELECT DISTINCT ON (t.id) d.id, t.codigo AS tipo, t.nombre, d.version, d.contenido AS texto,
+         d.vigente_desde AS "vigenteDesde"
+    FROM contenido.documento_legal d
+    JOIN contenido.tipo_documento_legal t ON t.id = d.tipo_documento_legal_id
+   WHERE t.obligatorio AND d.vigente_desde <= $1
+   ORDER BY t.id, d.vigente_desde DESC`;
+
+const PERMISO_PUNTAJES_VIGENTE = `
+  SELECT d.id, t.codigo AS tipo, t.nombre, d.version, d.contenido AS texto,
+         d.vigente_desde AS "vigenteDesde"
+    FROM contenido.documento_legal d
+    JOIN contenido.tipo_documento_legal t ON t.id = d.tipo_documento_legal_id
+   WHERE t.codigo = 'puntajes' AND d.vigente_desde <= $1
+   ORDER BY d.vigente_desde DESC
+   LIMIT 1`;
+
+const ADMINISTRADORES_ACTIVOS = `
+  SELECT u.id::text AS id FROM contenido.usuario_interno u JOIN contenido.rol r ON r.id = u.rol_id
+   WHERE r.codigo = 'admin' AND u.activo
+   ORDER BY u.id
+     FOR UPDATE OF u`;
+
+type Auditoria = Pick<AdministracionRepositorio, 'registrarAuditoria' | 'existeAuditoria'>;
+type Cambios = Omit<AdministracionRepositorio, keyof ConsultasUsuarios | keyof Auditoria>;
+
+function cambios(bd: Ejecutor): Cambios {
+  return {
+    async actualizarUsuarioInterno(id, { nombre, rol, hashContrasena }, tx = bd) {
+      await tx.query(ACTUALIZAR_USUARIO_INTERNO, [id, nombre, rol, hashContrasena]);
+    },
+
+    async cambiarActivoUsuarioInterno(id, activo, tx = bd) {
+      await tx.query('UPDATE contenido.usuario_interno SET activo = $2 WHERE id = $1', [
+        id,
+        activo,
+      ]);
+    },
+
+    async reemplazarEspecialidades(id, areas, tx = bd) {
+      await tx.query('DELETE FROM contenido.docente_especialidad WHERE usuario_interno_id = $1', [
+        id,
+      ]);
+      if (areas.length === 0) return;
+      await tx.query(
+        `INSERT INTO contenido.docente_especialidad (usuario_interno_id, area_id)
+         SELECT $1, unnest($2::smallint[])`,
+        [id, areas],
+      );
+    },
+
+    async bloquearAdministradoresActivos(tx = bd) {
+      const { rows } = await tx.query<{ id: string }>(ADMINISTRADORES_ACTIVOS);
+      return rows.map((fila) => fila.id);
+    },
+
+    async documentosLegalesVigentes(ahora, tx = bd) {
+      const { rows } = await tx.query<DocumentoLegalVigente>(DOCUMENTOS_VIGENTES, [ahora]);
+      return rows;
+    },
+
+    async permisoPuntajesVigente(ahora, tx = bd) {
+      const { rows } = await tx.query<DocumentoLegalVigente>(PERMISO_PUNTAJES_VIGENTE, [ahora]);
+      return rows[0] ?? null;
+    },
+
+    async leerParametro(clave, tx = bd) {
+      const { rows } = await tx.query<{ valor: unknown }>(
+        'SELECT valor FROM contenido.configuracion WHERE clave = $1',
+        [clave],
+      );
+      return rows[0]?.valor;
+    },
+  };
+}
+
+function auditoria(bd: Ejecutor): Auditoria {
+  return {
+    async registrarAuditoria(entrada, tx = bd) {
+      const { usuarioId, accion, entidad, entidadId, antes, despues } = entrada;
+      await tx.query(INSERTAR_AUDITORIA, [usuarioId, accion, entidad, entidadId, antes, despues]);
+    },
+
+    async existeAuditoria({ accion, entidad, entidadId, despues }, tx = bd) {
+      const { rows } = await tx.query<{ existe: boolean }>(EXISTE_AUDITORIA, [
+        entidad,
+        entidadId,
+        accion,
+        despues,
+      ]);
+      return rows[0]?.existe ?? false;
+    },
+  };
+}
+
+export function crearAdministracionRepositorio(bd: Ejecutor): AdministracionRepositorio {
+  return { ...consultasUsuarios(bd), ...cambios(bd), ...auditoria(bd) };
+}

@@ -1,13 +1,19 @@
 // Guarda la sesión de la consola en sessionStorage: se borra al cerrar la pestaña y no la comparten
 // otras pestañas. Si el navegador bloquea el almacenamiento, la sesión dura solo mientras la página
-// esté abierta. Guarda los tokens y, si la hay, la marca de que la cuenta debe cambiar la contraseña
-// que le asignó el administrador (nunca el resto de los datos del usuario).
+// esté abierta. Guarda los tokens, el nombre de la cuenta y, si la hay, la marca de que la cuenta
+// debe cambiar la contraseña que le asignó el administrador (nunca el resto de los datos del usuario).
 import { esRolCuentaInterna, type SesionIniciada, type UsuarioInterno } from '../tipos';
 
 const CLAVE = 'supera-paes.sesion-consola';
 
-/** Lo que queda guardado: los tokens y la marca de cambio de contraseña pendiente, si la hay. */
-export interface SesionGuardada extends SesionIniciada {
+/**
+ * Lo que se guarda: los dos tokens, el nombre de la cuenta para el menú y la marca de cambio de
+ * contraseña pendiente, si la hay (nada más).
+ */
+export interface SesionGuardada {
+  tokenAcceso: string;
+  tokenRenovacion: string;
+  nombre?: string;
   debeCambiarContrasena?: true;
 }
 
@@ -19,16 +25,24 @@ function almacen(): Storage | null {
   }
 }
 
-function esSesionIniciada(valor: unknown): valor is SesionGuardada {
+function esSesionGuardada(valor: unknown): valor is SesionGuardada {
   if (typeof valor !== 'object' || valor === null) return false;
-  const { tokenAcceso, tokenRenovacion } = valor as Record<string, unknown>;
-  return typeof tokenAcceso === 'string' && typeof tokenRenovacion === 'string';
+  const { tokenAcceso, tokenRenovacion, nombre } = valor as Record<string, unknown>;
+  return (
+    typeof tokenAcceso === 'string' &&
+    typeof tokenRenovacion === 'string' &&
+    (nombre === undefined || typeof nombre === 'string')
+  );
 }
 
-function guardarSesion({ tokenAcceso, tokenRenovacion }: SesionIniciada, cambio: boolean): void {
+function guardarSesion(
+  { tokenAcceso, tokenRenovacion, nombre }: SesionGuardada,
+  cambio: boolean,
+): void {
   const guardada: SesionGuardada = {
     tokenAcceso,
     tokenRenovacion,
+    ...(nombre && { nombre }),
     ...(cambio && { debeCambiarContrasena: true }),
   };
   try {
@@ -41,7 +55,7 @@ function guardarSesion({ tokenAcceso, tokenRenovacion }: SesionIniciada, cambio:
 export function leerSesionGuardada(): SesionGuardada | null {
   try {
     const valor: unknown = JSON.parse(almacen()?.getItem(CLAVE) ?? 'null');
-    return esSesionIniciada(valor) ? valor : null;
+    return esSesionGuardada(valor) ? valor : null;
   } catch {
     return null;
   }
@@ -102,13 +116,29 @@ export function guardarCambioPendiente(pendiente: boolean): void {
  */
 export function abrirSesion(sesion: SesionIniciada, ahora = Date.now()): UsuarioInterno | null {
   const usuario = usuarioDelToken(sesion.tokenAcceso, ahora);
+  if (!usuario) return null;
+  const nombre = nombreDeLaCuenta(usuario.id, sesion);
   const cambio = sesion.usuario?.debeCambiarContrasena ?? cambioPendienteGuardado();
-  if (usuario) guardarSesion(sesion, cambio);
-  return usuario;
+  const { tokenAcceso, tokenRenovacion } = sesion;
+  guardarSesion({ tokenAcceso, tokenRenovacion, nombre }, cambio);
+  return nombre ? { ...usuario, nombre } : usuario;
+}
+
+/**
+ * Nombre que muestra el menú: el de la cuenta que entrega el ingreso o, al renovar (la renovación no
+ * lo trae), el guardado de la misma cuenta.
+ */
+function nombreDeLaCuenta(id: string, sesion: SesionIniciada): string | undefined {
+  if (sesion.usuario?.id === id && sesion.usuario.nombre) return sesion.usuario.nombre;
+  const anterior = leerSesionGuardada();
+  if (!anterior?.nombre) return undefined;
+  // Con `ahora = 0` solo importa de quién es el token anterior, no si sigue vigente.
+  return usuarioDelToken(anterior.tokenAcceso, 0)?.id === id ? anterior.nombre : undefined;
 }
 
 /** Usuario de la sesión guardada, si sigue vigente. */
 export function usuarioGuardado(ahora = Date.now()): UsuarioInterno | null {
   const sesion = leerSesionGuardada();
-  return sesion ? usuarioDelToken(sesion.tokenAcceso, ahora) : null;
+  const usuario = sesion ? usuarioDelToken(sesion.tokenAcceso, ahora) : null;
+  return usuario && sesion?.nombre ? { ...usuario, nombre: sesion.nombre } : usuario;
 }

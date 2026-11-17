@@ -10,8 +10,8 @@
 //   - vista app.v_resumen_suscripciones
 //   - vista app.v_pagos_mes
 // Cada método recibe un Ejecutor opcional (tx) para sumarse a la transacción del servicio.
-import type { Tienda } from '../../adaptadores/pagos/pasarela.js';
 import type { Ejecutor } from '../../db/transaccion.js';
+import type { CanalSuscripcion } from './suscripciones.canal-prueba.js';
 import { MARGEN_FIN_PERIODO } from './suscripciones.cierre.repositorio.js';
 
 /** La suscripción activa o en mora de un estudiante (RN-34): la tienda la sigue cobrando. */
@@ -20,13 +20,14 @@ export interface SuscripcionVigente {
   /** Nombre del alcance: «Una prueba» o «Todas las pruebas». */
   plan: string;
   periodicidad: 'mensual' | 'anual';
-  tienda: Tienda;
+  /** La tienda, o `prueba` en la suscripción simulada del modo de pruebas. */
+  tienda: CanalSuscripcion;
   /** Fin del período pagado: la próxima renovación, o el término si canceló. */
   periodoFin: Date | null;
   /** `false` si el estudiante canceló la renovación en la tienda (CU-12 1.a). */
   renuevaAutomaticamente: boolean;
-  /** Dónde se gestiona y se cancela en la tienda (HU-45.2). */
-  gestionUrl: string;
+  /** Dónde se gestiona y se cancela en la tienda (HU-45.2); null en la simulada, que no tiene tienda. */
+  gestionUrl: string | null;
   /** Cobertura para la app (F3), calculada con las mismas reglas de RN-04 y A-03. */
   alcance?: 'una_prueba' | 'todas';
   pruebasIncluidas?: number[];

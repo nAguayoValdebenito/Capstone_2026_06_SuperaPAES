@@ -1,0 +1,222 @@
+// Esquemas zod de entrada del módulo preguntas. Se usan con validar() en las rutas.
+import { z } from 'zod';
+import { codigoConsulta, idConsulta, numeroDePagina } from '../../comun/consultas.js';
+import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
+
+/** Preguntas por página del banco: 20 por defecto (docs/convenciones.md), hasta 100. */
+export const POR_PAGINA_BANCO = 20;
+export const MAXIMO_POR_PAGINA_BANCO = 100;
+
+/**
+ * Origen de una pregunta. El modelo no lo guarda: se deduce del lote de IA o de la importación, como
+ * en la vista contenido.v_calidad_criterio.
+ */
+export const ORIGENES_PREGUNTA = ['manual', 'importacion', 'ia'] as const;
+export type OrigenPregunta = (typeof ORIGENES_PREGUNTA)[number];
+
+/**
+ * HU-11 y RF-G01: filtros del banco. Todos son opcionales y se combinan. prueba (SMALLINT), eje
+ * (SMALLINT), contenido (INTEGER) y habilidad (SMALLINT, filtro de C02) van por id; estado y
+ * dificultad por el código de su lista de opciones. La dificultad es la asignada por los docentes, la
+ * que se exige para publicar.
+ */
+export const esquemaFiltrosBanco = z.strictObject({
+  prueba: idConsulta(32_767).optional(),
+  eje: idConsulta(32_767).optional(),
+  contenido: idConsulta(2_147_483_647).optional(),
+  habilidad: idConsulta(32_767).optional(),
+  estado: codigoConsulta.optional(),
+  origen: z.enum(ORIGENES_PREGUNTA, 'El origen debe ser manual, importacion o ia.').optional(),
+  dificultad: codigoConsulta.optional(),
+  /** HU-18.3: recuperar solo las preguntas del lote elegido en C05. */
+  lote: z
+    .string()
+    .regex(/^[1-9]\d{0,15}$/, 'El identificador no es válido.')
+    .transform(Number)
+    .pipe(z.number().max(Number.MAX_SAFE_INTEGER, 'El identificador no es válido.'))
+    .optional(),
+  pagina: numeroDePagina(1, 100_000),
+  porPagina: numeroDePagina(POR_PAGINA_BANCO, MAXIMO_POR_PAGINA_BANCO),
+});
+
+export type FiltrosBanco = z.output<typeof esquemaFiltrosBanco>;
+
+/** Letras de las alternativas, en orden (contenido.alternativa.letra). */
+export const LETRAS = ['A', 'B', 'C', 'D', 'E'] as const;
+
+const textoObligatorio = (falta: string) => z.string().trim().min(1, falta);
+
+/** Código de una lista de opciones (tipo_pregunta, dificultad: VARCHAR(20) o menos). */
+const codigoDeLista = z.string().regex(/^[a-z_]{1,20}$/, 'El código no es válido.');
+
+const alternativa = z.strictObject({
+  letra: z.enum(LETRAS, 'La letra debe ser de la A a la E.'),
+  texto: textoObligatorio('Escribe el texto de la alternativa.'),
+  esCorrecta: z.boolean('Indica si la alternativa es la correcta.'),
+  /** Explicación de por qué la alternativa es correcta o no; opcional en las preguntas manuales. */
+  explicacion: z.string().trim().nullable().default(null),
+});
+
+/**
+ * Dirección de la imagen de un texto (tablas, gráficos): https://… o una ruta relativa que la app pide a
+ * la API. Sin «:» fuera de http(s), así no pasa javascript: ni data:. Subir archivos no es de HU-12.
+ */
+/** Largo del título de un texto de lectura (contenido.texto_estimulo.titulo, VARCHAR(200)). */
+export const LARGO_TITULO_TEXTO = 200;
+export const TITULO_DEMASIADO_LARGO = `El título puede tener hasta ${String(LARGO_TITULO_TEXTO)} caracteres.`;
+
+const DIRECCION_IMAGEN = /^(https?:\/\/[^\s<>"']+|[\w.~/-]+)$/;
+
+/**
+ * HU-12.2: texto de lectura (contenido.texto_estimulo). El tipo va por su código; el contenido es
+ * Markdown con fórmulas en LaTeX, como la pregunta. Lleva su contenido, su imagen o ambos.
+ */
+export const esquemaTexto = z
+  .strictObject({
+    tipoTexto: codigoDeLista,
+    titulo: textoObligatorio('Escribe el título del texto.').max(
+      LARGO_TITULO_TEXTO,
+      TITULO_DEMASIADO_LARGO,
+    ),
+    contenido: z
+      .string()
+      .trim()
+      .transform((valor) => valor || null)
+      .nullable()
+      .default(null),
+    imagenUrl: z
+      .string()
+      .trim()
+      .max(300, 'La dirección de la imagen puede tener hasta 300 caracteres.')
+      .regex(DIRECCION_IMAGEN, 'La dirección de la imagen no es válida.')
+      .nullable()
+      .default(null),
+  })
+  .refine((texto) => texto.contenido !== null || texto.imagenUrl !== null, {
+    message: 'Escribe el texto o indica la dirección de su imagen.',
+    path: ['contenido'],
+  });
+
+/** Lista de textos de lectura: búsqueda simple por título, de a páginas como el banco. */
+export const esquemaConsultaTextos = z.strictObject({
+  buscar: z.string().trim().max(100, 'La búsqueda puede tener hasta 100 caracteres.').optional(),
+  pagina: numeroDePagina(1, 100_000),
+  porPagina: numeroDePagina(POR_PAGINA_BANCO, MAXIMO_POR_PAGINA_BANCO),
+});
+
+/**
+ * HU-12, RF-G02 y C03: datos de una pregunta al crearla o editarla. El tipo de pregunta y la dificultad
+ * sugerida van por su código. El texto de lectura es uno guardado (textoEstimuloId) o uno nuevo que se
+ * crea en la misma transacción (textoNuevo, HU-12.2), y va siempre con el orden de la pregunta en él,
+ * como exige el modelo. RN-08 (cuántas alternativas, una correcta y el texto en Competencia Lectora)
+ * depende de la prueba: lo revisa el servicio.
+ */
+export const esquemaPregunta = z
+  .strictObject({
+    pruebaId: idDeCuerpo,
+    contenidoId: idDeCuerpo,
+    habilidadId: idDeCuerpo,
+    tipoPregunta: codigoDeLista,
+    dificultadSugerida: codigoDeLista.nullable().default(null),
+    enunciado: textoObligatorio('Escribe el enunciado.'),
+    explicacion: textoObligatorio('Escribe la explicación de la respuesta correcta.'),
+    textoEstimuloId: idDeCuerpo.nullable().default(null),
+    textoNuevo: esquemaTexto.nullable().default(null),
+    ordenEnTexto: z.int().positive().max(32_767).nullable().default(null),
+    alternativas: z.array(alternativa).min(1, 'Agrega las alternativas.').max(LETRAS.length),
+  })
+  .refine((datos) => datos.textoEstimuloId === null || datos.textoNuevo === null, {
+    message: 'Elige un texto guardado o escribe uno nuevo, no ambos.',
+    path: ['textoNuevo'],
+  })
+  .refine(
+    (datos) =>
+      (datos.textoEstimuloId === null && datos.textoNuevo === null) ===
+      (datos.ordenEnTexto === null),
+    {
+      message: 'Indica el texto de lectura y el orden de la pregunta en él.',
+      path: ['ordenEnTexto'],
+    },
+  );
+
+/**
+ * HU-13.1 y RF-G05: un archivo CSV de la importación, con su nombre y su texto. La consola lo lee como
+ * UTF-8 y lo envía dentro del JSON, así que el límite de 1 MB del cuerpo es el del archivo.
+ */
+const archivoCsv = (cual: string) =>
+  z.strictObject({
+    nombre: z
+      .string()
+      .trim()
+      .min(1, `Indica el nombre del archivo de ${cual}.`)
+      .max(200, 'El nombre del archivo puede tener hasta 200 caracteres.')
+      .regex(/\.csv$/i, `El archivo de ${cual} debe ser CSV (UTF-8).`),
+    contenido: z.string(),
+  });
+
+/** Los archivos que se revisan antes de importar (CU-16, pasos 2 a 5): preguntas y, si hay, textos. */
+export const esquemaArchivosImportacion = z.strictObject({
+  preguntas: archivoCsv('preguntas'),
+  textos: archivoCsv('textos').nullable().default(null),
+});
+
+/** CU-16 paso 6 y 6.a: sin la declaración del origen de las preguntas no se importa (RN-29). */
+export const esquemaImportacion = esquemaArchivosImportacion.extend({
+  declaraOrigen: z.literal(
+    true,
+    'Declara que las preguntas son propias o tienen permiso de uso para importarlas (RN-29).',
+  ),
+});
+
+export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
+
+export const esquemaIdTexto = z.strictObject({ id: idDeRuta });
+
+export const esquemaIdAviso = z.strictObject({ id: idDeRuta });
+
+/** Archivo de una imagen en la ruta pública: su huella SHA-256 en hexadecimal y la extensión .webp. */
+export const esquemaArchivoImagen = z.strictObject({
+  archivo: z.string().regex(/^[0-9a-f]{64}\.webp$/, 'La imagen no existe.'),
+});
+
+/** Estados de un aviso (contenido.estado_reporte); «todos» no filtra. */
+export const ESTADOS_AVISO = ['pendiente', 'resuelto', 'descartado', 'todos'] as const;
+
+/**
+ * Bandeja de avisos de error (C13, HU-50 esc. 1): por defecto los pendientes; el motivo va por el código
+ * de contenido.motivo_reporte. Se pagina por pregunta.
+ */
+export const esquemaFiltrosAvisos = z.strictObject({
+  estado: z
+    .enum(ESTADOS_AVISO, 'El estado debe ser pendiente, resuelto, descartado o todos.')
+    .default('pendiente'),
+  motivo: codigoConsulta.optional(),
+  pagina: numeroDePagina(1, 100_000),
+  porPagina: numeroDePagina(POR_PAGINA_BANCO, MAXIMO_POR_PAGINA_BANCO),
+});
+
+/** Búsqueda global (Ctrl K): el texto o ID a buscar y cuántos resultados traer (hasta 20). */
+export const esquemaBusquedaPreguntas = z.strictObject({
+  texto: z
+    .string('Escribe qué buscar.')
+    .trim()
+    .min(1, 'Escribe qué buscar.')
+    .max(100, 'La búsqueda admite hasta 100 caracteres.'),
+  limite: z.coerce.number().int().min(1).max(20).default(8),
+});
+
+/** HU-50 esc. 2: un aviso se cierra como resuelto o descartado. */
+export const esquemaCierreAviso = z.strictObject({
+  estado: z.enum(['resuelto', 'descartado'], 'El aviso se cierra como resuelto o descartado.'),
+});
+
+export type DatosPregunta = z.output<typeof esquemaPregunta>;
+export type DatosTexto = z.output<typeof esquemaTexto>;
+export type ConsultaTextos = z.output<typeof esquemaConsultaTextos>;
+export type AlternativaPregunta = DatosPregunta['alternativas'][number];
+export type ArchivosImportacion = z.output<typeof esquemaArchivosImportacion>;
+export type DatosImportacion = z.output<typeof esquemaImportacion>;
+export type ArchivoCsv = ArchivosImportacion['preguntas'];
+export type BusquedaDePreguntas = z.output<typeof esquemaBusquedaPreguntas>;
+export type FiltrosAvisos = z.output<typeof esquemaFiltrosAvisos>;
+export type CierreAviso = z.output<typeof esquemaCierreAviso>['estado'];

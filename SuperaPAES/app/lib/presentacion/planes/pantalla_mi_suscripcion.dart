@@ -151,11 +151,11 @@ class _DetalleState extends ConsumerState<_Detalle> {
   /// Solo la tienda puede cancelar o corregir el pago (CU-12 1.a).
   Future<void> _abrirTienda() async {
     final suscripcion = widget.suscripcion;
+    final enlace = enlaceDeGestion(suscripcion);
+    if (enlace == null) return;
     bool abierta;
     try {
-      abierta = await ref.read(abrirEnlaceProvider)(
-        enlaceDeGestion(suscripcion),
-      );
+      abierta = await ref.read(abrirEnlaceProvider)(enlace);
     } on Exception {
       abierta = false;
     }
@@ -177,6 +177,9 @@ class _DetalleState extends ConsumerState<_Detalle> {
       color: TemaSuperaPaes.textoSecundario,
     );
     final renueva = suscripcion.renuevaAutomaticamente;
+    if (suscripcion.tienda.simulada) {
+      return _DetalleSimulada(suscripcion: suscripcion);
+    }
     return PantallaFormulario(
       separacion: 16,
       hijos: [
@@ -225,6 +228,33 @@ class _DetalleState extends ConsumerState<_Detalle> {
   }
 }
 
+/// La suscripción simulada del modo de pruebas: el plan y hasta cuándo dura,
+/// sin cambio de plan ni gestión en una tienda, porque no hay cobro.
+class _DetalleSimulada extends StatelessWidget {
+  const _DetalleSimulada({required this.suscripcion});
+
+  final SuscripcionVigente suscripcion;
+
+  @override
+  Widget build(BuildContext context) {
+    return PantallaFormulario(
+      separacion: 16,
+      hijos: [
+        const EnlaceVolver(texto: 'Perfil', destino: Rutas.perfil),
+        const Encabezado(titulo: 'Mi suscripción'),
+        _TarjetaPlan(suscripcion: suscripcion),
+        Text(
+          'Es una suscripción de prueba: no se compró en una tienda ni tiene '
+          'cobros.',
+          style: TemaSuperaPaes.pequeno.copyWith(
+            color: TemaSuperaPaes.textoSecundario,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// El plan con su sello, periodicidad y precio, el estado y los datos de la
 /// renovación y del pago.
 class _TarjetaPlan extends ConsumerWidget {
@@ -242,6 +272,7 @@ class _TarjetaPlan extends ConsumerWidget {
         ? 'Anual'
         : 'Mensual';
     final fin = suscripcion.periodoFin;
+    final simulada = suscripcion.tienda.simulada;
     return Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -262,7 +293,7 @@ class _TarjetaPlan extends ConsumerWidget {
                       style: TemaSuperaPaes.h2,
                     ),
                     Text(
-                      plan == null
+                      plan == null || simulada
                           ? periodicidad
                           : '$periodicidad · ${plan.precio}',
                       style: TemaSuperaPaes.pequeno.copyWith(
@@ -288,7 +319,9 @@ class _TarjetaPlan extends ConsumerWidget {
           ),
           if (fin != null) ...[
             FilaDato(
-              etiqueta: suscripcion.enMora
+              etiqueta: simulada
+                  ? 'Dura hasta el'
+                  : suscripcion.enMora
                   ? 'Se reintenta el cobro'
                   : suscripcion.renuevaAutomaticamente
                   ? 'Próxima renovación'
@@ -297,7 +330,10 @@ class _TarjetaPlan extends ConsumerWidget {
             ),
             const SizedBox(height: TemaSuperaPaes.espacio12),
           ],
-          FilaDato(etiqueta: 'Pagas con', valor: suscripcion.tienda.nombre),
+          if (simulada)
+            const FilaDato(etiqueta: 'Tipo', valor: 'Suscripción de prueba')
+          else
+            FilaDato(etiqueta: 'Pagas con', valor: suscripcion.tienda.nombre),
           const SizedBox(height: TemaSuperaPaes.espacio12),
           const Aviso(
             tono: TonoAviso.neutro,

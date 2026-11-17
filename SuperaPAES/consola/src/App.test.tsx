@@ -191,6 +191,22 @@ describe('sesión iniciada en la consola (HU-03 esc. 1)', () => {
     },
   );
 
+  it.each([
+    ['docente', '/mis-revisiones', 'Diego Docente', 'DD'],
+    ['admin', '/banco', 'Ana Admin', 'AA'],
+  ] as const)(
+    'después de ingresar como %s, el menú muestra el nombre de la cuenta y no solo el rol',
+    (rol, inicio, nombre, iniciales) => {
+      instalarAlmacen();
+      abrirSesion({ ...sesionDePrueba(rol), usuario: { id: 'u-1', nombre } });
+
+      const html = renderizar(inicio, null);
+
+      expect(html).toContain(`<p class="menu__nombre">${nombre}</p>`);
+      expect(html).toContain(`aria-hidden="true">${iniciales}</span>`);
+    },
+  );
+
   it('una sesión de la app no abre la consola (HU-03 esc. 2)', () => {
     instalarAlmacen();
     abrirSesion(sesionDePrueba('estudiante'));

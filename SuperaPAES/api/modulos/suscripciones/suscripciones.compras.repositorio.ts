@@ -50,6 +50,9 @@ const PLAN_EN_TIENDA = `
     JOIN contenido.canal_venta c ON c.id = pt.canal_venta_id
    WHERE pl.id = $1 AND c.codigo = $2 AND pl.activo`;
 
+// El JOIN (no LEFT JOIN) con el producto en la tienda es a propósito: la suscripción simulada del modo de
+// pruebas (canal «prueba») no tiene producto, así que la compra, su validación y los avisos de las tiendas
+// nunca la leen, y `tienda` es siempre una tienda real.
 export const SUSCRIPCION = `
   SELECT s.id::text AS id, s.estudiante_id::text AS "estudianteId", e.codigo AS estado,
          s.plan_id AS "planId", c.codigo AS tienda, pt.id_producto AS "idProducto",

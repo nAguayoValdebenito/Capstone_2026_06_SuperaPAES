@@ -1,0 +1,89 @@
+import 'package:supera_paes/dominio/entidades/documento_legal.dart';
+
+/// Tienda en que se compró la suscripción: solo ella la puede cancelar
+/// (RN-34). [prueba] no es una tienda: es la suscripción simulada del modo de
+/// pruebas, que no se cobra ni se gestiona en ninguna tienda.
+enum Tienda {
+  googlePlay('Google Play'),
+  appStore('App Store'),
+  prueba('Prueba (simulada)');
+
+  const Tienda(this.nombre);
+
+  final String nombre;
+
+  /// La suscripción simulada del modo de pruebas: sin cobros ni tienda.
+  bool get simulada => this == Tienda.prueba;
+}
+
+/// La suscripción activa o en mora que la tienda sigue cobrando (RN-34): al
+/// borrar la cuenta, A42b avisa que hay que cancelarla en la tienda.
+class SuscripcionVigente {
+  const SuscripcionVigente({
+    required this.enMora,
+    required this.plan,
+    required this.periodicidad,
+    required this.tienda,
+    this.periodoFin,
+    this.renuevaAutomaticamente = true,
+    this.gestionUrl,
+    this.alcance,
+    this.pruebasIncluidas = const [],
+    this.coberturaVigente = false,
+  });
+
+  /// `false` si está activa.
+  final bool enMora;
+
+  /// «Una prueba» o «Todas las pruebas».
+  final String plan;
+
+  /// `mensual` o `anual`.
+  final String periodicidad;
+  final Tienda tienda;
+
+  /// Fin del período pagado: la próxima renovación, o el término si canceló.
+  final DateTime? periodoFin;
+
+  /// `false` si canceló en la tienda: el plan sigue hasta [periodoFin].
+  final bool renuevaAutomaticamente;
+
+  /// Dónde se gestiona en la tienda (HU-45.2); sin ella, la lista general.
+  final String? gestionUrl;
+  final String? alcance;
+  final List<int> pruebasIncluidas;
+  final bool coberturaVigente;
+
+  bool cubre(int pruebaId) =>
+      coberturaVigente &&
+      (alcance == 'todas' || pruebasIncluidas.contains(pruebaId));
+}
+
+/// La versión vigente que el estudiante aceptó de los términos o de la
+/// política de privacidad (CU-14 paso 2).
+class DocumentoAceptado {
+  const DocumentoAceptado({
+    required this.tipo,
+    required this.version,
+    required this.aceptadoEn,
+  });
+
+  final TipoDocumentoLegal tipo;
+  final String version;
+  final DateTime aceptadoEn;
+}
+
+/// Lo que Mis datos (A39) y «Borrar mi cuenta» (A42 y A42b) muestran de la
+/// cuenta: GET /privacidad/cuenta.
+class EstadoDeLaCuenta {
+  const EstadoDeLaCuenta({
+    required this.suscripcionVigente,
+    required this.documentosAceptados,
+  });
+
+  /// `null` si no tiene una activa o en mora (A42).
+  final SuscripcionVigente? suscripcionVigente;
+
+  /// Términos y privacidad, en ese orden; falta el que no aceptó.
+  final List<DocumentoAceptado> documentosAceptados;
+}
