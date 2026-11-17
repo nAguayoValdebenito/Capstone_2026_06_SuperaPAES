@@ -1,7 +1,9 @@
 // Resumen de suscripciones (C16, HU-56 esc. 1): las tarjetas del mes y, al pie, las suscripciones por
-// plan y estado y los pagos de cada mes (en modo de prueba). Solo presenta.
+// plan y estado y los pagos de cada mes (en modo de prueba). Las simuladas del modo de pruebas no entran
+// en esas cifras: se informan aparte, con la etiqueta «Simulada». Solo presenta.
 import type { ResumenSuscripciones } from '../../tipos/suscripciones';
 import { enPesos, nombreDelMes } from '../../utilidades/suscripciones';
+import { EtiquetaSimulada } from './EtiquetaSimulada';
 
 interface Propiedades {
   resumen: ResumenSuscripciones;
@@ -16,14 +18,23 @@ export function TarjetasDelMes({ resumen }: Propiedades) {
     ['Ingresos del mes', enPesos(resumen.ingresosDelMes)],
   ];
   return (
-    <dl className="tarjetas">
-      {tarjetas.map(([titulo, valor]) => (
-        <div className="tarjeta" key={titulo}>
-          <dt>{titulo}</dt>
-          <dd>{valor}</dd>
-        </div>
-      ))}
-    </dl>
+    <>
+      <dl className="tarjetas">
+        {tarjetas.map(([titulo, valor]) => (
+          <div className="tarjeta" key={titulo}>
+            <dt>{titulo}</dt>
+            <dd>{valor}</dd>
+          </div>
+        ))}
+      </dl>
+      {resumen.simuladas > 0 && (
+        <p className="suscripciones__simuladas">
+          <EtiquetaSimulada /> {resumen.simuladas}{' '}
+          {resumen.simuladas === 1 ? 'suscripción simulada' : 'suscripciones simuladas'} del modo de
+          pruebas: no cuentan en las activas, las altas ni los ingresos.
+        </p>
+      )}
+    </>
   );
 }
 

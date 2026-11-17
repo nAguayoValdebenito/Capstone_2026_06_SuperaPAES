@@ -1,0 +1,238 @@
+/* C01 · Panel: regla de cifras arriba, una tarjeta dividida en secciones (gráfico, por estado y por
+   dificultad) y el estado del sistema al final. */
+
+.panel-inicio__rango {
+  margin-top: 1rem;
+}
+
+.panel-inicio .regla-cifras {
+  margin: 0.75rem 0 1.5rem;
+}
+
+/* El detalle de cada cifra, debajo y en pequeño. */
+.panel-inicio .cifra-regla .panel-inicio__detalle {
+  margin-top: 0.25rem;
+  color: var(--tinta-3);
+  font-size: var(--t-xs);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+/* El gráfico ocupa la fila completa de la tarjeta; por estado y por dificultad quedan lado a lado. */
+.panel-inicio__secciones > .panel-inicio__grafico {
+  grid-column: 1 / -1;
+}
+
+.panel-inicio .secciones h2 {
+  margin: 0;
+}
+
+.panel-inicio__valor {
+  margin: -0.5rem 0 0;
+  color: var(--tinta);
+  font-size: var(--t-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-inicio__barras {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 11rem;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--borde-fuerte);
+  list-style: none;
+}
+
+.panel-inicio__barras li {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  max-width: 3rem;
+  min-width: 0;
+  height: 100%;
+}
+
+.panel-inicio__barras span {
+  display: block;
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--primario);
+  transition: background var(--rapido) ease;
+}
+
+.panel-inicio__barras li:hover span {
+  background: var(--primario-hover);
+}
+
+.panel-inicio__eje {
+  display: flex;
+  justify-content: space-between;
+  margin: -0.5rem 0 0;
+  color: var(--tinta-3);
+  font-family: var(--fuente-datos);
+  font-size: var(--t-xs);
+}
+
+.panel-inicio__ver-datos {
+  justify-self: start;
+  align-self: flex-start;
+  font-size: var(--t-sm);
+}
+
+.panel-inicio__ver-datos::after {
+  content: '';
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin-left: 0.5em;
+  border-right: 1.5px solid currentcolor;
+  border-bottom: 1.5px solid currentcolor;
+  transform: translateY(-0.15em) rotate(45deg);
+  transition: transform var(--rapido) ease;
+}
+
+.panel-inicio__ver-datos[aria-expanded='true']::after {
+  transform: translateY(0.05em) rotate(-135deg);
+}
+
+.panel-inicio__datos {
+  max-height: 18rem;
+  margin-top: 0;
+  overflow-y: auto;
+}
+
+.panel-inicio__datos[hidden] {
+  display: none;
+}
+
+.panel-inicio__datos td,
+.panel-inicio__tabla td.tabla__numero {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabla de dos columnas dentro de una sección: sin caja propia, la caja es la tarjeta. */
+.panel-inicio__tabla {
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.panel-inicio__tabla th,
+.panel-inicio__tabla td {
+  padding-inline: 0;
+}
+
+.panel-inicio__tabla th {
+  background: transparent;
+}
+
+.panel-inicio__tabla tbody tr:hover {
+  background: transparent;
+}
+
+.panel-inicio__sistema {
+  margin-top: 2rem;
+}
+
+.panel-inicio__sistema h2 {
+  margin-top: 0;
+}
+
+/* El cambio de una cifra frente a su comparación: sube bien (visto), baja mal (cruz) y sin cambio (raya). */
+.cifra-regla dd:first-of-type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.625rem;
+  align-items: baseline;
+}
+
+.variacion {
+  font-size: var(--t-sm);
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.variacion--sube {
+  color: var(--exito);
+}
+
+.variacion--baja {
+  color: var(--error);
+}
+
+.variacion--igual {
+  color: var(--tinta-3);
+}
+
+/* Por estado y por dificultad se reparten el ancho de la tarjeta (antes dejaban un tercio vacío). */
+@media (min-width: 48rem) {
+  .panel-inicio__secciones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.panel-inicio__secciones .vacio {
+  margin-top: 0;
+  padding-block: 1.25rem;
+  border-style: solid;
+}
+
+/* «Requiere atención»: lo primero del Panel, una lista de lo que le toca hacer al administrador. */
+.atencion {
+  margin: 1rem 0 0.5rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--r-grande);
+  background: var(--superficie);
+}
+
+.atencion h2 {
+  margin: 0;
+  padding: 0.75rem 1.125rem;
+  border-bottom: 1px solid var(--borde);
+  font-size: var(--t-md);
+}
+
+.atencion__nada {
+  margin: 0;
+  padding: 0.875rem 1.125rem;
+  color: var(--tinta-2);
+  font-size: var(--t-sm);
+}
+
+.atencion__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atencion__lista li {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.625rem 1.125rem;
+  font-size: var(--t-sm);
+}
+
+.atencion__lista li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.atencion__enlace {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .atencion__lista li {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}

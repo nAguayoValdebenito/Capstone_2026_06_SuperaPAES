@@ -1,0 +1,126 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supera_paes/dominio/entidades/resultado_evaluacion.dart';
+import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/error_con_reintento.dart';
+import 'package:supera_paes/presentacion/comunes/movimiento.dart';
+import 'package:supera_paes/presentacion/resultado/estado_resultado.dart';
+import 'package:supera_paes/presentacion/resultado/partes_diagnostico.dart';
+import 'package:supera_paes/presentacion/resultado/partes_resultado.dart';
+import 'package:supera_paes/presentacion/resultado/sello_resultado.dart';
+
+/// Resultado de una evaluación (A30 mini-ensayo, A31 diagnóstico, A32 ensayo
+/// completo y A32b sin tabla de conversión; HU-61 esc. 1, RF-A23, RN-22 y
+/// RN-23): correctas, incorrectas y omitidas, porcentaje o puntaje estimado,
+/// tiempo usado y resultado por eje y por habilidad. En el diagnóstico, lo
+/// que se reforzará y «Practicar». «Ir al historial» abre A34 (HU-62).
+class PantallaResultado extends ConsumerWidget {
+  const PantallaResultado({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resultado = ref.watch(resultadoProvider);
+    final datos = resultado.value;
+    final extra = GoRouterState.of(context).extra;
+    final origen = extra is DetalleDesdeHistorial ? extra : null;
+    return PantallaFormulario(
+      anchoMaximo: TemaSuperaPaes.anchoLectura,
+      separacion: 14,
+      hijos: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.padded,
+            ),
+            onPressed: () => context.canPop()
+                ? context.pop()
+                : context.go(Rutas.evaluaciones),
+            icon: const Icon(Icons.close, size: 20),
+            label: const Text('Cerrar'),
+          ),
+        ),
+        if (origen != null || datos != null)
+          Center(
+            child: SelloResultado(
+              id: origen?.id ?? datos!.id,
+              codigo: origen?.codigoPrueba ?? datos?.codigoPrueba,
+              animar:
+                  origen != null &&
+                  context.canPop() &&
+                  !reducirMovimiento(context),
+            ),
+          ),
+        ...switch (resultado) {
+          AsyncError(:final error) => [
+            ErrorConReintento(
+              error: error,
+              mensaje: 'No se pudo cargar el resultado.',
+              alReintentar: () => ref.invalidate(resultadoProvider),
+            ),
+          ],
+          AsyncData(value: final ResultadoEvaluacion datos) => [
+            ...ContenidoResultado.de(datos),
+          ],
+          AsyncData() => const [
+            Encabezado(
+              titulo: 'No hay un resultado para mostrar',
+              bajada: 'Cuando termines una evaluación, aquí verás cómo te fue.',
+            ),
+          ],
+          _ => const [Center(child: CircularProgressIndicator())],
+        },
+      ],
+      pie: switch (datos) {
+        null => null,
+        // A31: primero practicar lo que marcó; la revisión queda abajo.
+        ResultadoEvaluacion(esDiagnostico: true) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: () => practicarLoReforzado(context, ref, datos),
+              child: Text(textoPracticar(datos)),
+            ),
+            const SizedBox(height: 4),
+            BotonTexto(
+              onPressed: () => abrirRevision(context, ref, datos.id),
+              child: const Text('Revisar pregunta por pregunta'),
+            ),
+            const _IrAlHistorial(),
+          ],
+        ),
+        _ => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: () => abrirRevision(context, ref, datos.id),
+              child: const Text('Revisar pregunta por pregunta'),
+            ),
+            const SizedBox(height: 4),
+            const _IrAlHistorial(),
+          ],
+        ),
+      },
+    );
+  }
+}
+
+class _IrAlHistorial extends StatelessWidget {
+  const _IrAlHistorial();
+
+  @override
+  Widget build(BuildContext context) {
+    return BotonTexto(
+      onPressed: () => unawaited(context.push(Rutas.historial)),
+      child: const Text('Ir al historial'),
+    );
+  }
+}

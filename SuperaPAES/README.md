@@ -112,9 +112,13 @@ una dirección pública; nunca pongas claves en variables `VITE_`.
 docker compose --env-file .env.docker up --build
 ```
 
-La primera ejecución crea la base `supera_paes`, aplica las migraciones `001` a `003` y carga las
-cinco semillas, incluidos los textos legales locales. En cada arranque, `migraciones` termina antes
-de iniciar la API. La API usa IA y pagos simulados y escribe el correo en los registros. Abre
+La primera ejecución crea la base `supera_paes`, aplica todas las migraciones de `api/db/migraciones`
+y carga las semillas, incluidos los textos legales locales. En cada arranque, `migraciones` aplica
+solo las pendientes y termina antes de iniciar la API. La API usa IA y pagos simulados y, por defecto, escribe el correo en los registros.
+Para ver los correos de verificación como llegarían a un estudiante, el compose incluye **Mailpit**
+(solo desarrollo): en `.env.docker` usa `PROVEEDOR_CORREO=smtp`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025`,
+`SMTP_TLS=none` y un `CORREO_REMITENTE` cualquiera, sin usuario ni clave, y abre http://localhost:8025.
+La API acepta el nombre `mailpit` sin TLS solo fuera de producción. Abre
 http://localhost:3000/api/v1/salud/vivo para comprobar la API y http://localhost:8080 para la consola.
 La base queda disponible solo desde este computador en el puerto 5433.
 
@@ -140,9 +144,39 @@ base local del volumen**; úsalo solo si quieres empezar desde cero. Si 5433 est
 levantar los servicios: son las direcciones configuradas para la API, el navegador y los enlaces del
 correo.
 
+Las imágenes no llevan secretos: `.dockerignore` deja fuera `.env*`, claves, `key.properties`, respaldos,
+`docs/` y la app móvil, y todas las claves entran como variables de entorno al ejecutar. La consola se
+sirve con nginx sin privilegios en el puerto 8080 del contenedor, con los mismos encabezados de
+seguridad que en Vercel (salvo HSTS, porque en local es HTTP). `CLAVE_RESPALDO` y los secretos de
+Neon, Brevo, DeepSeek, Gemini y las tiendas no se usan en Docker.
+
 La app Flutter se ejecuta fuera de Docker. Desde el emulador de Android, conéctala a
 `http://10.0.2.2:3000`. La instalación sin Docker de la sección «Puesta en marcha» sigue disponible
 con Node 24 y PostgreSQL 18.
+
+### Probar la suscripción simulada
+
+El modo de pruebas de suscripción viene apagado. Para encenderlo, pon `MODO_PRUEBAS_SUSCRIPCION=true`
+en `.env.docker` y recrea la API:
+
+```bash
+docker compose --env-file .env.docker up -d api
+```
+
+La migración `012_canal_venta_prueba.sql` se aplica sola en el servicio `migraciones`. Con el modo
+encendido, `GET /api/v1/app/suscripciones/planes` responde `meta.modoPruebas: true` y la app muestra
+«Activar suscripción de prueba» en Planes. El botón llama a `POST /api/v1/app/suscripciones/simulada`
+y crea una suscripción activa de 30 días en el canal `prueba`, sin tiendas ni pagos. En la consola
+aparece en Suscripciones con la etiqueta «Simulada» y no suma ingresos. Cada estudiante puede tener
+una sola vigente y la simulada no se cierra sola: para repetir la prueba, registra otro estudiante.
+Con el modo apagado la ruta responde 404 y el botón no aparece.
+
+Para probarla desde el emulador de Android, compila la app apuntando a la API local (en depuración
+Android permite HTTP):
+
+```bash
+cd app && flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3000
+```
 
 ## API
 

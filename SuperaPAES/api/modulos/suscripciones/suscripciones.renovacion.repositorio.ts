@@ -4,6 +4,7 @@
 // parametrizadas.
 import type { Tienda } from '../../adaptadores/pagos/pasarela.js';
 import type { Ejecutor } from '../../db/transaccion.js';
+import { CANAL_PRUEBA } from './suscripciones.canal-prueba.js';
 
 /** Una renovación anual próxima, con lo que necesita su correo. */
 export interface RenovacionPorAvisar {
@@ -29,14 +30,16 @@ const POR_AVISAR = `
     LEFT JOIN contenido.plan_producto_tienda pt
       ON pt.plan_id = s.plan_id AND pt.canal_venta_id = s.canal_venta_id
    WHERE e.codigo = 'activa' AND p.codigo = 'anual' AND s.cancelada_en IS NULL
+     AND c.codigo <> $2
      AND s.periodo_fin > $1::timestamptz
      AND s.periodo_fin <= $1::timestamptz + INTERVAL '7 days'
    ORDER BY s.periodo_fin, s.id`;
 
 export function crearRenovacionRepositorio(bd: Ejecutor) {
   return {
+    // La simulada del modo de pruebas (canal «prueba») nunca se renueva ni se cobra: no recibe aviso.
     async porAvisar(ahora: Date): Promise<RenovacionPorAvisar[]> {
-      const { rows } = await bd.query<RenovacionPorAvisar>(POR_AVISAR, [ahora]);
+      const { rows } = await bd.query<RenovacionPorAvisar>(POR_AVISAR, [ahora, CANAL_PRUEBA]);
       return rows;
     },
   };

@@ -1,0 +1,66 @@
+// Esquemas zod de entrada del módulo administracion. Se usan con validar() en las rutas.
+import { z } from 'zod';
+import { idDeRuta } from '../../comun/identificadores.js';
+import { refinarContrasena } from '../../comun/contrasenas.js';
+import { ROLES_CUENTA_INTERNA } from '../../comun/roles.js';
+
+const nombre = z.string().trim().min(1, 'Escribe el nombre.').max(100);
+
+const correo = z
+  .email('Ingresa un correo válido.')
+  .max(150)
+  .transform((valor) => valor.toLowerCase());
+
+const rol = z.enum(ROLES_CUENTA_INTERNA, 'El rol debe ser admin o docente.');
+
+/** Ids de contenido.area, sin repetir y en orden. */
+const areas = z
+  .array(z.int().positive().max(32_767))
+  .max(20)
+  .transform((ids) => [...new Set(ids)].sort((a, b) => a - b));
+
+/** RF-C02 y CU-23: el administrador escribe la contraseña inicial, que cumple RN-31. */
+export const esquemaCrearUsuarioInterno = z
+  .strictObject({ nombre, correo, rol, areas: areas.default([]), contrasena: z.string() })
+  .superRefine(refinarContrasena);
+
+/**
+ * CU-23 3.a: se cambian el nombre, el rol y las áreas, o se asigna una contraseña nueva (RN-31; el
+ * servicio la compara con el correo de la cuenta). El correo no se edita.
+ */
+export const esquemaEditarUsuarioInterno = z
+  .strictObject({
+    nombre: nombre.optional(),
+    rol: rol.optional(),
+    areas: areas.optional(),
+    contrasena: z.string().optional(),
+  })
+  .refine((cambios) => Object.values(cambios).some((valor) => valor !== undefined), {
+    message: 'Indica al menos un cambio.',
+  });
+
+/** C01: el período del Panel. CU-25 parte en los últimos 30 días. */
+export const esquemaPanel = z.strictObject({
+  periodo: z.enum(['hoy', '7d', '30d', 'mes']).default('30d'),
+});
+
+export type ConsultaPanel = z.output<typeof esquemaPanel>;
+
+export const esquemaIdUsuarioInterno = z.strictObject({
+  id: idDeRuta,
+});
+
+/** HU-51.1: fecha de la version que vio el administrador antes de editar. */
+export const esquemaClaveConfiguracion = z.strictObject({
+  clave: z.string().regex(/^[a-z][a-z0-9_]{0,49}$/, 'La clave no es valida.'),
+});
+
+export const esquemaCambioConfiguracion = z.strictObject({
+  valor: z.unknown().refine((valor) => valor !== undefined, 'Indica un valor.'),
+  actualizadoEn: z.iso.datetime({ offset: true }),
+});
+
+export type DatosCambioConfiguracion = z.output<typeof esquemaCambioConfiguracion>;
+
+export type DatosCrearUsuarioInterno = z.output<typeof esquemaCrearUsuarioInterno>;
+export type DatosEditarUsuarioInterno = z.output<typeof esquemaEditarUsuarioInterno>;

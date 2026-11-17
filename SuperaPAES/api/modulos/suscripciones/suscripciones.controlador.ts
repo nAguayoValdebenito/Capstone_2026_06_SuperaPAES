@@ -5,13 +5,18 @@ import type { Tienda } from '../../adaptadores/fabrica.js';
 import { ErrorNoAutenticado } from '../../comun/errores.js';
 import { responder } from '../../comun/respuesta.js';
 import type { SuscripcionesServicio } from './suscripciones.servicio.js';
-import type { DatosCompra, DatosNuevaSuscripcion } from './suscripciones.validadores.js';
+import type {
+  DatosCompra,
+  DatosNuevaSuscripcion,
+  DatosSuscripcionSimulada,
+} from './suscripciones.validadores.js';
 
 export interface SuscripcionesControlador {
   planes: RequestHandler;
   suscripcionActual: RequestHandler;
   crearSuscripcion: RequestHandler<Record<string, string>, unknown, DatosNuevaSuscripcion>;
   validarCompra: RequestHandler<Record<string, string>, unknown, DatosCompra>;
+  crearSimulada: RequestHandler<Record<string, string>, unknown, DatosSuscripcionSimulada>;
   avisoGooglePlay: RequestHandler;
   avisoAppStore: RequestHandler;
 }
@@ -36,8 +41,13 @@ export function crearSuscripcionesControlador(
       responder(res, { recibido: true });
     };
   return {
+    // Con el modo de pruebas encendido, `meta` lo informa a la app; `data` sigue siendo la lista.
     planes: async (_req, res) => {
-      responder(res, await servicio.planesOfrecidos());
+      const planes = await servicio.planesOfrecidos();
+      responder(res, planes, servicio.modoPruebasActivo() ? { meta: { modoPruebas: true } } : {});
+    },
+    crearSimulada: async (req, res) => {
+      responder(res, await servicio.crearSimulada(estudianteDe(req), req.body), { estado: 201 });
     },
     suscripcionActual: async (req, res) => {
       responder(res, await servicio.vigenteDe(estudianteDe(req)));

@@ -111,6 +111,49 @@ describe('línea de tiempo (HU-56 esc. 3, RN-17)', () => {
   });
 });
 
+describe('suscripción simulada del modo de pruebas', () => {
+  const simulada = {
+    ...detalleDePrueba,
+    tienda: { codigo: 'prueba', nombre: 'Prueba (simulada)' },
+    pagos: [],
+    avisos: [],
+  };
+
+  it('la lista la marca «Simulada» en vez de una tienda', () => {
+    const html = textoDibujado(
+      <TablaSuscripciones suscripciones={[simulada]} elegida={undefined} alVer={sinAccion} />,
+    );
+
+    expect(html).toContain('<span class="etiqueta etiqueta--prueba">Simulada</span>');
+    expect(html).not.toContain('Google Play');
+  });
+
+  it('la línea de tiempo la marca «Simulada» y dice que no tiene pagos ni avisos', () => {
+    const html = textoDibujado(<LineaDeTiempo detalle={simulada} />);
+
+    expect(html).toContain('<span class="etiqueta etiqueta--prueba">Simulada</span>');
+    expect(html).toContain('no genera pagos ni recibe');
+    expect(html).not.toContain('<h3>Pagos</h3>');
+    expect(html).not.toContain('Avisos de Prueba');
+  });
+
+  it('el resumen la informa aparte, fuera de las activas y los ingresos', () => {
+    const con = textoDibujado(<TarjetasDelMes resumen={{ ...resumenDePrueba, simuladas: 1 }} />);
+    const sin = textoDibujado(<TarjetasDelMes resumen={resumenDePrueba} />);
+
+    expect(con).toContain('Simulada</span> 1 suscripción simulada del modo de');
+    expect(con).toContain('no cuentan en las activas, las altas ni los ingresos');
+    expect(sin).not.toContain('Simulada');
+  });
+
+  it('una suscripción de Google Play no lleva la etiqueta', () => {
+    const html = textoDibujado(<LineaDeTiempo detalle={detalleDePrueba} />);
+
+    expect(html).not.toContain('Simulada');
+    expect(html).toContain('<h3>Pagos</h3>');
+  });
+});
+
 describe('avisos con error (HU-56 esc. 4)', () => {
   const aviso = {
     ...detalleDePrueba.avisos[0]!,
