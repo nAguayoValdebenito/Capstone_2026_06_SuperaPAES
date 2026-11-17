@@ -1,0 +1,30 @@
+// Rutas de /api/v1/app/privacidad (estudiante autenticado con el JWT de la app): solicitudes de
+// derechos sobre datos personales (Ley 21.719), exportación y borrado de la cuenta con
+// seudonimización.
+// Cada endpoint: router.<metodo>(ruta, validar(...), controlador.<accion>), con
+// crearPrivacidadControlador(servicio).
+import { Router } from 'express';
+import { validar } from '../../comun/middleware/validacion.js';
+import { crearPrivacidadControlador } from './privacidad.controlador.js';
+import type { PrivacidadServicio } from './privacidad.servicio.js';
+import { esquemaNuevaSolicitud } from './privacidad.validadores.js';
+
+export function crearRutasAppPrivacidad(servicio: PrivacidadServicio): Router {
+  const router = Router();
+  const controlador = crearPrivacidadControlador(servicio);
+  // HU-07.1: «Descargar mis datos» (A39).
+  router.get('/mis-datos', controlador.exportarDatos);
+  // Los términos aceptados de Mis datos (A39) y la suscripción vigente que avisa A42b (RN-34).
+  router.get('/cuenta', controlador.estadoDeLaCuenta);
+  // HU-08.1: «Borrar mi cuenta» (A42 y A42b).
+  router.delete('/cuenta', controlador.borrarCuenta);
+  // HU-09.1 (RF-A21, A40): los derechos que se pueden pedir, enviar una solicitud y ver las propias.
+  router.get('/tipos-derecho', controlador.tiposDerecho);
+  router.post(
+    '/solicitudes',
+    validar({ cuerpo: esquemaNuevaSolicitud }),
+    controlador.crearSolicitud,
+  );
+  router.get('/solicitudes', controlador.misSolicitudes);
+  return router;
+}

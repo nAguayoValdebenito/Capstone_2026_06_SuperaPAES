@@ -1,0 +1,48 @@
+name: supera_paes
+description: App de estudiantes de Supera PAES (Android 8 o superior e iOS).
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+  flutter: '>=3.44.0'
+
+dependencies:
+  clock: ^1.1.3
+  dio: ^5.11.1
+  flutter:
+    sdk: flutter
+  flutter_math_fork: ^0.7.4
+  flutter_riverpod: ^3.4.3
+  flutter_secure_storage: ^11.2.0
+  go_router: ^18.0.2
+  share_plus: ^13.3.1
+  url_launcher: ^6.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^11.0.0
+
+flutter:
+  uses-material-design: true
+  # Logo oficial (Figura 63 del DAS), en el inicio de sesión.
+  assets:
+    - assets/imagenes/logo_supera_paes.png
+    - assets/imagenes/simbolo_sin_trazo.png
+  # Fuentes empaquetadas (licencia OFL, ver assets/fuentes): no se descargan al usar la app.
+  fonts:
+    - family: Figtree
+      fonts:
+        - asset: assets/fuentes/figtree-400.ttf
+        - asset: assets/fuentes/figtree-600.ttf
+          weight: 600
+        - asset: assets/fuentes/figtree-700.ttf
+          weight: 700
+        - asset: assets/fuentes/figtree-800.ttf
+          weight: 800
+    - family: STIX Two Text
+      fonts:
+        - asset: assets/fuentes/stix-two-text-400.ttf
+        - asset: assets/fuentes/stix-two-text-600.ttf
+          weight: 600

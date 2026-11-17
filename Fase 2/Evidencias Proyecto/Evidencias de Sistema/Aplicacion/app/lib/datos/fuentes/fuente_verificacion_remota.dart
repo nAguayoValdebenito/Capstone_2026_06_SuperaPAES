@@ -1,0 +1,45 @@
+import 'package:dio/dio.dart';
+import 'package:supera_paes/dominio/repositorios/repositorio_verificacion.dart';
+import 'package:supera_paes/nucleo/respuesta_api.dart';
+
+/// Llama a /api/v1/app/cuentas/verificacion y al estado de la cuenta
+/// (/cuentas/yo). Recibe el cliente con sesión,
+/// que agrega el token de acceso y lo renueva si venció.
+class FuenteVerificacionRemota {
+  const FuenteVerificacionRemota(this._dio);
+
+  final Dio _dio;
+
+  Future<void> verificarCodigo(String codigo) async {
+    await publicarObjeto(
+      _dio,
+      '/cuentas/verificacion/codigo',
+      {'codigo': codigo},
+      sinData:
+          'No recibimos el resultado de la verificación. Inténtalo de nuevo.',
+    );
+  }
+
+  Future<ResultadoReenvio> reenviar() async {
+    final data = await publicarObjeto(
+      _dio,
+      '/cuentas/verificacion/reenviar',
+      null,
+      sinData: 'No recibimos el resultado del reenvío. Inténtalo de nuevo.',
+    );
+    return (
+      enviado: data['enviado'] as bool,
+      yaVerificado: data['yaVerificado'] as bool,
+    );
+  }
+
+  Future<bool> correoVerificado() async {
+    final data = await pedirObjeto(
+      _dio,
+      'GET',
+      '/cuentas/yo',
+      sinData: 'No recibimos el estado de la cuenta. Inténtalo de nuevo.',
+    );
+    return data['correoVerificado'] == true;
+  }
+}

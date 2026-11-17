@@ -1,0 +1,366 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/verificar_correo/campo_codigo.dart';
+
+import 'apoyo/app_de_prueba.dart';
+
+/// Monta un componente con el tema de la app.
+Future<void> montar(WidgetTester tester, Widget hijo) => tester.pumpWidget(
+  MaterialApp(
+    theme: TemaSuperaPaes.claro,
+    home: Scaffold(
+      body: Padding(padding: const EdgeInsets.all(24), child: hijo),
+    ),
+  ),
+);
+
+void main() {
+  testWidgets(
+    'el segmento de práctica mantiene palabras enteras con letra 2,0',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      // Se comprueba el ajuste con la fuente empaquetada de la app.
+      await tester.runAsync(() async {
+        final fuente = FontLoader('Figtree');
+        for (final peso in [400, 600, 700, 800]) {
+          fuente.addFont(rootBundle.load('assets/fuentes/figtree-$peso.ttf'));
+        }
+        await fuente.load();
+      });
+      var elegido = 0;
+      await montar(
+        tester,
+        StatefulBuilder(
+          builder: (context, cambiar) => SelectorSegmentado<int>(
+            conMovimiento: true,
+            opciones: const [
+              (0, 'Mezcla'),
+              (1, 'Fácil'),
+              (2, 'Media'),
+              (3, 'Difícil'),
+            ],
+            seleccionado: elegido,
+            onChanged: (valor) => cambiar(() => elegido = valor),
+          ),
+        ),
+      );
+      for (final texto in ['Mezcla', 'Fácil', 'Media', 'Difícil']) {
+        final render = tester.renderObject<RenderParagraph>(find.text(texto));
+        expect(
+          render.getBoxesForSelection(
+            TextSelection(baseOffset: 0, extentOffset: texto.length),
+          ),
+          hasLength(1),
+        );
+      }
+      await tester.tap(find.text('Difícil'));
+      await tester.pumpAndSettle();
+      expect(elegido, 3);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('ChipTexto selecciona una vez y expone su estado semántico', (
+    tester,
+  ) async {
+    var seleccionado = false;
+    var toques = 0;
+    await montar(
+      tester,
+      StatefulBuilder(
+        builder: (context, cambiar) => Wrap(
+          children: [
+            ChipTexto(
+              texto: 'Salud',
+              seleccionado: seleccionado,
+              onTap: () => cambiar(() {
+                seleccionado = !seleccionado;
+                toques++;
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.tap(find.text('Salud'));
+    await tester.pumpAndSettle();
+    expect(toques, 1);
+    expect(
+      tester.getSemantics(find.byType(ChipTexto)),
+      matchesSemantics(
+        label: 'Salud',
+        isButton: true,
+        hasCheckedState: true,
+        isChecked: true,
+        hasTapAction: true,
+      ),
+    );
+    expect(
+      tester.getSize(find.byType(ChipTexto)).height,
+      greaterThanOrEqualTo(48),
+    );
+  });
+
+  testWidgets('IndicadorPasos termina al activar movimiento reducido', (
+    tester,
+  ) async {
+    await montar(tester, const IndicadorPasos(paso: 2, total: 3));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.hasRunningAnimations, isTrue);
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Paso 2 de 3'), findsOne);
+    expect(find.byType(BarraAnimada), findsNWidgets(3));
+    expect(tester.hasRunningAnimations, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('CampoTexto muestra la etiqueta arriba y la ayuda abajo', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      CampoTexto(
+        etiqueta: 'Correo',
+        controller: TextEditingController(),
+        ayuda: 'El de tu cuenta.',
+      ),
+    );
+
+    expect(find.text('Correo'), findsOne);
+    expect(find.text('El de tu cuenta.'), findsOne);
+    await tester.enterText(campo('Correo'), 'camila@ejemplo.cl');
+    expect(find.text('camila@ejemplo.cl'), findsOne);
+  });
+
+  testWidgets('CampoContrasena oculta la contraseña y el ojo la muestra', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      CampoContrasena(
+        etiqueta: 'Contraseña',
+        controller: TextEditingController(),
+      ),
+    );
+
+    bool oculta() => tester.widget<TextField>(campo('Contraseña')).obscureText;
+    expect(oculta(), isTrue);
+
+    await tester.tap(find.byTooltip('Mostrar contraseña'));
+    await tester.pump();
+    expect(oculta(), isFalse);
+
+    await tester.tap(find.byTooltip('Ocultar contraseña'));
+    await tester.pump();
+    expect(oculta(), isTrue);
+  });
+
+  testWidgets('SelectorSegmentado marca la opción activa y avisa el cambio', (
+    tester,
+  ) async {
+    int? elegido;
+    await montar(
+      tester,
+      SelectorSegmentado<int?>(
+        opciones: const [(null, 'Mezcla'), (1, 'Fácil'), (2, 'Media')],
+        seleccionado: null,
+        onChanged: (valor) => elegido = valor,
+      ),
+    );
+
+    expect(
+      tester.getSemantics(find.text('Mezcla')),
+      isSemantics(
+        isButton: true,
+        isSelected: true,
+        isInMutuallyExclusiveGroup: true,
+        label: 'Mezcla',
+      ),
+    );
+    expect(
+      tester.widget<Text>(find.text('Mezcla')).style?.color,
+      TemaSuperaPaes.primario,
+    );
+    expect(
+      tester.widget<Text>(find.text('Fácil')).style?.color,
+      TemaSuperaPaes.textoSecundario,
+    );
+
+    await tester.tap(find.text('Media'));
+    expect(elegido, 2);
+  });
+
+  testWidgets('OpcionAlternativa muestra su letra y marca la elegida', (
+    tester,
+  ) async {
+    var tocada = false;
+    await montar(
+      tester,
+      OpcionAlternativa(
+        letra: 'C',
+        texto: '32',
+        seleccionada: true,
+        onTap: () => tocada = true,
+      ),
+    );
+
+    expect(find.text('C'), findsOne);
+    expect(find.text('32'), findsOne);
+    expect(
+      tester.getSemantics(find.byType(OpcionAlternativa)),
+      isSemantics(isChecked: true),
+    );
+    expect(
+      tester.widget<Text>(find.text('C')).style?.color,
+      TemaSuperaPaes.superficie,
+    );
+    await tester.tap(find.text('32'));
+    expect(tocada, isTrue);
+  });
+
+  testWidgets('OpcionAlternativa corregida: verde o rojo con su etiqueta', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      const Column(
+        children: [
+          OpcionAlternativa(
+            letra: 'B',
+            texto: '25',
+            seleccionada: true,
+            onTap: null,
+            resultado: ResultadoAlternativa.incorrecta,
+            etiqueta: 'Tu respuesta',
+          ),
+          OpcionAlternativa(
+            letra: 'C',
+            texto: '32',
+            seleccionada: false,
+            onTap: null,
+            resultado: ResultadoAlternativa.correcta,
+            etiqueta: 'Correcta',
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text('Tu respuesta'), findsOne);
+    expect(find.text('Correcta'), findsOne);
+    Color? colorDelCirculo(String letra) {
+      final circulo = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(letra), matching: find.byType(Container))
+            .first,
+      );
+      final decoracion = circulo.decoration! as BoxDecoration;
+      return decoracion.color;
+    }
+
+    expect(colorDelCirculo('B'), TemaSuperaPaes.error);
+    expect(colorDelCirculo('C'), TemaSuperaPaes.exito);
+  });
+
+  testWidgets('FilaNavegacion muestra su ícono y su detalle', (tester) async {
+    var tocada = false;
+    await montar(
+      tester,
+      FilaNavegacion(
+        icono: Icons.group_add_outlined,
+        texto: 'Invita a alguien',
+        detalle: '5 preguntas extra por cada invitado.',
+        onTap: () => tocada = true,
+      ),
+    );
+
+    expect(find.byIcon(Icons.group_add_outlined), findsOne);
+    expect(find.text('5 preguntas extra por cada invitado.'), findsOne);
+    await tester.tap(find.text('Invita a alguien'));
+    expect(tocada, isTrue);
+  });
+
+  testWidgets('OpcionRadio muestra su detalle bajo el título', (tester) async {
+    await montar(
+      tester,
+      OpcionRadio(
+        texto: 'Un contenido',
+        detalle: 'Logaritmos',
+        seleccionada: true,
+        onTap: () {},
+      ),
+    );
+
+    expect(find.text('Un contenido'), findsOne);
+    expect(find.text('Logaritmos'), findsOne);
+  });
+
+  testWidgets('DatoResumen reparte el ancho y pone el texto bajo el número', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      const Row(
+        children: [
+          DatoResumen(valor: '15', texto: 'correctas'),
+          DatoResumen(valor: '4', texto: 'incorrectas'),
+        ],
+      ),
+    );
+
+    final numero = tester.getRect(find.text('15'));
+    final texto = tester.getRect(find.text('correctas'));
+    expect(texto.top, greaterThanOrEqualTo(numero.bottom));
+    expect(
+      tester.getCenter(find.text('4')).dx,
+      greaterThan(tester.getCenter(find.text('15')).dx),
+    );
+  });
+
+  testWidgets('Aviso pone en negrita el texto destacado', (tester) async {
+    await montar(
+      tester,
+      const Aviso(
+        tono: TonoAviso.exito,
+        destacado: 'Revisa tu correo.',
+        texto: 'Te llegará un enlace.',
+      ),
+    );
+
+    expect(find.text('Revisa tu correo. Te llegará un enlace.'), findsOne);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsOne);
+  });
+
+  testWidgets('CampoCodigo muestra un dígito por casilla y su error', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    await montar(
+      tester,
+      CampoCodigo(controller: controller, error: 'El código tiene 6 dígitos.'),
+    );
+
+    await tester.enterText(campo('Código de 6 dígitos'), '1234567');
+    await tester.pump();
+
+    // Solo entran 6 dígitos.
+    expect(controller.text, '123456');
+    for (final digito in ['1', '2', '3', '4', '5', '6']) {
+      expect(find.text(digito), findsOne);
+    }
+    expect(find.text('El código tiene 6 dígitos.'), findsOne);
+  });
+}
