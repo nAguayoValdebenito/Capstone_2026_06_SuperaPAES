@@ -8,7 +8,10 @@ import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/interceptor_sesion.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
 import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/mis_datos/hoja_contrasena.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
 import 'apoyo/app_de_prueba.dart';
@@ -28,6 +31,22 @@ bool _sePuedeBorrar(WidgetTester tester) =>
         )
         .onPressed !=
     null;
+
+/// Escribe la contraseña que confirma el borrado; la lista construye lo que
+/// se ve, así que primero llega hasta el campo.
+Future<void> _escribirContrasena(WidgetTester tester, String texto) async {
+  final campo = find.descendant(
+    of: find.byType(CampoContrasena),
+    matching: find.byType(TextField),
+  );
+  await tester.scrollUntilVisible(
+    campo,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.enterText(campo, texto);
+  await tester.pump();
+}
 
 void main() {
   group('Suscripción vigente y borrado en la API', () {
@@ -81,7 +100,7 @@ void main() {
       final fuente = FuenteMisDatosRemota(Dio()..httpClientAdapter = adaptador);
 
       final estado = await fuente.estadoDeLaCuenta();
-      await fuente.borrarCuenta();
+      await fuente.borrarCuenta('clave-secreta');
 
       expect(estado.suscripcionVigente?.tienda, Tienda.googlePlay);
       expect(estado.suscripcionVigente?.enMora, isFalse);
@@ -93,6 +112,46 @@ void main() {
       expect(
         [for (final p in adaptador.peticiones) '${p.method} ${p.path}'],
         ['GET /privacidad/cuenta', 'DELETE /privacidad/cuenta'],
+      );
+      // El borrado lleva la contraseña en el cuerpo y no renueva la sesión
+      // si la API la rechaza.
+      final borrado = adaptador.peticiones.last;
+      expect(borrado.data, {'contrasena': 'clave-secreta'});
+      expect(borrado.extra[InterceptorSesion.confirmaContrasena], isTrue);
+    });
+
+    test('al borrar con la contraseña incorrecta entrega el 401, y tras 5 '
+        'intentos, el 429', () async {
+      var estado = 401;
+      final fuente = FuenteMisDatosRemota(
+        Dio()
+          ..httpClientAdapter = AdaptadorHttpFalso(
+            (_) => estado == 401
+                ? respuestaError(401, 'NO_AUTENTICADO', contrasenaIncorrecta)
+                : respuestaError(
+                    429,
+                    'DEMASIADOS_INTENTOS',
+                    'Demasiados intentos. Espera unos minutos.',
+                  ),
+          ),
+      );
+
+      await expectLater(
+        fuente.borrarCuenta('otra'),
+        throwsA(
+          isA<ErrorApi>()
+              .having((e) => e.estadoHttp, 'estado', 401)
+              .having((e) => e.mensaje, 'mensaje', contrasenaIncorrecta),
+        ),
+      );
+      estado = 429;
+      await expectLater(
+        fuente.borrarCuenta('otra'),
+        throwsA(
+          isA<ErrorApi>()
+              .having((e) => e.estadoHttp, 'estado', 429)
+              .having((e) => e.codigo, 'código', 'DEMASIADOS_INTENTOS'),
+        ),
       );
     });
   });
@@ -120,7 +179,9 @@ void main() {
         find.text('Entiendo que debo cancelarla en la tienda'),
         findsNothing,
       );
-      // Sin suscripción, «Borrar mi cuenta» es la confirmación (A42).
+      // Sin suscripción, la contraseña y «Borrar mi cuenta» confirman (A42).
+      expect(_sePuedeBorrar(tester), isFalse);
+      await _escribirContrasena(tester, 'clave-secreta');
       expect(_sePuedeBorrar(tester), isTrue);
 
       await tester.tap(find.text('Cancelar'));
@@ -136,10 +197,12 @@ void main() {
       final contenedor = crearContenedor(misDatos: repo, almacen: almacen);
       await iniciarApp(tester, contenedor, ruta: Rutas.borrarCuenta);
 
+      await _escribirContrasena(tester, 'clave-secreta');
       await tester.tap(find.widgetWithText(FilledButton, 'Borrar mi cuenta'));
       await tester.pumpAndSettle();
 
       expect(repo.borrados, 1);
+      expect(repo.contrasenas, ['clave-secreta']);
       expect(contenedor.read(sesionProvider).value, isNull);
       expect(await almacen.leer(), isNull);
       expect(rutaActual(contenedor), Rutas.ingreso);
@@ -156,6 +219,7 @@ void main() {
       );
       await iniciarApp(tester, contenedor, ruta: Rutas.borrarCuenta);
 
+      await _escribirContrasena(tester, 'clave-secreta');
       await tester.tap(find.widgetWithText(FilledButton, 'Borrar mi cuenta'));
       await tester.pumpAndSettle();
 
@@ -165,23 +229,99 @@ void main() {
       expect(_sePuedeBorrar(tester), isTrue);
     });
 
+    testWidgets('con la contraseña incorrecta (401), lo dice bajo el campo, '
+        'no borra y la sesión sigue abierta', (tester) async {
+      final repo = RepositorioMisDatosFalso()
+        ..errorBorrado = const ErrorApi(
+          codigo: 'NO_AUTENTICADO',
+          mensaje: contrasenaIncorrecta,
+          estadoHttp: 401,
+        );
+      final almacen = AlmacenSesionEnMemoria(sesionDeEjemplo);
+      final contenedor = crearContenedor(misDatos: repo, almacen: almacen);
+      await iniciarApp(tester, contenedor, ruta: Rutas.borrarCuenta);
+
+      await _escribirContrasena(tester, 'otra');
+      await tester.tap(find.widgetWithText(FilledButton, 'Borrar mi cuenta'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(CampoContrasena),
+          matching: find.text(contrasenaIncorrecta),
+        ),
+        findsOne,
+      );
+      expect(repo.borrados, 0);
+      expect(rutaActual(contenedor), Rutas.borrarCuenta);
+      expect(contenedor.read(sesionProvider).value, isNotNull);
+      expect(await almacen.leer(), isNotNull);
+      expect(find.text('Tu cuenta se borró.'), findsNothing);
+
+      // Con la correcta, borra.
+      repo.errorBorrado = null;
+      await _escribirContrasena(tester, 'clave-secreta');
+      expect(find.text(contrasenaIncorrecta), findsNothing);
+      await tester.tap(find.widgetWithText(FilledButton, 'Borrar mi cuenta'));
+      await tester.pumpAndSettle();
+      expect(repo.borrados, 1);
+      expect(rutaActual(contenedor), Rutas.ingreso);
+    });
+
+    testWidgets('después de 5 intentos fallidos (429), pide esperar unos '
+        'minutos', (tester) async {
+      final repo = RepositorioMisDatosFalso()
+        ..errorBorrado = const ErrorApi(
+          codigo: 'DEMASIADOS_INTENTOS',
+          mensaje: 'Demasiados intentos.',
+          estadoHttp: 429,
+        );
+      final contenedor = crearContenedor(
+        sesion: sesionDeEjemplo,
+        misDatos: repo,
+      );
+      await iniciarApp(tester, contenedor, ruta: Rutas.borrarCuenta);
+
+      await _escribirContrasena(tester, 'otra');
+      await tester.tap(find.widgetWithText(FilledButton, 'Borrar mi cuenta'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(demasiadosIntentosContrasena), findsOne);
+      expect(repo.borrados, 0);
+      expect(contenedor.read(sesionProvider).value, isNotNull);
+    });
+
     testWidgets(
       '«Descargar mis datos primero» entrega el archivo antes de borrar '
       '(CU-14 paso 4)',
       (tester) async {
         final compartidos = <ArchivoMisDatos>[];
+        final repo = RepositorioMisDatosFalso();
         await iniciarApp(
           tester,
           crearContenedor(
             sesion: sesionDeEjemplo,
+            misDatos: repo,
             compartir: (archivo) async => compartidos.add(archivo),
           ),
           ruta: Rutas.borrarCuenta,
         );
 
         await tocar(tester, find.text('Descargar mis datos primero'));
+        // La descarga pide la contraseña en su propia hoja.
+        final hoja = find.byType(HojaContrasena<ArchivoMisDatos>);
+        expect(hoja, findsOne);
+        await tester.enterText(
+          find.descendant(of: hoja, matching: find.byType(TextField)),
+          'clave-secreta',
+        );
+        await tester.pump();
+        await tester.tap(find.widgetWithText(FilledButton, 'Descargar'));
+        await tester.pumpAndSettle();
 
+        expect(repo.contrasenas, ['clave-secreta']);
         expect(compartidos, [archivoDePrueba]);
+        expect(repo.borrados, 0);
       },
     );
   });
@@ -222,6 +362,9 @@ void main() {
         tester,
         find.text('Entiendo que debo cancelarla en la tienda'),
       );
+      // Falta la contraseña.
+      expect(_sePuedeBorrar(tester), isFalse);
+      await _escribirContrasena(tester, 'clave-secreta');
       expect(_sePuedeBorrar(tester), isTrue);
 
       // Se puede borrar aunque siga vigente (RN-34).
@@ -273,6 +416,7 @@ void main() {
 
       expect(find.textContaining('Tienes una suscripción'), findsNothing);
       expect(find.text('Abrir suscripciones de la tienda'), findsNothing);
+      await _escribirContrasena(tester, 'clave-secreta');
       expect(_sePuedeBorrar(tester), isTrue);
     });
 

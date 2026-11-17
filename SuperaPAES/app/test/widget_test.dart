@@ -115,6 +115,56 @@ void main() {
     });
   });
 
+  group('API_URL según el modo de compilación', () {
+    test('en depuración acepta http, para la API local', () {
+      expect(
+        Configuracion.resolverApiUrl(
+          definida: 'http://10.0.2.2:3000',
+          depuracion: true,
+        ),
+        'http://10.0.2.2:3000',
+      );
+    });
+
+    test('fuera de depuración acepta https', () {
+      expect(
+        Configuracion.resolverApiUrl(
+          definida: 'https://api.ejemplo.cl',
+          depuracion: false,
+        ),
+        'https://api.ejemplo.cl',
+      );
+    });
+
+    test('fuera de depuración rechaza http y cualquier otro esquema', () {
+      for (final url in [
+        'http://api.ejemplo.cl',
+        'HTTP://api.ejemplo.cl',
+        'api.ejemplo.cl',
+        'ftp://api.ejemplo.cl',
+      ]) {
+        expect(
+          () => Configuracion.resolverApiUrl(definida: url, depuracion: false),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'mensaje',
+              contains('https://'),
+            ),
+          ),
+          reason: url,
+        );
+      }
+    });
+
+    test('fuera de depuración, sin API_URL falla', () {
+      expect(
+        () => Configuracion.resolverApiUrl(definida: '', depuracion: false),
+        throwsStateError,
+      );
+    });
+  });
+
   group('leerData', () {
     test('devuelve data cuando no hay error', () {
       expect(

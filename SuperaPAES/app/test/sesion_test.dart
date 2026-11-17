@@ -308,18 +308,26 @@ void main() {
       token = 'viejo';
       renovaciones = 0;
       renovacionFunciona = true;
-      // La API acepta solo el token «nuevo».
+      // La API acepta solo el token «nuevo». En /privacidad/cuenta, con el
+      // token aceptado, rechaza la contraseña.
       adaptador = AdaptadorHttpFalso(
-        (opciones) => opciones.headers['Authorization'] == 'Bearer nuevo'
-            ? (
+        (opciones) =>
+            switch ((opciones.headers['Authorization'], opciones.path)) {
+              ('Bearer nuevo', '/privacidad/cuenta') => respuestaError(
+                401,
+                'NO_AUTENTICADO',
+                contrasenaIncorrecta,
+              ),
+              ('Bearer nuevo', _) => (
                 200,
                 {
                   'data': {'ok': true},
                   'error': null,
                   'meta': null,
                 },
-              )
-            : (401, _noAutenticado),
+              ),
+              _ => (401, _noAutenticado),
+            },
       );
       final base = Dio()..httpClientAdapter = adaptador;
       dio = Dio()
@@ -393,6 +401,54 @@ void main() {
         ),
       );
       expect(renovaciones, 1);
+    });
+
+    const conContrasena = {InterceptorSesion.confirmaContrasena: true};
+
+    test('un 401 por la contraseña no renueva ni repite la petición, y la '
+        'sesión sigue abierta', () async {
+      token = 'nuevo';
+
+      await expectLater(
+        dio.delete<Object?>(
+          '/privacidad/cuenta',
+          options: Options(extra: conContrasena),
+        ),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.statusCode,
+            'estado',
+            401,
+          ),
+        ),
+      );
+      expect(renovaciones, 0);
+      expect(adaptador.peticiones, hasLength(1));
+      expect(token, 'nuevo');
+    });
+
+    test('con el token vencido, la ruta con contraseña renueva igual y '
+        'entrega el rechazo de la contraseña', () async {
+      await expectLater(
+        dio.delete<Object?>(
+          '/privacidad/cuenta',
+          options: Options(extra: conContrasena),
+        ),
+        throwsA(
+          isA<DioException>().having(
+            (e) => ErrorApi.desdeDio(e).mensaje,
+            'mensaje',
+            contrasenaIncorrecta,
+          ),
+        ),
+      );
+      // Una sola renovación por el token; el rechazo de la contraseña no
+      // dispara otra.
+      expect(renovaciones, 1);
+      expect(adaptador.peticiones.map((p) => p.headers['Authorization']), [
+        'Bearer viejo',
+        'Bearer nuevo',
+      ]);
     });
 
     test('sin sesión no agrega token ni intenta renovar', () async {

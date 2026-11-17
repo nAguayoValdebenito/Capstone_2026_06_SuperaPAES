@@ -16,16 +16,31 @@ abstract final class Configuracion {
       : 'http://10.0.2.2:3000';
 
   /// URL base de la API, sin barra final. Fuera de depuración (profile y
-  /// release), una compilación sin `API_URL` falla al iniciar en vez de
-  /// apuntar a una dirección local.
-  static String get apiUrl {
-    if (_apiUrlDefinida.isNotEmpty) return _apiUrlDefinida;
-    if (!kDebugMode) {
+  /// release), una compilación sin `API_URL` o con una `API_URL` que no use
+  /// https falla al iniciar en vez de apuntar a una dirección local o enviar
+  /// contraseñas y tokens sin cifrar.
+  static String get apiUrl =>
+      resolverApiUrl(definida: _apiUrlDefinida, depuracion: kDebugMode);
+
+  /// La regla de [apiUrl], aparte para probarla en los dos modos.
+  @visibleForTesting
+  static String resolverApiUrl({
+    required String definida,
+    required bool depuracion,
+  }) {
+    if (definida.isEmpty) {
+      if (depuracion) return _apiUrlDesarrollo;
       throw StateError(
         'Falta API_URL: compila con --dart-define=API_URL=https://<api>.',
       );
     }
-    return _apiUrlDesarrollo;
+    if (!depuracion && !definida.startsWith('https://')) {
+      throw StateError(
+        'API_URL debe usar https:// fuera de depuración: compila con '
+        '--dart-define=API_URL=https://<api>.',
+      );
+    }
+    return definida;
   }
 
   /// Se llama al iniciar la app: así una configuración incompleta se nota de

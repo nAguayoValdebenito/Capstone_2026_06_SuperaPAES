@@ -34,8 +34,8 @@ jobs:
       run:
         working-directory: SuperaPAES/app
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           # Usar el mismo SDK que el check de Flutter en CI.
           flutter-version: "3.47.7"
@@ -59,7 +59,7 @@ jobs:
           mkdir Payload
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -qry supera-paes-sin-firmar.ipa Payload
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: supera-paes-ios-sin-firmar
           path: SuperaPAES/app/supera-paes-sin-firmar.ipa

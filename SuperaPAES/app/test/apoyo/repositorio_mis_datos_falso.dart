@@ -73,9 +73,13 @@ class RepositorioMisDatosFalso implements RepositorioMisDatos {
   final List<SolicitudDatos> solicitudesGuardadas = [];
   final List<(String, String?)> enviadas = [];
 
+  /// Contraseñas recibidas al descargar o al borrar, en orden.
+  final List<String> contrasenas = [];
+
   @override
-  Future<ArchivoMisDatos> descargar() async {
+  Future<ArchivoMisDatos> descargar(String contrasena) async {
     descargas++;
+    contrasenas.add(contrasena);
     if (error case final fallo?) throw fallo;
     return archivoDePrueba;
   }
@@ -90,7 +94,8 @@ class RepositorioMisDatosFalso implements RepositorioMisDatos {
   }
 
   @override
-  Future<void> borrarCuenta() async {
+  Future<void> borrarCuenta(String contrasena) async {
+    contrasenas.add(contrasena);
     if (errorBorrado case final fallo?) throw fallo;
     borrados++;
   }

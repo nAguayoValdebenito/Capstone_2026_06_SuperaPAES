@@ -6,16 +6,20 @@ import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 /// HU-08 y HU-09). Las rutas exigen la sesión de la app; los errores llegan
 /// como `ErrorApi`.
 abstract interface class RepositorioMisDatos {
-  /// Todos sus datos, como los guarda el servidor.
-  Future<ArchivoMisDatos> descargar();
+  /// Todos sus datos, como los guarda el servidor. Pide su contraseña: un
+  /// token robado no basta. Con la contraseña incorrecta, 401
+  /// `NO_AUTENTICADO`; después de 5 fallidas en 15 minutos, 429
+  /// `DEMASIADOS_INTENTOS` (el contador es común con [borrarCuenta]).
+  Future<ArchivoMisDatos> descargar(String contrasena);
 
   /// Los términos aceptados (A39) y la suscripción que la tienda sigue
   /// cobrando (HU-08.2): con ella, A42b avisa antes de borrar (RN-34).
   Future<EstadoDeLaCuenta> estadoDeLaCuenta();
 
   /// Borra la cuenta (HU-08.1). La API cierra la sesión: después, solo queda
-  /// olvidarla en el teléfono.
-  Future<void> borrarCuenta();
+  /// olvidarla en el teléfono. Pide la contraseña, con las mismas respuestas
+  /// de [descargar].
+  Future<void> borrarCuenta(String contrasena);
 
   /// Los derechos de la Ley 21.719 que se pueden pedir (A40).
   Future<List<TipoDerecho>> tiposDerecho();
