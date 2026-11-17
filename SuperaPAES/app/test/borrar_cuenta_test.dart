@@ -416,6 +416,7 @@ void main() {
 
       expect(find.textContaining('Tienes una suscripción'), findsNothing);
       expect(find.text('Abrir suscripciones de la tienda'), findsNothing);
+      await _escribirContrasena(tester, 'clave-secreta');
       expect(_sePuedeBorrar(tester), isTrue);
     });
 
