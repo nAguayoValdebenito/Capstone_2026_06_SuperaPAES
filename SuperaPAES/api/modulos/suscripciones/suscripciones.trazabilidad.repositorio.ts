@@ -8,6 +8,7 @@
 import type { QueryResultRow } from 'pg';
 import { type Pagina, paginaConTotal } from '../../db/paginacion.js';
 import type { Ejecutor } from '../../db/transaccion.js';
+import { CANAL_PRUEBA } from './suscripciones.canal-prueba.js';
 import type { FiltrosSuscripciones } from './suscripciones.trazabilidad.validadores.js';
 
 /** Un valor de una lista de opciones (estado, tienda, origen, resultado). */
@@ -17,9 +18,12 @@ export interface OpcionDeLista {
 }
 
 export interface ResumenSuscripciones {
+  /** Activas y en mora de las tiendas: sin las simuladas del modo de pruebas. */
   activas: number;
   enMora: number;
-  /** Creadas este mes que la tienda cobró: ni pendientes ni fallidas. */
+  /** Simuladas del modo de pruebas que siguen activas o en mora; no son ingresos. */
+  simuladas: number;
+  /** Creadas este mes que la tienda cobró: ni pendientes ni fallidas (sin las simuladas). */
   altasDelMes: number;
   /** Cambios a cancelada registrados este mes en el historial. */
   cancelacionesDelMes: number;
@@ -85,9 +89,12 @@ const opcion = (alias: string) =>
 
 // Una sola consulta: cada vista se calcula una vez (un CTE usado varias veces se materializa) y el
 // resumen usa una sola conexión. hoy.mes es el primer instante del mes en curso en Chile.
+// Las simuladas del modo de pruebas (canal «prueba», $1) no cuentan en las activas, en mora, altas ni por
+// plan: se informan aparte en `simuladas`. No tienen pagos, así que tampoco suman ingresos.
 const RESUMEN = `
   WITH hoy AS (SELECT date_trunc('month', now() AT TIME ZONE 'America/Santiago') AS mes),
-       r AS (SELECT * FROM app.v_resumen_suscripciones),
+       todas AS (SELECT * FROM app.v_resumen_suscripciones),
+       r AS (SELECT * FROM todas WHERE tienda <> $1),
        m AS (SELECT mes, SUM(pagos_aprobados)::int AS aprobados, SUM(pagos_rechazados)::int AS rechazados,
                     SUM(ingresos_clp)::int AS ingresos
                FROM app.v_pagos_mes GROUP BY mes),
@@ -96,9 +103,12 @@ const RESUMEN = `
   SELECT
     (SELECT COALESCE(SUM(suscripciones) FILTER (WHERE estado = 'activa'), 0)::int FROM r) AS activas,
     (SELECT COALESCE(SUM(suscripciones) FILTER (WHERE estado = 'en_mora'), 0)::int FROM r) AS "enMora",
+    (SELECT COALESCE(SUM(suscripciones) FILTER (WHERE estado IN ('activa', 'en_mora')), 0)::int
+       FROM todas WHERE tienda = $1) AS simuladas,
     (SELECT count(*)::int FROM app.suscripcion s
-       JOIN contenido.estado_suscripcion e ON e.id = s.estado_suscripcion_id, hoy
-      WHERE e.codigo NOT IN ('pendiente', 'fallida')
+       JOIN contenido.estado_suscripcion e ON e.id = s.estado_suscripcion_id
+       JOIN contenido.canal_venta c ON c.id = s.canal_venta_id, hoy
+      WHERE e.codigo NOT IN ('pendiente', 'fallida') AND c.codigo <> $1
         AND s.creado_en >= hoy.mes AT TIME ZONE 'America/Santiago') AS "altasDelMes",
     (SELECT count(*)::int FROM app.suscripcion_evento h
        JOIN contenido.estado_suscripcion e ON e.id = h.estado_nuevo_id, hoy
@@ -210,7 +220,7 @@ export function crearTrazabilidadRepositorio(bd: Ejecutor) {
     (await bd.query<T>(consulta, parametros)).rows;
   return {
     async resumen(): Promise<ResumenSuscripciones> {
-      const [resumen] = await filas<ResumenSuscripciones>(RESUMEN);
+      const [resumen] = await filas<ResumenSuscripciones>(RESUMEN, [CANAL_PRUEBA]);
       if (!resumen) throw new Error('El resumen de suscripciones no devolvió filas.');
       return resumen;
     },

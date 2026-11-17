@@ -60,10 +60,13 @@ export function aSuscripcionApp(fila: FilaSuscripcion): SuscripcionApp {
   };
 }
 
-/** RN-05: Una prueba exige elegir una prueba que exista; Todas las pruebas no lleva prueba. */
-async function pruebaDelPlan(
-  dependencias: DependenciasCompras,
-  plan: PlanEnTienda,
+/**
+ * RN-05: Una prueba exige elegir una prueba que exista; Todas las pruebas no lleva prueba. La usan la
+ * compra y la suscripción simulada del modo de pruebas.
+ */
+export async function pruebaDelPlan(
+  repositorio: Pick<ComprasRepositorio, 'pruebaExiste'>,
+  plan: Pick<PlanEnTienda, 'alcance'>,
   pruebaId: number | undefined,
   tx: Ejecutor,
 ): Promise<number | null> {
@@ -73,7 +76,7 @@ async function pruebaDelPlan(
   }
   if (pruebaId === undefined)
     throw errorDePrueba('Elige la prueba de tu plan Una prueba.', 'prueba_requerida');
-  if (!(await dependencias.repositorio.pruebaExiste(pruebaId, tx)))
+  if (!(await repositorio.pruebaExiste(pruebaId, tx)))
     throw errorDePrueba('La prueba elegida no existe.', 'prueba_inexistente');
   return pruebaId;
 }
@@ -174,7 +177,7 @@ function crearOReutilizar(
   return dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
     const plan = await repositorio.planEnTienda(datos.planId, datos.tienda, tx);
     if (!plan) throw new ErrorNoEncontrado('El plan no existe o no está disponible.');
-    const pruebaId = await pruebaDelPlan(dependencias, plan, datos.pruebaId, tx);
+    const pruebaId = await pruebaDelPlan(repositorio, plan, datos.pruebaId, tx);
     const pedido: Pedido = { estudianteId, plan, tienda: datos.tienda, pruebaId };
     const vigente = await repositorio.vigenteBloqueada(estudianteId, tx);
     if (vigente)
@@ -197,13 +200,19 @@ export interface ComprasServicio {
 export function crearComprasServicio(dependencias: DependenciasCompras): ComprasServicio {
   return {
     // Dos pedidos a la vez no encuentran pendiente y ambos la crean: el índice de una sola vigente
-    // rechaza el segundo, que se repite una vez y reutiliza la que ya existe.
+    // rechaza el segundo, que se repite una vez y reutiliza la que ya existe. Si vuelve a chocar, la
+    // vigente no es de una tienda (la simulada del modo de pruebas no tiene producto): 409.
     async crearPendiente(estudianteId, datos) {
       try {
         return await crearOReutilizar(dependencias, estudianteId, datos);
       } catch (error) {
         if (!violaUnaVigente(error)) throw error;
-        return crearOReutilizar(dependencias, estudianteId, datos);
+      }
+      try {
+        return await crearOReutilizar(dependencias, estudianteId, datos);
+      } catch (error) {
+        if (violaUnaVigente(error)) throw new ErrorConflicto('Ya tienes una suscripción en curso.');
+        throw error;
       }
     },
   };

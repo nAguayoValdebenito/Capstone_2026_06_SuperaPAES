@@ -1,0 +1,182 @@
+// Persistencia del resultado y la revisión de cualquier evaluación (HU-61.1). El resultado lo calculó la
+// base al cerrar (calcular_resultado); la revisión sale de v_revision_evaluacion, con la versión de cada
+// pregunta que vio el estudiante.
+import type { Ejecutor } from '../../db/transaccion.js';
+import { crearCierreRepositorio } from './evaluaciones.cierre.repositorio.js';
+import {
+  RESULTADO_POR_EJE_Y_HABILIDAD,
+  type ResultadoDeGrupo,
+} from './evaluaciones.resumen.repositorio.js';
+
+export interface EvaluacionParaConsulta {
+  cerradaEn: Date | null;
+  /** Con tiempo y con la hora de término cumplida según la base (RN-21). */
+  vencida: boolean;
+}
+
+interface Codigo {
+  codigo: string;
+  nombre: string;
+}
+
+export interface ResultadoEvaluacion {
+  id: string;
+  tipo: Codigo;
+  prueba: Codigo & { id: number };
+  estado: Codigo;
+  iniciadaEn: Date;
+  cerradaEn: Date;
+  duracionMin: number | null;
+  cantidad: number;
+  puntuables: number;
+  correctas: number;
+  incorrectas: number;
+  omitidas: number;
+  porcentaje: number;
+  tiempoUsadoSeg: number;
+  puntaje: number | null;
+  tablaConversion: { anioAdmision: number; proceso: string } | null;
+  recalculadoEn: Date | null;
+  ejes: ResultadoDeGrupo[];
+  habilidades: ResultadoDeGrupo[];
+}
+
+/** Eje de la estructura que el curso todavía no ve (RN-28), con el curso en que se empieza a enseñar. */
+export interface EjeOmitido {
+  id: number;
+  nombre: string;
+  /** «4° medio»; `null` si sus contenidos no tienen curso. */
+  curso: string | null;
+}
+
+export interface PreguntaRevisada {
+  orden: number;
+  preguntaId: string;
+  eje: { id: number; nombre: string };
+  resultado: 'correcta' | 'incorrecta' | 'omitida';
+  puntuable: boolean;
+  anulada: boolean;
+  texto: { titulo: string | null; contenido: string | null; imagenUrl: string | null } | null;
+  enunciado: string;
+  explicacion: string;
+  alternativaElegidaId: string | null;
+  alternativaCorrectaId: string;
+  alternativas: { id: number; letra: string; texto: string; explicacion: string | null }[];
+}
+
+const CONSULTA_RESULTADO = `SELECT e.id::text AS id,
+  jsonb_build_object('codigo', t.codigo, 'nombre', t.nombre) AS tipo,
+  jsonb_build_object('id', p.id, 'codigo', p.codigo, 'nombre', p.nombre) AS prueba,
+  jsonb_build_object('codigo', ee.codigo, 'nombre', ee.nombre) AS estado,
+  e.iniciada_en AS "iniciadaEn", e.cerrada_en AS "cerradaEn", e.duracion_min AS "duracionMin",
+  e.cantidad_preguntas AS cantidad, r.puntuables, r.correctas, r.incorrectas, r.omitidas,
+  r.porcentaje::float8 AS porcentaje, r.tiempo_usado_seg AS "tiempoUsadoSeg", r.puntaje,
+  CASE WHEN tc.id IS NOT NULL THEN
+    jsonb_build_object('anioAdmision', tc.anio_admision, 'proceso', pa.nombre)
+  END AS "tablaConversion",
+  r.recalculado_en AS "recalculadoEn",
+  ${RESULTADO_POR_EJE_Y_HABILIDAD}
+ FROM app.evaluacion e
+ JOIN contenido.tipo_evaluacion t ON t.id=e.tipo_evaluacion_id
+ JOIN contenido.prueba p ON p.id=e.prueba_id
+ JOIN contenido.estado_evaluacion ee ON ee.id=e.estado_evaluacion_id
+ JOIN app.resultado_evaluacion r ON r.evaluacion_id=e.id
+ LEFT JOIN contenido.tabla_conversion tc ON tc.id=r.tabla_conversion_id
+ LEFT JOIN contenido.proceso_admision pa ON pa.id=tc.proceso_admision_id
+ WHERE e.id=$1 AND e.estudiante_id=$2`;
+
+// HU-36.2 (A31): el armado reparte las preguntas entre los ejes ya enseñados y nunca deja un eje
+// disponible sin preguntas, así que un eje de la estructura sin ítems es uno que el curso no ve.
+const CONSULTA_EJES_OMITIDOS = `SELECT ej.id, ej.nombre, curso.nombre AS curso
+ FROM app.evaluacion e
+ JOIN contenido.estructura_detalle d ON d.estructura_id=e.estructura_id AND d.eje_id IS NOT NULL
+ JOIN contenido.eje_tematico ej ON ej.id=d.eje_id
+ LEFT JOIN LATERAL (
+   SELECT n.nombre FROM contenido.contenido_tematico c
+   JOIN contenido.nivel_escolar n ON n.id=c.nivel_escolar_id
+   WHERE c.eje_id=ej.id AND c.activo ORDER BY n.orden LIMIT 1
+ ) curso ON true
+ WHERE e.id=$1 AND e.estudiante_id=$2 AND NOT d.es_electivo
+   AND NOT EXISTS (
+     SELECT 1 FROM app.evaluacion_item i
+     JOIN contenido.pregunta_version v ON (v.pregunta_id,v.version)=(i.pregunta_id,i.version_pregunta)
+     WHERE i.evaluacion_id=e.id AND v.eje_id=ej.id)
+ ORDER BY ej.orden`;
+
+// En la práctica y el repaso solo cuentan las respondidas (RN-22): la que quedó sin responder al
+// cerrar no se revisa. En las demás, las sin responder son omitidas.
+const CONSULTA_REVISION = `SELECT r.orden, r.pregunta_id::text AS "preguntaId",
+  jsonb_build_object('id', ej.id, 'nombre', ej.nombre) AS eje,
+  CASE
+    WHEN r.alternativa_elegida IS NULL THEN 'omitida'
+    WHEN r.es_correcta THEN 'correcta'
+    ELSE 'incorrecta'
+  END AS resultado,
+  r.puntuable, r.anulada,
+  CASE WHEN tx.id IS NOT NULL THEN
+    jsonb_build_object('titulo', tx.titulo, 'contenido', tx.contenido, 'imagenUrl', tx.imagen_url)
+  END AS texto,
+  r.enunciado, r.explicacion,
+  r.alternativa_elegida::text AS "alternativaElegidaId",
+  r.alternativa_correcta_id::text AS "alternativaCorrectaId",
+  (SELECT jsonb_agg(
+     jsonb_build_object(
+       'id', a -> 'id', 'letra', a -> 'letra', 'texto', a -> 'texto', 'explicacion', a -> 'explicacion'
+     ) ORDER BY a ->> 'letra')
+   FROM jsonb_array_elements(r.alternativas) a) AS alternativas
+ FROM app.v_revision_evaluacion r
+ JOIN app.evaluacion e ON e.id=r.evaluacion_id
+ JOIN contenido.tipo_evaluacion te ON te.id=e.tipo_evaluacion_id
+ JOIN contenido.pregunta_version v ON (v.pregunta_id, v.version)=(r.pregunta_id, r.version_pregunta)
+ JOIN contenido.eje_tematico ej ON ej.id=v.eje_id
+ LEFT JOIN contenido.texto_estimulo tx ON tx.id=(v.copia ->> 'texto_estimulo_id')::bigint
+ WHERE r.evaluacion_id=$1 AND e.estudiante_id=$2
+   AND (NOT te.correccion_inmediata OR r.alternativa_elegida IS NOT NULL)
+ ORDER BY r.orden`;
+
+const consultasResultado = {
+  async bloquearEvaluacion(
+    id: string,
+    estudianteId: string,
+    tx: Ejecutor,
+  ): Promise<EvaluacionParaConsulta | null> {
+    const { rows } = await tx.query<EvaluacionParaConsulta>(
+      `SELECT cerrada_en AS "cerradaEn", COALESCE(vence_en <= now(), false) AS vencida
+         FROM app.evaluacion WHERE id=$1 AND estudiante_id=$2 FOR UPDATE`,
+      [id, estudianteId],
+    );
+    const fila = rows[0];
+    if (!fila) return null;
+    const tiempo = await tx.query<{ vencida: boolean }>(
+      'SELECT COALESCE(vence_en<=clock_timestamp(),false) AS vencida FROM app.evaluacion WHERE id=$1',
+      [id],
+    );
+    return { ...fila, vencida: tiempo.rows[0]!.vencida };
+  },
+  /** RN-21: la base la cierra con su hora de término y la corrige. */
+  async cerrarPorTiempo(id: string, tx: Ejecutor): Promise<void> {
+    await crearCierreRepositorio().cerrar(id, 'tiempo_agotado', tx);
+  },
+  async leerResultado(
+    id: string,
+    estudianteId: string,
+    tx: Ejecutor,
+  ): Promise<ResultadoEvaluacion | null> {
+    const { rows } = await tx.query<ResultadoEvaluacion>(CONSULTA_RESULTADO, [id, estudianteId]);
+    return rows[0] ?? null;
+  },
+  async leerEjesOmitidos(id: string, estudianteId: string, tx: Ejecutor): Promise<EjeOmitido[]> {
+    const { rows } = await tx.query<EjeOmitido>(CONSULTA_EJES_OMITIDOS, [id, estudianteId]);
+    return rows;
+  },
+  async leerRevision(id: string, estudianteId: string, tx: Ejecutor): Promise<PreguntaRevisada[]> {
+    const { rows } = await tx.query<PreguntaRevisada>(CONSULTA_REVISION, [id, estudianteId]);
+    return rows;
+  },
+};
+
+export function crearResultadoRepositorio() {
+  return consultasResultado;
+}
+
+export type ResultadoRepositorio = ReturnType<typeof crearResultadoRepositorio>;

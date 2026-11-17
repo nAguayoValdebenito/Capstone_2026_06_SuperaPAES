@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/interceptor_sesion.dart';
 
 /// Lee el formato único de la API:
 /// `{ "data": ..., "error": ..., "meta": ... }`.
@@ -62,7 +63,8 @@ Future<Map<String, dynamic>> publicarObjeto(
 }) => pedirObjeto(dio, 'POST', ruta, cuerpo: cuerpo, sinData: sinData);
 
 /// Como [publicarObjeto], con cualquier método (`GET`, `PUT`, `POST`...).
-/// `consulta` va en la dirección (`?curso=3M`).
+/// `consulta` va en la dirección (`?curso=3M`); `extra` llega a los
+/// interceptores (por ejemplo, [InterceptorSesion.confirmaContrasena]).
 Future<Map<String, dynamic>> pedirObjeto(
   Dio dio,
   String metodo,
@@ -70,13 +72,14 @@ Future<Map<String, dynamic>> pedirObjeto(
   required String sinData,
   Map<String, Object?>? cuerpo,
   Map<String, Object?>? consulta,
+  Map<String, Object?>? extra,
 }) async {
   try {
     final respuesta = await dio.request<Object?>(
       ruta,
       data: cuerpo,
       queryParameters: consulta,
-      options: Options(method: metodo),
+      options: Options(method: metodo, extra: extra),
     );
     final data = leerData(respuesta.data, estadoHttp: respuesta.statusCode);
     if (data is! Map<String, dynamic>) {

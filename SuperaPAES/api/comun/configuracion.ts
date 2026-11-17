@@ -38,16 +38,16 @@ const milisegundos = z.preprocess(
   z.coerce.number().int().min(100).max(60_000).optional(),
 );
 
+/** 'true' o 'false'; vacío o sin definir cuenta como 'false'. */
+const interruptor = z.stringbool({ truthy: ['true'], falsy: ['false', ''] }).default(false);
+
 const SECRETO_MINIMO = 32;
 
 const esquemaBase = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: puerto,
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-  DATABASE_SSL: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((valor) => valor === 'true'),
+  DATABASE_SSL: interruptor,
   CORS_ORIGENES: z.string().default(''),
   JWT_SECRETO_CONSOLA: z.string().min(SECRETO_MINIMO),
   JWT_SECRETO_APP: z.string().min(SECRETO_MINIMO),
@@ -100,6 +100,8 @@ const esquemaBase = z.object({
   ),
   SMTP_TIMEOUT_MS: milisegundos,
   PROVEEDOR_PAGOS: z.enum(['simulado', 'tiendas']).default('simulado'),
+  /** Suscripción simulada (canal «prueba») para ver su registro en la consola, sin tiendas ni pagos. */
+  MODO_PRUEBAS_SUSCRIPCION: interruptor,
   GOOGLE_PLAY_PAQUETE: textoOpcional,
   GOOGLE_PLAY_CUENTA_SERVICIO: textoOpcional,
   GOOGLE_PLAY_PUBSUB_AUDIENCIA: textoOpcional,
@@ -252,6 +254,7 @@ export interface Configuracion {
   ia: ConfiguracionIA;
   correo: ConfiguracionCorreo;
   pagos: ConfiguracionPagos;
+  modoPruebasSuscripcion: boolean;
 }
 
 export class ErrorConfiguracion extends Error {
@@ -278,6 +281,7 @@ export function leerConfiguracion(
     ia: leerConfiguracionIA(v),
     correo: leerConfiguracionCorreo(v),
     pagos: leerConfiguracionPagos(v),
+    modoPruebasSuscripcion: v.MODO_PRUEBAS_SUSCRIPCION,
   };
 }
 

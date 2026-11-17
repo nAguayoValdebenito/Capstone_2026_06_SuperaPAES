@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supera_paes/datos/fuentes/fuente_mis_datos_remota.dart';
 import 'package:supera_paes/datos/modelos/mis_datos_modelo.dart';
@@ -11,8 +11,11 @@ import 'package:supera_paes/dominio/entidades/documento_legal.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
 import 'package:supera_paes/nucleo/constantes.dart';
 import 'package:supera_paes/nucleo/errores.dart';
+import 'package:supera_paes/nucleo/interceptor_sesion.dart';
 import 'package:supera_paes/presentacion/comunes/boton_principal.dart';
 import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/estado_cuenta.dart';
+import 'package:supera_paes/presentacion/mis_datos/hoja_contrasena.dart';
 import 'package:supera_paes/presentacion/mis_datos/pantalla_mis_datos.dart';
 
 import 'apoyo/adaptador_http_falso.dart';
@@ -29,6 +32,30 @@ const Map<String, dynamic> _misDatosJson = {
   'puntajes': <Object?>[],
 };
 
+/// Escribe en el campo de la contraseña (de la hoja o de A42).
+Future<void> _escribirContrasena(WidgetTester tester, String texto) async {
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(CampoContrasena),
+      matching: find.byType(TextField),
+    ),
+    texto,
+  );
+  await tester.pump();
+}
+
+/// Toca «Descargar» en la hoja de la contraseña.
+Future<void> _confirmarDescarga(WidgetTester tester) async {
+  await tester.tap(find.widgetWithText(FilledButton, 'Descargar'));
+  await tester.pumpAndSettle();
+}
+
+bool _sePuedeDescargar(WidgetTester tester) =>
+    tester
+        .widget<FilledButton>(find.widgetWithText(FilledButton, 'Descargar'))
+        .onPressed !=
+    null;
+
 void main() {
   group('Archivo de mis datos', () {
     test('lleva el JSON del servidor con sangría y la fecha en el nombre', () {
@@ -39,20 +66,110 @@ void main() {
       expect(jsonDecode(archivo.contenido), _misDatosJson);
     });
 
-    test(
-      'FuenteMisDatosRemota los pide con GET a /privacidad/mis-datos',
-      () async {
-        final adaptador = AdaptadorHttpFalso((_) => respuestaOk(_misDatosJson));
+    test('FuenteMisDatosRemota los pide con POST a /privacidad/mis-datos, '
+        'con la contraseña en el cuerpo', () async {
+      final adaptador = AdaptadorHttpFalso((_) => respuestaOk(_misDatosJson));
 
-        final archivo = await FuenteMisDatosRemota(
-          Dio()..httpClientAdapter = adaptador,
-        ).descargar();
+      final archivo = await FuenteMisDatosRemota(
+        Dio()..httpClientAdapter = adaptador,
+      ).descargar('clave-secreta');
 
-        expect(adaptador.peticiones.single.method, 'GET');
-        expect(adaptador.peticiones.single.path, '/privacidad/mis-datos');
-        expect(jsonDecode(archivo.contenido), _misDatosJson);
-      },
-    );
+      final peticion = adaptador.peticiones.single;
+      expect(peticion.method, 'POST');
+      expect(peticion.path, '/privacidad/mis-datos');
+      expect(peticion.data, {'contrasena': 'clave-secreta'});
+      expect(peticion.queryParameters, isEmpty);
+      expect(peticion.extra[InterceptorSesion.confirmaContrasena], isTrue);
+      expect(jsonDecode(archivo.contenido), _misDatosJson);
+    });
+
+    test('con la contraseña incorrecta, la fuente entrega el 401', () async {
+      final fuente = FuenteMisDatosRemota(
+        Dio()
+          ..httpClientAdapter = AdaptadorHttpFalso(
+            (_) => respuestaError(401, 'NO_AUTENTICADO', contrasenaIncorrecta),
+          ),
+      );
+
+      await expectLater(
+        fuente.descargar('otra'),
+        throwsA(
+          isA<ErrorApi>()
+              .having((e) => e.estadoHttp, 'estado', 401)
+              .having((e) => e.mensaje, 'mensaje', contrasenaIncorrecta),
+        ),
+      );
+    });
+
+    test('después de 5 intentos fallidos, la fuente entrega el 429', () async {
+      final fuente = FuenteMisDatosRemota(
+        Dio()
+          ..httpClientAdapter = AdaptadorHttpFalso(
+            (_) => respuestaError(
+              429,
+              'DEMASIADOS_INTENTOS',
+              'Demasiados intentos. Espera unos minutos.',
+            ),
+          ),
+      );
+
+      await expectLater(
+        fuente.descargar('otra'),
+        throwsA(
+          isA<ErrorApi>()
+              .having((e) => e.estadoHttp, 'estado', 429)
+              .having((e) => e.codigo, 'código', 'DEMASIADOS_INTENTOS'),
+        ),
+      );
+    });
+  });
+
+  group('Errores de la contraseña', () {
+    test('401 va bajo el campo; 429, sobre el botón; VALIDACION, bajo el '
+        'campo; los demás, sobre el botón', () {
+      expect(
+        erroresDeContrasena(
+          const ErrorApi(
+            codigo: 'NO_AUTENTICADO',
+            mensaje: contrasenaIncorrecta,
+            estadoHttp: 401,
+          ),
+        ),
+        (campo: contrasenaIncorrecta, general: null),
+      );
+      expect(
+        erroresDeContrasena(
+          const ErrorApi(
+            codigo: 'DEMASIADOS_INTENTOS',
+            mensaje: 'Demasiados intentos.',
+            estadoHttp: 429,
+          ),
+        ),
+        (campo: null, general: demasiadosIntentosContrasena),
+      );
+      expect(
+        erroresDeContrasena(
+          const ErrorApi(
+            codigo: 'VALIDACION',
+            mensaje: 'Revisa los datos.',
+            estadoHttp: 400,
+            problemas: [
+              ProblemaDeCampo(
+                ruta: 'contrasena',
+                mensaje: 'La contraseña es demasiado larga.',
+              ),
+            ],
+          ),
+        ),
+        (campo: 'La contraseña es demasiado larga.', general: null),
+      );
+      expect(
+        erroresDeContrasena(
+          const ErrorApi(codigo: 'SIN_CONEXION', mensaje: 'Sin conexión.'),
+        ),
+        (campo: null, general: 'Sin conexión.'),
+      );
+    });
   });
 
   group('Términos aceptados (A39, CU-14 paso 2)', () {
@@ -178,17 +295,32 @@ void main() {
         ruta: Rutas.misDatos,
       );
 
-      await tester.tap(find.byType(BotonPrincipal));
+      await tocar(tester, find.byType(BotonPrincipal));
+      // Primero pide la contraseña: sin ella no se puede confirmar.
+      expect(find.byType(HojaContrasena<ArchivoMisDatos>), findsOne);
+      expect(_sePuedeDescargar(tester), isFalse);
+      expect(repo.descargas, 0);
+
+      await _escribirContrasena(tester, 'clave-secreta');
+      expect(_sePuedeDescargar(tester), isTrue);
+      await tester.tap(find.widgetWithText(FilledButton, 'Descargar'));
+      await tester.pump();
       await tester.pump();
 
+      expect(repo.contrasenas, ['clave-secreta']);
       expect(compartidos, [archivoDePrueba]);
+      // El botón gira mientras el menú sigue abierto: no se espera a que
+      // se detenga, solo a que la hoja termine de cerrarse.
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(HojaContrasena<ArchivoMisDatos>), findsNothing);
       expect(
         tester.widget<BotonPrincipal>(find.byType(BotonPrincipal)).estado,
         EstadoBoton.cargando,
       );
       // Con el menú abierto, otro toque no la vuelve a pedir.
       await tester.tap(find.byType(BotonPrincipal));
-      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(HojaContrasena<ArchivoMisDatos>), findsNothing);
       expect(repo.descargas, 1);
 
       menu.complete();
@@ -218,13 +350,95 @@ void main() {
       );
 
       await tocar(tester, find.byType(BotonPrincipal));
+      await _escribirContrasena(tester, 'clave-secreta');
+      await _confirmarDescarga(tester);
+      // El error queda en la hoja, que sigue abierta para reintentar.
       expect(find.text('No hay conexión con el servidor.'), findsOne);
       expect(compartidos, isEmpty);
 
       repo.error = null;
-      await tocar(tester, find.byType(BotonPrincipal));
+      await _confirmarDescarga(tester);
       expect(find.text('No hay conexión con el servidor.'), findsNothing);
+      expect(find.byType(HojaContrasena<ArchivoMisDatos>), findsNothing);
       expect(compartidos, [archivoDePrueba]);
+    });
+
+    testWidgets('con la contraseña incorrecta (401), lo dice bajo el campo y '
+        'la sesión sigue abierta', (tester) async {
+      final repo = RepositorioMisDatosFalso()
+        ..error = const ErrorApi(
+          codigo: 'NO_AUTENTICADO',
+          mensaje: contrasenaIncorrecta,
+          estadoHttp: 401,
+        );
+      final compartidos = <ArchivoMisDatos>[];
+      final contenedor = crearContenedor(
+        sesion: sesionDeEjemplo,
+        misDatos: repo,
+        compartir: (archivo) async => compartidos.add(archivo),
+      );
+      await iniciarApp(tester, contenedor, ruta: Rutas.misDatos);
+
+      await tocar(tester, find.byType(BotonPrincipal));
+      await _escribirContrasena(tester, 'otra');
+      await _confirmarDescarga(tester);
+
+      expect(
+        find.descendant(
+          of: find.byType(CampoContrasena),
+          matching: find.text(contrasenaIncorrecta),
+        ),
+        findsOne,
+      );
+      expect(compartidos, isEmpty);
+      expect(contenedor.read(sesionProvider).value, isNotNull);
+      expect(rutaActual(contenedor), Rutas.misDatos);
+
+      // Al corregirla, el aviso del campo desaparece.
+      await _escribirContrasena(tester, 'clave-secreta');
+      expect(find.text(contrasenaIncorrecta), findsNothing);
+    });
+
+    testWidgets('después de 5 intentos fallidos (429), pide esperar unos '
+        'minutos', (tester) async {
+      final repo = RepositorioMisDatosFalso()
+        ..error = const ErrorApi(
+          codigo: 'DEMASIADOS_INTENTOS',
+          mensaje: 'Demasiados intentos.',
+          estadoHttp: 429,
+        );
+      await iniciarApp(
+        tester,
+        crearContenedor(sesion: sesionDeEjemplo, misDatos: repo),
+        ruta: Rutas.misDatos,
+      );
+
+      await tocar(tester, find.byType(BotonPrincipal));
+      await _escribirContrasena(tester, 'otra');
+      await _confirmarDescarga(tester);
+
+      expect(find.text(demasiadosIntentosContrasena), findsOne);
+      expect(find.byType(HojaContrasena<ArchivoMisDatos>), findsOne);
+    });
+
+    testWidgets('«Cancelar» cierra la hoja sin descargar', (tester) async {
+      final repo = RepositorioMisDatosFalso();
+      await iniciarApp(
+        tester,
+        crearContenedor(sesion: sesionDeEjemplo, misDatos: repo),
+        ruta: Rutas.misDatos,
+      );
+
+      await tocar(tester, find.byType(BotonPrincipal));
+      await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HojaContrasena<ArchivoMisDatos>), findsNothing);
+      expect(repo.descargas, 0);
+      expect(
+        tester.widget<BotonPrincipal>(find.byType(BotonPrincipal)).estado,
+        EstadoBoton.normal,
+      );
     });
 
     testWidgets('si el menú Compartir no abre, lo avisa', (tester) async {
@@ -238,6 +452,8 @@ void main() {
       );
 
       await tocar(tester, find.byType(BotonPrincipal));
+      await _escribirContrasena(tester, 'clave-secreta');
+      await _confirmarDescarga(tester);
 
       expect(
         find.text('No se pudo abrir el menú para guardar el archivo.'),

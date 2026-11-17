@@ -1,0 +1,260 @@
+import 'package:supera_paes/dominio/entidades/evaluacion_abierta.dart';
+import 'package:supera_paes/dominio/entidades/por_repasar.dart';
+import 'package:supera_paes/dominio/entidades/practica.dart';
+import 'package:supera_paes/dominio/repositorios/repositorio_practica.dart';
+import 'package:supera_paes/nucleo/errores.dart';
+
+/// Opciones como las de la semilla para 3° medio: las tres dificultades con
+/// la mezcla de RN-09 y las pruebas del perfil de ejemplo (Lectora, M1 y
+/// Ciencias).
+const OpcionesPractica opcionesPracticaDePrueba = OpcionesPractica(
+  dificultades: [
+    Dificultad(id: 1, codigo: 'facil', nombre: 'Fácil', mezcla: 30),
+    Dificultad(id: 2, codigo: 'media', nombre: 'Media', mezcla: 45),
+    Dificultad(id: 3, codigo: 'dificil', nombre: 'Difícil', mezcla: 25),
+  ],
+  pruebas: [
+    PruebaPractica(
+      id: 1,
+      codigo: 'CL',
+      ejes: [],
+      habilidades: [
+        (id: 1, nombre: 'Localizar'),
+        (id: 2, nombre: 'Interpretar'),
+      ],
+    ),
+    PruebaPractica(
+      id: 2,
+      codigo: 'M1',
+      ejes: [
+        EjePractica(
+          id: 10,
+          nombre: 'Números',
+          contenidos: [
+            (id: 100, nombre: 'Conjunto de los números enteros'),
+            (id: 101, nombre: 'Potencias y raíces'),
+          ],
+        ),
+        EjePractica(
+          id: 11,
+          nombre: 'Álgebra y funciones',
+          contenidos: [(id: 110, nombre: 'Ecuaciones lineales')],
+        ),
+      ],
+      habilidades: [(id: 20, nombre: 'Resolver problemas')],
+    ),
+    PruebaPractica(
+      id: 5,
+      codigo: 'CIE',
+      ejes: [
+        EjePractica(
+          id: 50,
+          nombre: 'Biología',
+          contenidos: [(id: 500, nombre: 'Célula')],
+        ),
+      ],
+      habilidades: [],
+    ),
+  ],
+);
+
+/// El resumen del boceto A21: 7 de 10, 70 %, 12 minutos.
+const ResumenPractica resumenDeEjemplo = ResumenPractica(
+  id: 41,
+  prueba: 'Matemática M1',
+  alcance: Alcance(
+    TipoAlcance.contenido,
+    id: 101,
+    nombre: 'Potencias y raíces',
+  ),
+  dificultad: 'Mezcla',
+  cantidad: 10,
+  correctas: 7,
+  incorrectas: 3,
+  omitidas: 0,
+  porcentaje: 70,
+  tiempoUsadoSeg: 720,
+);
+
+/// Sin nada por repasar: la cuenta nueva.
+const PorRepasar repasoVacio = PorRepasar(total: 0, limite: 10, pruebas: []);
+
+/// El boceto A24, con el plan Gratis: 5 de M1 y 3 de M2.
+const PorRepasar repasoDeEjemplo = PorRepasar(
+  total: 8,
+  limite: 10,
+  pruebas: [
+    PruebaPorRepasar(
+      id: 1,
+      codigo: 'M1',
+      nombre: 'Matemática M1',
+      preguntas: 5,
+      ejes: [
+        EjePorRepasar(id: 12, nombre: 'Geometría', preguntas: 3),
+        EjePorRepasar(id: 13, nombre: 'Álgebra y funciones', preguntas: 2),
+      ],
+    ),
+    PruebaPorRepasar(
+      id: 2,
+      codigo: 'M2',
+      nombre: 'Matemática M2',
+      preguntas: 3,
+      ejes: [EjePorRepasar(id: 21, nombre: 'Números', preguntas: 3)],
+    ),
+  ],
+);
+
+/// Repositorio de la práctica sin red: guarda lo que se intentó iniciar y
+/// responde la práctica, salvo mientras queden [erroresAlIniciar].
+class RepositorioPracticaFalso implements RepositorioPractica {
+  RepositorioPracticaFalso({
+    this.texto,
+    this.enunciado = 'Si log2(x) = 5, ¿cuál es el valor de x?',
+    this.textosAlternativas = const ['10', '25', '32', '7'],
+  });
+
+  /// Enunciado y textos de las alternativas A a D de cada pregunta.
+  final String enunciado;
+  final List<String> textosAlternativas;
+
+  final List<DatosPractica> iniciadas = [];
+  final List<String> cursos = [];
+
+  /// Errores que responde iniciar, uno por intento, antes de empezar.
+  final List<ErrorApi> erroresAlIniciar = [];
+
+  /// Si no es `null`, cada pregunta trae este texto de lectura (A20).
+  final TextoDeLectura? texto;
+
+  /// Si no es `null`, pedir la siguiente pregunta responde este error.
+  ErrorApi? errorAlSiguiente;
+
+  /// Si no es `null`, responder responde este error.
+  ErrorApi? errorAlResponder;
+
+  /// Lo que responde GET /evaluaciones/repaso.
+  PorRepasar datosPorRepasar = repasoVacio;
+
+  /// Repasos iniciados: (prueba, eje).
+  final List<(int, int?)> repasos = [];
+
+  /// Si no es `null`, iniciar un repaso responde este error.
+  ErrorApi? errorAlRepasar;
+
+  /// Lo que responde GET /evaluaciones/abierta; sin nada abierto por defecto.
+  ConsultaEvaluacionAbierta consultaAbierta = const ConsultaEvaluacionAbierta();
+  int consultasAbierta = 0;
+
+  /// Respuestas enviadas: (ítem, alternativa).
+  final List<(int, int)> respuestas = [];
+  int pedidas = 0;
+  int _cantidad = 10;
+
+  /// La pregunta del boceto A17; la C (32) es la correcta.
+  PreguntaDePractica preguntaNumero(int orden) => PreguntaDePractica(
+    itemId: 1000 + orden,
+    orden: orden,
+    total: _cantidad,
+    enunciado: enunciado,
+    texto: texto,
+    alternativas: [
+      for (final (i, valor) in textosAlternativas.indexed)
+        AlternativaVisible(id: orden * 10 + i, letra: 'ABCD'[i], texto: valor),
+    ],
+  );
+
+  @override
+  Future<PreguntaDePractica> siguiente(int practicaId) async {
+    pedidas++;
+    if (errorAlSiguiente case final error?) throw error;
+    if (respuestas.length >= _cantidad) {
+      throw const ErrorApi(
+        codigo: 'PRACTICA_COMPLETA',
+        mensaje: 'Ya respondiste todas las preguntas.',
+      );
+    }
+    // Mientras no se responda, la misma pregunta (como el servidor).
+    return preguntaNumero(respuestas.length + 1);
+  }
+
+  @override
+  Future<Correccion> responder(
+    int practicaId,
+    int itemId,
+    int alternativaId,
+  ) async {
+    if (errorAlResponder case final error?) throw error;
+    respuestas.add((itemId, alternativaId));
+    final pregunta = preguntaNumero(itemId - 1000);
+    final correcta = pregunta.alternativas[2].id;
+    return Correccion(
+      esCorrecta: alternativaId == correcta,
+      alternativaElegidaId: alternativaId,
+      alternativaCorrectaId: correcta,
+      explicacion: 'Si log2(x) = 5, entonces x = 2⁵ = 32.',
+      alternativas: [
+        for (final a in pregunta.alternativas)
+          AlternativaCorregida(
+            id: a.id,
+            letra: a.letra,
+            texto: a.texto,
+            explicacion: a.id == correcta
+                ? 'Es 2⁵.'
+                : 'La ${a.letra} no cumple que log2(x) = 5.',
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<OpcionesPractica> opciones(String curso) async {
+    cursos.add(curso);
+    return opcionesPracticaDePrueba;
+  }
+
+  @override
+  Future<PracticaIniciada> iniciar(DatosPractica datos) async {
+    iniciadas.add(datos);
+    if (erroresAlIniciar.isNotEmpty) throw erroresAlIniciar.removeAt(0);
+    _cantidad = datos.cantidad;
+    respuestas.clear();
+    return PracticaIniciada(
+      id: 41,
+      pruebaId: datos.pruebaId,
+      cantidad: datos.cantidad,
+    );
+  }
+
+  @override
+  Future<PorRepasar> porRepasar() async => datosPorRepasar;
+
+  @override
+  Future<PracticaIniciada> iniciarRepaso(int pruebaId, {int? ejeId}) async {
+    repasos.add((pruebaId, ejeId));
+    if (errorAlRepasar case final error?) throw error;
+    _cantidad = 5;
+    respuestas.clear();
+    return PracticaIniciada(id: 42, pruebaId: pruebaId, cantidad: 5);
+  }
+
+  @override
+  Future<ResumenPractica> cerrar(int id) async => resumenDeEjemplo;
+
+  @override
+  Future<ConsultaEvaluacionAbierta> evaluacionAbierta() async {
+    consultasAbierta++;
+    return consultaAbierta;
+  }
+
+  /// Sigue la práctica abierta como la dejó el servidor: con `respondidas`
+  /// ya respondidas, la siguiente es la que viene.
+  void retomarCon(EvaluacionAbierta abierta) {
+    _cantidad = abierta.cantidad;
+    respuestas
+      ..clear()
+      ..addAll([
+        for (var orden = 1; orden <= abierta.respondidas; orden++)
+          (1000 + orden, 0),
+      ]);
+  }
+}

@@ -76,6 +76,15 @@ salen con el nombre visible «Supera PAES» (se explica en la sección 3).
 | Correo                   |                                                                                                                                                `PROVEEDOR_CORREO`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USUARIO`, `SMTP_CLAVE`, `CORREO_REMITENTE` (7) | Configuración de Brevo descrita en la sección 3.                                                                                                                                                     |
 | Tiendas                  | `PROVEEDOR_PAGOS`, `GOOGLE_PLAY_PAQUETE`, `GOOGLE_PLAY_CUENTA_SERVICIO`, `GOOGLE_PLAY_PUBSUB_AUDIENCIA`, `GOOGLE_PLAY_PUBSUB_CORREO`, `APP_STORE_BUNDLE_ID`, `APP_STORE_ID_EMISOR`, `APP_STORE_ID_CLAVE`, `APP_STORE_CLAVE_PRIVADA`, `APP_STORE_ENTORNO` (10) | `PROVEEDOR_PAGOS=tiendas`; texto de relleno claramente marcado en las siete variables de texto; un correo de relleno con formato válido en `GOOGLE_PLAY_PUBSUB_CORREO`; `APP_STORE_ENTORNO=sandbox`. |
 
+**Modo de pruebas de suscripción (opcional).** `MODO_PRUEBAS_SUSCRIPCION` queda fuera de las 30 y está
+apagado si no se define (o vale `false`). Con `true`, la pantalla de Planes de la app muestra «Activar
+suscripción de prueba» y `POST /api/v1/app/suscripciones/simulada` crea una suscripción activa simulada (canal
+«prueba», 30 días) solo para ver su registro en la trazabilidad de Suscripciones de la consola, donde aparece
+con la etiqueta «Simulada». No llama a Google Play ni a la App Store, no registra pagos ni suma ingresos y
+queda fuera de la validación de compras, el cierre de canceladas y el aviso de
+renovación. Requiere la migración `012_canal_venta_prueba.sql`. Los cobros reales en las tiendas quedan como
+mejora futura. Apagado, la ruta responde 404 y la app no muestra el botón.
+
 **Avisos de las tiendas (HU-44).** Cada tienda debe saber a dónde enviarlos:
 
 - Google Play: en la suscripción push de Cloud Pub/Sub del tema de las notificaciones en tiempo real, el

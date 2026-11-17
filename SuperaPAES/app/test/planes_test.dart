@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supera_paes/datos/modelos/mis_datos_modelo.dart';
 import 'package:supera_paes/datos/modelos/plan_modelo.dart';
 import 'package:supera_paes/dominio/entidades/plan.dart';
 import 'package:supera_paes/dominio/entidades/suscripcion_vigente.dart';
@@ -195,6 +196,120 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Suscripción de prueba (modo de pruebas)', () {
+    Future<RepositorioSuscripcionesFalso> abrirPlanes(
+      WidgetTester tester, {
+      required bool modoPruebas,
+    }) async {
+      final repositorio = RepositorioSuscripcionesFalso(
+        modoPruebas: modoPruebas,
+      );
+      await iniciarApp(
+        tester,
+        crearContenedor(sesion: sesionDeEjemplo, suscripciones: repositorio),
+        ruta: Rutas.planes,
+      );
+      tester.view.physicalSize = const Size(800, 2400);
+      await tester.pumpAndSettle();
+      return repositorio;
+    }
+
+    testWidgets('con el modo apagado no se ve el botón', (tester) async {
+      await abrirPlanes(tester, modoPruebas: false);
+
+      expect(find.text('Activar suscripción de prueba'), findsNothing);
+    });
+
+    testWidgets('con el modo encendido se ve en cada plan, sin precio ni '
+        'tienda', (tester) async {
+      await abrirPlanes(tester, modoPruebas: true);
+
+      final botones = find.text('Activar suscripción de prueba');
+      expect(botones, findsNWidgets(2));
+      for (final boton in botones.evaluate()) {
+        final texto = (boton.widget as Text).data!;
+        expect(texto, isNot(contains(r'$')));
+        expect(texto, isNot(contains('Google Play')));
+        expect(texto, isNot(contains('App Store')));
+      }
+    });
+
+    testWidgets('activa la de Todas las pruebas, lo confirma y muestra el '
+        'plan', (tester) async {
+      final repositorio = await abrirPlanes(tester, modoPruebas: true);
+
+      await tocar(tester, find.text('Activar suscripción de prueba').first);
+
+      expect(repositorio.simuladas.single, (planId: 3, pruebaId: null));
+      expect(
+        find.text('Activamos tu suscripción de prueba de Todas las pruebas.'),
+        findsOne,
+      );
+      expect(find.text('Tu plan'), findsOne);
+      expect(find.text('Activar suscripción de prueba'), findsNothing);
+    });
+
+    testWidgets('Una prueba pregunta cuál antes de activarla', (tester) async {
+      final repositorio = await abrirPlanes(tester, modoPruebas: true);
+
+      await tocar(tester, find.text('Activar suscripción de prueba').last);
+      expect(find.text('¿Qué prueba incluye tu plan?'), findsOne);
+      await tocar(tester, find.textContaining('Elegir ').last);
+
+      expect(repositorio.simuladas.single.planId, 1);
+      expect(repositorio.simuladas.single.pruebaId, isNotNull);
+    });
+
+    testWidgets('si la API la rechaza, muestra su mensaje', (tester) async {
+      final repositorio = await abrirPlanes(tester, modoPruebas: true)
+        ..errorSimulada = const ErrorApi(
+          codigo: 'CONFLICTO',
+          mensaje: 'Ya tienes una suscripción en curso.',
+        );
+
+      await tocar(tester, find.text('Activar suscripción de prueba').first);
+
+      expect(repositorio.simuladas, hasLength(1));
+      expect(find.text('Ya tienes una suscripción en curso.'), findsOne);
+    });
+
+    testWidgets('Mi suscripción la muestra sin tienda ni cancelar', (
+      tester,
+    ) async {
+      await _abrir(
+        tester,
+        Rutas.miSuscripcion,
+        suscripcion: SuscripcionVigente(
+          enMora: false,
+          plan: 'Todas las pruebas',
+          periodicidad: 'mensual',
+          tienda: Tienda.prueba,
+          periodoFin: DateTime(2026, 12, 16),
+        ),
+      );
+
+      expect(find.text('Suscripción de prueba'), findsOne);
+      expect(find.text('Dura hasta el'), findsOne);
+      expect(find.textContaining('Cancelar suscripción'), findsNothing);
+      expect(find.text('Cambiar de plan'), findsNothing);
+      expect(find.text('Pagas con'), findsNothing);
+    });
+
+    test('lee la tienda «prueba» de la API', () {
+      final suscripcion = MisDatosModelo.suscripcionDesde({
+        'estado': 'activa',
+        'plan': 'Todas las pruebas',
+        'periodicidad': 'mensual',
+        'tienda': 'prueba',
+        'gestionUrl': null,
+      });
+
+      expect(suscripcion.tienda, Tienda.prueba);
+      expect(suscripcion.tienda.simulada, isTrue);
+      expect(suscripcion.gestionUrl, isNull);
     });
   });
 

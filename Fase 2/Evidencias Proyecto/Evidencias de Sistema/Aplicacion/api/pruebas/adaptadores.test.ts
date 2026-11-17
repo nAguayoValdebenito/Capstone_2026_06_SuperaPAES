@@ -1,0 +1,242 @@
+import { describe, expect, it, vi } from 'vitest';
+import { FabricaProveedores } from '../adaptadores/fabrica.js';
+import { PasarelaPagoSimulada } from '../adaptadores/pagos/simulado.js';
+import {
+  ErrorNoAutenticado,
+  ErrorSolicitudInvalida,
+  ErrorTiendaNoDisponible,
+} from '../comun/errores.js';
+import { relojDelSistema } from '../comun/reloj.js';
+import { sobreDeepSeek, sobreGemini } from './ia-fixtures.js';
+
+const leerModelo = () => Promise.resolve('modelo-de-prueba');
+
+const solicitud = {
+  instruccion: 'Devuelve una pregunta de ecuaciones en JSON.',
+};
+
+describe('FabricaProveedores: IA', () => {
+  it.each([
+    [{ proveedor: 'simulado' as const }, 'simulado'],
+    [{ proveedor: 'deepseek' as const, claveApi: 'clave' }, 'deepseek'],
+    [{ proveedor: 'gemini' as const, claveApi: 'clave', modelo: 'modelo-prueba' }, 'gemini'],
+  ])('devuelve el proveedor indicado (%j)', (config, nombre) => {
+    expect(FabricaProveedores.ia(config, leerModelo).nombre).toBe(nombre);
+  });
+
+  it('el proveedor simulado devuelve una pregunta fija con 4 alternativas y una correcta', async () => {
+    const resultado = await FabricaProveedores.ia(
+      { proveedor: 'simulado' },
+      leerModelo,
+    ).generarPreguntas(solicitud);
+
+    expect(resultado.preguntas).toHaveLength(1);
+    const [pregunta] = resultado.preguntas;
+    expect(pregunta?.alternativas).toHaveLength(4);
+    expect(pregunta?.alternativas.filter((a) => a.esCorrecta)).toHaveLength(1);
+    for (const alternativa of pregunta?.alternativas ?? []) {
+      expect(alternativa.explicacion.length).toBeGreaterThan(0);
+    }
+    expect(resultado.costoUsd).toBe(0);
+  });
+
+  it.each(['deepseek', 'gemini'] as const)(
+    'el proveedor %s devuelve el contrato común con HTTP sustituido',
+    async (p) => {
+      const proveedor = FabricaProveedores.ia(
+        p === 'gemini'
+          ? { proveedor: p, claveApi: 'clave', modelo: 'modelo-prueba' }
+          : { proveedor: p, claveApi: 'clave' },
+        leerModelo,
+      );
+      const fetchFalso = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(Response.json(p === 'deepseek' ? sobreDeepSeek() : sobreGemini()));
+      const resultado = await proveedor.generarPreguntas(solicitud);
+      expect(resultado).toMatchObject({ proveedor: p, preguntas: expect.any(Array) as unknown[] });
+      expect(fetchFalso).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
+describe('FabricaProveedores: correo', () => {
+  const smtp = {
+    proveedor: 'smtp' as const,
+    host: 'localhost',
+    puerto: 1025,
+    tls: 'none' as const,
+    usuario: undefined,
+    clave: undefined,
+    remitente: 'a@b.cl',
+    remitenteNombre: 'Supera PAES',
+    timeoutMs: 10_000,
+  };
+
+  it.each([
+    [{ proveedor: 'consola' as const }, 'consola'],
+    [smtp, 'smtp'],
+  ])('devuelve el proveedor indicado (%j)', (config, nombre) => {
+    expect(FabricaProveedores.correo(config).nombre).toBe(nombre);
+  });
+
+  it('el proveedor consola de desarrollo escribe el mensaje completo en el registro y no falla', async () => {
+    const escribir = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const mensaje = {
+      para: 'eva@ejemplo.cl',
+      asunto: 'Verifica tu correo',
+      texto: 'Código: 123456',
+    };
+
+    await FabricaProveedores.correo({ proveedor: 'consola' }).enviar(mensaje);
+
+    expect(escribir).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(escribir.mock.calls[0]?.[0]))).toMatchObject(mensaje);
+  });
+});
+
+describe('FabricaProveedores: pagos', () => {
+  const tiendas = {
+    proveedor: 'tiendas' as const,
+    googlePlay: { paquete: 'cl.superapaes.app', cuentaServicio: '{}', audienciaPubSub: 'aud' },
+    appStore: {
+      bundleId: 'cl.superapaes.app',
+      idEmisor: 'emisor',
+      idClave: 'clave',
+      clavePrivada: 'privada',
+      entorno: 'sandbox' as const,
+    },
+  };
+
+  it('con simulado, ambas tiendas usan la pasarela simulada', () => {
+    const pagos = FabricaProveedores.pagos({ proveedor: 'simulado' }, relojDelSistema);
+
+    expect(pagos.google_play.nombre).toBe('simulado');
+    expect(pagos.app_store.nombre).toBe('simulado');
+  });
+
+  it('con tiendas, cada tienda usa su pasarela', () => {
+    const pagos = FabricaProveedores.pagos(tiendas, relojDelSistema);
+
+    expect(pagos.google_play.nombre).toBe('google-play');
+    expect(pagos.app_store.nombre).toBe('app-store');
+  });
+
+  it('los avisos exigen el origen de cada tienda (HU-44): token de Pub/Sub y configuración de Apple', async () => {
+    const aviso = { cuerpoCrudo: Buffer.from('{}'), encabezados: {} };
+    const pagos = FabricaProveedores.pagos(tiendas, relojDelSistema);
+
+    await expect(pagos.google_play.verificarAviso(aviso)).rejects.toBeInstanceOf(
+      ErrorNoAutenticado,
+    );
+    // La clave de la API de esta configuración no es válida: la App Store no está disponible.
+    await expect(pagos.app_store.verificarAviso(aviso)).rejects.toBeInstanceOf(
+      ErrorTiendaNoDisponible,
+    );
+  });
+
+  it('crea todos los proveedores a partir de la configuración', () => {
+    const proveedores = FabricaProveedores.crear(
+      {
+        ia: { proveedor: 'simulado' },
+        correo: { proveedor: 'consola' },
+        pagos: tiendas,
+      },
+      relojDelSistema,
+      leerModelo,
+    );
+
+    expect(proveedores.ia.nombre).toBe('simulado');
+    expect(proveedores.correo.nombre).toBe('consola');
+    expect(proveedores.pagos.app_store.nombre).toBe('app-store');
+  });
+});
+
+describe('PasarelaPagoSimulada', () => {
+  const ahora = new Date('2027-03-15T12:00:00Z');
+  const pasarela = new PasarelaPagoSimulada('google_play', () => ahora);
+  const CUENTA = '4ea3b5d0-1c2e-8f00-9a1b-2c3d4e5f6a7b';
+  const compra = (idCompraTienda: string) => pasarela.verificarCompra(idCompraTienda);
+  const motivo = (promesa: Promise<unknown>) =>
+    promesa.then(
+      () => null,
+      (error: unknown) => (error as { detalles?: { motivo?: string } }).detalles?.motivo,
+    );
+
+  it('aprueba «producto:cuenta» con el fin del período mensual y un cobro estable', async () => {
+    const id = `una_prueba_mensual:${CUENTA}`;
+
+    expect(await compra(id)).toEqual({
+      tienda: 'google_play',
+      idCompraTienda: id,
+      idProducto: 'una_prueba_mensual',
+      cuentaTienda: CUENTA,
+      estado: 'activa',
+      periodoInicio: ahora,
+      periodoFin: new Date('2027-04-15T12:00:00Z'),
+      idPagoPasarela: `sim-${id}`,
+      porConfirmar: false,
+      productoRenovacion: null,
+    });
+  });
+
+  it('un plan anual dura 12 meses', async () => {
+    const resultado = await compra(`todas_anual:${CUENTA}`);
+
+    expect(resultado.periodoFin).toEqual(new Date('2028-03-15T12:00:00Z'));
+  });
+
+  it('al fin de mes usa el último día del mes de término', async () => {
+    const fin31 = new PasarelaPagoSimulada('app_store', () => new Date('2027-01-31T12:00:00Z'));
+
+    const resultado = await fin31.verificarCompra(`una_prueba_mensual:${CUENTA}`);
+
+    expect(resultado.periodoFin).toEqual(new Date('2027-02-28T12:00:00Z'));
+  });
+
+  it('consultar una suscripción anual informa 12 meses, igual que al comprarla', async () => {
+    const consulta = await pasarela.consultarSuscripcion('simulado-anual-aprobada-1');
+
+    expect(consulta.periodoFin).toEqual(new Date('2028-03-15T12:00:00Z'));
+  });
+
+  it('deja la compra pendiente o fallida según el dato de prueba, sin cobro', async () => {
+    expect(await compra(`todas_mensual:${CUENTA}:pendiente`)).toMatchObject({
+      estado: 'pendiente',
+      idPagoPasarela: null,
+      periodoFin: null,
+    });
+    expect(await compra(`todas_mensual:${CUENTA}:rechazada`)).toMatchObject({
+      estado: 'fallida',
+      idPagoPasarela: null,
+    });
+  });
+
+  it('una compra vencida o sin producto y cuenta no es válida', async () => {
+    expect(await motivo(compra(`todas_mensual:${CUENTA}:vencida`))).toBe('no_vigente');
+    expect(await motivo(compra('simulado-aprobada-1'))).toBe('no_encontrada');
+  });
+
+  it('confirmar una compra simulada no hace nada', async () => {
+    await expect(
+      pasarela.confirmarCompra({ idProducto: 'todas_mensual', idCompraTienda: 'x' }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('traduce un aviso simulado y rechaza uno mal formado', async () => {
+    const aviso = await pasarela.verificarAviso({
+      cuerpoCrudo: Buffer.from(JSON.stringify({ idEvento: 'e1', tipo: 'RENOVADA' })),
+      encabezados: {},
+    });
+
+    expect(aviso).toEqual({
+      tienda: 'google_play',
+      idEvento: 'e1',
+      tipo: 'RENOVADA',
+      idCompraTienda: null,
+      reembolso: false,
+    });
+    await expect(
+      pasarela.verificarAviso({ cuerpoCrudo: Buffer.from('no es json'), encabezados: {} }),
+    ).rejects.toBeInstanceOf(ErrorSolicitudInvalida);
+  });
+});

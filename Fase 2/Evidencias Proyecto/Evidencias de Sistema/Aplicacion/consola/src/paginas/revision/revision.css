@@ -1,0 +1,131 @@
+/* El acta del docente en Mis revisiones (D01) y Desempates (D02): una sola hoja con el folio arriba, la
+   línea de margen celeste (.acta, global), la pauta con cuántos criterios faltan, la decisión y la firma
+   junto al botón. La bandeja, la pregunta, los criterios numerados y las dos revisiones de la ronda
+   siguen en estilos/global.css. Solo tokens del tema. */
+.revision-acta {
+  gap: 1.25rem;
+}
+
+.revision-acta .folio {
+  margin-bottom: -0.25rem;
+}
+
+.revision-acta__cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.revision-acta__cabeza h2 {
+  margin: 0;
+  font-size: var(--t-md);
+}
+
+/* Cuántos faltan: un contador, en letra de datos. */
+.revision-acta__avance {
+  margin: 0;
+  color: var(--tinta-2);
+  font-family: var(--fuente-datos);
+  font-size: var(--t-xs);
+}
+
+.revision-acta__atajos {
+  margin: 0.25rem 0 0.5rem;
+}
+
+/* La decisión empieza bajo una línea fina, en la misma hoja que la pauta. */
+.revision-acta__decision {
+  display: grid;
+  gap: 1rem;
+}
+
+.revision-acta .pauta + .revision-acta__decision {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--borde);
+}
+
+.revision-acta__decision > .campo__ayuda {
+  margin: 0;
+}
+
+.revision-acta .firma {
+  margin-top: 0.25rem;
+}
+
+/* El criterio con el foco dentro (donde actúan S y N) se marca con un fondo suave. */
+.revision-acta .pauta__puntos > li:has(.pauta__pregunta:focus-within) {
+  margin-inline: -0.5rem;
+  padding-inline: 0.5rem;
+  border-radius: var(--r-chico);
+  background: var(--superficie-2);
+  transition: background var(--rapido) ease;
+}
+
+/* Barra fija de la pauta (auditoría visual): al evaluar los criterios 4 a 8 el docente sigue viendo el
+   enunciado y cuántos «No» lleva, sin volver arriba. Queda bajo la barra superior de la consola. */
+.revision-acta__barra {
+  position: sticky;
+  top: 3.75rem;
+  z-index: 4;
+  display: grid;
+  gap: 0.25rem;
+  margin-inline: -0.5rem;
+  padding: 0.625rem 0.5rem 0.5rem;
+  border-bottom: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.revision-acta__enunciado {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--tinta);
+  font-family: var(--fuente-formulas);
+  font-size: var(--t-base);
+  font-style: italic;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.revision-acta__avance {
+  color: var(--tinta);
+  font-size: var(--t-sm);
+  font-weight: 500;
+}
+
+.revision-acta__limite {
+  margin: 0;
+}
+
+/* Sí y No elegidos llevan su marca de forma (visto y cruz), además del color. */
+.pauta__pregunta .segmentado__opcion input[value='si']:checked + span,
+.pauta__pregunta .segmentado__opcion input[value='no']:checked + span {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.pauta__pregunta .segmentado__opcion input[value='si']:checked + span {
+  background: var(--exito-suave);
+  color: var(--exito);
+}
+
+.pauta__pregunta .segmentado__opcion input[value='no']:checked + span {
+  background: var(--error-suave);
+  color: var(--error);
+}
+
+.pauta__pregunta .segmentado__opcion input[value='si']:checked + span::before,
+.pauta__pregunta .segmentado__opcion input[value='no']:checked + span::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: currentcolor;
+  mask: var(--marca-visto) center / contain no-repeat;
+}
+
+.pauta__pregunta .segmentado__opcion input[value='no']:checked + span::before {
+  mask-image: var(--marca-cruz);
+}

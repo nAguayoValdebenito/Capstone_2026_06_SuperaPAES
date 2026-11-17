@@ -1,0 +1,365 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supera_paes/dominio/entidades/practica.dart';
+import 'package:supera_paes/nucleo/constantes.dart';
+import 'package:supera_paes/nucleo/tema.dart';
+import 'package:supera_paes/presentacion/comunes/animados.dart';
+import 'package:supera_paes/presentacion/comunes/componentes.dart';
+import 'package:supera_paes/presentacion/comunes/componentes_seleccion.dart';
+import 'package:supera_paes/presentacion/comunes/disponibilidad_practica.dart';
+import 'package:supera_paes/presentacion/comunes/estado_usuario.dart';
+import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
+import 'package:supera_paes/presentacion/inicio/pruebas_inicio.dart';
+import 'package:supera_paes/presentacion/practicar/con_datos_practica.dart';
+import 'package:supera_paes/presentacion/practicar/empezar_practica.dart';
+import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
+
+/// Pestaña Practicar: personaliza la práctica (A13; HU-30 esc. 1 a 3,
+/// RF-A06, CU-06b). La prueba, qué practicar (toda la prueba o un eje,
+/// contenido o habilidad, que se eligen en A14), la dificultad o la mezcla y
+/// la cantidad, con las preguntas que quedan hoy.
+class PantallaPersonalizarPractica extends ConsumerStatefulWidget {
+  const PantallaPersonalizarPractica({super.key});
+
+  @override
+  ConsumerState<PantallaPersonalizarPractica> createState() =>
+      _PantallaPersonalizarPracticaState();
+}
+
+class _PantallaPersonalizarPracticaState
+    extends ConsumerState<PantallaPersonalizarPractica>
+    with EmpezarPractica {
+  @override
+  Widget build(BuildContext context) {
+    return ConDatosPractica(builder: _contenido);
+  }
+
+  Widget _contenido(DatosDePractica datos) {
+    final borrador = ref.watch(borradorPracticaProvider);
+    final pruebaId = pruebaElegida(borrador, datos.perfil);
+    final prueba = pruebaId == null ? null : datos.opciones.prueba(pruebaId);
+    final nombrePrueba =
+        datos.nombres.prueba(pruebaId ?? 0)?.nombreCorto ?? 'tu prueba';
+    final dificultad =
+        datos.opciones.dificultades
+            .where((d) => d.id == borrador.dificultadId)
+            .firstOrNull
+            ?.nombre ??
+        'Mezcla';
+    final cantidad = pruebaId == null
+        ? 0
+        : datos.estado.cantidadPara(pruebaId, borrador.cantidad);
+    final puede = pruebaId != null && datos.estado.puedePracticar(pruebaId);
+    // El alcance del borrador es de su prueba; con otra, toda la prueba.
+    final alcance = borrador.pruebaId == pruebaId
+        ? borrador.alcance
+        : Alcance.todaLaPrueba;
+    return PantallaFormulario(
+      separacion: 12,
+      hijos: [
+        const Encabezado(titulo: 'Personaliza tu práctica'),
+        Cambiante(
+          clave:
+              '$pruebaId-${alcance.tipo}-${alcance.id}-'
+              '${borrador.dificultadId}-$cantidad',
+          child: Text(
+            '$cantidad preguntas de $nombrePrueba · '
+            '${alcance.nombre ?? 'Toda la prueba'} · $dificultad',
+            style: TemaSuperaPaes.cuerpoFuerte,
+          ),
+        ),
+        _Seccion(
+          titulo: 'Prueba',
+          child: _ChipsPrueba(datos: datos, pruebaId: pruebaId),
+        ),
+        if (prueba != null)
+          _Seccion(
+            titulo: 'Qué practicar',
+            child: _QuePracticar(prueba: prueba, alcance: alcance),
+          ),
+        _Seccion(
+          titulo: 'Dificultad',
+          child: _Dificultad(
+            dificultades: datos.opciones.dificultades,
+            elegida: borrador.dificultadId,
+          ),
+        ),
+        _Seccion(
+          titulo: 'Cantidad de preguntas',
+          child: pruebaId == null
+              ? const SizedBox.shrink()
+              : _Cantidad(
+                  cantidad: cantidad,
+                  pruebaId: pruebaId,
+                  estado: datos.estado,
+                ),
+        ),
+      ],
+      pie: PieConError(
+        error: errorEmpezar,
+        boton: FilledButton(
+          onPressed: pruebaId == null || empezando
+              ? null
+              : !puede
+              ? () => context.push(Rutas.cupoAgotado)
+              : () => empezar(
+                  DatosPractica(
+                    pruebaId: pruebaId,
+                    alcance: alcance,
+                    dificultadId: borrador.dificultadId,
+                    cantidad: cantidad,
+                  ),
+                ),
+          child: empezando
+              ? const CargandoEnBoton()
+              : Text(puede ? 'Empezar práctica' : 'Ver cómo seguir'),
+        ),
+      ),
+    );
+  }
+}
+
+/// Título de un grupo (Texto/Etiqueta) con su contenido debajo.
+class _Seccion extends StatelessWidget {
+  const _Seccion({required this.titulo, required this.child});
+
+  final String titulo;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(titulo, style: TemaSuperaPaes.etiqueta),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+/// Las pruebas del perfil, con la prueba a reforzar primero («M1 ·
+/// reforzar»).
+class _ChipsPrueba extends ConsumerWidget {
+  const _ChipsPrueba({required this.datos, required this.pruebaId});
+
+  final DatosDePractica datos;
+  final int? pruebaId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GrupoChips(
+      chips: [
+        for (final (:id, titulo: _, reforzar: _) in pruebasDeInicio(
+          datos.perfil,
+          datos.nombres,
+        ))
+          ChipPrueba(
+            prueba: Prueba.deCodigo(datos.nombres.prueba(id)?.codigo ?? ''),
+            seleccionado: id == pruebaId,
+            onTap: () =>
+                ref.read(borradorPracticaProvider.notifier).elegirPrueba(id),
+          ),
+      ],
+    );
+  }
+}
+
+/// Toda la prueba, o un eje, contenido o habilidad que se elige en A14. Solo
+/// se ofrece lo que la prueba tiene para el curso del estudiante.
+class _QuePracticar extends ConsumerWidget {
+  const _QuePracticar({required this.prueba, required this.alcance});
+
+  final PruebaPractica prueba;
+  final Alcance alcance;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hayContenidos = prueba.ejes.any((eje) => eje.contenidos.isNotEmpty);
+    final opciones = [
+      (TipoAlcance.prueba, 'Toda la prueba'),
+      if (prueba.ejes.isNotEmpty) (TipoAlcance.eje, 'Un eje'),
+      if (hayContenidos) (TipoAlcance.contenido, 'Un contenido'),
+      if (prueba.habilidades.isNotEmpty)
+        (TipoAlcance.habilidad, 'Una habilidad'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, (tipo, texto)) in opciones.indexed) ...[
+          if (i > 0) const SizedBox(height: 8),
+          OpcionRadio(
+            conMovimiento: true,
+            texto: texto,
+            seleccionada: alcance.tipo == tipo,
+            detalle: alcance.tipo == tipo ? alcance.nombre : null,
+            onTap: () async {
+              final borrador = ref.read(borradorPracticaProvider.notifier)
+                ..elegirPrueba(prueba.id);
+              if (tipo == TipoAlcance.prueba) {
+                borrador.elegirAlcance(Alcance.todaLaPrueba);
+              } else {
+                await context.push('${Rutas.elegirAlcance}?tipo=${tipo.name}');
+              }
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// La mezcla equilibrada o una dificultad (HU-30 esc. 2, RN-09).
+class _Dificultad extends ConsumerWidget {
+  const _Dificultad({required this.dificultades, required this.elegida});
+
+  final List<Dificultad> dificultades;
+  final int? elegida;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nombre = [
+      for (final dificultad in dificultades)
+        if (dificultad.id == elegida) dificultad.nombre,
+    ].firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SelectorSegmentado<int?>(
+          conMovimiento: true,
+          opciones: [
+            (null, 'Mezcla'),
+            for (final dificultad in dificultades)
+              (dificultad.id, dificultad.nombre),
+          ],
+          seleccionado: elegida,
+          onChanged: (id) =>
+              ref.read(borradorPracticaProvider.notifier).elegirDificultad(id),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          nombre == null
+              ? 'Mezcla equilibrada: ${_mezcla(dificultades)}.'
+              : 'Solo preguntas de dificultad ${nombre.toLowerCase()}.',
+          style: TemaSuperaPaes.pequeno.copyWith(
+            color: TemaSuperaPaes.textoSecundario,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// «30 % fácil, 45 % media y 25 % difícil», con los valores de la base.
+  static String _mezcla(List<Dificultad> dificultades) {
+    final partes = [
+      for (final d in dificultades) '${d.mezcla} % ${d.nombre.toLowerCase()}',
+    ];
+    if (partes.length < 2) return partes.join();
+    return '${partes.sublist(0, partes.length - 1).join(', ')} y '
+        '${partes.last}';
+  }
+}
+
+/// De 5 a 20 preguntas, sugiere 10 (HU-30 esc. 3), con las que quedan hoy.
+class _Cantidad extends ConsumerWidget {
+  const _Cantidad({
+    required this.cantidad,
+    required this.pruebaId,
+    required this.estado,
+  });
+
+  final int cantidad;
+  final int pruebaId;
+  final EstadoUsuario estado;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final borrador = ref.read(borradorPracticaProvider.notifier);
+    final maximo = estado.maximoCantidad(pruebaId);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            _BotonRedondo(
+              icono: Icons.remove,
+              tooltip: 'Menos preguntas',
+              onPressed: cantidad > BorradorPractica.cantidadMinima
+                  ? () => borrador.fijarCantidad(cantidad - 1)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            // Flexible: con letra grande, «de 5 a 20» baja de línea (RNF-12).
+            Flexible(
+              child: Column(
+                children: [
+                  Text(
+                    '$cantidad',
+                    style: TemaSuperaPaes.numero.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  Text(
+                    maximo < BorradorPractica.cantidadMinima
+                        ? 'Mínimo ${BorradorPractica.cantidadMinima} '
+                              'para empezar'
+                        : 'de ${BorradorPractica.cantidadMinima} a $maximo',
+                    textAlign: TextAlign.center,
+                    style: TemaSuperaPaes.pequeno.copyWith(
+                      color: TemaSuperaPaes.textoSecundario,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            _BotonRedondo(
+              icono: Icons.add,
+              tooltip: 'Más preguntas',
+              onPressed: cantidad < maximo && estado.puedePracticar(pruebaId)
+                  ? () => borrador.fijarCantidad(cantidad + 1)
+                  : null,
+            ),
+          ],
+        ),
+        const SizedBox(height: TemaSuperaPaes.espacio8),
+        DisponibilidadPractica(pruebaId: pruebaId),
+        if (!estado.puedePracticar(pruebaId))
+          const Text(
+            'No alcanza el mínimo para una práctica. Puedes repasar, '
+            'rendir un diagnóstico o elegir una prueba incluida.',
+          ),
+      ],
+    );
+  }
+}
+
+/// Botón redondo de 44 con borde, para sumar o restar preguntas.
+class _BotonRedondo extends StatelessWidget {
+  const _BotonRedondo({
+    required this.icono,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icono;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.outlined(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        fixedSize: const Size.square(TemaSuperaPaes.botonRedondo),
+        side: const BorderSide(color: TemaSuperaPaes.bordeInput),
+        backgroundColor: TemaSuperaPaes.superficie,
+        foregroundColor: TemaSuperaPaes.texto,
+      ),
+      icon: Icon(icono, size: 20),
+    );
+  }
+}
