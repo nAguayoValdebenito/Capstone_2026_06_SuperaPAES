@@ -258,6 +258,17 @@ vez y lo envía a ambas tiendas. La restricción existente `UNIQUE (canal_venta_
 evita duplicarlo en otra oferta de la misma tienda, incluso ante escrituras concurrentes. Si se
 rechaza, se revierte también el plan y no se registra una auditoría de edición exitosa.
 
+Para llenar la app de pruebas, el banco (C02) tiene acciones en lote de hasta 10 preguntas por clic, con
+rol `admin`. `POST /api/v1/admin/revision/preguntas/lote` con `{ ids }` hace el envío a revisión de
+HU-21 para cada una, en su transacción y con sus dos docentes (RN-10), y devuelve
+`{ enviadas, noEnviadas }` con el motivo de las que no se pudo. `POST
+/api/v1/admin/preguntas/publicacion-sin-revision` con `{ ids }` publica borradores sin revisión: solo
+se monta con `MODO_PRUEBAS_PREGUNTAS=true` (apagado por defecto), que `GET /api/v1/admin/preguntas`
+anuncia con `meta.modoPruebasPreguntas`. Cada pregunta pasa por las etapas que permite la base
+(borrador, en revisión, aprobada, publicada) con la dificultad sugerida (o media), queda en la
+auditoría como `publicar_sin_revision` y devuelve `{ publicadas, noPublicadas }`. Es una excepción
+a RN-10 solo para pruebas.
+
 HU-25.1 agrega al módulo `revision`, con rol `docente`, la clasificación de dificultad del banco
 semilla (D03, CU-19a, RF-G12). `GET /api/v1/admin/revision/clasificar/siguiente` entrega
 `{ pregunta, quedan }`: la siguiente asignación pendiente del docente como revisor cuya pregunta es

@@ -91,6 +91,10 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
   'POST /api/v1/admin/preguntas/:id/publicar': ['data.id'],
   'POST /api/v1/admin/preguntas/:id/retirar': ['data.id'],
   'POST /api/v1/admin/preguntas/:id/borrador': ['data.id'],
+  'POST /api/v1/admin/preguntas/publicacion-sin-revision': [
+    'data.publicadas[]',
+    'data.noPublicadas[].id',
+  ],
   'GET /api/v1/admin/preguntas/textos': ['data[].id'],
   'GET /api/v1/admin/preguntas/textos/:id': ['data.id'],
   'POST /api/v1/admin/preguntas/textos': ['data.id'],
@@ -135,6 +139,12 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.preguntaId',
     'data.revisores[].asignacionId',
     'data.revisores[].docente.id',
+  ],
+  'POST /api/v1/admin/revision/preguntas/lote': [
+    'data.enviadas[].preguntaId',
+    'data.enviadas[].revisores[].asignacionId',
+    'data.enviadas[].revisores[].docente.id',
+    'data.noEnviadas[].id',
   ],
   'POST /api/v1/app/evaluaciones/practicas': [
     'data.id',

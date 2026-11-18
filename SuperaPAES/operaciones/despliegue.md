@@ -85,6 +85,14 @@ queda fuera de la validación de compras, el cierre de canceladas y el aviso de
 renovación. Requiere la migración `012_canal_venta_prueba.sql`. Los cobros reales en las tiendas quedan como
 mejora futura. Apagado, la ruta responde 404 y la app no muestra el botón.
 
+**Modo de pruebas de preguntas (opcional).** `MODO_PRUEBAS_PREGUNTAS` también queda fuera de las 30 y está
+apagado si no se define. Con `true`, el banco de la consola muestra «Aceptar y publicar sin revisión», que
+publica hasta 10 borradores de la página por clic sin pasar por los docentes (RN-10), con su dificultad
+sugerida o media, solo para llenar la app de preguntas y probarla. Cada una queda en la auditoría como
+«publicar_sin_revision» (semilla `007_accion_publicar_sin_revision.sql`) y se retira desde el banco como
+cualquier publicada. Apagarlo al terminar las pruebas: apagado, `POST /api/v1/admin/preguntas/publicacion-sin-revision`
+no existe. «Enviar a revisión» en lote (hasta 10 por clic) no depende de esta variable.
+
 **Avisos de las tiendas (HU-44).** Cada tienda debe saber a dónde enviarlos:
 
 - Google Play: en la suscripción push de Cloud Pub/Sub del tema de las notificaciones en tiempo real, el

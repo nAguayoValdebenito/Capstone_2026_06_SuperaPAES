@@ -38,6 +38,7 @@ export interface PreguntasControlador {
   publicarPregunta: Validado;
   retirarPregunta: Validado;
   volverABorrador: Validado;
+  publicarSinRevision: Validado<{ ids: number[] }>;
   listarAvisos: RequestHandler;
   contarAvisosPendientes: RequestHandler;
   motivosDeAvisoApp: RequestHandler;
@@ -79,6 +80,28 @@ function controladorImportacion(
     },
     importarPreguntas: async (req, res) => {
       responder(res, await servicio.importarPreguntas(autorDe(req), req.body), { estado: 201 });
+    },
+  };
+}
+
+/**
+ * HU-11: el banco, que con el modo de pruebas (MODO_PRUEBAS_PREGUNTAS) lo dice en `meta` para que la
+ * consola muestre «Aceptar y publicar sin revisión», y esa publicación de hasta 10 borradores.
+ */
+function controladorBanco(
+  servicio: PreguntasServicio,
+  modoPruebas: boolean,
+): Pick<PreguntasControlador, 'listarBanco' | 'publicarSinRevision'> {
+  return {
+    listarBanco: async (_req, res) => {
+      // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
+      const filtros = res.locals.consulta as FiltrosBanco;
+      const { preguntas, paginacion } = await servicio.listarBanco(filtros);
+      const modo = modoPruebas ? { modoPruebasPreguntas: true } : {};
+      responder(res, preguntas, { meta: { ...paginacion, ...modo } });
+    },
+    publicarSinRevision: async (req, res) => {
+      responder(res, await servicio.publicarSinRevision(autorDe(req), req.body.ids.map(String)));
     },
   };
 }
@@ -154,8 +177,12 @@ function controladorImagenes(
   };
 }
 
-export function crearPreguntasControlador(servicio: PreguntasServicio): PreguntasControlador {
+export function crearPreguntasControlador(
+  servicio: PreguntasServicio,
+  modoPruebas = false,
+): PreguntasControlador {
   return {
+    ...controladorBanco(servicio, modoPruebas),
     ...controladorImportacion(servicio),
     ...controladorImagenes(servicio),
     ...controladorAvisos(servicio),
@@ -165,12 +192,6 @@ export function crearPreguntasControlador(servicio: PreguntasServicio): Pregunta
     buscarPreguntas: async (_req, res) => {
       const { texto, limite } = res.locals.consulta as BusquedaDePreguntas;
       responder(res, await servicio.buscarPreguntas(texto, limite));
-    },
-    listarBanco: async (_req, res) => {
-      // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
-      const filtros = res.locals.consulta as FiltrosBanco;
-      const { preguntas, paginacion } = await servicio.listarBanco(filtros);
-      responder(res, preguntas, { meta: paginacion });
     },
     filtrosDelBanco: async (_req, res) => {
       responder(res, await servicio.filtrosDelBanco());
