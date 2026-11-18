@@ -72,7 +72,7 @@ const opcionJson = (alias: string) =>
         ELSE json_build_object('codigo', ${alias}.codigo, 'nombre', ${alias}.nombre) END`;
 
 /** Preguntas que cumplen los filtros ($1 a $7); un filtro en NULL no se aplica. */
-const PREGUNTAS_FILTRADAS = `
+export const PREGUNTAS_FILTRADAS = `
     FROM contenido.pregunta p
     JOIN contenido.estado_pregunta ep ON ep.id = p.estado_pregunta_id
     LEFT JOIN contenido.dificultad ds ON ds.id = p.dificultad_sugerida_id
@@ -106,7 +106,7 @@ const TOTAL_BANCO = `SELECT count(*)::int AS total ${PREGUNTAS_FILTRADAS}`;
 type FilaConTotal = FilaBanco & { total: number };
 
 /** $1 a $7 de PREGUNTAS_FILTRADAS: un filtro que no viene va como NULL y no se aplica. */
-const parametrosDelFiltro = (consulta: ConsultaBanco) => [
+export const parametrosDelFiltro = (consulta: Omit<ConsultaBanco, 'limite' | 'desde'>) => [
   consulta.pruebaId ?? null,
   consulta.contenidoIds ?? null,
   consulta.habilidadId ?? null,

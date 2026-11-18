@@ -15,7 +15,7 @@ export interface PublicacionRepositorio {
   reservar(id: string, tx: Ejecutor): Promise<EtapaDePregunta | null>;
   /** Pasa la pregunta a la etapa `hacia` (por su código) y devuelve la etapa nueva. */
   cambiarEtapa(id: string, hacia: string, tx: Ejecutor): Promise<Opcion>;
-  /** Modo de pruebas: la dificultad asignada es la sugerida, o media si no tiene. */
+  /** Publicar sin revisión: sin dificultad asignada, la sugerida, o media si no tiene. */
   asignarDificultadSugerida(id: string, tx: Ejecutor): Promise<void>;
 }
 
@@ -36,6 +36,7 @@ const CAMBIAR_ETAPA = `
 const ASIGNAR_SUGERIDA = `
   UPDATE contenido.pregunta
      SET dificultad_asignada_id = COALESCE(
+           dificultad_asignada_id,
            dificultad_sugerida_id,
            (SELECT id FROM contenido.dificultad WHERE codigo = 'media'))
    WHERE id = $1`;

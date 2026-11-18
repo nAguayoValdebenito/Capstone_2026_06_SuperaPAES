@@ -38,7 +38,8 @@ export interface PreguntasControlador {
   publicarPregunta: Validado;
   retirarPregunta: Validado;
   volverABorrador: Validado;
-  publicarSinRevision: Validado<{ ids: number[] }>;
+  publicarSinRevision: Validado;
+  contarLote: RequestHandler;
   listarAvisos: RequestHandler;
   contarAvisosPendientes: RequestHandler;
   motivosDeAvisoApp: RequestHandler;
@@ -84,24 +85,23 @@ function controladorImportacion(
   };
 }
 
-/**
- * HU-11: el banco, que con el modo de pruebas (MODO_PRUEBAS_PREGUNTAS) lo dice en `meta` para que la
- * consola muestre «Aceptar y publicar sin revisión», y esa publicación de hasta 10 borradores.
- */
+/** HU-11: el banco y sus acciones en lote para llenar la app de pruebas (10 por clic, con sus filtros). */
 function controladorBanco(
   servicio: PreguntasServicio,
-  modoPruebas: boolean,
-): Pick<PreguntasControlador, 'listarBanco' | 'publicarSinRevision'> {
+): Pick<PreguntasControlador, 'listarBanco' | 'publicarSinRevision' | 'contarLote'> {
   return {
     listarBanco: async (_req, res) => {
       // En Express 5 req.query es de solo lectura: validar() deja la consulta validada en res.locals.
       const filtros = res.locals.consulta as FiltrosBanco;
       const { preguntas, paginacion } = await servicio.listarBanco(filtros);
-      const modo = modoPruebas ? { modoPruebasPreguntas: true } : {};
-      responder(res, preguntas, { meta: { ...paginacion, ...modo } });
+      responder(res, preguntas, { meta: paginacion });
+    },
+    contarLote: async (_req, res) => {
+      responder(res, await servicio.contarLote(res.locals.consulta as FiltrosBanco));
     },
     publicarSinRevision: async (req, res) => {
-      responder(res, await servicio.publicarSinRevision(autorDe(req), req.body.ids.map(String)));
+      const filtros = res.locals.consulta as FiltrosBanco;
+      responder(res, await servicio.publicarSinRevision(autorDe(req), filtros));
     },
   };
 }
@@ -177,12 +177,9 @@ function controladorImagenes(
   };
 }
 
-export function crearPreguntasControlador(
-  servicio: PreguntasServicio,
-  modoPruebas = false,
-): PreguntasControlador {
+export function crearPreguntasControlador(servicio: PreguntasServicio): PreguntasControlador {
   return {
-    ...controladorBanco(servicio, modoPruebas),
+    ...controladorBanco(servicio),
     ...controladorImportacion(servicio),
     ...controladorImagenes(servicio),
     ...controladorAvisos(servicio),

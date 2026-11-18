@@ -66,6 +66,7 @@ function escenario(opciones: { quedan?: number; estado?: string | null } = {}) {
     preguntas: {
       pasarARevision: () => Promise.reject(new Error('no se usa')),
       resolverRevision,
+      elegiblesParaRevision: () => Promise.resolve([]),
     },
   });
   return { app, repositorio, bandeja };

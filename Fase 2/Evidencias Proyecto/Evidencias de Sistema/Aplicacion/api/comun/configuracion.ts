@@ -95,8 +95,6 @@ const esquemaBase = z.object({
   PROVEEDOR_PAGOS: z.enum(['simulado', 'tiendas']).default('simulado'),
   /** Suscripción simulada (canal «prueba») para ver su registro en la consola, sin tiendas ni pagos. */
   MODO_PRUEBAS_SUSCRIPCION: interruptor,
-  /** Botón de la consola para publicar sin revisión hasta 10 borradores, solo para llenar la app de pruebas. */
-  MODO_PRUEBAS_PREGUNTAS: interruptor,
   GOOGLE_PLAY_PAQUETE: textoOpcional,
   GOOGLE_PLAY_CUENTA_SERVICIO: textoOpcional,
   GOOGLE_PLAY_PUBSUB_AUDIENCIA: textoOpcional,
@@ -264,15 +262,6 @@ export interface Configuracion {
   correo: ConfiguracionCorreo;
   pagos: ConfiguracionPagos;
   modoPruebasSuscripcion: boolean;
-  modoPruebasPreguntas: boolean;
-}
-
-/**
- * MODO_PRUEBAS_PREGUNTAS: la consola publica sin revisión hasta 10 borradores por vez, solo para llenar la
- * app de pruebas; apagado (por defecto), POST /admin/preguntas/publicacion-sin-revision no existe.
- */
-export interface ModosDePrueba {
-  modoPruebasPreguntas?: boolean;
 }
 
 export class ErrorConfiguracion extends Error {
@@ -300,7 +289,6 @@ export function leerConfiguracion(
     correo: leerConfiguracionCorreo(v),
     pagos: leerConfiguracionPagos(v),
     modoPruebasSuscripcion: v.MODO_PRUEBAS_SUSCRIPCION,
-    modoPruebasPreguntas: v.MODO_PRUEBAS_PREGUNTAS,
   };
 }
 
