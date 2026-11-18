@@ -1,11 +1,71 @@
 /* Banco (C02): filtros con «Más filtros», tabla con ID, sello de prueba y estados apilados, y las
    confirmadas en calibración sobre la tabla (HU-26.2). Solo tokens del tema. */
 
-.banco__botones-filtros {
+/* Una sola tarjeta: a la izquierda prueba y estado; a la derecha los seis botones, todos del mismo
+   tamaño, en una cuadrícula de tres columnas iguales y dos filas. Cada columna es un par: los filtros
+   («Más filtros» y «Limpiar filtros»), el lote («Enviar a revisión» y «Aceptar y publicar») y crear
+   («Importar archivo» y «Nueva pregunta»). Si la tarjeta es angosta, la cuadrícula baja a su propia fila
+   a todo el ancho; en el teléfono, los pares van uno por fila. Se decide por el ancho de la tarjeta.
+   Prueba y estado se centran en la altura de la cuadrícula: quedan entre sus dos filas. */
+.filtros.banco__filtros {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  container: filtros-banco / inline-size;
+}
+
+.banco__filtros > .campo {
+  flex: 1 1 11rem;
+  max-width: 16rem;
+}
+
+.banco__botonera {
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  grid-auto-columns: 12rem;
+  grid-auto-flow: column;
   gap: 0.5rem;
-  align-items: end;
+  margin-left: auto;
+}
+
+.banco__botonera .boton {
+  width: 100%;
+  padding-inline: 0.75rem;
+  white-space: nowrap;
+}
+
+.banco__filtros > .filtros__mas {
+  flex: 1 0 100%;
+}
+
+@container filtros-banco (max-width: 64rem) {
+  .banco__filtros > .campo {
+    max-width: none;
+  }
+
+  .banco__botonera {
+    flex: 1 0 100%;
+    grid-auto-columns: minmax(0, 1fr);
+    margin-left: 0;
+  }
+}
+
+@container filtros-banco (max-width: 36rem) {
+  .banco__filtros > .campo {
+    flex-basis: 100%;
+  }
+
+  .banco__botonera {
+    grid-template-rows: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
+  }
+
+  .banco__botonera .boton {
+    padding-inline: 0.5rem;
+    white-space: normal;
+  }
 }
 
 .banco__mas-filtros::after {

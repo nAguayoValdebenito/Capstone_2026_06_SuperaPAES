@@ -2,7 +2,8 @@
 // prueba, estado, origen y dificultad asignada. Prueba y estado quedan a la vista; los demás, en «Más
 // filtros (n)», que empieza abierto si alguno está activo (estado/mas-filtros-banco.ts). Los selectores
 // plegados siguen dibujados (el contenedor lleva hidden). Solo presenta: los cambios los aplica useBanco.
-import { useId } from 'react';
+// La misma tarjeta lleva, a la derecha, la barra de acciones del banco (lote, importar y nueva pregunta).
+import { type ReactNode, useId } from 'react';
 import { contenidosDisponibles, ejesDisponibles, habilidadesDisponibles } from '../../estado/banco';
 import { useMasFiltros } from '../../estado/mas-filtros-banco';
 import { Selector } from '../../componentes/Selector';
@@ -14,6 +15,8 @@ interface Propiedades {
   filtros: Filtros;
   alCambiar: <C extends keyof Filtros>(campo: C, valor: Filtros[C] | undefined) => void;
   alLimpiar: () => void;
+  /** Las acciones del banco, a la derecha de los filtros en la misma tarjeta. */
+  acciones?: ReactNode;
 }
 
 const texto = (valor: string) => (valor === '' ? undefined : valor);
@@ -76,12 +79,16 @@ function FiltrosDeMas({
   );
 }
 
-export function FiltrosBanco({ opciones, filtros, alCambiar, alLimpiar }: Propiedades) {
+export function FiltrosBanco({ opciones, filtros, alCambiar, alLimpiar, acciones }: Propiedades) {
   const hayFiltros = Object.keys(filtros).length > 0;
   const idMas = useId();
   const mas = useMasFiltros(filtros);
   return (
-    <form className="filtros" aria-label="Filtros del banco" onSubmit={(e) => e.preventDefault()}>
+    <form
+      className="filtros banco__filtros"
+      aria-label="Filtros del banco"
+      onSubmit={(e) => e.preventDefault()}
+    >
       <Selector
         etiqueta="Prueba"
         valor={filtros.prueba}
@@ -94,7 +101,7 @@ export function FiltrosBanco({ opciones, filtros, alCambiar, alLimpiar }: Propie
         opciones={deLista(opciones.estados)}
         alCambiar={(valor) => alCambiar('estado', texto(valor))}
       />
-      <div className="banco__botones-filtros">
+      <div className="banco__botonera">
         <button
           type="button"
           className="boton banco__mas-filtros"
@@ -104,14 +111,10 @@ export function FiltrosBanco({ opciones, filtros, alCambiar, alLimpiar }: Propie
         >
           {`Más filtros (${String(mas.activos)})`}
         </button>
-        <button
-          type="button"
-          className="boton filtros__limpiar"
-          disabled={!hayFiltros}
-          onClick={alLimpiar}
-        >
+        <button type="button" className="boton" disabled={!hayFiltros} onClick={alLimpiar}>
           Limpiar filtros
         </button>
+        {acciones}
       </div>
       <FiltrosDeMas
         id={idMas}
