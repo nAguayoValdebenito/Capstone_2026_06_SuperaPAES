@@ -81,11 +81,7 @@ const opcionesPractica = {
 
 export function escenario() {
   // Con el modo de pruebas encendido, para que exista POST /app/suscripciones/simulada.
-  const dependencias = crearDependenciasDePrueba({
-    opcionesSuscripciones: { modoPruebas: true },
-    // Y el de preguntas, para que exista POST /admin/preguntas/publicacion-sin-revision.
-    modoPruebasPreguntas: true,
-  });
+  const dependencias = crearDependenciasDePrueba({ opcionesSuscripciones: { modoPruebas: true } });
   const servicios = aceptarCualquierSesion(crearServicios(dependencias));
   const cuentas = {
     ...servicios.cuentas,

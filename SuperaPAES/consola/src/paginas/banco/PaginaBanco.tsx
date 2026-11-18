@@ -4,8 +4,8 @@
 // vuelve con su aviso. Cada fila tiene la acción de su etapa: enviar a revisión (HU-21), publicar,
 // retirar o volver a borrador (HU-24); la publicación de varias a la vez llega con HU-53. Arriba van las
 // confirmadas en calibración (HU-26.2) y la tabla suma las estadísticas de cada pregunta (HU-53). Sobre la
-// tabla van las acciones en lote para llenar la app de pruebas: enviar a revisión y, con el modo de
-// pruebas de la API, publicar sin revisión; hasta 10 preguntas de la página por clic.
+// barra de acciones van las acciones en lote para llenar la app de pruebas: enviar a revisión y aceptar
+// y publicar, 10 preguntas por clic con los filtros puestos, en todo el banco.
 import { Link } from 'react-router';
 import { Paginacion } from '../../componentes/Paginacion';
 import { DialogoConfirmacion } from '../../componentes/DialogoConfirmacion';
@@ -17,9 +17,9 @@ import {
 } from '../../estado/acciones-banco';
 import { type CargaBanco, totalDePaginas, useBanco } from '../../estado/banco';
 import { useConfirmadas, useEstadisticasDelBanco } from '../../estado/calibracion';
-import { useAccionesEnLote } from '../../estado/acciones-lote-banco';
+import { type AccionesEnLote, useAccionesEnLote } from '../../estado/acciones-lote-banco';
 import type { EstadisticaPregunta } from '../../tipos/calibracion';
-import { AccionesEnLote } from './AccionesEnLote';
+import { BotonesEnLote } from './AccionesEnLote';
 import { ConfirmadasCalibracion } from './ConfirmadasCalibracion';
 import { FiltrosBanco } from './FiltrosBanco';
 import './banco.css';
@@ -109,8 +109,11 @@ function DialogoRetiro({ acciones }: { acciones: ReturnType<typeof useAccionesDe
   );
 }
 
-/** El título del banco y sus dos entradas: importar un archivo (C04) y crear una pregunta (C03). */
-function EncabezadoBanco() {
+/**
+ * El título del banco y su barra de acciones: las dos acciones en lote (10 por clic con los filtros),
+ * importar un archivo (C04) y crear una pregunta (C03).
+ */
+function EncabezadoBanco({ lote }: { lote: AccionesEnLote }) {
   return (
     <header className="pagina__encabezado">
       <div>
@@ -121,6 +124,7 @@ function EncabezadoBanco() {
         </p>
       </div>
       <div className="pagina__acciones">
+        <BotonesEnLote acciones={lote} />
         <Link className="boton" to="/banco/importar">
           Importar archivo
         </Link>
@@ -136,7 +140,7 @@ export function PaginaBanco() {
   const { opciones, carga, filtros, cambiarFiltro, limpiarFiltros, irAPagina, recargar, vuelta } =
     useBanco();
   const acciones = useAccionesDelBanco(recargar, useAvisoDeNavegacion());
-  const lote = useAccionesEnLote(recargar);
+  const lote = useAccionesEnLote(filtros, vuelta, recargar);
   const confirmadas = useConfirmadas(vuelta);
   const hayFiltros = Object.keys(filtros).length > 0;
   const estadisticas = useEstadisticasDelBanco(
@@ -145,8 +149,8 @@ export function PaginaBanco() {
 
   return (
     <section className="pagina pagina--ancha">
-      <EncabezadoBanco />
-
+      <EncabezadoBanco lote={lote} />
+      <AvisoDeAccion aviso={lote.aviso} />
       <AvisoDeAccion aviso={acciones.aviso} />
       <ConfirmadasCalibracion carga={confirmadas} acciones={acciones} />
       {opciones.tipo === 'lista' && (
@@ -158,13 +162,6 @@ export function PaginaBanco() {
         />
       )}
       {opciones.tipo === 'fallida' && <Alerta texto={opciones.mensaje} codigo={opciones.codigo} />}
-      {carga.tipo === 'lista' && (
-        <AccionesEnLote
-          preguntas={carga.pagina.preguntas}
-          modoPruebas={carga.pagina.modoPruebas}
-          acciones={lote}
-        />
-      )}
       <ResultadoBanco
         carga={carga}
         alCambiarPagina={irAPagina}

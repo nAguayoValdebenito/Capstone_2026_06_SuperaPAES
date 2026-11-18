@@ -1,7 +1,8 @@
-// Acciones en lote del banco con PostgreSQL real (ver base-temporal.ts): enviar a revisión varias
-// preguntas a la vez les asigna sus dos docentes como el envío de una (RN-10), y publicar sin revisión
-// (modo de pruebas) deja la pregunta en la app con dificultad asignada, su historial por las etapas que
-// permite la base y la auditoría «publicar_sin_revision». Las que no se pueden quedan como estaban.
+// Acciones en lote del banco con PostgreSQL real (ver base-temporal.ts), clic tras clic: enviar a revisión
+// y publicar sin revisión procesan 10 preguntas por vez del filtro del banco, en todo el banco; el clic
+// siguiente toma las 10 siguientes y así hasta que no queda ninguna. El envío asigna dos docentes como el
+// de una (RN-10); la publicación deja la pregunta en la app con dificultad asignada, su historial por las
+// etapas que permite la base y la auditoría «publicar_sin_revision».
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Servicios } from '../app.js';
 import { type BaseTemporal, exigirBaseEnCi, MINUTO, urlBase } from './base-temporal.js';
@@ -22,24 +23,27 @@ describe.skipIf(!urlBase)('acciones en lote del banco con PostgreSQL', () => {
   let admin = '';
   let temario = { prueba: 0, contenido: 0, habilidad: 0 };
 
-  const nueva = (enunciado: string) =>
-    crearPreguntaDeHistoria(servicios, temario, [admin, enunciado]);
+  /** El filtro del banco por la prueba de Historia, como llega validado de la URL. */
+  const filtros = () => ({ prueba: temario.prueba, pagina: 1, porPagina: 20 });
 
-  const etapa = async (id: string) =>
+  const borradores = async (cantidad: number, prefijo: string) => {
+    const ids: string[] = [];
+    for (let i = 1; i <= cantidad; i++) {
+      const enunciado = `¿${prefijo} ${String(i)}?`;
+      ids.push(await crearPreguntaDeHistoria(servicios, temario, [admin, enunciado]));
+    }
+    return ids;
+  };
+
+  const etapas = async (ids: readonly string[]) =>
     (
-      await base.bd.query<{ estado: string; dificultad: string | null }>(
-        `SELECT e.codigo AS estado, d.codigo AS dificultad
-           FROM contenido.pregunta p
+      await base.bd.query<{ estado: string }>(
+        `SELECT e.codigo AS estado FROM contenido.pregunta p
            JOIN contenido.estado_pregunta e ON e.id = p.estado_pregunta_id
-           LEFT JOIN contenido.dificultad d ON d.id = p.dificultad_asignada_id
-          WHERE p.id = $1`,
-        [id],
+          WHERE p.id = ANY ($1::bigint[]) ORDER BY p.id`,
+        [ids],
       )
-    ).rows[0];
-
-  const enLaApp = async (id: string) =>
-    (await base.bd.query('SELECT 1 FROM contenido.v_preguntas_publicadas WHERE id = $1', [id]))
-      .rowCount === 1;
+    ).rows.map((fila) => fila.estado);
 
   beforeAll(async () => {
     ({ base, servicios } = await prepararBaseDeRevision('lote_pruebas'));
@@ -52,61 +56,92 @@ describe.skipIf(!urlBase)('acciones en lote del banco con PostgreSQL', () => {
 
   afterAll(() => base.cerrar(), MINUTO);
 
-  it('envía a revisión las del lote con sus dos docentes y dice por qué no las demás', async () => {
-    const [primera, segunda] = [await nueva('¿Lote 1?'), await nueva('¿Lote 2?')];
-    await servicios.revision.enviarARevision(admin, segunda);
+  it(
+    'envía a revisión de 10 en 10, clic tras clic, hasta que no queda ninguna',
+    async () => {
+      const ids = await borradores(12, 'Revisión');
+      expect((await servicios.preguntas.contarLote(filtros())).paraRevision).toBe(12);
 
-    const lote = await servicios.revision.enviarLoteARevision(admin, [primera, segunda]);
+      const primero = await servicios.revision.enviarLoteARevision(admin, filtros());
+      const segundo = await servicios.revision.enviarLoteARevision(admin, filtros());
+      const tercero = await servicios.revision.enviarLoteARevision(admin, filtros());
 
-    expect(lote.enviadas.map((envio) => envio.preguntaId)).toEqual([primera]);
-    expect(lote.enviadas[0]?.revisores).toHaveLength(2);
-    expect(lote.noEnviadas).toEqual([{ id: segunda, motivo: expect.any(String) as string }]);
-    expect((await etapa(primera))?.estado).toBe('en_revision');
-  });
+      expect(primero.enviadas).toHaveLength(10);
+      expect(primero.enviadas.every((envio) => envio.revisores.length === 2)).toBe(true);
+      expect(segundo.enviadas).toHaveLength(2);
+      expect(tercero).toEqual({ enviadas: [], noEnviadas: [] });
+      expect(new Set(await etapas(ids))).toEqual(new Set(['en_revision']));
+      expect((await servicios.preguntas.contarLote(filtros())).paraRevision).toBe(0);
+    },
+    MINUTO,
+  );
 
-  it('publica sin revisión un borrador: llega a la app, con dificultad y su auditoría', async () => {
-    const borrador = await nueva('¿Sin revisión?');
-    const enRevision = await nueva('¿Ya en revisión?');
-    await servicios.revision.enviarARevision(admin, enRevision);
+  it(
+    'publica sin revisión de 10 en 10, clic tras clic, con historial y auditoría',
+    async () => {
+      const ids = await borradores(12, 'Publicar');
+      expect((await servicios.preguntas.contarLote(filtros())).paraPublicar).toBe(12);
 
-    const lote = await servicios.preguntas.publicarSinRevision(admin, [borrador, enRevision]);
+      const primero = await servicios.preguntas.publicarSinRevision(admin, filtros());
+      const segundo = await servicios.preguntas.publicarSinRevision(admin, filtros());
+      const tercero = await servicios.preguntas.publicarSinRevision(admin, filtros());
 
-    expect(lote.publicadas).toEqual([borrador]);
-    expect(lote.noPublicadas).toEqual([
-      {
-        id: enRevision,
-        motivo: expect.stringContaining('solo se publican sin revisión') as string,
-      },
-    ]);
-    expect(await etapa(borrador)).toEqual({ estado: 'publicada', dificultad: 'media' });
-    expect(await enLaApp(borrador)).toBe(true);
-    expect((await etapa(enRevision))?.estado).toBe('en_revision');
-    const historial = await base.bd.query<{ hacia: string; usuario: string }>(
-      `SELECT e.codigo AS hacia, h.usuario_id::text AS usuario
-         FROM contenido.historial_estado_pregunta h
+      expect(primero.publicadas).toHaveLength(10);
+      expect(segundo.publicadas).toHaveLength(2);
+      expect(tercero).toEqual({ publicadas: [], noPublicadas: [] });
+      expect(new Set(await etapas(ids))).toEqual(new Set(['publicada']));
+      const enLaApp = await base.bd.query(
+        'SELECT 1 FROM contenido.v_preguntas_publicadas WHERE id = ANY ($1::bigint[])',
+        [ids],
+      );
+      expect(enLaApp.rowCount).toBe(12);
+      const historial = await base.bd.query<{ hacia: string }>(
+        `SELECT e.codigo AS hacia FROM contenido.historial_estado_pregunta h
          JOIN contenido.estado_pregunta e ON e.id = h.hacia_id
         WHERE h.pregunta_id = $1 AND h.desde_id IS NOT NULL ORDER BY h.id`,
-      [borrador],
-    );
-    expect(historial.rows).toEqual(
-      ['en_revision', 'aprobada', 'publicada'].map((hacia) => ({ hacia, usuario: admin })),
-    );
-    const auditoria = await base.bd.query<{ accion: string }>(
-      `SELECT a.codigo AS accion FROM contenido.auditoria au
+        [ids[0]],
+      );
+      expect(historial.rows.map((fila) => fila.hacia)).toEqual([
+        'en_revision',
+        'aprobada',
+        'publicada',
+      ]);
+      const auditoria = await base.bd.query<{ accion: string }>(
+        `SELECT a.codigo AS accion FROM contenido.auditoria au
          JOIN contenido.accion_auditoria a ON a.id = au.accion_auditoria_id
         WHERE au.entidad = 'pregunta' AND au.entidad_id = $1`,
-      [borrador],
-    );
-    expect(auditoria.rows.map((fila) => fila.accion)).toContain('publicar_sin_revision');
-  });
+        [ids[0]],
+      );
+      expect(auditoria.rows.map((fila) => fila.accion)).toContain('publicar_sin_revision');
+      expect((await servicios.preguntas.contarLote(filtros())).paraPublicar).toBe(0);
+    },
+    MINUTO,
+  );
 
-  it('una publicada sin revisión se retira desde el banco como cualquier publicada', async () => {
-    const id = await nueva('¿Se retira?');
-    await servicios.preguntas.publicarSinRevision(admin, [id]);
+  it(
+    'una con dificultad ya asignada la conserva y se retira como cualquier publicada',
+    async () => {
+      const [id = ''] = await borradores(1, 'Con dificultad');
+      await base.bd.query(
+        `UPDATE contenido.pregunta
+          SET dificultad_asignada_id = (SELECT id FROM contenido.dificultad WHERE codigo = 'dificil')
+        WHERE id = $1`,
+        [id],
+      );
 
-    const retirada = await servicios.preguntas.cambiarEtapa(admin, id, 'retirar');
+      const lote = await servicios.preguntas.publicarSinRevision(admin, filtros());
+      const retirada = await servicios.preguntas.cambiarEtapa(admin, id, 'retirar');
 
-    expect(retirada.estado.codigo).toBe('retirada');
-    expect(await enLaApp(id)).toBe(false);
-  });
+      expect(lote.publicadas).toEqual([id]);
+      const dificultad = await base.bd.query<{ codigo: string }>(
+        `SELECT d.codigo FROM contenido.pregunta p
+         JOIN contenido.dificultad d ON d.id = p.dificultad_asignada_id
+        WHERE p.id = $1`,
+        [id],
+      );
+      expect(dificultad.rows[0]?.codigo).toBe('dificil');
+      expect(retirada.estado.codigo).toBe('retirada');
+    },
+    MINUTO,
+  );
 });

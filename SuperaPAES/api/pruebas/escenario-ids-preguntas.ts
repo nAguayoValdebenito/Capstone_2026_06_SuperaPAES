@@ -208,7 +208,6 @@ export function preguntasDePrueba(base: PreguntasServicio): PreguntasServicio {
 export function cuerpoDePreguntas(ruta: string): Record<string, unknown> | undefined {
   if (/^(POST|PUT) .*\/preguntas\/textos(\/:id)?$/.test(ruta)) return cuerpoTexto;
   if (ruta.endsWith('/preguntas/importaciones')) return cuerpoImportacion;
-  if (ruta.endsWith('/preguntas/publicacion-sin-revision')) return { ids: [84, 85] };
   if (ruta.endsWith('/preguntas/avisos/:id')) return { estado: 'resuelto' };
   if (/^(POST|PUT) .*\/preguntas\/(:id)?$/.test(ruta)) return cuerpoPregunta;
   return undefined;
