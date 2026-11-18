@@ -19,18 +19,19 @@ import 'package:supera_paes/presentacion/practicar/estado_practica.dart';
 /// Una prueba del perfil como la muestra Inicio.
 typedef PruebaDeInicio = ({int id, String titulo, bool reforzar});
 
-/// Las pruebas del perfil en el orden de A12: la prueba a reforzar primero y
-/// las demás como se guardaron. Ciencias lleva su electivo («Ciencias ·
-/// Biología»).
+/// Las pruebas del perfil en el orden de A12: las pruebas a reforzar primero
+/// y después las demás, cada grupo como se guardó. Ciencias lleva su
+/// electivo («Ciencias · Biología»).
 List<PruebaDeInicio> pruebasDeInicio(
   PerfilEstudiante perfil,
   OpcionesPerfil opciones,
 ) {
-  final reforzar = perfil.pruebaReforzarId;
+  final reforzar = perfil.pruebasReforzar.toSet();
   final ids = [
-    ?reforzar,
     for (final id in perfil.pruebas)
-      if (id != reforzar) id,
+      if (reforzar.contains(id)) id,
+    for (final id in perfil.pruebas)
+      if (!reforzar.contains(id)) id,
   ];
   return [
     for (final id in ids)
@@ -44,7 +45,7 @@ List<PruebaDeInicio> pruebasDeInicio(
             ].join(' · '),
             _ => prueba.nombreEnInicio,
           },
-          reforzar: id == reforzar,
+          reforzar: reforzar.contains(id),
         ),
   ];
 }

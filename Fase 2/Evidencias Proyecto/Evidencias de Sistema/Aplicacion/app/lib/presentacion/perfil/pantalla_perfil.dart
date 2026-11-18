@@ -15,6 +15,7 @@ import 'package:supera_paes/presentacion/comunes/estados.dart';
 import 'package:supera_paes/presentacion/comunes/sello_prueba.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/borrador_perfil.dart';
 import 'package:supera_paes/presentacion/perfil_estudio/estado_perfil.dart';
+import 'package:supera_paes/presentacion/perfil_estudio/pantalla_paso_pruebas.dart';
 import 'package:supera_paes/presentacion/planes/estado_planes.dart';
 import 'package:supera_paes/presentacion/progreso/tarjetas_progreso.dart';
 
@@ -295,9 +296,10 @@ class _DatosDelPerfil extends StatelessWidget {
     final electivo = perfil.electivoId == null
         ? null
         : opciones.electivo(perfil.electivoId!);
-    final reforzar = perfil.pruebaReforzarId == null
-        ? null
-        : opciones.prueba(perfil.pruebaReforzarId!)?.nombreCorto;
+    final reforzar = [
+      for (final id in perfil.pruebasReforzar)
+        ?opciones.prueba(id)?.nombreCorto,
+    ];
     const separador = Padding(
       padding: EdgeInsets.symmetric(vertical: TemaSuperaPaes.espacio12),
       child: Divider(height: 1),
@@ -342,7 +344,12 @@ class _DatosDelPerfil extends StatelessWidget {
           FilaDato(etiqueta: 'Electivo de Ciencias', valor: electivo),
           const SizedBox(height: TemaSuperaPaes.espacio12),
         ],
-        FilaDato(etiqueta: 'Prueba a reforzar', valor: reforzar ?? 'Ninguna'),
+        FilaDato(
+          etiqueta: reforzar.length > 1
+              ? 'Pruebas a reforzar'
+              : 'Prueba a reforzar',
+          valor: reforzar.isEmpty ? 'Ninguna' : unirNombres(reforzar),
+        ),
         const SizedBox(height: TemaSuperaPaes.espacio12),
         FilaDato(
           etiqueta: 'Áreas de carrera',

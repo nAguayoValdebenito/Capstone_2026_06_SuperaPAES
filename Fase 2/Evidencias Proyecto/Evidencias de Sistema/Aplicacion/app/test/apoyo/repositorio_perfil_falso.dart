@@ -87,7 +87,7 @@ const PerfilEstudiante perfilCompleto = PerfilEstudiante(
   anioEgreso: 2027,
   pruebas: [1, 2, 5],
   electivoId: 4,
-  pruebaReforzarId: 2,
+  pruebasReforzar: [2],
   areasCarrera: [1],
   debeConfirmarCurso: false,
 );
@@ -99,7 +99,7 @@ const PerfilEstudiante perfilVacio = PerfilEstudiante(
   anioEgreso: null,
   pruebas: [],
   electivoId: null,
-  pruebaReforzarId: null,
+  pruebasReforzar: [],
   areasCarrera: [],
   debeConfirmarCurso: false,
 );
@@ -132,7 +132,7 @@ class RepositorioPerfilFalso implements RepositorioPerfil {
       anioEgreso: datos.anioEgreso ?? 2027,
       pruebas: datos.pruebas,
       electivoId: datos.electivoId,
-      pruebaReforzarId: datos.pruebaReforzarId,
+      pruebasReforzar: datos.pruebasReforzar,
       areasCarrera: datos.areasCarrera,
       debeConfirmarCurso: false,
     );
@@ -150,7 +150,7 @@ class RepositorioPerfilFalso implements RepositorioPerfil {
       anioEgreso: anioEgreso ?? perfil.anioEgreso,
       pruebas: perfil.pruebas,
       electivoId: perfil.electivoId,
-      pruebaReforzarId: perfil.pruebaReforzarId,
+      pruebasReforzar: perfil.pruebasReforzar,
       areasCarrera: perfil.areasCarrera,
       debeConfirmarCurso: false,
     );

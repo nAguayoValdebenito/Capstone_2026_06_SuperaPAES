@@ -1,5 +1,5 @@
 // SQL del perfil del estudiante (HU-29.1, RF-A04, RN-24, RN-25, CU-05): año de egreso, pruebas con su
-// electivo y la prueba a reforzar (app.estudiante_prueba) e intereses de carrera
+// electivo y las pruebas a reforzar (app.estudiante_prueba) e intereses de carrera
 // (app.estudiante_interes_carrera). Las pruebas, los cursos y las áreas de carrera solo se leen.
 // La fecha de Chile sale del instante del reloj del servicio, para poder probar el cambio de marzo.
 import type { Ejecutor } from '../../db/transaccion.js';
@@ -17,7 +17,7 @@ export interface FilaPerfil {
   cursoNombre: string | null;
   pruebas: number[];
   electivoId: number | null;
-  pruebaReforzarId: number | null;
+  pruebasReforzarIds: number[];
   areasCarrera: number[];
   /** Nunca confirmó, o confirmó en un año escolar anterior cuando todavía no egresaba. */
   cursoPorConfirmar: boolean;
@@ -28,7 +28,7 @@ export interface PerfilAGuardar {
   anioEgreso: number;
   pruebas: readonly number[];
   electivoId: number | null;
-  pruebaReforzarId: number | null;
+  pruebasReforzarIds: readonly number[];
   areasCarrera: readonly number[];
 }
 
@@ -44,8 +44,8 @@ const PERFIL = `
                     WHERE ep.estudiante_id = e.id), '{}') AS pruebas,
          (SELECT ep.electivo_area_id FROM app.estudiante_prueba ep
            WHERE ep.estudiante_id = e.id AND ep.electivo_area_id IS NOT NULL LIMIT 1) AS "electivoId",
-         (SELECT ep.prueba_id FROM app.estudiante_prueba ep
-           WHERE ep.estudiante_id = e.id AND ep.es_principal) AS "pruebaReforzarId",
+         COALESCE((SELECT array_agg(ep.prueba_id ORDER BY ep.prueba_id) FROM app.estudiante_prueba ep
+                    WHERE ep.estudiante_id = e.id AND ep.es_principal), '{}') AS "pruebasReforzarIds",
          COALESCE((SELECT array_agg(i.area_carrera_id ORDER BY i.area_carrera_id)
                      FROM app.estudiante_interes_carrera i WHERE i.estudiante_id = e.id), '{}') AS "areasCarrera",
          (e.anio_egreso IS NOT NULL AND (e.curso_confirmado_en IS NULL
@@ -56,12 +56,12 @@ const PERFIL = `
    WHERE e.id = $1 AND e.eliminado_en IS NULL`;
 
 /**
- * Reemplaza las pruebas; el electivo va en la fila de Ciencias y la prueba a reforzar se marca. Sin
- * prueba a reforzar ($3 nulo), IS NOT DISTINCT FROM da false, no NULL.
+ * Reemplaza las pruebas; el electivo va en la fila de Ciencias y cada prueba a reforzar se marca ($3 es
+ * la lista, que puede venir vacía).
  */
 const INSERTAR_PRUEBAS = `
   INSERT INTO app.estudiante_prueba (estudiante_id, prueba_id, es_principal, electivo_area_id)
-  SELECT $1, p.id, p.id IS NOT DISTINCT FROM $3::smallint, CASE WHEN p.codigo = 'CIE' THEN $4::smallint END
+  SELECT $1, p.id, p.id = ANY($3::smallint[]), CASE WHEN p.codigo = 'CIE' THEN $4::smallint END
     FROM contenido.prueba p WHERE p.id = ANY($2::smallint[])`;
 
 async function anioEscolarYCurso(
@@ -89,9 +89,9 @@ async function guardarElecciones(
   perfil: PerfilAGuardar,
   instante: Date,
 ): Promise<void> {
-  const { pruebas, pruebaReforzarId, electivoId, areasCarrera } = perfil;
+  const { pruebas, pruebasReforzarIds, electivoId, areasCarrera } = perfil;
   await tx.query('DELETE FROM app.estudiante_prueba WHERE estudiante_id = $1', [estudianteId]);
-  await tx.query(INSERTAR_PRUEBAS, [estudianteId, pruebas, pruebaReforzarId, electivoId]);
+  await tx.query(INSERTAR_PRUEBAS, [estudianteId, pruebas, pruebasReforzarIds, electivoId]);
   await tx.query(
     `DELETE FROM app.estudiante_interes_carrera
       WHERE estudiante_id = $1 AND NOT (area_carrera_id = ANY($2::smallint[]))`,

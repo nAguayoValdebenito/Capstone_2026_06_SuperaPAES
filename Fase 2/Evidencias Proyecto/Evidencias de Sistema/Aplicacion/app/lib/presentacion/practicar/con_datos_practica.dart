@@ -96,5 +96,5 @@ int? pruebaElegida(BorradorPractica borrador, PerfilEstudiante perfil) {
   if (borrador.pruebaId case final id? when perfil.pruebas.contains(id)) {
     return id;
   }
-  return perfil.pruebaReforzarId ?? perfil.pruebas.firstOrNull;
+  return perfil.primeraReforzar ?? perfil.pruebas.firstOrNull;
 }

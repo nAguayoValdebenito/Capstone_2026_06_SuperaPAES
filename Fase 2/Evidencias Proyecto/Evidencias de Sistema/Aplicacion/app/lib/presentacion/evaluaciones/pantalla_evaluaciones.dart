@@ -104,11 +104,11 @@ class PantallaEvaluaciones extends ConsumerWidget {
   }
 }
 
-/// La elegida en A25 si sigue en el perfil; si no, la prueba a reforzar o la
-/// primera del perfil.
+/// La elegida en A25 si sigue en el perfil; si no, la primera prueba a
+/// reforzar o la primera del perfil.
 int? _pruebaElegida(int? elegida, PerfilEstudiante perfil) {
   if (elegida != null && perfil.pruebas.contains(elegida)) return elegida;
-  return perfil.pruebaReforzarId ?? perfil.pruebas.firstOrNull;
+  return perfil.primeraReforzar ?? perfil.pruebas.firstOrNull;
 }
 
 /// Las pruebas del perfil, en el orden de Inicio («M1», «Lectora»...).

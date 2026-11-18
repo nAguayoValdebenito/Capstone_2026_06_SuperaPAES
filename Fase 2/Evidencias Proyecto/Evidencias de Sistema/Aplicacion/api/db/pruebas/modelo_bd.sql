@@ -451,7 +451,7 @@ INSERT INTO app.consentimiento (estudiante_id, documento_legal_id, aceptado_en) 
 SELECT pg_temp.debe_fallar('Aceptar dos veces el mismo documento vigente', 'INSERT INTO app.consentimiento (estudiante_id, documento_legal_id, aceptado_en) SELECT pg_temp.est(''Ana''), MIN(id), now() FROM contenido.documento_legal');
 SELECT pg_temp.debe_fallar('Dos versiones iguales de un documento', 'INSERT INTO contenido.documento_legal (tipo_documento_legal_id, version, contenido, vigente_desde) VALUES (pg_temp.id(''tipo_documento_legal'', ''terminos''), ''1.0'', ''x'', now())');
 INSERT INTO app.estudiante_prueba (estudiante_id, prueba_id, es_principal) SELECT pg_temp.est('Ana'), id, codigo = 'M1' FROM contenido.prueba WHERE codigo IN ('M1', 'CL');
-SELECT pg_temp.debe_fallar('Dos pruebas a reforzar', 'UPDATE app.estudiante_prueba SET es_principal = true WHERE estudiante_id = pg_temp.est(''Ana'')');
+SELECT pg_temp.debe_pasar('Varias pruebas a reforzar','UPDATE app.estudiante_prueba SET es_principal = true WHERE estudiante_id = pg_temp.est(''Ana'')');
 SELECT pg_temp.debe_fallar('Electivo en una prueba que no es Ciencias', 'UPDATE app.estudiante_prueba SET electivo_area_id = (SELECT id FROM contenido.area WHERE nombre = ''Física'') WHERE estudiante_id = pg_temp.est(''Ana'') AND prueba_id = pg_temp.m1()');
 SELECT pg_temp.debe_fallar('Solicitud respondida sin fecha de respuesta',
   'INSERT INTO app.solicitud_derecho (estudiante_id, tipo_derecho_id, estado_solicitud_id, solicitado_en, vence_en) VALUES (pg_temp.est(''Ana''), pg_temp.id(''tipo_derecho'', ''acceso''), pg_temp.id(''estado_solicitud'', ''respondida''), now(), now() + INTERVAL ''30 days'')');

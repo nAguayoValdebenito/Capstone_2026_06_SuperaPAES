@@ -56,7 +56,7 @@ class PantallaPuntajes extends ConsumerWidget {
               FormularioPuntaje(
                 pruebas: nombres.pruebas,
                 pruebaInicial:
-                    perfil?.pruebaReforzarId ??
+                    perfil?.primeraReforzar ??
                     perfil?.pruebas.firstOrNull ??
                     nombres.pruebas.first.id,
               ),
