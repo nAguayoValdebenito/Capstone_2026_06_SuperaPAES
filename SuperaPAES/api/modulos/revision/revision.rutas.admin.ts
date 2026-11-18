@@ -19,6 +19,7 @@ import {
   esquemaConsultaSeguimiento,
   esquemaDesempate,
   esquemaIdPregunta,
+  esquemaLoteRevision,
   esquemaIdRevision,
   esquemaRevision,
 } from './revision.validadores.js';
@@ -100,6 +101,9 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     validar({ consulta: esquemaConsultaSeguimiento }),
     controlador.listarSeguimiento,
   );
+  const lote = validar({ cuerpo: esquemaLoteRevision });
+  // Administrador: enviar a revisión hasta 10 preguntas por vez (antes de /preguntas/:id).
+  router.post('/preguntas/lote', exigirRol('admin'), lote, controlador.enviarLoteARevision);
   // Administrador: enviar una pregunta a revisión, que le asigna sus revisores (C02, HU-21, CU-18).
   router.post(
     '/preguntas/:id',

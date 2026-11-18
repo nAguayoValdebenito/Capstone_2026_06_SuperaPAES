@@ -359,6 +359,26 @@ export interface Paginacion {
 export interface PaginaDelBanco {
   preguntas: PreguntaDelBanco[];
   paginacion: Paginacion;
+  /** La API tiene MODO_PRUEBAS_PREGUNTAS: se puede publicar sin revisión hasta 10 borradores. */
+  modoPruebas: boolean;
+}
+
+/** Una pregunta del lote que no se envió o no se publicó, y por qué. */
+export interface PreguntaNoProcesada {
+  id: number;
+  motivo: string;
+}
+
+/** Enviar a revisión hasta 10 preguntas por vez. */
+export interface LoteARevision {
+  enviadas: EnvioARevision[];
+  noEnviadas: PreguntaNoProcesada[];
+}
+
+/** Modo de pruebas: publicar sin revisión hasta 10 borradores por vez. */
+export interface PublicacionSinRevision {
+  publicadas: number[];
+  noPublicadas: PreguntaNoProcesada[];
 }
 
 export interface EstadoSalud {

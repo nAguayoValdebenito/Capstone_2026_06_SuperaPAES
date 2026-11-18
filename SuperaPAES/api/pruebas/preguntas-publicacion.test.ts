@@ -43,6 +43,7 @@ function escenario() {
         ? Promise.reject(Object.assign(new Error(SIN_DIFICULTAD), { code: 'P0001' }))
         : Promise.resolve({ codigo: hacia, nombre: NOMBRES[hacia] ?? hacia }),
     ),
+    asignarDificultadSugerida: vi.fn(() => Promise.resolve()),
   } satisfies PublicacionRepositorio;
   return { ...escenarioEdicion(publicacion), publicacion };
 }

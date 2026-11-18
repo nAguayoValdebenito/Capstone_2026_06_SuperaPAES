@@ -10,6 +10,10 @@ import type { AdministracionServicio } from '../administracion/index.js';
 import type { PreguntasEdicionRepositorio } from './preguntas.edicion.repositorio.js';
 import { traducirErrores } from './preguntas.edicion.servicio.js';
 import type { PublicacionRepositorio } from './preguntas.publicacion.repositorio.js';
+import {
+  crearSinRevisionPreguntas,
+  type SinRevisionPreguntas,
+} from './preguntas.sin-revision.servicio.js';
 import type { Opcion } from './preguntas.repositorio.js';
 
 /** Publicar (aprobada → publicada), retirar (publicada → retirada) o volver a borrador (retirada → borrador). */
@@ -21,7 +25,8 @@ export interface PreguntaConEtapa {
   estado: Opcion;
 }
 
-export interface PublicacionPreguntas {
+/** Con el modo de pruebas, también publicar sin revisión (preguntas.sin-revision.servicio.ts). */
+export interface PublicacionPreguntas extends SinRevisionPreguntas {
   /** 404 si la pregunta no existe; 409 si no está en la etapa que pide el cambio. */
   cambiarEtapa(
     administradorId: string,
@@ -104,5 +109,6 @@ export function crearPublicacionPreguntas(
   return {
     cambiarEtapa: (administradorId, id, cambio) =>
       cambiarEtapa(dependencias, administradorId, [id, cambio]),
+    ...crearSinRevisionPreguntas(dependencias),
   };
 }

@@ -15,6 +15,7 @@ import type {
   DesempateEntregado,
   DificultadClasificada,
   EnvioARevision,
+  LoteARevision,
   PreguntaARevisar,
   RevisionEntregada,
   RevisionPendiente,
@@ -33,6 +34,15 @@ export async function enviarARevision(preguntaId: number): Promise<EnvioARevisio
     `/revision/preguntas/${String(preguntaId)}`,
     { method: 'POST' },
   );
+  return data;
+}
+
+/** HU-21: el mismo envío para hasta 10 preguntas; dice cuáles no se enviaron y por qué. */
+export async function enviarLoteARevision(ids: readonly number[]): Promise<LoteARevision> {
+  const { data } = await solicitarAdmin<LoteARevision>('/revision/preguntas/lote', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
   return data;
 }
 
