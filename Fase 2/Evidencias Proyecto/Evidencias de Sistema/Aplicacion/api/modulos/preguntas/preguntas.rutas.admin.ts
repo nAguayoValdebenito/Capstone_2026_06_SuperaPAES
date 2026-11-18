@@ -20,7 +20,6 @@ import {
   esquemaIdPregunta,
   esquemaIdTexto,
   esquemaImportacion,
-  esquemaLotePreguntas,
   esquemaPregunta,
   esquemaTexto,
 } from './preguntas.validadores.js';
@@ -103,21 +102,23 @@ function agregarRutasAntesDeId(router: Router, controlador: PreguntasControlador
 }
 
 /**
- * Modo de pruebas (MODO_PRUEBAS_PREGUNTAS, apagado por defecto): publicar sin revisión hasta 10
- * borradores por vez, solo para llenar la app de pruebas. Apagado, la ruta no se monta y no existe.
+ * Acciones en lote para llenar la app de pruebas (C02): cuántas hay para cada una con los filtros del
+ * banco y publicar sin revisión las 10 siguientes. Van antes de /:id.
  */
-function agregarRutaSinRevision(router: Router, controlador: PreguntasControlador): void {
+function agregarRutasLote(router: Router, controlador: PreguntasControlador): void {
+  const filtros = validar({ consulta: esquemaFiltrosBanco });
+  router.get('/lote/elegibles', exigirRol('admin'), filtros, controlador.contarLote);
   router.post(
     '/publicacion-sin-revision',
     exigirRol('admin'),
-    validar({ cuerpo: esquemaLotePreguntas }),
+    filtros,
     controlador.publicarSinRevision,
   );
 }
 
-export function crearRutasAdminPreguntas(servicio: PreguntasServicio, modoPruebas = false): Router {
+export function crearRutasAdminPreguntas(servicio: PreguntasServicio): Router {
   const router = Router();
-  const controlador = crearPreguntasControlador(servicio, modoPruebas);
+  const controlador = crearPreguntasControlador(servicio);
 
   // Banco de preguntas (C02, HU-11, RF-G01): lista filtrada y paginada, y las opciones de sus filtros.
   router.get(
@@ -128,6 +129,7 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio, modoPrueba
   );
   router.get('/filtros', exigirRol('admin'), controlador.filtrosDelBanco);
 
+  agregarRutasLote(router, controlador);
   agregarRutasAntesDeId(router, controlador);
 
   // CU-16 paso 1: descarga de las plantillas CSV (HU-13.3), solo para administradores.
@@ -172,7 +174,6 @@ export function crearRutasAdminPreguntas(servicio: PreguntasServicio, modoPrueba
   // dificultad se publica, solo una publicada se retira y solo una retirada vuelve a borrador.
   const etapa = validar({ parametros: esquemaIdPregunta });
   router.post('/:id/publicar', exigirRol('admin'), etapa, controlador.publicarPregunta);
-  if (modoPruebas) agregarRutaSinRevision(router, controlador);
   router.post('/:id/retirar', exigirRol('admin'), etapa, controlador.retirarPregunta);
   router.post('/:id/borrador', exigirRol('admin'), etapa, controlador.volverABorrador);
   // Anular una pregunta con error (C13, HU-50.2, CU-26a, RN-22): solo una publicada; irreversible.

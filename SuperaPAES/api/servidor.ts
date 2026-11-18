@@ -16,7 +16,7 @@ import { crearWorkerGeneracion } from './trabajos/worker-generacion.js';
 /** Las dependencias que solo existen con cierta configuración. */
 function opcionesDe(
   config: Configuracion,
-): Pick<Dependencias, 'claveTareas' | 'opcionesSuscripciones' | 'modoPruebasPreguntas'> {
+): Pick<Dependencias, 'claveTareas' | 'opcionesSuscripciones'> {
   return {
     opcionesSuscripciones: {
       ...(config.pagos.proveedor === 'tiendas' && {
@@ -24,7 +24,6 @@ function opcionesDe(
       }),
       modoPruebas: config.modoPruebasSuscripcion,
     },
-    modoPruebasPreguntas: config.modoPruebasPreguntas,
     ...(config.claveTareas && { claveTareas: config.claveTareas }),
   };
 }

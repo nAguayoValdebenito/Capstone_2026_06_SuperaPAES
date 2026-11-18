@@ -130,6 +130,8 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
       'POST /preguntas/': ['admin'],
       'GET /preguntas/:id': ['admin'],
       'PUT /preguntas/:id': ['admin'],
+      'GET /preguntas/lote/elegibles': ['admin'],
+      'POST /preguntas/publicacion-sin-revision': ['admin'],
       'POST /preguntas/:id/publicar': ['admin'],
       'POST /preguntas/:id/retirar': ['admin'],
       'POST /preguntas/:id/borrador': ['admin'],

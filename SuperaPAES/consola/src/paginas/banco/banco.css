@@ -130,22 +130,3 @@
     padding-block: 0.5rem;
   }
 }
-
-/* Acciones en lote (llenar la app de pruebas): una franja sobre la tabla. */
-.lote {
-  display: grid;
-  gap: 0.5rem;
-  margin-block: 0.75rem;
-}
-
-.lote__nota {
-  margin: 0;
-  color: var(--texto-secundario);
-  font-size: 0.875rem;
-}
-
-.lote__botones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}

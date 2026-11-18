@@ -56,7 +56,10 @@ import {
 } from './revision.repositorio.js';
 import { crearSeguimientoRepositorio } from './revision.seguimiento.repositorio.js';
 import { crearSeguimiento, type Seguimiento } from './revision.seguimiento.servicio.js';
-import { enviarLoteARevision, type LoteARevision } from './revision.lote.js';
+import { CANDIDATAS_POR_LOTE, enviarLoteARevision, type LoteARevision } from './revision.lote.js';
+
+/** Los filtros del banco que usa el envío en lote (los mismos de la tabla, HU-11). */
+type FiltrosDelLote = Parameters<PreguntasServicio['elegiblesParaRevision']>[0];
 
 export interface DependenciasRevisionServicio {
   bd: Ejecutor;
@@ -64,7 +67,10 @@ export interface DependenciasRevisionServicio {
   /** Hora de la asignación y su fecha límite. */
   reloj: Reloj;
   administracion: Pick<AdministracionServicio, 'obtenerParametroEntero' | 'registrarAuditoria'>;
-  preguntas: Pick<PreguntasServicio, 'pasarARevision' | 'resolverRevision'>;
+  preguntas: Pick<
+    PreguntasServicio,
+    'pasarARevision' | 'resolverRevision' | 'elegiblesParaRevision'
+  >;
   /** HU-26.1: las preguntas publicadas cuyo acierto salió de su rango (RN-15). */
   evaluaciones: Pick<EvaluacionesServicio, 'estadisticasFueraDeRango' | 'estadisticasDe'>;
   /** Solo para pruebas: reemplaza al repositorio que se crea con crearRevisionRepositorio(bd). */
@@ -106,10 +112,10 @@ export interface RevisionServicio
   extends BandejaDocente, DesempatesDocente, ClasificacionDocente, Seguimiento, CalibracionDocente {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
-  /** El mismo envío, para hasta 10 preguntas; dice cuáles se enviaron y por qué no las demás. */
+  /** El mismo envío para las 10 siguientes del filtro del banco; dice por qué no las que no se pudo. */
   enviarLoteARevision(
     administradorId: string,
-    preguntaIds: readonly string[],
+    filtros: FiltrosDelLote,
   ): Promise<LoteARevision<EnvioARevision>>;
 }
 
@@ -270,10 +276,10 @@ export function crearRevisionServicio(
     ...partesIndependientes(dependencias),
     enviarARevision: (administradorId, preguntaId) =>
       enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
-    enviarLoteARevision: (administradorId, preguntaIds) =>
+    enviarLoteARevision: async (administradorId, filtros) =>
       enviarLoteARevision(
         (preguntaId) => enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
-        preguntaIds,
+        await dependencias.preguntas.elegiblesParaRevision(filtros, CANDIDATAS_POR_LOTE),
       ),
   };
 }

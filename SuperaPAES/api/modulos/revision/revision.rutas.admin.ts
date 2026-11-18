@@ -10,6 +10,7 @@
 import { Router } from 'express';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
+import { esquemaFiltrosBanco } from '../preguntas/index.js';
 import { crearRevisionControlador, type RevisionControlador } from './revision.controlador.js';
 import type { RevisionServicio } from './revision.servicio.js';
 import {
@@ -19,7 +20,6 @@ import {
   esquemaConsultaSeguimiento,
   esquemaDesempate,
   esquemaIdPregunta,
-  esquemaLoteRevision,
   esquemaIdRevision,
   esquemaRevision,
 } from './revision.validadores.js';
@@ -101,7 +101,7 @@ export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
     validar({ consulta: esquemaConsultaSeguimiento }),
     controlador.listarSeguimiento,
   );
-  const lote = validar({ cuerpo: esquemaLoteRevision });
+  const lote = validar({ consulta: esquemaFiltrosBanco });
   // Administrador: enviar a revisión hasta 10 preguntas por vez (antes de /preguntas/:id).
   router.post('/preguntas/lote', exigirRol('admin'), lote, controlador.enviarLoteARevision);
   // Administrador: enviar una pregunta a revisión, que le asigna sus revisores (C02, HU-21, CU-18).

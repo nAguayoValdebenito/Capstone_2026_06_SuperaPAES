@@ -43,18 +43,7 @@ describe('servicios del banco de preguntas (C02)', () => {
     expect(resultado).toEqual({
       preguntas: [],
       paginacion: { pagina: 2, porPagina: 20, total: 25 },
-      modoPruebas: false,
     });
-  });
-
-  it('el banco dice si la API tiene el modo de pruebas de preguntas', async () => {
-    responder({
-      data: [],
-      error: null,
-      meta: { pagina: 1, porPagina: 20, total: 0, modoPruebasPreguntas: true },
-    });
-
-    expect((await listarBanco({}, 1)).modoPruebas).toBe(true);
   });
 
   it('pide las opciones de los filtros', async () => {

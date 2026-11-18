@@ -42,7 +42,11 @@ function escenario({
     unidadDeTrabajo: { enTransaccion: (trabajo) => trabajo(tx) },
     reloj: () => AHORA,
     administracion,
-    preguntas: { pasarARevision, resolverRevision: () => Promise.reject(new Error('no se usa')) },
+    preguntas: {
+      pasarARevision,
+      resolverRevision: () => Promise.reject(new Error('no se usa')),
+      elegiblesParaRevision: () => Promise.resolve([]),
+    },
     evaluaciones: {
       estadisticasFueraDeRango: () => Promise.resolve([]),
       estadisticasDe: () => Promise.resolve([]),

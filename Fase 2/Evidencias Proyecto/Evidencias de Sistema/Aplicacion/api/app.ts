@@ -18,7 +18,7 @@ import {
 import { manejarErrores, rutaNoEncontrada } from './comun/middleware/manejo-errores.js';
 import { registrarPeticiones } from './comun/middleware/registro-peticiones.js';
 import { encabezadosSeguridad, sinAlmacenar } from './comun/middleware/encabezados.js';
-import type { ConfiguracionVerificacionCorreo, ModosDePrueba } from './comun/configuracion.js';
+import type { ConfiguracionVerificacionCorreo } from './comun/configuracion.js';
 import type { Reloj } from './comun/reloj.js';
 import { crearRutasSalud } from './comun/salud.js';
 import { crearRutasTareas } from './trabajos/tareas-periodicas.js';
@@ -86,7 +86,7 @@ import {
 
 const PREFIJO_API = '/api/v1';
 
-export interface Dependencias extends ModosDePrueba {
+export interface Dependencias {
   /** Pool de PostgreSQL (o un reemplazo en las pruebas). */
   bd: Ejecutor;
   unidadDeTrabajo: UnidadDeTrabajo;
@@ -287,12 +287,12 @@ function crearRouterApp(s: Servicios, mw: MiddlewareRutas): Router {
  * /api/v1/admin: la sesión de la consola y, después, todo con el JWT de la consola. Cada ruta declara
  * su rol con exigirRol en su propia cadena (DAS 4.3.3); los routers de los módulos no aplican roles.
  */
-function crearRouterAdmin(s: Servicios, mw: MiddlewareRutas, modos: ModosDePrueba): Router {
+function crearRouterAdmin(s: Servicios, mw: MiddlewareRutas): Router {
   const router = Router();
   router.use('/cuentas', crearRutasAdminCuentas(s.cuentas, mw));
   router.use(mw.autenticarAdmin);
   router.use('/temario', crearRutasAdminTemario(s.temario));
-  router.use('/preguntas', crearRutasAdminPreguntas(s.preguntas, modos.modoPruebasPreguntas));
+  router.use('/preguntas', crearRutasAdminPreguntas(s.preguntas));
   router.use('/generador', crearRutasAdminGenerador(s.generador));
   router.use('/revision', crearRutasAdminRevision(s.revision));
   router.use('/evaluaciones', crearRutasAdminEvaluaciones(s.evaluaciones));
@@ -366,7 +366,7 @@ export function crearApp(
   app.use(`${PREFIJO_API}/salud`, crearRutasSalud(dependencias.comprobarBaseDeDatos));
   montarRutasSinSesion(app, servicios, dependencias.claveTareas);
   app.use(`${PREFIJO_API}/app`, crearRouterApp(servicios, mw));
-  app.use(`${PREFIJO_API}/admin`, sinAlmacenar, crearRouterAdmin(servicios, mw, dependencias));
+  app.use(`${PREFIJO_API}/admin`, sinAlmacenar, crearRouterAdmin(servicios, mw));
 
   app.use(rutaNoEncontrada);
   app.use(manejarErrores);

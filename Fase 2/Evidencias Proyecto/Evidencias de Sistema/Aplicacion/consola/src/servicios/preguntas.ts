@@ -14,6 +14,7 @@ import type {
   ArchivosImportacion,
   ArchivoCsv,
   CambioDeEtapa,
+  ConteoDelLote,
   DatosPregunta,
   FiltrosBanco,
   ImportacionHecha,
@@ -56,16 +57,26 @@ export async function listarBanco(
     `${PREGUNTAS}${consultaDelBanco(filtros, pagina)}`,
     opciones(senal),
   );
-  const modoPruebas =
-    (meta as { modoPruebasPreguntas?: unknown } | null)?.modoPruebasPreguntas === true;
-  return { preguntas: data, paginacion: paginacionDe(meta, pagina, data.length), modoPruebas };
+  return { preguntas: data, paginacion: paginacionDe(meta, pagina, data.length) };
 }
 
-/** Modo de pruebas (MODO_PRUEBAS_PREGUNTAS): publica sin revisión hasta 10 borradores. */
-export async function publicarSinRevision(ids: readonly number[]): Promise<PublicacionSinRevision> {
+/** Cuántas preguntas del filtro del banco hay para enviar a revisión y para publicar sin revisión. */
+export async function contarLote(
+  filtros: FiltrosBanco,
+  senal?: AbortSignal,
+): Promise<ConteoDelLote> {
+  const { data } = await solicitarAdmin<ConteoDelLote>(
+    `${PREGUNTAS}/lote/elegibles${consultaDelBanco(filtros, 1)}`,
+    opciones(senal),
+  );
+  return data;
+}
+
+/** Publica sin revisión las 10 siguientes del filtro del banco (en todo el banco). */
+export async function publicarSinRevision(filtros: FiltrosBanco): Promise<PublicacionSinRevision> {
   const { data } = await solicitarAdmin<PublicacionSinRevision>(
-    `${PREGUNTAS}/publicacion-sin-revision`,
-    { method: 'POST', body: JSON.stringify({ ids }) },
+    `${PREGUNTAS}/publicacion-sin-revision${consultaDelBanco(filtros, 1)}`,
+    { method: 'POST' },
   );
   return data;
 }

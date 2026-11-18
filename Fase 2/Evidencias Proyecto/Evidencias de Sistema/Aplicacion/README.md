@@ -182,14 +182,15 @@ cd app && flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3000
 
 ### Llenar la app de preguntas para probarla
 
-En el banco de la consola, sobre la tabla, «Enviar a revisión (N)» envía de una vez hasta 10 preguntas
-de la página que estén en borrador u observadas, con la misma asignación de dos docentes que el envío
-de a una. Para probar la app sin esperar a los docentes existe el modo de pruebas de preguntas, que
-viene apagado: con `MODO_PRUEBAS_PREGUNTAS=true` aparece además «Aceptar y publicar sin revisión (N)»,
-que publica hasta 10 borradores de la página por clic con su dificultad sugerida (o media). Es una
-excepción a la revisión de dos docentes: pide confirmación, queda en la auditoría como
-`publicar_sin_revision` y cada pregunta se retira desde el banco como cualquier publicada. Apágalo al
-terminar las pruebas; apagado, `POST /api/v1/admin/preguntas/publicacion-sin-revision` no existe.
+En el banco de la consola, junto a «Importar archivo» y «Nueva pregunta», hay dos botones que siempre
+están y que procesan 10 preguntas por clic con los filtros que estén puestos, en todo el banco (no solo
+en la página): «Enviar a revisión (N)» envía las siguientes en borrador u observadas con la misma
+asignación de dos docentes que el envío de a una, y «Aceptar y publicar (N)» publica sin revisión las
+siguientes en borrador, observadas o aprobadas, con su dificultad sugerida (o media) si no tienen una
+asignada. Cada clic toma las 10 siguientes, hasta que no quede ninguna; N dice cuántas quedan (hasta
+10). Publicar sin revisión es una excepción a la revisión de dos docentes, solo para probar la app: pide
+confirmación, queda en la auditoría como `publicar_sin_revision` y cada pregunta se retira desde el
+banco como cualquier publicada.
 ## API
 
 | Ruta                                | Para                                                          |

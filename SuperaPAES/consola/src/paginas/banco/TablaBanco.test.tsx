@@ -122,11 +122,7 @@ describe('estados de la página del banco', () => {
       <ResultadoBanco
         carga={{
           tipo: 'lista',
-          pagina: {
-            preguntas: [],
-            paginacion: { pagina: 1, porPagina: 20, total: 0 },
-            modoPruebas: false,
-          },
+          pagina: { preguntas: [], paginacion: { pagina: 1, porPagina: 20, total: 0 } },
         }}
         alCambiarPagina={nada}
       />,
@@ -141,11 +137,7 @@ describe('estados de la página del banco', () => {
       <ResultadoBanco
         carga={{
           tipo: 'lista',
-          pagina: {
-            preguntas: [pregunta()],
-            paginacion: { pagina: 1, porPagina: 20, total: 21 },
-            modoPruebas: false,
-          },
+          pagina: { preguntas: [pregunta()], paginacion: { pagina: 1, porPagina: 20, total: 21 } },
         }}
         alCambiarPagina={nada}
       />,

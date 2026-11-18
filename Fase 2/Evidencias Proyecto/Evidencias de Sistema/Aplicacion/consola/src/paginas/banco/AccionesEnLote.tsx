@@ -1,89 +1,76 @@
-// Acciones en lote del banco (C02), para llenar la app de preguntas y probarla: «Enviar a revisión» las
-// preguntas de la página que lo admiten y, con el modo de pruebas de la API, «Aceptar y publicar sin
-// revisión» los borradores de la página; hasta 10 por clic. Publicar sin revisión se confirma antes.
+// Los dos botones de las acciones en lote del banco (C02), en la barra de acciones junto a «Importar
+// archivo» y «Nueva pregunta»: «Enviar a revisión» y «Aceptar y publicar», 10 preguntas por clic con los
+// filtros del banco. Siempre están; dicen cuántas toma el próximo clic y, sin ninguna, quedan
+// deshabilitados con el motivo. Publicar sin revisión se confirma antes.
 import { DialogoConfirmacion } from '../../componentes/DialogoConfirmacion';
 import {
   type AccionEnLote,
-  type AccionesEnLote as Acciones,
-  MAXIMO_LOTE,
-  paraEnviar,
-  paraPublicar,
+  type AccionesEnLote,
+  delProximoClic,
 } from '../../estado/acciones-lote-banco';
-import type { PreguntaDelBanco } from '../../tipos';
 
-/** El texto de cada botón: antes y mientras se hace. */
-const TEXTOS: Record<AccionEnLote, [string, string]> = {
-  enviar: ['Enviar a revisión', 'Enviando…'],
-  publicar: ['Aceptar y publicar sin revisión', 'Publicando…'],
+const TEXTOS: Record<AccionEnLote, { boton: string; durante: string; sinNinguna: string }> = {
+  enviar: {
+    boton: 'Enviar a revisión',
+    durante: 'Enviando…',
+    sinNinguna:
+      'No hay preguntas en borrador u observadas para enviar a revisión con estos filtros.',
+  },
+  publicar: {
+    boton: 'Aceptar y publicar',
+    durante: 'Publicando…',
+    sinNinguna:
+      'No hay preguntas en borrador, observadas o aprobadas para publicar con estos filtros.',
+  },
 };
 
 function BotonLote({
   accion,
-  ids,
+  quedan,
   acciones,
 }: {
   accion: AccionEnLote;
-  ids: readonly number[];
-  acciones: Acciones;
+  /** Cuántas quedan; null mientras se cuentan. */
+  quedan: number | null;
+  acciones: AccionesEnLote;
 }) {
-  if (ids.length === 0) return null;
-  const [antes, durante] = TEXTOS[accion];
+  const { boton, durante, sinNinguna } = TEXTOS[accion];
+  const cantidad = quedan === null ? '' : ` (${String(delProximoClic(quedan))})`;
   return (
     <button
       type="button"
       className={accion === 'publicar' ? 'boton boton--peligro' : 'boton'}
-      disabled={acciones.enCurso !== null}
-      onClick={() => acciones.ejecutar(accion, ids)}
+      disabled={acciones.enCurso !== null || quedan === 0}
+      title={
+        quedan === 0 ? sinNinguna : 'Procesa hasta 10 preguntas por clic con los filtros puestos.'
+      }
+      onClick={() => acciones.ejecutar(accion)}
     >
-      {acciones.enCurso === accion ? durante : `${antes} (${String(ids.length)})`}
+      {acciones.enCurso === accion ? durante : `${boton}${cantidad}`}
     </button>
   );
 }
 
-export function AccionesEnLote({
-  preguntas,
-  modoPruebas,
-  acciones,
-}: {
-  preguntas: readonly PreguntaDelBanco[];
-  modoPruebas: boolean;
-  acciones: Acciones;
-}) {
-  const enviar = paraEnviar(preguntas);
-  const publicar = modoPruebas ? paraPublicar(preguntas) : [];
-  const { aviso } = acciones;
-  if (enviar.length === 0 && publicar.length === 0 && !aviso) return null;
+export function BotonesEnLote({ acciones }: { acciones: AccionesEnLote }) {
+  const { conteo } = acciones;
+  const publicar = delProximoClic(conteo?.paraPublicar ?? 0);
   return (
-    <section className="lote" aria-label="Acciones en lote">
-      <p className="lote__nota">
-        {`Actúan sobre las preguntas de esta página, hasta ${String(MAXIMO_LOTE)} por clic.`}
-      </p>
-      <div className="lote__botones">
-        <BotonLote accion="enviar" ids={enviar} acciones={acciones} />
-        <BotonLote accion="publicar" ids={publicar} acciones={acciones} />
-      </div>
-      {aviso && (
-        <p
-          className={`aviso aviso--${aviso.tipo}`}
-          role={aviso.tipo === 'error' ? 'alert' : 'status'}
-        >
-          {aviso.texto}
-        </p>
-      )}
+    <>
+      <BotonLote accion="enviar" quedan={conteo?.paraRevision ?? null} acciones={acciones} />
+      <BotonLote accion="publicar" quedan={conteo?.paraPublicar ?? null} acciones={acciones} />
       <DialogoConfirmacion
         abierto={acciones.porConfirmar}
-        titulo={`¿Publicar ${String(publicar.length)} sin revisión?`}
-        textoConfirmar="Publicar sin revisión"
+        titulo={`¿Aceptar y publicar ${String(publicar)} sin revisión?`}
+        textoConfirmar="Aceptar y publicar"
         peligro
-        alConfirmar={() => acciones.confirmar(publicar)}
+        alConfirmar={() => acciones.confirmar()}
         alCancelar={() => acciones.cancelar()}
       >
         <p>
-          Modo de pruebas: los borradores de esta página llegan a la app sin pasar por los docentes,
-          con su dificultad sugerida. Úsalo solo para probar la app; puedes retirarlas desde el
-          banco.
+          Llegan a la app sin pasar por los docentes, con su dificultad sugerida. Úsalo para probar
+          la app; puedes retirarlas desde el banco.
         </p>
       </DialogoConfirmacion>
-    </section>
+    </>
   );
 }

@@ -15,6 +15,7 @@ import type {
   DesempateEntregado,
   DificultadClasificada,
   EnvioARevision,
+  FiltrosBanco,
   LoteARevision,
   PreguntaARevisar,
   RevisionEntregada,
@@ -37,12 +38,12 @@ export async function enviarARevision(preguntaId: number): Promise<EnvioARevisio
   return data;
 }
 
-/** HU-21: el mismo envío para hasta 10 preguntas; dice cuáles no se enviaron y por qué. */
-export async function enviarLoteARevision(ids: readonly number[]): Promise<LoteARevision> {
-  const { data } = await solicitarAdmin<LoteARevision>('/revision/preguntas/lote', {
-    method: 'POST',
-    body: JSON.stringify({ ids }),
-  });
+/** HU-21: el mismo envío para las 10 siguientes del filtro del banco; dice cuáles no y por qué. */
+export async function enviarLoteARevision(filtros: FiltrosBanco): Promise<LoteARevision> {
+  const { data } = await solicitarAdmin<LoteARevision>(
+    `/revision/preguntas/lote${consultaDeListado(filtros, 1)}`,
+    { method: 'POST' },
+  );
   return data;
 }
 

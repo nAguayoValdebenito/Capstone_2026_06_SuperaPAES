@@ -43,7 +43,11 @@ function escenario({ estado = 'pendiente' }: { estado?: string | null } = {}) {
   const repositorio = bandejaDePrueba(estado);
   const resolverRevision = vi.fn(() => Promise.resolve());
   const { app, tx } = appDeRevision({
-    preguntas: { pasarARevision: () => Promise.reject(new Error('no se usa')), resolverRevision },
+    preguntas: {
+      pasarARevision: () => Promise.reject(new Error('no se usa')),
+      resolverRevision,
+      elegiblesParaRevision: () => Promise.resolve([]),
+    },
     repositorioDesempates: repositorio,
     repositorioRevisiones: { revisionesDeLaRonda: vi.fn(() => Promise.resolve(REVISIONES)) },
   });
