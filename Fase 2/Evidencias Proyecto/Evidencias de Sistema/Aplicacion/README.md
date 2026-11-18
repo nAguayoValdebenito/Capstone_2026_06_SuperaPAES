@@ -180,6 +180,16 @@ Android permite HTTP):
 cd app && flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3000
 ```
 
+### Llenar la app de preguntas para probarla
+
+En el banco de la consola, sobre la tabla, «Enviar a revisión (N)» envía de una vez hasta 10 preguntas
+de la página que estén en borrador u observadas, con la misma asignación de dos docentes que el envío
+de a una. Para probar la app sin esperar a los docentes existe el modo de pruebas de preguntas, que
+viene apagado: con `MODO_PRUEBAS_PREGUNTAS=true` aparece además «Aceptar y publicar sin revisión (N)»,
+que publica hasta 10 borradores de la página por clic con su dificultad sugerida (o media). Es una
+excepción a la revisión de dos docentes: pide confirmación, queda en la auditoría como
+`publicar_sin_revision` y cada pregunta se retira desde el banco como cualquier publicada. Apágalo al
+terminar las pruebas; apagado, `POST /api/v1/admin/preguntas/publicacion-sin-revision` no existe.
 ## API
 
 | Ruta                                | Para                                                          |

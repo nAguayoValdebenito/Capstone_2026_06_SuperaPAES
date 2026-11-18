@@ -18,6 +18,7 @@ type Validado<C = unknown> = RequestHandler<Record<string, string>, unknown, C>;
 
 export interface RevisionControlador {
   enviarARevision: Validado;
+  enviarLoteARevision: Validado<{ ids: number[] }>;
   listarMisRevisiones: Validado;
   obtenerMiRevision: Validado;
   entregarRevision: Validado<DatosRevision>;
@@ -67,6 +68,9 @@ export function crearRevisionControlador(servicio: RevisionServicio): RevisionCo
     enviarARevision: async (req, res) => {
       const envio = await servicio.enviarARevision(usuarioDe(req), String(req.params.id));
       responder(res, envio, { estado: 201 });
+    },
+    enviarLoteARevision: async (req, res) => {
+      responder(res, await servicio.enviarLoteARevision(usuarioDe(req), req.body.ids.map(String)));
     },
     listarMisRevisiones: async (req, res) => {
       responder(res, await servicio.listarMisRevisiones(usuarioDe(req)));

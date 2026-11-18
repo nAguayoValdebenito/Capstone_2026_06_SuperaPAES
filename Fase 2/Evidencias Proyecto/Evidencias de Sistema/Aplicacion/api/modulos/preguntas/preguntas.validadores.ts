@@ -170,6 +170,18 @@ export const esquemaImportacion = esquemaArchivosImportacion.extend({
 
 export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
 
+/** Lo máximo que se publica sin revisión en una sola acción (modo de pruebas). */
+export const MAXIMO_LOTE_PREGUNTAS = 10;
+
+/** Modo de pruebas: hasta 10 preguntas por vez, sin repetir. */
+export const esquemaLotePreguntas = z.strictObject({
+  ids: z
+    .array(idDeCuerpo, 'Indica las preguntas.')
+    .min(1, 'Elige al menos una pregunta.')
+    .max(MAXIMO_LOTE_PREGUNTAS, 'Puedes publicar hasta 10 preguntas por vez.')
+    .refine((ids) => new Set(ids).size === ids.length, 'Elegiste una pregunta más de una vez.'),
+});
+
 export const esquemaIdTexto = z.strictObject({ id: idDeRuta });
 
 export const esquemaIdAviso = z.strictObject({ id: idDeRuta });

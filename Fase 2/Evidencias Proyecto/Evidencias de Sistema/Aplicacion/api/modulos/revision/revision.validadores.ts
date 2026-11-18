@@ -1,10 +1,22 @@
 // Esquemas zod de entrada del módulo revision. Se usan con validar() en las rutas.
 import { z } from 'zod';
-import { idDeRuta } from '../../comun/identificadores.js';
+import { idDeCuerpo, idDeRuta } from '../../comun/identificadores.js';
 import { GRUPOS_SEGUIMIENTO } from './revision.reglas.js';
 
 /** HU-21: la pregunta que se envía a revisión. */
 export const esquemaIdPregunta = z.strictObject({ id: idDeRuta });
+
+/** Lo máximo que se envía a revisión en una sola acción. */
+export const MAXIMO_LOTE_REVISION = 10;
+
+/** Enviar a revisión hasta 10 preguntas por vez, sin repetir. */
+export const esquemaLoteRevision = z.strictObject({
+  ids: z
+    .array(idDeCuerpo, 'Indica las preguntas.')
+    .min(1, 'Elige al menos una pregunta.')
+    .max(MAXIMO_LOTE_REVISION, 'Puedes enviar hasta 10 preguntas por vez.')
+    .refine((ids) => new Set(ids).size === ids.length, 'Elegiste una pregunta más de una vez.'),
+});
 
 /** HU-22 y HU-23: la revisión o el desempate (la asignación) que abre o entrega el docente. */
 export const esquemaIdRevision = z.strictObject({ id: idDeRuta });

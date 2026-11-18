@@ -18,3 +18,18 @@ describe('modo de pruebas de suscripción', () => {
     expect(() => modo('si')).toThrow(/MODO_PRUEBAS_SUSCRIPCION/);
   });
 });
+
+// MODO_PRUEBAS_PREGUNTAS: apagado por defecto; solo «true» permite publicar sin revisión.
+describe('modo de pruebas de preguntas', () => {
+  const modo = (valor?: string) =>
+    leerConfiguracion({ ...minimas, MODO_PRUEBAS_PREGUNTAS: valor }).modoPruebasPreguntas;
+
+  it('está apagado sin la variable, vacía o en false', () => {
+    expect([modo(), modo(''), modo('false')]).toEqual([false, false, false]);
+  });
+
+  it('se enciende con true y rechaza otros valores', () => {
+    expect(modo('true')).toBe(true);
+    expect(() => modo('si')).toThrow(/MODO_PRUEBAS_PREGUNTAS/);
+  });
+});

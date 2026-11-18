@@ -24,6 +24,7 @@ import type {
   PreguntaConEtapa,
   PreguntaDelBanco,
   PreguntaParaEditar,
+  PublicacionSinRevision,
   TextoDeLectura,
 } from '../tipos';
 
@@ -55,7 +56,18 @@ export async function listarBanco(
     `${PREGUNTAS}${consultaDelBanco(filtros, pagina)}`,
     opciones(senal),
   );
-  return { preguntas: data, paginacion: paginacionDe(meta, pagina, data.length) };
+  const modoPruebas =
+    (meta as { modoPruebasPreguntas?: unknown } | null)?.modoPruebasPreguntas === true;
+  return { preguntas: data, paginacion: paginacionDe(meta, pagina, data.length), modoPruebas };
+}
+
+/** Modo de pruebas (MODO_PRUEBAS_PREGUNTAS): publica sin revisión hasta 10 borradores. */
+export async function publicarSinRevision(ids: readonly number[]): Promise<PublicacionSinRevision> {
+  const { data } = await solicitarAdmin<PublicacionSinRevision>(
+    `${PREGUNTAS}/publicacion-sin-revision`,
+    { method: 'POST', body: JSON.stringify({ ids }) },
+  );
+  return data;
 }
 
 export async function obtenerFiltrosBanco(senal?: AbortSignal): Promise<OpcionesFiltrosBanco> {

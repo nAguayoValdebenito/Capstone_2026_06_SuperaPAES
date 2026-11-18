@@ -56,6 +56,7 @@ import {
 } from './revision.repositorio.js';
 import { crearSeguimientoRepositorio } from './revision.seguimiento.repositorio.js';
 import { crearSeguimiento, type Seguimiento } from './revision.seguimiento.servicio.js';
+import { enviarLoteARevision, type LoteARevision } from './revision.lote.js';
 
 export interface DependenciasRevisionServicio {
   bd: Ejecutor;
@@ -105,6 +106,11 @@ export interface RevisionServicio
   extends BandejaDocente, DesempatesDocente, ClasificacionDocente, Seguimiento, CalibracionDocente {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
+  /** El mismo envío, para hasta 10 preguntas; dice cuáles se enviaron y por qué no las demás. */
+  enviarLoteARevision(
+    administradorId: string,
+    preguntaIds: readonly string[],
+  ): Promise<LoteARevision<EnvioARevision>>;
 }
 
 const DIA_EN_MS = 24 * 60 * 60 * 1000;
@@ -264,5 +270,10 @@ export function crearRevisionServicio(
     ...partesIndependientes(dependencias),
     enviarARevision: (administradorId, preguntaId) =>
       enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
+    enviarLoteARevision: (administradorId, preguntaIds) =>
+      enviarLoteARevision(
+        (preguntaId) => enviarARevision(dependencias, repositorio, [administradorId, preguntaId]),
+        preguntaIds,
+      ),
   };
 }

@@ -60,6 +60,12 @@ export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
   return {
     ...base,
     enviarARevision: vi.fn(() => Promise.resolve(envioARevision)),
+    enviarLoteARevision: vi.fn(() =>
+      Promise.resolve({
+        enviadas: [envioARevision],
+        noEnviadas: [{ id: '85', motivo: 'Sin docentes.' }],
+      }),
+    ),
     listarSeguimiento: vi.fn(() =>
       Promise.resolve({
         seguimiento: {
@@ -121,6 +127,7 @@ export const esDelDocente = (ruta: string) =>
 
 /** Cuerpo de la revisión o del desempate que entrega el docente, o undefined si la ruta es otra. */
 export function cuerpoDeRevision(contrato: string): Record<string, unknown> | undefined {
+  if (contrato.endsWith('/revision/preguntas/lote')) return { ids: [84, 85] };
   if (/^POST .*\/clasificar\/:id$/.test(contrato)) return { dificultad: 'facil' };
   if (/^POST .*\/desempates\/:id$/.test(contrato))
     return { dificultad: 'facil', decision: 'aprobar' };
