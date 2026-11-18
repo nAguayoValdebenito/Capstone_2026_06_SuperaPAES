@@ -5,12 +5,13 @@
    tamaño, en una cuadrícula de tres columnas iguales y dos filas. Cada columna es un par: los filtros
    («Más filtros» y «Limpiar filtros»), el lote («Enviar a revisión» y «Aceptar y publicar») y crear
    («Importar archivo» y «Nueva pregunta»). Si la tarjeta es angosta, la cuadrícula baja a su propia fila
-   a todo el ancho; en el teléfono, los pares van uno por fila. Se decide por el ancho de la tarjeta. */
+   a todo el ancho; en el teléfono, los pares van uno por fila. Se decide por el ancho de la tarjeta.
+   Prueba y estado se centran en la altura de la cuadrícula: quedan entre sus dos filas. */
 .filtros.banco__filtros {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1rem;
-  align-items: flex-end;
+  align-items: center;
   container: filtros-banco / inline-size;
 }
 
