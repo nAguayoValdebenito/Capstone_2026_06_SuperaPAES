@@ -110,10 +110,24 @@ function DialogoRetiro({ acciones }: { acciones: ReturnType<typeof useAccionesDe
 }
 
 /**
- * El título del banco y su barra de acciones: las dos acciones en lote (10 por clic con los filtros),
- * importar un archivo (C04) y crear una pregunta (C03).
+ * La barra de acciones del banco, en la tarjeta de los filtros: las dos acciones en lote (10 por clic con
+ * los filtros), importar un archivo (C04) y crear una pregunta (C03).
  */
-function EncabezadoBanco({ lote }: { lote: AccionesEnLote }) {
+function AccionesBanco({ lote }: { lote: AccionesEnLote }) {
+  return (
+    <>
+      <BotonesEnLote acciones={lote} />
+      <Link className="boton" to="/banco/importar">
+        Importar archivo
+      </Link>
+      <Link className="boton boton--primario" to="/banco/nueva">
+        Nueva pregunta
+      </Link>
+    </>
+  );
+}
+
+function EncabezadoBanco() {
   return (
     <header className="pagina__encabezado">
       <div>
@@ -122,15 +136,6 @@ function EncabezadoBanco({ lote }: { lote: AccionesEnLote }) {
           Preguntas de todas las pruebas, con su estado. Filtra para encontrar las que debes
           trabajar.
         </p>
-      </div>
-      <div className="pagina__acciones">
-        <BotonesEnLote acciones={lote} />
-        <Link className="boton" to="/banco/importar">
-          Importar archivo
-        </Link>
-        <Link className="boton boton--primario" to="/banco/nueva">
-          Nueva pregunta
-        </Link>
       </div>
     </header>
   );
@@ -149,17 +154,24 @@ export function PaginaBanco() {
 
   return (
     <section className="pagina pagina--ancha">
-      <EncabezadoBanco lote={lote} />
+      <EncabezadoBanco />
       <AvisoDeAccion aviso={lote.aviso} />
       <AvisoDeAccion aviso={acciones.aviso} />
       <ConfirmadasCalibracion carga={confirmadas} acciones={acciones} />
-      {opciones.tipo === 'lista' && (
+      {opciones.tipo === 'lista' ? (
         <FiltrosBanco
           opciones={opciones.opciones}
           filtros={filtros}
           alCambiar={cambiarFiltro}
           alLimpiar={limpiarFiltros}
+          acciones={<AccionesBanco lote={lote} />}
         />
+      ) : (
+        <div className="filtros banco__filtros">
+          <div className="banco__botonera">
+            <AccionesBanco lote={lote} />
+          </div>
+        </div>
       )}
       {opciones.tipo === 'fallida' && <Alerta texto={opciones.mensaje} codigo={opciones.codigo} />}
       <ResultadoBanco
