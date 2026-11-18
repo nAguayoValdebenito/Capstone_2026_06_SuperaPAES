@@ -121,7 +121,13 @@ const datosDelEstudiante = {
   generadoEn: fecha,
   cuenta: { id: '84', nombre: 'Ana', correo: 'ana@ejemplo.cl', correoVerificado: true },
   consentimientos: [{ documento: 'terminos', version: '1.0', aceptadoEn: fecha, revocadoEn: null }],
-  perfil: { pruebas: [1, 2], electivoId: 4, pruebaReforzarId: 2, areasCarrera: [1] },
+  perfil: {
+    pruebas: [1, 2],
+    electivoId: 4,
+    pruebasReforzarIds: [2],
+    pruebaReforzarId: 2,
+    areasCarrera: [1],
+  },
   evaluaciones: [{ id: '41', tipo: 'practica', respuestas: [{ orden: 1, preguntaId: '900' }] }],
   puntajes: [{ id: '12', pruebaId: 2, anioAdmision: 2026, puntaje: 650 }],
 };

@@ -51,7 +51,7 @@ export function prepararPerfil(prefijo: string) {
       curso,
       pruebas: [prueba('CL'), prueba('M1'), prueba('CIE')],
       electivoId: area('Biología'),
-      pruebaReforzarId: prueba('M1'),
+      pruebasReforzarIds: [prueba('M1')],
       areasCarrera: [1],
     }),
   };

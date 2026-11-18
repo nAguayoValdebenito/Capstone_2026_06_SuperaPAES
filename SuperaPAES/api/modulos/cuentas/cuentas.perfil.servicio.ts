@@ -44,6 +44,9 @@ export interface PerfilEstudiante {
   pruebas: number[];
   /** Electivo de Ciencias, o null si no rinde Ciencias. */
   electivoId: number | null;
+  /** Pruebas que quiere reforzar (HU-29 esc. 4): todas las que quiera, entre las que rinde. */
+  pruebasReforzarIds: number[];
+  /** La primera de pruebasReforzarIds, o null: solo para la app 1.0.0, que conoce una sola. */
   pruebaReforzarId: number | null;
   areasCarrera: number[];
   /** La app pide confirmar el curso (A11, CU-05 1.a). */
@@ -77,7 +80,8 @@ function aPerfil(fila: FilaPerfil): PerfilEstudiante {
     anioEgreso: fila.anioEgreso,
     pruebas: fila.pruebas,
     electivoId: fila.electivoId,
-    pruebaReforzarId: fila.pruebaReforzarId,
+    pruebasReforzarIds: fila.pruebasReforzarIds,
+    pruebaReforzarId: fila.pruebasReforzarIds[0] ?? null,
     areasCarrera: fila.areasCarrera,
     debeConfirmarCurso: completo && fila.cursoPorConfirmar,
   };

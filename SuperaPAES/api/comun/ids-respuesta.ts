@@ -1,10 +1,11 @@
 // Único contrato de serialización de ids HTTP. Cada ruta enumera sus campos, incluso listas/anidados.
 // Al agregar un campo o una ruta con ids, se registra aquí y se actualiza la prueba del inventario.
 
-/** Ids del perfil del estudiante (HU-29.1): sus pruebas, el electivo, la prueba a reforzar y las áreas. */
+/** Ids del perfil del estudiante (HU-29.1): sus pruebas, el electivo, las pruebas a reforzar y las áreas. */
 const CAMPOS_PERFIL = [
   'data.pruebas[]',
   'data.electivoId',
+  'data.pruebasReforzarIds[]',
   'data.pruebaReforzarId',
   'data.areasCarrera[]',
 ] as const;
@@ -217,6 +218,7 @@ export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
     'data.cuenta.id',
     'data.perfil.pruebas[]',
     'data.perfil.electivoId',
+    'data.perfil.pruebasReforzarIds[]',
     'data.perfil.pruebaReforzarId',
     'data.perfil.areasCarrera[]',
     'data.evaluaciones[].id',
