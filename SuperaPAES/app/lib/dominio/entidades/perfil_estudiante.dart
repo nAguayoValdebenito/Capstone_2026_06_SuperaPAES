@@ -19,7 +19,7 @@ class PerfilEstudiante {
     required this.anioEgreso,
     required this.pruebas,
     required this.electivoId,
-    required this.pruebaReforzarId,
+    required this.pruebasReforzar,
     required this.areasCarrera,
     required this.debeConfirmarCurso,
   });
@@ -35,8 +35,15 @@ class PerfilEstudiante {
 
   /// Electivo de Ciencias (Biología, Física o Química), si rinde Ciencias.
   final int? electivoId;
-  final int? pruebaReforzarId;
+
+  /// Pruebas que quiere reforzar (HU-29 esc. 4): todas las que quiera, entre
+  /// las que rinde, o ninguna.
+  final List<int> pruebasReforzar;
   final List<int> areasCarrera;
+
+  /// La primera prueba a reforzar, para lo que propone una sola (Practicar,
+  /// Evaluaciones y Puntajes).
+  int? get primeraReforzar => pruebasReforzar.firstOrNull;
 
   /// Empezó un año escolar y la app pide confirmar el curso (A11).
   final bool debeConfirmarCurso;
@@ -131,7 +138,7 @@ class DatosPerfil {
     required this.pruebas,
     this.anioEgreso,
     this.electivoId,
-    this.pruebaReforzarId,
+    this.pruebasReforzar = const [],
     this.areasCarrera = const [],
   });
 
@@ -139,6 +146,6 @@ class DatosPerfil {
   final int? anioEgreso;
   final List<int> pruebas;
   final int? electivoId;
-  final int? pruebaReforzarId;
+  final List<int> pruebasReforzar;
   final List<int> areasCarrera;
 }

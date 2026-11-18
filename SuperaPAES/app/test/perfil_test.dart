@@ -22,6 +22,7 @@ const Map<String, Object?> _perfilJson = {
   'anioEgreso': 2027,
   'pruebas': [1, 2, 5],
   'electivoId': 4,
+  'pruebasReforzarIds': [],
   'pruebaReforzarId': null,
   'areasCarrera': [1],
   'debeConfirmarCurso': false,
@@ -34,7 +35,7 @@ const PerfilEstudiante _perfilDeMarzo = PerfilEstudiante(
   anioEgreso: 2027,
   pruebas: [1, 2, 5],
   electivoId: 4,
-  pruebaReforzarId: 2,
+  pruebasReforzar: [2],
   areasCarrera: [1],
   debeConfirmarCurso: true,
 );
@@ -85,9 +86,33 @@ void main() {
       expect(perfil.curso?.codigo, '3M');
       expect(perfil.pruebas, [1, 2, 5]);
       expect(perfil.electivoId, 4);
-      expect(perfil.pruebaReforzarId, isNull);
+      expect(perfil.pruebasReforzar, isEmpty);
       expect(perfil.areasCarrera, [1]);
     });
+
+    test(
+      'lee varias pruebas a reforzar y, de una API anterior, la única',
+      () async {
+        final varias = await fuenteCon(
+          AdaptadorHttpFalso(
+            (_) => respuestaOk({
+              ..._perfilJson,
+              'pruebasReforzarIds': [1, 5],
+              'pruebaReforzarId': 1,
+            }),
+          ),
+        ).obtener();
+        final anterior = Map.of(_perfilJson)
+          ..remove('pruebasReforzarIds')
+          ..['pruebaReforzarId'] = 2;
+        final una = await fuenteCon(
+          AdaptadorHttpFalso((_) => respuestaOk(anterior)),
+        ).obtener();
+
+        expect(varias.pruebasReforzar, [1, 5]);
+        expect(una.pruebasReforzar, [2]);
+      },
+    );
 
     test('guarda con PUT el curso y, solo si egresó, el año', () async {
       final adaptador = AdaptadorHttpFalso((_) => respuestaOk(_perfilJson));
@@ -104,7 +129,7 @@ void main() {
         'curso': '3M',
         'pruebas': [1, 2],
         'electivoId': null,
-        'pruebaReforzarId': null,
+        'pruebasReforzarIds': <int>[],
         'areasCarrera': [6],
       });
       expect(confirmar.path, '/cuentas/perfil/confirmar-curso');
@@ -224,13 +249,14 @@ void main() {
 
       await tocar(tester, prueba('Competencia Matemática 2'));
       await tocar(tester, find.widgetWithText(ChipPrueba, 'M1'));
+      await tocar(tester, find.widgetWithText(ChipPrueba, 'Ciencias'));
       await tocar(tester, find.text('Guardar y empezar'));
 
       final datos = repositorio.guardados.single;
       expect(datos.curso, '3M');
       expect(datos.pruebas, [1, 2, 5]);
       expect(datos.electivoId, 4);
-      expect(datos.pruebaReforzarId, 2);
+      expect(datos.pruebasReforzar, [2, 5]);
       expect(datos.areasCarrera, [1, 3]);
       expect(rutaActual(contenedor), Rutas.inicio);
     });

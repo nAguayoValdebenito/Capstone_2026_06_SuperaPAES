@@ -12,6 +12,15 @@ abstract final class PerfilModelo {
   static int? _idOpcional(Object? valor) =>
       valor == null ? null : leerId(valor);
 
+  /// La lista de pruebas a reforzar; una API anterior solo trae
+  /// `pruebaReforzarId`, con una o ninguna.
+  static List<int> _pruebasReforzar(Map<String, dynamic> json) {
+    if (json['pruebasReforzarIds'] case final List<Object?> lista) {
+      return _ids(lista);
+    }
+    return [?_idOpcional(json['pruebaReforzarId'])];
+  }
+
   static Curso _curso(Map<String, dynamic> json) =>
       Curso(codigo: json['codigo'] as String, nombre: json['nombre'] as String);
 
@@ -23,7 +32,7 @@ abstract final class PerfilModelo {
       anioEgreso: json['anioEgreso'] as int?,
       pruebas: _ids(json['pruebas']),
       electivoId: _idOpcional(json['electivoId']),
-      pruebaReforzarId: _idOpcional(json['pruebaReforzarId']),
+      pruebasReforzar: _pruebasReforzar(json),
       areasCarrera: _ids(json['areasCarrera']),
       debeConfirmarCurso: json['debeConfirmarCurso'] as bool,
     );
@@ -70,7 +79,7 @@ abstract final class PerfilModelo {
     ...curso(datos.curso, datos.anioEgreso),
     'pruebas': datos.pruebas,
     'electivoId': datos.electivoId,
-    'pruebaReforzarId': datos.pruebaReforzarId,
+    'pruebasReforzarIds': datos.pruebasReforzar,
     'areasCarrera': datos.areasCarrera,
   };
 
