@@ -198,31 +198,37 @@ describe.skipIf(!urlBase)('sesión del estudiante con PostgreSQL', () => {
       const primera = await conSesion({ dispositivo: 'Pixel 8' });
 
       const renovada = await renovar(primera.tokenRenovacion);
+      const filas = await sesionesDe(primera.id);
+      const accesoNuevo = await usarAcceso(renovada.body.data.tokenAcceso as string);
       const otraVez = await renovar(primera.tokenRenovacion);
 
-      const filas = await sesionesDe(primera.id);
       expect(renovada.status).toBe(200);
       expect(renovada.body.data.tokenRenovacion).not.toBe(primera.tokenRenovacion);
+      expect(accesoNuevo.status).toBe(404);
       expect(otraVez.status).toBe(401);
       expect(otraVez.body).toEqual(errorConFormato('NO_AUTENTICADO'));
       expect((await usarAcceso(primera.tokenAcceso)).status).toBe(401);
-      expect((await usarAcceso(renovada.body.data.tokenAcceso as string)).status).toBe(404);
       expect(filas.map((f) => [f.dispositivo, f.revocado_en !== null])).toEqual([
         ['Pixel 8', true],
         ['Pixel 8', false],
       ]);
       expect(filas[1]?.hash_token).toBe(sha256(renovada.body.data.tokenRenovacion as string));
+      // Reusar el token rotado cerró también la sesión que salió de él (sesion-reuso-bd.test.ts).
+      expect((await usarAcceso(renovada.body.data.tokenAcceso as string)).status).toBe(401);
     });
 
-    it('dos renovaciones a la vez con el mismo token: solo una tiene éxito', async () => {
+    it('dos renovaciones a la vez con el mismo token: solo una tiene éxito y se trata como reuso', async () => {
       const { tokenRenovacion, id } = await conSesion();
 
       const estados = (await Promise.all([renovar(tokenRenovacion), renovar(tokenRenovacion)])).map(
         (r) => r.status,
       );
 
+      // La que pierde encuentra el token ya rotado: cierra la familia, también la sesión de la que
+      // ganó. La app no renueva dos veces a la vez (QueuedInterceptor), así que esto delata una copia.
       expect(estados.sort()).toEqual([200, 401]);
-      expect((await sesionesDe(id)).filter((f) => f.revocado_en === null)).toHaveLength(1);
+      expect(await sesionesDe(id)).toHaveLength(2);
+      expect((await sesionesDe(id)).filter((f) => f.revocado_en === null)).toHaveLength(0);
     });
 
     it('el token de acceso vence a los 15 minutos y la app renueva en silencio, sin contraseña', async () => {

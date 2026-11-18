@@ -103,20 +103,23 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
     const { tokenAcceso, tokenRenovacion } = body.data as Record<string, string>;
 
     const renovada = await request(entorno.app).post(RUTA_RENOVAR).send({ tokenRenovacion });
+    const filas = await sesionesDe(docenteId);
     const otraVez = await request(entorno.app).post(RUTA_RENOVAR).send({ tokenRenovacion });
     const accesoViejo = await request(entorno.app)
       .get(RUTA_YO)
       .set(conToken(tokenAcceso ?? ''));
 
-    const filas = await sesionesDe(docenteId);
     expect(renovada.status).toBe(200);
     expect(otraVez.status).toBe(401);
     expect(accesoViejo.status).toBe(401);
     expect(filas.map((f) => f.revocado_en !== null)).toEqual([true, false]);
     expect(filas[1]?.hash_token).toBe(sha256(renovada.body.data.tokenRenovacion as string));
+    // Reusar el token rotado cerró también la sesión que salió de él (sesion-reuso-bd.test.ts).
+    const despues = await sesionesDe(docenteId);
+    expect(despues.map((f) => f.revocado_en !== null)).toEqual([true, true]);
   });
 
-  it('dos renovaciones a la vez con el mismo token: solo una tiene éxito', async () => {
+  it('dos renovaciones a la vez con el mismo token: solo una tiene éxito y se trata como reuso', async () => {
     const { body } = await ingresar(DOCENTE.correo, DOCENTE.contrasena);
     const cuerpo = { tokenRenovacion: body.data.tokenRenovacion as string };
 
@@ -127,8 +130,11 @@ describe.skipIf(!urlBase)('sesión de la consola con PostgreSQL', () => {
       ])
     ).map((r) => r.status);
 
+    // La que pierde encuentra el token ya rotado y cierra la familia. La consola comparte una sola
+    // renovación entre sus peticiones (renovarUnaVez), así que esto delata una copia.
     expect(estados.sort()).toEqual([200, 401]);
-    expect((await sesionesDe(docenteId)).filter((f) => f.revocado_en === null)).toHaveLength(1);
+    expect(await sesionesDe(docenteId)).toHaveLength(2);
+    expect((await sesionesDe(docenteId)).filter((f) => f.revocado_en === null)).toHaveLength(0);
   });
 
   it('cerrar revoca la fila: el acceso y la renovación dejan de servir, y repetirlo responde igual', async () => {
