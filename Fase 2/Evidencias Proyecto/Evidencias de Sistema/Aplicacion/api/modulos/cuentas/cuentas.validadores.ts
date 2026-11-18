@@ -186,6 +186,12 @@ export const esquemaPerfil = z
       .max(MAXIMO_PRUEBAS, 'Puedes elegir hasta cinco pruebas.')
       .refine(sinRepetir, 'Elegiste una prueba más de una vez.'),
     electivoId: idDeCuerpo.nullable().default(null),
+    // HU-29 esc. 4: todas las pruebas que quiera reforzar, o ninguna.
+    pruebasReforzarIds: z
+      .array(idDeCuerpo, 'Indica las pruebas que quieres reforzar.')
+      .refine(sinRepetir, 'Marcaste una prueba a reforzar más de una vez.')
+      .default([]),
+    /** Solo la app 1.0.0, que envía una sola prueba a reforzar; se suma a pruebasReforzarIds. */
     pruebaReforzarId: idDeCuerpo.nullable().default(null),
     areasCarrera: z
       .array(idDeCuerpo, 'Indica las áreas de carrera.')
@@ -201,18 +207,33 @@ export const esquemaPerfil = z
   })
   .superRefine((datos, contexto) => {
     refinarCurso(datos, contexto);
-    // HU-29 esc. 4: la prueba a reforzar es una de las que rendirá.
-    if (datos.pruebaReforzarId !== null && !datos.pruebas.includes(datos.pruebaReforzarId)) {
+    // HU-29 esc. 4: cada prueba a reforzar es una de las que rendirá.
+    const reforzar: [string, number][] = datos.pruebasReforzarIds.map((id) => [
+      'pruebasReforzarIds',
+      id,
+    ]);
+    if (datos.pruebaReforzarId !== null)
+      reforzar.push(['pruebaReforzarId', datos.pruebaReforzarId]);
+    for (const [campo, id] of reforzar) {
+      if (datos.pruebas.includes(id)) continue;
       contexto.addIssue({
         code: 'custom',
-        path: ['pruebaReforzarId'],
+        path: [campo],
         ...conMotivo(
-          'La prueba a reforzar debe estar entre las que rendirás.',
+          'Las pruebas a reforzar deben estar entre las que rendirás.',
           'reforzar_fuera_de_pruebas',
         ),
       });
+      return;
     }
-  });
+  })
+  .transform(({ pruebaReforzarId, pruebasReforzarIds, ...datos }) => ({
+    ...datos,
+    pruebasReforzarIds:
+      pruebaReforzarId === null || pruebasReforzarIds.includes(pruebaReforzarId)
+        ? pruebasReforzarIds
+        : [...pruebasReforzarIds, pruebaReforzarId],
+  }));
 
 export type DatosRegistro = z.output<typeof esquemaRegistro>;
 export type Credenciales = z.output<typeof esquemaIngreso>;

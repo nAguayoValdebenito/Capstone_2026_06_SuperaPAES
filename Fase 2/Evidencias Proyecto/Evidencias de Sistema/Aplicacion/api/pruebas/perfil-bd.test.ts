@@ -84,13 +84,14 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
       anioEgreso: null,
       pruebas: [],
       electivoId: null,
+      pruebasReforzarIds: [],
       pruebaReforzarId: null,
       areasCarrera: [],
       debeConfirmarCurso: false,
     });
   });
 
-  it('guarda el curso como año de egreso, las pruebas, el electivo, la prueba a reforzar y las áreas (esc. 1 a 5)', async () => {
+  it('guarda el curso como año de egreso, las pruebas, el electivo, las pruebas a reforzar y las áreas (esc. 1 a 5)', async () => {
     const { id, sesion } = await estudianteA(OCTUBRE_2026);
 
     const respuesta = await guardar(sesion, perfilSalud());
@@ -102,6 +103,7 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
       anioEgreso: 2027,
       pruebas: [prueba('CL'), prueba('M1'), prueba('CIE')].sort((a, b) => a - b),
       electivoId: area('Biología'),
+      pruebasReforzarIds: [prueba('M1')],
       pruebaReforzarId: prueba('M1'),
       areasCarrera: [1],
       debeConfirmarCurso: false,
@@ -120,6 +122,34 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
     ]);
   });
 
+  it('guarda todas las pruebas a reforzar que elija (esc. 4)', async () => {
+    const { sesion } = await estudianteA(OCTUBRE_2026);
+    const todas = [prueba('CL'), prueba('M1'), prueba('CIE')].sort((a, b) => a - b);
+
+    const respuesta = await guardar(sesion, { ...perfilSalud(), pruebasReforzarIds: todas });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.data).toMatchObject({
+      pruebasReforzarIds: todas,
+      pruebaReforzarId: todas[0],
+    });
+    expect((await perfilDe(sesion)).body.data.pruebasReforzarIds).toEqual(todas);
+  });
+
+  it('acepta la prueba a reforzar que envía la app 1.0.0 en el campo antiguo', async () => {
+    const { sesion } = await estudianteA(OCTUBRE_2026);
+    const anterior: Record<string, unknown> = { ...perfilSalud(), pruebaReforzarId: prueba('CL') };
+    delete anterior['pruebasReforzarIds'];
+
+    const respuesta = await guardar(sesion, anterior);
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.data).toMatchObject({
+      pruebasReforzarIds: [prueba('CL')],
+      pruebaReforzarId: prueba('CL'),
+    });
+  });
+
   it('al editar, cambia todo y las áreas que siguen marcadas conservan su fecha (esc. 9, CU-05 1.b)', async () => {
     const { id, sesion } = await estudianteA(OCTUBRE_2026);
     await guardar(sesion, { ...perfilSalud(), areasCarrera: [1, 2] });
@@ -136,6 +166,7 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
       curso: { codigo: '4M' },
       anioEgreso: 2026,
       electivoId: null,
+      pruebasReforzarIds: [],
       pruebaReforzarId: null,
       areasCarrera: [2, 6],
     });
@@ -156,12 +187,7 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
       'electivoId',
       'electivo_invalido',
     ],
-    [
-      'electivo sin rendir Ciencias',
-      { pruebas: ['CL', 'M1'], pruebaReforzarId: null },
-      'electivoId',
-      'electivo_invalido',
-    ],
+    ['electivo sin rendir Ciencias', { pruebas: ['CL', 'M1'] }, 'electivoId', 'electivo_invalido'],
     [
       'una cuarta área de carrera (CU-05 4.b)',
       { areasCarrera: [1, 2, 3, 4] },
@@ -176,7 +202,13 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
     ],
     [
       'una prueba a reforzar que no rinde',
-      { pruebaReforzarId: 'M2' },
+      { pruebasReforzarIds: ['M1', 'M2'] },
+      'pruebasReforzarIds',
+      'reforzar_fuera_de_pruebas',
+    ],
+    [
+      'una prueba a reforzar que no rinde, enviada por la app 1.0.0',
+      { pruebasReforzarIds: [], pruebaReforzarId: 'M2' },
       'pruebaReforzarId',
       'reforzar_fuera_de_pruebas',
     ],
@@ -190,7 +222,7 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
     ['año de egreso con un curso', { anioEgreso: 2024 }, 'anioEgreso', 'anio_egreso_invalido'],
     [
       'una prueba inexistente',
-      { pruebas: ['CL', 999], electivoId: null, pruebaReforzarId: null },
+      { pruebas: ['CL', 999], electivoId: null, pruebasReforzarIds: [] },
       'pruebas',
       'prueba_inexistente',
     ],
@@ -203,6 +235,8 @@ describe.skipIf(!urlBase)('perfil del estudiante con PostgreSQL (HU-29.1)', () =
     if (Array.isArray(cuerpo['pruebas'])) cuerpo['pruebas'] = cuerpo['pruebas'].map(id);
     for (const campo of ['electivoId', 'pruebaReforzarId'] as const)
       cuerpo[campo] = id(cuerpo[campo]);
+    if (Array.isArray(cuerpo['pruebasReforzarIds']))
+      cuerpo['pruebasReforzarIds'] = cuerpo['pruebasReforzarIds'].map(id);
 
     const respuesta = await guardar(sesion, cuerpo);
 

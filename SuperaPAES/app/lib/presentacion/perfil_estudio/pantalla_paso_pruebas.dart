@@ -15,7 +15,7 @@ import 'package:supera_paes/presentacion/perfil_estudio/guardar_paso.dart';
 
 /// A10 · Perfil, paso 3: tus pruebas (HU-29 esc. 2 a 5, CU-05 pasos 5 a 7 y
 /// 6.a). Marca las sugeridas por las áreas elegidas; Ciencias exige el
-/// electivo y la prueba a reforzar es opcional. Guarda el perfil.
+/// electivo y las pruebas a reforzar son opcionales. Guarda el perfil.
 class PantallaPasoPruebas extends ConsumerStatefulWidget {
   const PantallaPasoPruebas({super.key});
 
@@ -111,8 +111,9 @@ class _PantallaPasoPruebasState extends ConsumerState<PantallaPasoPruebas>
                 for (final prueba in opciones.pruebas)
                   if (borrador.pruebas.contains(prueba.id)) prueba,
               ],
-              elegidaId: borrador.pruebaReforzarId,
-              onElegir: notificador.elegirReforzar,
+              elegidas: borrador.pruebasReforzar,
+              onAlternar: notificador.alternarReforzar,
+              onNinguna: notificador.sinReforzar,
             ),
           ],
         );
@@ -256,27 +257,30 @@ class _Electivo extends StatelessWidget {
   }
 }
 
-/// Prueba que quiere reforzar (HU-29 esc. 4): opcional, entre las elegidas.
+/// Pruebas que quiere reforzar (HU-29 esc. 4): opcionales, todas las que
+/// quiera entre las elegidas. «Ninguna» desmarca todas.
 class _Reforzar extends StatelessWidget {
   const _Reforzar({
     required this.pruebas,
-    required this.elegidaId,
-    required this.onElegir,
+    required this.elegidas,
+    required this.onAlternar,
+    required this.onNinguna,
   });
 
   final List<PruebaPerfil> pruebas;
-  final int? elegidaId;
-  final ValueChanged<int?> onElegir;
+  final Set<int> elegidas;
+  final ValueChanged<int> onAlternar;
+  final VoidCallback onNinguna;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _TituloSeccion('Prueba que quieres reforzar (opcional)'),
+        const _TituloSeccion('Pruebas que quieres reforzar (opcional)'),
         const SizedBox(height: 8),
         Text(
-          'La proponemos primero al practicar.',
+          'Marca todas las que quieras. Las proponemos primero al practicar.',
           style: TemaSuperaPaes.pequeno.copyWith(
             color: TemaSuperaPaes.textoSecundario,
           ),
@@ -286,14 +290,14 @@ class _Reforzar extends StatelessWidget {
           chips: [
             ChipTexto(
               texto: 'Ninguna',
-              seleccionado: elegidaId == null,
-              onTap: () => onElegir(null),
+              seleccionado: elegidas.isEmpty,
+              onTap: onNinguna,
             ),
             for (final prueba in pruebas)
               ChipPrueba(
                 prueba: Prueba.deCodigo(prueba.codigo),
-                seleccionado: prueba.id == elegidaId,
-                onTap: () => onElegir(prueba.id),
+                seleccionado: elegidas.contains(prueba.id),
+                onTap: () => onAlternar(prueba.id),
               ),
           ],
         ),

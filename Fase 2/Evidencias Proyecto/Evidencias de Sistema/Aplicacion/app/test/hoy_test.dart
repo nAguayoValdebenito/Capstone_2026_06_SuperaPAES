@@ -20,7 +20,7 @@ final PerfilEstudiante _sinReforzar = PerfilEstudiante(
   anioEgreso: perfilCompleto.anioEgreso,
   pruebas: perfilCompleto.pruebas,
   electivoId: perfilCompleto.electivoId,
-  pruebaReforzarId: null,
+  pruebasReforzar: [],
   areasCarrera: perfilCompleto.areasCarrera,
   debeConfirmarCurso: false,
 );

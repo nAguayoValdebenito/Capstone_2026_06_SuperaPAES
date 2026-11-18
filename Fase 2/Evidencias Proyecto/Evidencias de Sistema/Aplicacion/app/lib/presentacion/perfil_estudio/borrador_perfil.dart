@@ -28,7 +28,7 @@ class Borrador {
     this.areasConSugerencias,
     this.pruebas = const {},
     this.electivoId,
-    this.pruebaReforzarId,
+    this.pruebasReforzar = const {},
   });
 
   /// El borrador de un perfil ya guardado, para editarlo o corregirlo.
@@ -41,7 +41,7 @@ class Borrador {
     areasConSugerencias: perfil.areasCarrera,
     pruebas: perfil.pruebas.toSet(),
     electivoId: perfil.electivoId,
-    pruebaReforzarId: perfil.pruebaReforzarId,
+    pruebasReforzar: perfil.pruebasReforzar.toSet(),
   );
 
   final ModoPerfil modo;
@@ -54,7 +54,9 @@ class Borrador {
   final List<int>? areasConSugerencias;
   final Set<int> pruebas;
   final int? electivoId;
-  final int? pruebaReforzarId;
+
+  /// Pruebas que quiere reforzar: todas las que quiera, entre las elegidas.
+  final Set<int> pruebasReforzar;
 
   bool get esEgresado => curso == Curso.egresado;
 
@@ -65,7 +67,7 @@ class Borrador {
     List<int>? Function()? areasConSugerencias,
     Set<int>? pruebas,
     int? Function()? electivoId,
-    int? Function()? pruebaReforzarId,
+    Set<int>? pruebasReforzar,
   }) => Borrador(
     modo: modo,
     curso: curso ?? this.curso,
@@ -76,9 +78,7 @@ class Borrador {
         : areasConSugerencias(),
     pruebas: pruebas ?? this.pruebas,
     electivoId: electivoId == null ? this.electivoId : electivoId(),
-    pruebaReforzarId: pruebaReforzarId == null
-        ? this.pruebaReforzarId
-        : pruebaReforzarId(),
+    pruebasReforzar: pruebasReforzar ?? this.pruebasReforzar,
   );
 
   /// Lo que se envía a la API, en el orden de las opciones.
@@ -95,9 +95,10 @@ class Borrador {
       anioEgreso: esEgresado ? anioEgreso : null,
       pruebas: pruebasEnOrden,
       electivoId: rindeCiencias ? electivoId : null,
-      pruebaReforzarId: pruebas.contains(pruebaReforzarId)
-          ? pruebaReforzarId
-          : null,
+      pruebasReforzar: [
+        for (final id in pruebasEnOrden)
+          if (pruebasReforzar.contains(id)) id,
+      ],
       areasCarrera: areas,
     );
   }
@@ -165,9 +166,7 @@ class EstadoBorrador extends Notifier<Borrador> {
       areasConSugerencias: () => [...areas],
       pruebas: pruebas,
       electivoId: () => electivo ?? state.electivoId,
-      pruebaReforzarId: () => pruebas.contains(state.pruebaReforzarId)
-          ? state.pruebaReforzarId
-          : null,
+      pruebasReforzar: state.pruebasReforzar.intersection(pruebas),
     );
   }
 
@@ -176,16 +175,22 @@ class EstadoBorrador extends Notifier<Borrador> {
     if (!pruebas.remove(id)) pruebas.add(id);
     state = state.copiar(
       pruebas: pruebas,
-      pruebaReforzarId: () => pruebas.contains(state.pruebaReforzarId)
-          ? state.pruebaReforzarId
-          : null,
+      pruebasReforzar: state.pruebasReforzar.intersection(pruebas),
     );
   }
 
   void elegirElectivo(int id) => state = state.copiar(electivoId: () => id);
 
-  void elegirReforzar(int? id) =>
-      state = state.copiar(pruebaReforzarId: () => id);
+  /// Marca o desmarca una prueba a reforzar (HU-29 esc. 4): puede marcar todas
+  /// las que quiera.
+  void alternarReforzar(int id) {
+    final reforzar = {...state.pruebasReforzar};
+    if (!reforzar.remove(id)) reforzar.add(id);
+    state = state.copiar(pruebasReforzar: reforzar);
+  }
+
+  /// «Ninguna»: no quiere reforzar ninguna prueba.
+  void sinReforzar() => state = state.copiar(pruebasReforzar: const {});
 }
 
 final borradorPerfilProvider = NotifierProvider<EstadoBorrador, Borrador>(

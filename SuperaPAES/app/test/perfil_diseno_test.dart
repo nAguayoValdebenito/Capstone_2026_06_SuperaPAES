@@ -28,7 +28,7 @@ const _perfilDeMarzo = PerfilEstudiante(
   anioEgreso: 2027,
   pruebas: [1, 2, 5],
   electivoId: 4,
-  pruebaReforzarId: 2,
+  pruebasReforzar: [2],
   areasCarrera: [1],
   debeConfirmarCurso: true,
 );
@@ -211,7 +211,7 @@ void main() {
       expect(datos.anioEgreso, 2025);
       expect(datos.pruebas, [1, 2, 3, 4, 5]);
       expect(datos.electivoId, 4);
-      expect(datos.pruebaReforzarId, 2);
+      expect(datos.pruebasReforzar, [2]);
       expect(datos.areasCarrera, [1, 3, 6]);
       expect(rutaActual(contenedor), Rutas.inicio);
       expect(tester.takeException(), isNull);
@@ -281,14 +281,14 @@ void main() {
       expect(fondo.color, marcada ? prueba.fondo : TemaSuperaPaes.superficie);
     }
     await tocar(tester, _reforzar(Prueba.m1));
-    expect(contenedor.read(borradorPerfilProvider).pruebaReforzarId, 2);
+    expect(contenedor.read(borradorPerfilProvider).pruebasReforzar, {2});
     await tester.scrollUntilVisible(
       _tarjeta('Competencia Matemática 1'),
       -200,
       scrollable: find.byType(Scrollable).first,
     );
     await tocar(tester, _tarjeta('Competencia Matemática 1'));
-    expect(contenedor.read(borradorPerfilProvider).pruebaReforzarId, isNull);
+    expect(contenedor.read(borradorPerfilProvider).pruebasReforzar, isEmpty);
     await tester.scrollUntilVisible(
       _chip('Ninguna'),
       200,

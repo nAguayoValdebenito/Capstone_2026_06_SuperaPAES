@@ -160,12 +160,13 @@ const CONTEO = `
 
 const UNA = `${DESDE_CONSOLA} WHERE s.id = $1`;
 
+// La fila se bloquea sola en la subconsulta y el estado se une después: con el JOIN dentro del FOR
+// UPDATE, quien esperaba el bloqueo volvía a comparar la fila ya respondida con el estado anterior
+// («pendiente»), no la encontraba y respondía 404 en vez de 409.
 const RESERVAR = `
   SELECT json_build_object('codigo', es.codigo, 'nombre', es.nombre) AS estado, es.es_final AS final
-    FROM app.solicitud_derecho s
-    JOIN contenido.estado_solicitud es ON es.id = s.estado_solicitud_id
-   WHERE s.id = $1
-     FOR UPDATE OF s`;
+    FROM (SELECT estado_solicitud_id FROM app.solicitud_derecho WHERE id = $1 FOR UPDATE) s
+    JOIN contenido.estado_solicitud es ON es.id = s.estado_solicitud_id`;
 
 const RESPONDER = `
   UPDATE app.solicitud_derecho s

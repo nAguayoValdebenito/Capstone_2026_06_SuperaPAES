@@ -232,16 +232,17 @@ void main() {
   });
 
   group('pruebasDeInicio', () {
-    PerfilEstudiante perfil({int? reforzar, int? electivo}) => PerfilEstudiante(
-      completo: true,
-      curso: const Curso(codigo: '3M', nombre: '3° medio'),
-      anioEgreso: 2027,
-      pruebas: const [1, 3, 5],
-      electivoId: electivo,
-      pruebaReforzarId: reforzar,
-      areasCarrera: const [],
-      debeConfirmarCurso: false,
-    );
+    PerfilEstudiante perfil({List<int> reforzar = const [], int? electivo}) =>
+        PerfilEstudiante(
+          completo: true,
+          curso: const Curso(codigo: '3M', nombre: '3° medio'),
+          anioEgreso: 2027,
+          pruebas: const [1, 3, 5],
+          electivoId: electivo,
+          pruebasReforzar: reforzar,
+          areasCarrera: const [],
+          debeConfirmarCurso: false,
+        );
 
     test('sin prueba a reforzar conserva el orden del perfil', () {
       expect(pruebasDeInicio(perfil(), opcionesDePrueba), [
@@ -253,13 +254,21 @@ void main() {
 
     test('la prueba a reforzar va primero y Ciencias lleva su electivo', () {
       expect(
-        pruebasDeInicio(perfil(reforzar: 5, electivo: 6), opcionesDePrueba),
+        pruebasDeInicio(perfil(reforzar: [5], electivo: 6), opcionesDePrueba),
         [
           (id: 5, titulo: 'Ciencias · Química', reforzar: true),
           (id: 1, titulo: 'Competencia Lectora', reforzar: false),
           (id: 3, titulo: 'Matemática M2', reforzar: false),
         ],
       );
+    });
+
+    test('varias pruebas a reforzar van primero, en el orden del perfil', () {
+      expect(pruebasDeInicio(perfil(reforzar: [5, 3]), opcionesDePrueba), [
+        (id: 3, titulo: 'Matemática M2', reforzar: true),
+        (id: 5, titulo: 'Ciencias', reforzar: true),
+        (id: 1, titulo: 'Competencia Lectora', reforzar: false),
+      ]);
     });
   });
 }
