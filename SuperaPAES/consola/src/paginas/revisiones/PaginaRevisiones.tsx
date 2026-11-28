@@ -5,6 +5,7 @@ import { Paginacion } from '../../componentes/Paginacion';
 import { Pestanas } from '../../componentes/Pestanas';
 import { SegunCarga } from '../../componentes/SegunCarga';
 import { useSeguimiento } from '../../estado/seguimiento';
+import { ReintentarDesempates } from './ReintentarDesempates';
 import { totalDePaginas } from '../../servicios/paginacion';
 import type { VistaSeguimiento } from '../../tipos/seguimiento';
 import { avisoSinDocentes, PESTANAS } from '../../utilidades/seguimiento';
@@ -31,6 +32,7 @@ export function PaginaRevisiones() {
   return (
     <section className="pagina pagina--ancha revisiones">
       <h1>Revisiones</h1>
+      <ReintentarDesempates />
       <p className="pagina__aviso">
         Cada pregunta la revisan dos docentes del área, distintos del autor y de quien pidió el
         lote.

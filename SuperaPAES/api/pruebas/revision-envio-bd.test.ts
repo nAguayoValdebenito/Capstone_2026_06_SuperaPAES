@@ -216,7 +216,7 @@ describe.skipIf(!urlBase)('enviar a revisión con PostgreSQL (HU-21, CP-15)', ()
     const preguntaId = await pregunta('Matemática', admin);
 
     await expect(servicios.revision.enviarARevision(admin, preguntaId)).rejects.toThrow(
-      'La pregunta no tiene 2 docentes de Matemática disponibles para revisarla: asigna el área a un docente en Usuarios internos.',
+      'La pregunta no tiene 2 docentes de Matemática disponibles para revisarla: revisa sus áreas y el cupo de preguntas pendientes o diarias.',
     );
 
     const { rows } = await base.bd.query<{ estado: string }>(

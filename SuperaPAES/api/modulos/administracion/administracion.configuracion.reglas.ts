@@ -11,6 +11,16 @@ export interface ReglaConfiguracion {
 }
 
 const EDITABLES: Record<string, Omit<ReglaConfiguracion, 'editable' | 'tipo'>> = {
+  max_pendientes_docente: {
+    nombre: 'Máximo de preguntas pendientes por docente',
+    unidad: 'preguntas',
+    regla: 'RN-39',
+  },
+  max_revisiones_diarias_docente: {
+    nombre: 'Máximo de revisiones diarias por docente',
+    unidad: 'revisiones',
+    regla: 'RN-39',
+  },
   cupo_inicial: {
     nombre: 'Cupo diario sin correo verificado',
     unidad: 'preguntas',
@@ -122,7 +132,18 @@ function validarTipo(regla: ReglaConfiguracion, valor: unknown): asserts valor i
     valorInvalido('Escribe un número entero.');
 }
 
+function validarCapacidadDocente(clave: string, valor: number): void {
+  const maximos: Record<string, number> = {
+    max_pendientes_docente: 20,
+    max_revisiones_diarias_docente: 50,
+  };
+  const maximo = maximos[clave];
+  if (maximo !== undefined && (valor < 1 || valor > maximo))
+    valorInvalido(`El límite debe estar entre 1 y ${String(maximo)}.`);
+}
+
 function validarLimite(clave: string, regla: ReglaConfiguracion, valor: number): void {
+  validarCapacidadDocente(clave, valor);
   if (clave === 'umbral_eje_debil') {
     if (valor < 0 || valor > 100) valorInvalido('El porcentaje debe estar entre 0 y 100.');
   } else if (clave === 'max_no_para_aprobar') {

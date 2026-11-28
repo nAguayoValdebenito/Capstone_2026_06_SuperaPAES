@@ -7,6 +7,7 @@
 // rol_revision y estado_asignacion.
 import type { RolAsignacion } from '../../comun/roles.js';
 import type { Ejecutor } from '../../db/transaccion.js';
+import { ErrorConflicto } from '../../comun/errores.js';
 
 /** Una revisión pendiente en la bandeja del docente. */
 export interface FilaBandeja {
@@ -192,6 +193,18 @@ function listas(
 }
 
 /** La bandeja de las asignaciones con un papel: las de revisor (D01) o las de desempate (D02). */
+function errorDeEntrega(error: unknown): never {
+  if (
+    error instanceof Error &&
+    'code' in error &&
+    error.code === '23514' &&
+    error.message.includes('máximo diario')
+  ) {
+    throw new ErrorConflicto('Alcanzaste tu máximo diario de revisiones. Puedes continuar mañana.');
+  }
+  throw error;
+}
+
 export function crearBandejaRepositorio(bd: Ejecutor, rol: RolAsignacion): BandejaRepositorio {
   return {
     async listarPendientes(docenteId, tx = bd) {
@@ -207,6 +220,7 @@ export function crearBandejaRepositorio(bd: Ejecutor, rol: RolAsignacion): Bande
     ...listas(bd),
 
     async reservarAsignacion(id, docenteId, tx) {
+      await tx.query('SELECT pg_advisory_xact_lock(6971)');
       const { rows } = await tx.query<{ estado: string; preguntaId: string }>(RESERVAR_ASIGNACION, [
         id,
         docenteId,
@@ -216,13 +230,15 @@ export function crearBandejaRepositorio(bd: Ejecutor, rol: RolAsignacion): Bande
     },
 
     async guardarRevision(revision, tx) {
-      const { rows } = await tx.query<{ id: string }>(INSERTAR_REVISION, [
-        revision.asignacionId,
-        revision.decision,
-        revision.dificultad,
-        revision.comentario,
-        revision.entregadaEn,
-      ]);
+      const { rows } = await tx
+        .query<{ id: string }>(INSERTAR_REVISION, [
+          revision.asignacionId,
+          revision.decision,
+          revision.dificultad,
+          revision.comentario,
+          revision.entregadaEn,
+        ])
+        .catch(errorDeEntrega);
       const revisionId = rows[0]?.id;
       if (revisionId === undefined) throw new Error('La revisión no se guardó.');
       await tx.query(INSERTAR_CRITERIOS, [

@@ -28,6 +28,13 @@ const DESEMPATES = '/revision/desempates';
 const CLASIFICAR = '/revision/clasificar';
 
 const opciones = (senal?: AbortSignal) => (senal ? { signal: senal } : {});
+export async function reintentarDesempates(): Promise<{ procesadas: number }> {
+  return (
+    await solicitarAdmin<{ procesadas: number }>('/revision/desempates/reintentar', {
+      method: 'POST',
+    })
+  ).data;
+}
 
 /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10). */
 export async function enviarARevision(preguntaId: number): Promise<EnvioARevision> {

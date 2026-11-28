@@ -1,0 +1,35 @@
+.saldo {
+  display: grid;
+  gap: 1.25rem;
+}
+.saldo__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.saldo__filtros .campo {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 24rem;
+}
+.saldo__tarifas {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+}
+.saldo__docente {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 28rem;
+  margin: 1.5rem 0;
+}
+@media (max-width: 600px) {
+  .saldo__filtros {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .saldo__filtros .campo {
+    max-width: none;
+  }
+}

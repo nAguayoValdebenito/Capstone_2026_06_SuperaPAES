@@ -125,7 +125,7 @@ describe('enviar una pregunta a revisión (HU-21, CU-18)', () => {
     expect(respuesta.status).toBe(409);
     expect(respuesta.body).toMatchObject(errorConFormato('CONFLICTO'));
     expect(respuesta.body.error.mensaje).toBe(
-      'La pregunta no tiene 2 docentes de Historia disponibles para revisarla: asigna el área a un docente en Usuarios internos.',
+      'La pregunta no tiene 2 docentes de Historia disponibles para revisarla: revisa sus áreas y el cupo de preguntas pendientes o diarias.',
     );
     expect(repositorio.asignarRevisores).not.toHaveBeenCalled();
     expect(administracion.registrarAuditoria).not.toHaveBeenCalled();

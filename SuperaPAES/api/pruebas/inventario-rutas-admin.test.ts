@@ -102,6 +102,11 @@ describe('inventario de rutas de /api/v1/admin (HU-03.1)', () => {
     const tabla = Object.fromEntries(inventarioAdmin().rutas.map((r) => [r.ruta, permisoDe(r)]));
 
     expect(tabla).toEqual({
+      'GET /revision/mi-saldo': ['docente'],
+      'GET /revision/saldos/:docenteId': ['admin'],
+      'GET /revision/tarifas': ['admin'],
+      'POST /revision/tarifas': ['admin'],
+      'POST /revision/desempates/reintentar': ['admin'],
       'POST /cuentas/ingreso': 'publica',
       'POST /cuentas/renovar': 'publica',
       'POST /cuentas/cerrar': 'publica',

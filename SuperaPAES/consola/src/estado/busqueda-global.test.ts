@@ -4,7 +4,7 @@ import { seccionesQueCoinciden } from './busqueda-global';
 describe('búsqueda de secciones (Ctrl K)', () => {
   it('sin texto ofrece todas las secciones del rol, en el orden del menú', () => {
     const titulos = seccionesQueCoinciden('docente', '').map((r) => r.titulo);
-    expect(titulos).toEqual(['Mis revisiones', 'Desempates', 'Calibración']);
+    expect(titulos).toEqual(['Mis revisiones', 'Desempates', 'Mi saldo', 'Calibración']);
   });
 
   it('encuentra sin distinguir tildes y no muestra secciones de otro rol', () => {

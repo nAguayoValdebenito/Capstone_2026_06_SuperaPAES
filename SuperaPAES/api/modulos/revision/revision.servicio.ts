@@ -57,6 +57,8 @@ import {
 import { crearSeguimientoRepositorio } from './revision.seguimiento.repositorio.js';
 import { crearSeguimiento, type Seguimiento } from './revision.seguimiento.servicio.js';
 import { CANDIDATAS_POR_LOTE, enviarLoteARevision, type LoteARevision } from './revision.lote.js';
+import { crearSaldoDocenteServicio, type SaldoDocenteServicio } from './revision.saldo.servicio.js';
+import { crearReintentoRepositorio } from './revision.reintento.repositorio.js';
 
 /** Los filtros del banco que usa el envío en lote (los mismos de la tabla, HU-11). */
 type FiltrosDelLote = Parameters<PreguntasServicio['elegiblesParaRevision']>[0];
@@ -109,9 +111,16 @@ export interface EnvioARevision {
  * clasificación de dificultad de las importadas (D03) y la calibración (D04).
  */
 export interface RevisionServicio
-  extends BandejaDocente, DesempatesDocente, ClasificacionDocente, Seguimiento, CalibracionDocente {
+  extends
+    BandejaDocente,
+    DesempatesDocente,
+    ClasificacionDocente,
+    Seguimiento,
+    CalibracionDocente,
+    SaldoDocenteServicio {
   /** HU-21: pasa la pregunta a en revisión y le asigna sus revisores (RN-10); sin docentes, 409. */
   enviarARevision(administradorId: string, preguntaId: string): Promise<EnvioARevision>;
+  reintentarDesempates(administradorId: string): Promise<{ procesadas: number }>;
   /** El mismo envío para las 10 siguientes del filtro del banco; dice por qué no las que no se pudo. */
   enviarLoteARevision(
     administradorId: string,
@@ -149,12 +158,11 @@ async function elegirRevisores(
   [preguntaId, requeridos]: [string, number],
   tx: Ejecutor,
 ): Promise<DocenteDisponible[]> {
-  await repositorio.reservarArea(preguntaId, tx);
   const disponibles = await repositorio.docentesDisponibles(preguntaId, tx);
   if (disponibles.length >= requeridos) return disponibles.slice(0, requeridos);
   const area = (await repositorio.areaDeLaPregunta(preguntaId, tx)) ?? 'su área';
   throw new ErrorConflicto(
-    `La pregunta no tiene ${String(requeridos)} docentes de ${area} disponibles para revisarla: asigna el área a un docente en Usuarios internos.`,
+    `La pregunta no tiene ${String(requeridos)} docentes de ${area} disponibles para revisarla: revisa sus áreas y el cupo de preguntas pendientes o diarias.`,
   );
 }
 
@@ -180,6 +188,7 @@ async function enviarARevision(
 ): Promise<EnvioARevision> {
   const { requeridos, dias } = await parametros(dependencias);
   return dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
+    await repositorio.reservarArea(preguntaId, tx);
     const { version, ronda } = await dependencias.preguntas.pasarARevision(
       administradorId,
       preguntaId,
@@ -240,6 +249,19 @@ function partesIndependientes(dependencias: DependenciasRevisionServicio) {
   return { ...desempates, ...seguimiento, ...calibracion };
 }
 
+function reintentarRondas(
+  dependencias: DependenciasRevisionServicio,
+  resolucion: Parameters<typeof resolverRonda>[0],
+  administradorId: string,
+) {
+  return dependencias.unidadDeTrabajo.enTransaccion(async (tx) => {
+    const preguntas = await crearReintentoRepositorio().rondasListas(tx);
+    for (const preguntaId of preguntas)
+      await resolverRonda(resolucion, [administradorId, preguntaId], tx);
+    return { procesadas: preguntas.length };
+  });
+}
+
 export function crearRevisionServicio(
   dependencias: DependenciasRevisionServicio,
 ): RevisionServicio {
@@ -271,6 +293,9 @@ export function crearRevisionServicio(
     alEntregar,
   });
   return {
+    ...crearSaldoDocenteServicio(dependencias),
+    reintentarDesempates: (administradorId) =>
+      reintentarRondas(dependencias, resolucion, administradorId),
     ...bandeja,
     ...clasificacion,
     ...partesIndependientes(dependencias),
