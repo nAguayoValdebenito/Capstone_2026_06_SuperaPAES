@@ -29,6 +29,18 @@ const CAMPOS_PREGUNTA = [
 ] as const;
 
 export const CAMPOS_ID_POR_RUTA: Readonly<Record<string, readonly string[]>> = {
+  'GET /api/v1/admin/revision/mi-saldo': [
+    'data.docente.id',
+    'data.detalle[].revisionId',
+    'data.detalle[].preguntaId',
+  ],
+  'GET /api/v1/admin/revision/saldos/:docenteId': [
+    'data.docente.id',
+    'data.detalle[].revisionId',
+    'data.detalle[].preguntaId',
+  ],
+  'GET /api/v1/admin/revision/tarifas': ['data.tarifas[].id', 'data.docentes[].id'],
+  'POST /api/v1/admin/revision/tarifas': ['data.id'],
   'POST /api/v1/app/evaluaciones/:id/entregar': ['data.id'],
   'POST /api/v1/app/evaluaciones/mini-ensayos': [
     'data.id',

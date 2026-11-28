@@ -2,6 +2,10 @@
 // «método ruta → campos». Agregar un campo o una ruta con ids exige actualizarlo aquí. Lo usa
 // ids-respuesta.test.ts.
 export const INVENTARIO_IDS = [
+  'GET /api/v1/admin/revision/mi-saldo → data.docente.id, data.detalle[].revisionId, data.detalle[].preguntaId',
+  'GET /api/v1/admin/revision/saldos/:docenteId → data.docente.id, data.detalle[].revisionId, data.detalle[].preguntaId',
+  'GET /api/v1/admin/revision/tarifas → data.tarifas[].id, data.docentes[].id',
+  'POST /api/v1/admin/revision/tarifas → data.id',
   'POST /api/v1/app/evaluaciones/:id/entregar → data.id',
   'POST /api/v1/app/evaluaciones/mini-ensayos → data.id, data.pruebaId, data.preguntas[].id, data.preguntas[].alternativaElegidaId, data.preguntas[].alternativas[].id',
   'POST /api/v1/app/cuentas/registro → data.estudiante.id',

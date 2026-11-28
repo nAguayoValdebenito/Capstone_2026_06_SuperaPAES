@@ -8,6 +8,7 @@
 // Cada endpoint: router.<metodo>(ruta, exigirRol(...), validar(...), controlador.<accion>), con
 // crearRevisionControlador(servicio).
 import { Router } from 'express';
+import { agregarRutasSaldo } from './revision.saldo.rutas.admin.js';
 import { exigirRol } from '../../comun/middleware/autorizacion.js';
 import { validar } from '../../comun/middleware/validacion.js';
 import { esquemaFiltrosBanco } from '../preguntas/index.js';
@@ -61,7 +62,9 @@ function agregarRutasCalibracion(router: Router, controlador: RevisionControlado
 
 export function crearRutasAdminRevision(servicio: RevisionServicio): Router {
   const router = Router();
+  agregarRutasSaldo(router, servicio);
   const controlador = crearRevisionControlador(servicio);
+  router.post('/desempates/reintentar', exigirRol('admin'), controlador.reintentarDesempates);
 
   // Docente revisor: Mis revisiones (D01, HU-22): su bandeja, la pregunta a ciegas y su revisión.
   router.get('/mis-revisiones', exigirRol('docente'), controlador.listarMisRevisiones);

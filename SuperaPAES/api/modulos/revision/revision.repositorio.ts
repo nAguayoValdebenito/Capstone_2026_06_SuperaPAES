@@ -66,6 +66,8 @@ const DOCENTES_DISPONIBLES = `
    WHERE p.id = $1
      AND u.id IS DISTINCT FROM p.autor_id
      AND u.id IS DISTINCT FROM l.solicitante_id
+     AND EXISTS (SELECT 1 FROM contenido.capacidad_docente(u.id, now()) c
+                  WHERE c.pendientes < c.max_pendientes AND c.completadas + c.pendientes < c.max_diarias)
    ORDER BY (SELECT count(*)
                FROM contenido.asignacion_revision a
                JOIN contenido.estado_asignacion e ON e.id = a.estado_asignacion_id
@@ -100,6 +102,7 @@ const ASIGNAR_REVISORES = `
 export function crearRevisionRepositorio(bd: Ejecutor): RevisionRepositorio {
   return {
     async reservarArea(preguntaId, tx) {
+      await tx.query('SELECT pg_advisory_xact_lock(6971)');
       await tx.query(RESERVAR_AREA, [preguntaId, CANDADO_REVISORES]);
     },
 

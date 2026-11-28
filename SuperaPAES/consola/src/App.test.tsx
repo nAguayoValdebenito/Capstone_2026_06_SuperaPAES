@@ -26,13 +26,14 @@ const MENU_ADMIN = [
   'Usuarios internos',
   'Planes',
   'Configuración',
+  'Remuneración docente',
   'Avisos de error',
   'Solicitudes de datos',
   'Estudiantes',
   'Suscripciones',
 ];
 // Clasificar dificultad (D03) no está en el menú, pero su ruta sigue abriéndose por URL.
-const MENU_DOCENTE = ['Mis revisiones', 'Desempates', 'Calibración'];
+const MENU_DOCENTE = ['Mis revisiones', 'Desempates', 'Mi saldo', 'Calibración'];
 
 function renderizar(ruta: string, sesion: UsuarioInterno | null) {
   return renderToString(

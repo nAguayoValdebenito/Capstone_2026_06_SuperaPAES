@@ -1,5 +1,5 @@
 // Secciones de la consola: ruta, página y roles de cuenta que pueden verlas, en el orden del menú
-// lateral (DAS 7.4: 14 del administrador, C01 a C16, y 4 del docente revisor, D01 a D04).
+// lateral (DAS 7.4 y HU-69 a HU-71: 15 del administrador y 5 del docente, con D03 fuera del menú).
 // Fuente única para las rutas y el menú: agregar una sección es agregar una entrada aquí.
 import type { ComponentType } from 'react';
 import type { NombreIcono } from '../componentes/Icono';
@@ -16,6 +16,8 @@ import { PaginaListasOpciones } from '../paginas/listas-opciones/PaginaListasOpc
 import { PaginaPanel } from '../paginas/panel/PaginaPanel';
 import { PaginaPlanes } from '../paginas/planes/PaginaPlanes';
 import { PaginaRevision } from '../paginas/revision/PaginaRevision';
+import { PaginaMiSaldo } from '../paginas/saldo/PaginaMiSaldo';
+import { PaginaRemuneracion } from '../paginas/saldo/PaginaRemuneracion';
 import { PaginaRevisiones } from '../paginas/revisiones/PaginaRevisiones';
 import { PaginaSolicitudesDatos } from '../paginas/solicitudes-datos/PaginaSolicitudesDatos';
 import { PaginaSuscripciones } from '../paginas/suscripciones/PaginaSuscripciones';
@@ -57,7 +59,7 @@ const estudiantes = admin('Estudiantes');
 const trabajoDocente = docente('Mi trabajo');
 
 export const SECCIONES: readonly Seccion[] = [
-  // Administrador (C01 a C16)
+  // Administrador (C01 a C17)
   general('/panel', 'Panel', 'panel', PaginaPanel),
   contenido('/banco', 'Banco de preguntas', 'banco', PaginaBanco),
   contenido('/revisiones', 'Revisiones', 'revisar', PaginaRevisiones),
@@ -68,13 +70,15 @@ export const SECCIONES: readonly Seccion[] = [
   administracion('/usuarios-internos', 'Usuarios internos', 'usuarios', PaginaUsuariosInternos),
   administracion('/planes', 'Planes', 'etiqueta', PaginaPlanes),
   administracion('/configuracion', 'Configuración', 'ajustes', PaginaConfiguracion),
+  administracion('/remuneracion-docente', 'Remuneración docente', 'tarjeta', PaginaRemuneracion),
   atencion('/avisos-error', 'Avisos de error', 'bandera', PaginaAvisosError),
   atencion('/solicitudes-datos', 'Solicitudes de datos', 'escudo', PaginaSolicitudesDatos),
   estudiantes('/estudiantes', 'Estudiantes', 'estudiantes', PaginaEstudiantes),
   estudiantes('/suscripciones', 'Suscripciones', 'tarjeta', PaginaSuscripciones),
-  // Docente revisor (D01 a D04)
+  // Docente revisor (D01 a D05)
   trabajoDocente('/revision', 'Mis revisiones', 'revisar', PaginaRevision),
   trabajoDocente('/desempates', 'Desempates', 'balanza', PaginaDesempates),
+  trabajoDocente('/mi-saldo', 'Mi saldo', 'tarjeta', PaginaMiSaldo),
   // Clasificar dificultad (D03) sigue disponible por su URL, pero no aparece en el menú lateral.
   {
     ...trabajoDocente(

@@ -17,6 +17,7 @@ import type { RevisionServicio } from './revision.servicio.js';
 type Validado<C = unknown> = RequestHandler<Record<string, string>, unknown, C>;
 
 export interface RevisionControlador {
+  reintentarDesempates: Validado;
   enviarARevision: Validado;
   enviarLoteARevision: Validado;
   listarMisRevisiones: Validado;
@@ -65,6 +66,9 @@ function controladorClasificacion(
 
 export function crearRevisionControlador(servicio: RevisionServicio): RevisionControlador {
   return {
+    reintentarDesempates: async (req, res) => {
+      responder(res, await servicio.reintentarDesempates(usuarioDe(req)));
+    },
     enviarARevision: async (req, res) => {
       const envio = await servicio.enviarARevision(usuarioDe(req), String(req.params.id));
       responder(res, envio, { estado: 201 });

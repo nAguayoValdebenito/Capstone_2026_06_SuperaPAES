@@ -59,6 +59,44 @@ const preguntaARevisar = {
 export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
   return {
     ...base,
+    consultarSaldo: vi.fn(() =>
+      Promise.resolve({
+        docente: { id: '21', nombre: 'Docente' },
+        resumen: { totalClp: 500, mesClp: 500, cantidad: 1, cantidadMes: 1 },
+        capacidad: { pendientes: 0, completadas: 1, maxPendientes: 20, maxDiarias: 50 },
+        detalle: [
+          {
+            revisionId: '1',
+            preguntaId: '7',
+            fecha: ASIGNADA,
+            tipo: 'revision' as const,
+            montoClp: 500,
+          },
+        ],
+        paginacion: { pagina: 1, porPagina: 20, total: 1 },
+      }),
+    ),
+    consultarTarifas: vi.fn(() =>
+      Promise.resolve({
+        tarifas: [
+          {
+            id: '1',
+            montoClp: 500,
+            vigenteDesde: new Date(ASIGNADA),
+            creadoEn: new Date(ASIGNADA),
+          },
+        ],
+        docentes: [{ id: '21', nombre: 'Docente' }],
+      }),
+    ),
+    registrarTarifa: vi.fn(() =>
+      Promise.resolve({
+        id: '2',
+        montoClp: 600,
+        vigenteDesde: new Date(ASIGNADA),
+        creadoEn: new Date(ASIGNADA),
+      }),
+    ),
     enviarARevision: vi.fn(() => Promise.resolve(envioARevision)),
     enviarLoteARevision: vi.fn(() =>
       Promise.resolve({
@@ -123,10 +161,12 @@ export function revisionDePrueba(base: RevisionServicio): RevisionServicio {
 
 /** Las rutas del docente revisor (D01, D02 y D03) se piden con la sesión de un docente. */
 export const esDelDocente = (ruta: string) =>
-  /\/revision\/(mis-revisiones|desempates|clasificar)/.test(ruta);
+  /\/revision\/(mis-revisiones|desempates|clasificar|mi-saldo)/.test(ruta);
 
 /** Cuerpo de la revisión o del desempate que entrega el docente, o undefined si la ruta es otra. */
 export function cuerpoDeRevision(contrato: string): Record<string, unknown> | undefined {
+  if (contrato === 'POST /api/v1/admin/revision/tarifas')
+    return { montoClp: 600, ultimaTarifaId: 1 };
   if (/^POST .*\/clasificar\/:id$/.test(contrato)) return { dificultad: 'facil' };
   if (/^POST .*\/desempates\/:id$/.test(contrato))
     return { dificultad: 'facil', decision: 'aprobar' };

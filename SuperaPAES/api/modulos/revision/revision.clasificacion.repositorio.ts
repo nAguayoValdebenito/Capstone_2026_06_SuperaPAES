@@ -71,6 +71,7 @@ export function crearClasificacionRepositorio(bd: Ejecutor): ClasificacionReposi
     },
 
     async reservarAsignacion(id, docenteId, tx) {
+      await tx.query('SELECT pg_advisory_xact_lock(6971)');
       const { rows } = await tx.query<{ estado: string; preguntaId: string }>(RESERVAR_ASIGNACION, [
         id,
         docenteId,

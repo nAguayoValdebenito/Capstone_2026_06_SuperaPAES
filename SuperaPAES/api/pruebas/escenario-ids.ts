@@ -288,6 +288,7 @@ export async function consultarContrato(app: Express, contrato: string) {
   const [metodo, patron] = contrato.split(' ');
   if (!patron) throw new Error('Falta ruta en el contrato de IDs.');
   const ruta = patron
+    .replace(':docenteId', '21')
     .replace(
       ':id',
       patron.includes('/estudiantes/') ? '84' : patron.includes('/evaluaciones/') ? '41' : '7',
